@@ -1,6 +1,7 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
-import { query, mutation } from "./_generated/server";
+import { query, mutation, action, internalQuery } from "./_generated/server";
+import { internal } from "./_generated/api";
 
 // ============================================================================
 // Amour Studios — User queries
@@ -54,5 +55,46 @@ export const saveProfileImage = mutation({
     if (!userId) throw new Error("Non authentifié");
     const url = await ctx.storage.getUrl(storageId);
     await ctx.db.patch(userId, { customImage: storageId, image: url ?? undefined });
+  },
+});
+
+/**
+ * Query interne : récupère le user courant depuis une action.
+ * Retourne uniquement les champs utiles au flow Discord.
+ */
+export const getSelf = internalQuery({
+  args: { userId: v.id("users") },
+  handler: async (ctx, { userId }) => {
+    const user = await ctx.db.get(userId);
+    if (!user || user.deletedAt !== undefined) return null;
+    return {
+      discordId: user.discordId,
+      email: user.email,
+      purchaseId: user.purchaseId,
+    };
+  },
+});
+
+/**
+ * Action publique : le user demande une re-synchronisation du rôle Discord VIP.
+ * Utile si l'assignation automatique a échoué (bot down, timing, etc.).
+ */
+export const requestDiscordRoleSync = action({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Non authentifié");
+
+    const self = await ctx.runQuery(internal.users.getSelf, { userId });
+    if (!self?.discordId || !self?.email || !self?.purchaseId) {
+      throw new Error("Compte non éligible (paiement ou Discord manquant)");
+    }
+
+    await ctx.runAction(internal.stripe.assignDiscordRole, {
+      discordId: self.discordId,
+      email: self.email,
+    });
+
+    return { ok: true };
   },
 });

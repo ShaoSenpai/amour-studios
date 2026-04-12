@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { requireAdmin } from "./lib/auth";
+import { internal } from "./_generated/api";
 
 // ============================================================================
 // Amour Studios — Lessons CRUD
@@ -86,7 +87,7 @@ export const create = mutation({
       .collect();
     const order = existing.length;
 
-    return await ctx.db.insert("lessons", {
+    const lessonId = await ctx.db.insert("lessons", {
       moduleId: args.moduleId,
       title: args.title,
       slug: args.slug,
@@ -99,6 +100,42 @@ export const create = mutation({
       createdAt: now,
       updatedAt: now,
     });
+
+    // Fanout notifications in-app à tous les membres qui ont payé.
+    // On s'appuie sur `purchaseId` (lié dans auth.ts ou fulfillPayment) pour
+    // filtrer les clients actifs sans scanner toute la table users.
+    const members = await ctx.db
+      .query("users")
+      .withIndex("by_role", (q) => q.eq("role", "member"))
+      .filter((q) => q.eq(q.field("deletedAt"), undefined))
+      .collect();
+
+    const mod = await ctx.db.get(args.moduleId);
+    const message = `Nouvelle leçon : ${args.title}${mod ? ` — ${mod.title}` : ""}`;
+
+    for (const member of members) {
+      if (!member.purchaseId) continue;
+      await ctx.db.insert("notifications", {
+        userId: member._id,
+        type: "new_content",
+        message,
+        read: false,
+        lessonId,
+        createdAt: now,
+      });
+    }
+
+    // Annonce Discord (fail silent)
+    await ctx.scheduler.runAfter(0, internal.stripe.announceToDiscord, {
+      type: "new_content",
+      payload: {
+        lessonTitle: args.title,
+        moduleTitle: mod?.title,
+        lessonId,
+      },
+    });
+
+    return lessonId;
   },
 });
 

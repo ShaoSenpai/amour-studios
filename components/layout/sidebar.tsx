@@ -17,6 +17,7 @@ import {
   ChevronRight,
   LogOut,
   User,
+  MessageCircle,
 } from "lucide-react";
 // CSS transitions only — framer-motion removed for Next.js 16 compat
 
@@ -29,6 +30,7 @@ export function Sidebar() {
   if (!user) return null;
 
   const isAdmin = user.role === "admin";
+  const discordInvite = process.env.NEXT_PUBLIC_DISCORD_INVITE_URL;
 
   return (
     <aside
@@ -63,6 +65,25 @@ export function Sidebar() {
         )}
 
         <div className="flex-1" />
+
+        {discordInvite && (
+          <>
+            {!collapsed && (
+              <div className="px-3 pt-3 pb-1.5">
+                <span className="text-[10px] font-medium uppercase tracking-[2px] text-foreground/25">Communauté</span>
+              </div>
+            )}
+            {collapsed && <div className="my-2 mx-2 border-t border-border" />}
+            <NavItem
+              href={discordInvite}
+              icon={MessageCircle}
+              label="Discord"
+              active={false}
+              collapsed={collapsed}
+              external
+            />
+          </>
+        )}
 
         {!collapsed && (
           <div className="px-3 pt-3 pb-1.5">
@@ -149,25 +170,40 @@ function NavItem({
   label,
   active,
   collapsed,
+  external,
 }: {
   href: string;
   icon: React.ComponentType<{ size?: number }>;
   label: string;
   active: boolean;
   collapsed: boolean;
+  external?: boolean;
 }) {
+  const className = `flex items-center gap-3 h-10 rounded-lg text-sm transition-all duration-200 ${
+    collapsed ? "justify-center w-10 mx-auto px-0" : "px-3"
+  } ${
+    active
+      ? "bg-primary/10 text-primary"
+      : "text-foreground/40 hover:text-foreground/80 hover:bg-muted/30"
+  }`;
+
+  if (external) {
+    return (
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        title={collapsed ? label : undefined}
+        className={className}
+      >
+        <Icon size={18} />
+        {!collapsed && <span>{label}</span>}
+      </a>
+    );
+  }
+
   return (
-    <Link
-      href={href}
-      title={collapsed ? label : undefined}
-      className={`flex items-center gap-3 h-10 rounded-lg text-sm transition-all duration-200 ${
-        collapsed ? "justify-center w-10 mx-auto px-0" : "px-3"
-      } ${
-        active
-          ? "bg-primary/10 text-primary"
-          : "text-foreground/40 hover:text-foreground/80 hover:bg-muted/30"
-      }`}
-    >
+    <Link href={href} title={collapsed ? label : undefined} className={className}>
       <Icon size={18} />
       {!collapsed && <span>{label}</span>}
     </Link>

@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { internal } from "./_generated/api";
 
 // ============================================================================
 // Amour Studios — Badges
@@ -77,6 +78,17 @@ export const checkAndAward = mutation({
     if (user) {
       await ctx.db.patch(userId, { xp: (user.xp ?? 0) + 500 });
     }
+
+    // Annonce Discord (fail silent côté action)
+    await ctx.scheduler.runAfter(0, internal.stripe.announceToDiscord, {
+      type: "badge_earned",
+      payload: {
+        userName: user?.name,
+        userDiscordId: user?.discordId,
+        badgeLabel: mod.badgeLabel,
+        moduleTitle: mod.title,
+      },
+    });
 
     return badgeId;
   },

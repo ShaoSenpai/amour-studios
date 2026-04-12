@@ -1,6 +1,5 @@
 import { v } from "convex/values";
 import { action, internalAction, internalMutation, internalQuery } from "./_generated/server";
-import { internal } from "./_generated/api";
 
 // ============================================================================
 // Amour Studios — Stripe actions & mutations
@@ -139,6 +138,56 @@ export const assignDiscordRole = internalAction({
       }
     } catch (err) {
       console.warn("⚠️ Discord bot unreachable:", err);
+    }
+  },
+});
+
+/**
+ * Action interne : annonce un événement côté Discord (badge, nouveau contenu).
+ * Appelle `POST ${DISCORD_BOT_ENDPOINT}/announce` avec Authorization Bearer.
+ * Fail silent — ne bloque pas le flow métier si le bot est down ou pas encore
+ * déployé (le contrat `/announce` est à ajouter côté bot par Florent).
+ */
+export const announceToDiscord = internalAction({
+  args: {
+    type: v.union(v.literal("badge_earned"), v.literal("new_content")),
+    payload: v.object({
+      userName: v.optional(v.string()),
+      userDiscordId: v.optional(v.string()),
+      badgeLabel: v.optional(v.string()),
+      lessonTitle: v.optional(v.string()),
+      moduleTitle: v.optional(v.string()),
+      lessonId: v.optional(v.string()),
+    }),
+  },
+  handler: async (_ctx, { type, payload }) => {
+    const botEndpoint = process.env.DISCORD_BOT_ENDPOINT;
+    const botSecret = process.env.DISCORD_BOT_ENDPOINT_SECRET;
+
+    if (!botEndpoint || !botSecret) {
+      console.warn("Discord bot endpoint not configured, skipping announce");
+      return;
+    }
+
+    try {
+      const res = await fetch(`${botEndpoint}/announce`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${botSecret}`,
+        },
+        body: JSON.stringify({ type, payload }),
+      });
+
+      if (res.ok) {
+        console.log(`✅ Discord announce sent: ${type}`);
+      } else {
+        // Endpoint pas encore déployé côté bot → log discret, pas d'erreur.
+        const data = await res.json().catch(() => ({}));
+        console.warn(`⚠️ Discord announce failed (${res.status}):`, data.error ?? res.statusText);
+      }
+    } catch (err) {
+      console.warn("⚠️ Discord bot unreachable (announce):", err);
     }
   },
 });

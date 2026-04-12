@@ -1,5 +1,6 @@
 import Discord from "@auth/core/providers/discord";
 import { convexAuth } from "@convex-dev/auth/server";
+import { internal } from "./_generated/api";
 
 // ============================================================================
 // Amour Studios — Convex Auth config
@@ -89,6 +90,16 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
       // Si on a lié un purchase, mettre à jour le purchase.userId aussi
       if (purchaseId) {
         await ctx.db.patch(purchaseId, { userId });
+
+        // Assigner le rôle Discord VIP si le user a un discordId
+        // `email` est garanti truthy ici — on n'atteint ce bloc que via
+        // `if (email)` plus haut qui est le seul chemin qui set `purchaseId`.
+        if (discordId && email) {
+          await ctx.scheduler.runAfter(0, internal.stripe.assignDiscordRole, {
+            discordId,
+            email,
+          });
+        }
       }
 
       return userId;

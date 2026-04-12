@@ -1,13 +1,13 @@
 "use client";
 
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useRef, useState, useEffect, useCallback } from "react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Save, Loader2, Camera, LogOut, Check } from "lucide-react";
+import { Save, Loader2, Camera, LogOut, Check, RefreshCw } from "lucide-react";
 
 // ============================================================================
 // Amour Studios — /dashboard/profile
@@ -22,6 +22,8 @@ export default function ProfilePage() {
   const updateProfile = useMutation(api.users.updateProfile);
   const generateUploadUrl = useMutation(api.users.generateUploadUrl);
   const saveProfileImage = useMutation(api.users.saveProfileImage);
+  const requestDiscordRoleSync = useAction(api.users.requestDiscordRoleSync);
+  const [syncing, setSyncing] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -223,6 +225,70 @@ export default function ProfilePage() {
             )}
           </Button>
           {dirty && <span className="text-xs text-muted-foreground">Modifications non sauvegardées</span>}
+        </div>
+      </div>
+
+      {/* Discord */}
+      <div className="mb-8 reveal reveal-delay-3">
+        <p className="label-caps mb-3">Discord</p>
+        <div className="rounded-xl border border-foreground/[0.08] bg-foreground/[0.02] p-4">
+          <div className="flex items-center gap-4">
+            {user.image ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={user.image}
+                alt={user.discordUsername ?? user.name ?? "Avatar Discord"}
+                className="size-10 rounded-full border border-foreground/10 shrink-0"
+              />
+            ) : (
+              <div className="size-10 rounded-full bg-foreground/5 flex items-center justify-center text-sm text-muted-foreground shrink-0">
+                {(user.discordUsername ?? user.name ?? "?")[0]?.toUpperCase()}
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate">
+                {user.discordUsername ? `@${user.discordUsername}` : "Non connecté"}
+              </p>
+              <p className="text-[11px] mt-0.5">
+                {user.purchaseId ? (
+                  <span className="text-primary">VIP actif</span>
+                ) : (
+                  <span className="text-amber-500/80">En attente de paiement</span>
+                )}
+              </p>
+            </div>
+          </div>
+          {user.purchaseId && user.discordId && (
+            <div className="mt-3 pt-3 border-t border-foreground/[0.06]">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={syncing}
+                onClick={async () => {
+                  setSyncing(true);
+                  try {
+                    await requestDiscordRoleSync();
+                    toast.success("Rôle VIP re-synchronisé sur Discord");
+                  } catch (err) {
+                    const msg = err instanceof Error ? err.message : "Erreur inconnue";
+                    toast.error(msg);
+                  } finally {
+                    setSyncing(false);
+                  }
+                }}
+                className="rounded-full gap-2 h-9"
+              >
+                {syncing ? (
+                  <><Loader2 size={12} className="animate-spin" /> Synchronisation...</>
+                ) : (
+                  <><RefreshCw size={12} /> Re-synchroniser le rôle VIP</>
+                )}
+              </Button>
+              <p className="text-[10px] text-muted-foreground mt-1.5">
+                Utile si le rôle n&apos;apparaît pas sur le serveur Discord.
+              </p>
+            </div>
+          )}
         </div>
       </div>
 

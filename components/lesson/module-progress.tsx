@@ -71,3 +71,44 @@ export function ModuleProgress({
     </div>
   );
 }
+
+/**
+ * Variante compacte pour mobile : bandeau "Leçon N/M" + barre de progression.
+ * Sticky en haut du viewport sous le header pour garder un repère pendant la leçon.
+ */
+export function ModuleProgressCompact({
+  moduleId,
+  currentLessonId,
+}: {
+  moduleId: Id<"modules">;
+  currentLessonId: Id<"lessons">;
+}) {
+  const mod = useQuery(api.modules.get, { moduleId });
+  const lessons = useQuery(api.lessons.listByModule, { moduleId });
+  const progress = useQuery(api.progress.myProgress);
+
+  if (!mod || !lessons || !progress) return null;
+
+  const currentIndex = lessons.findIndex((l) => l._id === currentLessonId);
+  const completedCount = lessons.filter((l) => progress[l._id]?.lessonCompletedAt).length;
+  const percent = lessons.length > 0 ? Math.round((completedCount / lessons.length) * 100) : 0;
+
+  return (
+    <div className="lg:hidden sticky top-14 z-20 -mx-6 mb-4 px-6 py-2 bg-background/85 backdrop-blur-md border-b border-border/60">
+      <div className="flex items-center justify-between gap-3 mb-1.5">
+        <p className="text-[11px] text-muted-foreground truncate">
+          <span className="text-foreground/80 font-medium">{mod.badgeLabel}</span>
+          {" · "}
+          Leçon {currentIndex >= 0 ? currentIndex + 1 : "?"}/{lessons.length}
+        </p>
+        <p className="text-[10px] text-muted-foreground shrink-0">{percent}%</p>
+      </div>
+      <div className="h-1 rounded-full bg-muted/40 overflow-hidden">
+        <div
+          className="h-full rounded-full bg-primary transition-all duration-500"
+          style={{ width: `${percent}%` }}
+        />
+      </div>
+    </div>
+  );
+}

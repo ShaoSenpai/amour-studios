@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
@@ -223,21 +223,40 @@ function ModuleSection({
 // ────────────────────────────────────────────────────
 function SearchBar() {
   const [query, setQuery] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
   const results = useQuery(
     api.lessons.search,
     query.length >= 2 ? { query } : "skip"
   );
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        inputRef.current?.focus();
+        inputRef.current?.select();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
   return (
     <div className="mb-6 relative z-50">
       <div className="relative">
         <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
         <input
+          ref={inputRef}
           type="text"
           placeholder="Rechercher une leçon... ⌘K"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Escape") setQuery(""); }}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") {
+              setQuery("");
+              inputRef.current?.blur();
+            }
+          }}
           className="w-full h-11 rounded-full border border-border bg-card pl-10 pr-10 text-sm placeholder:text-muted-foreground focus:outline-none focus:border-primary/40 transition-all"
         />
         {query && (

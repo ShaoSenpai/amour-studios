@@ -4,7 +4,7 @@ import { useQuery } from "convex/react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/convex/_generated/api";
-import { Home, Pencil } from "lucide-react";
+import { Home, Pencil, MessageCircle } from "lucide-react";
 
 export function MobileNav() {
   const user = useQuery(api.users.current);
@@ -13,6 +13,7 @@ export function MobileNav() {
   if (!user) return null;
 
   const isAdmin = user.role === "admin";
+  const discordInvite = process.env.NEXT_PUBLIC_DISCORD_INVITE_URL;
 
   const items = [
     { href: "/dashboard", label: "Home", icon: <Home size={20} />, active: pathname === "/dashboard" },
@@ -38,6 +39,17 @@ export function MobileNav() {
             <span>{item.label}</span>
           </Link>
         ))}
+        {discordInvite && (
+          <a
+            href={discordInvite}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg text-xs text-muted-foreground"
+          >
+            <MessageCircle size={20} />
+            <span>Discord</span>
+          </a>
+        )}
         {/* Profile */}
         <Link href="/dashboard/profile" className="flex flex-col items-center gap-0.5 px-3 py-1.5">
           {user.image ? (

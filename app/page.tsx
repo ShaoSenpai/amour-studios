@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -13,7 +13,7 @@ export default function Home() {
           className="gap-2 border-brand/40 text-brand bg-brand/5"
         >
           <Sparkles className="size-3.5" />
-          Bientôt disponible
+          Formation Amour Studios
         </Badge>
 
         <h1 className="text-balance bg-gradient-to-b from-foreground to-foreground/70 bg-clip-text text-transparent">
@@ -27,9 +27,14 @@ export default function Home() {
         </p>
 
         <div className="flex items-center gap-3">
-          <Button size="lg" className="glow-hover">
+          <Link
+            href="https://www.amourstudios.fr"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={cn(buttonVariants({ size: "lg" }), "glow-hover")}
+          >
             Rejoindre la formation
-          </Button>
+          </Link>
           <Link
             href="/login"
             className={cn(buttonVariants({ variant: "outline", size: "lg" }))}
@@ -38,8 +43,8 @@ export default function Home() {
           </Link>
         </div>
 
-        <p className="text-xs text-muted-foreground mt-8 font-mono">
-          [placeholder Phase 1] — la vraie landing arrive en Phase 3
+        <p className="text-xs text-muted-foreground mt-8">
+          Accès exclusif via Discord — la connexion utilise Discord OAuth.
         </p>
       </div>
     </main>

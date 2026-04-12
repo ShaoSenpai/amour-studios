@@ -10,7 +10,7 @@ export function TopControls() {
   if (!user) return null;
 
   return (
-    <div className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-background/80 backdrop-blur-lg border border-border rounded-full px-2 py-1.5">
+    <div className="hidden md:flex fixed top-4 right-4 z-50 items-center gap-2 bg-background/80 backdrop-blur-lg border border-border rounded-full px-2 py-1.5">
       <NotificationBell />
       <ThemeToggle />
     </div>

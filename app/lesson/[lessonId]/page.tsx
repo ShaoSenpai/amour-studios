@@ -17,7 +17,7 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { useSidebar } from "@/components/layout/sidebar-provider";
-import { ModuleProgress } from "@/components/lesson/module-progress";
+import { ModuleProgress, ModuleProgressCompact } from "@/components/lesson/module-progress";
 import { TimestampedNotes } from "@/components/lesson/timestamped-notes";
 import { Play, Check, Circle, ChevronLeft, ChevronRight, Zap, Lock } from "lucide-react";
 
@@ -111,6 +111,9 @@ export default function LessonPage({
         <div className="flex gap-8 px-6 py-8 max-w-[1200px] mx-auto">
           {/* Main content */}
           <div className="flex-1 min-w-0 max-w-[820px]">
+            {/* Compact progress bar (mobile + tablet) */}
+            <ModuleProgressCompact moduleId={lesson.moduleId} currentLessonId={lesson._id} />
+
             {/* Breadcrumb */}
             <div className="flex items-center gap-2 mb-6 text-xs text-muted-foreground">
               <Link href="/dashboard" className="hover:text-[#F0E9DB] transition-colors flex items-center gap-1">
@@ -306,6 +309,23 @@ export default function LessonPage({
             <div className="glass-card rounded-2xl p-5 mb-8">
               <CommentSection lessonId={lesson._id} />
             </div>
+
+            {/* Discord community CTA */}
+            {process.env.NEXT_PUBLIC_DISCORD_INVITE_URL && (
+              <a
+                href={process.env.NEXT_PUBLIC_DISCORD_INVITE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block rounded-2xl p-4 mb-8 border border-indigo-400/20 bg-indigo-400/5 hover:bg-indigo-400/10 transition-colors"
+              >
+                <p className="text-sm font-medium text-[#F0E9DB]">
+                  Bloqué·e ? Demande à la communauté →
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Les autres artistes sont sur Discord — rejoins la conversation.
+                </p>
+              </a>
+            )}
 
             {/* Prev/Next */}
             {nav && (nav.prev || nav.next) && (

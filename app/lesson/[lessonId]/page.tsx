@@ -14,7 +14,7 @@ import { CommentSection } from "@/components/comments/comment-section";
 import { ExerciseRenderer } from "@/components/exercises/exercise-renderer";
 import { ExerciseIframe } from "@/components/exercises/exercise-iframe";
 import { Sidebar } from "@/components/layout/sidebar";
-import { Header } from "@/components/layout/header";
+import { Topbar } from "@/components/ds/topbar";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { useSidebar } from "@/components/layout/sidebar-provider";
 import { ModuleProgress, ModuleProgressCompact } from "@/components/lesson/module-progress";
@@ -75,7 +75,7 @@ export default function LessonPage({
   if (lesson === undefined || exercises === undefined || progress === undefined || module === undefined) {
     return (
       <div className="min-h-screen lesson-bg">
-        <Sidebar /><Header />
+        <Sidebar /><Topbar />
         <div className={`${collapsed ? "md:ml-16" : "md:ml-60"} px-6 py-8 flex items-center justify-center min-h-screen relative z-10`}>
           <div className="w-full max-w-3xl">
             <div className="skeleton h-4 w-32 mb-6" />
@@ -92,7 +92,7 @@ export default function LessonPage({
   if (!lesson) {
     return (
       <div className="min-h-screen lesson-bg">
-        <Sidebar /><Header />
+        <Sidebar /><Topbar />
         <div className={`${collapsed ? "md:ml-16" : "md:ml-60"} flex items-center justify-center min-h-screen relative z-10`}>
           <p className="text-sm text-muted-foreground">Le&#231;on introuvable</p>
         </div>
@@ -104,7 +104,7 @@ export default function LessonPage({
   return (
     <div className="min-h-screen lesson-bg text-[#F0E9DB]">
       <Sidebar />
-      <Header />
+      <Topbar />
 
       <div className={`${collapsed ? "md:ml-16" : "md:ml-60"} relative z-10 pb-24 md:pb-8`}>
         {/* 3-column grid: content + sidebar */}

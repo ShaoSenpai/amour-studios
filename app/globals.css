@@ -89,6 +89,25 @@
   --blush: #F2B8A2;
   --lagoon: #2B7A6F;
 
+  /* Accents modules (phase 1 DS — indexés par module.order) */
+  --accent-00: #F5B820; /* Or — Fondations */
+  --accent-01: #FF6B1F; /* Orange — Création */
+  --accent-02: #E63326; /* Rouge — Stratégie */
+  --accent-03: #F2B8A2; /* Pêche — Communauté */
+  --accent-04: #2B7A6F; /* Vert sapin — Monétisation */
+  --accent-05: #0D4D35; /* Vert forêt — Expansion */
+
+  --ds-success: #00FF85;
+  --ds-alert: #FF6B1F;
+
+  --ease-reveal: cubic-bezier(.2, .9, .3, 1);
+  --dur-fast: 300ms;
+  --dur-med: 700ms;
+  --dur-slow: 900ms;
+  --dur-cascade: 70ms;
+
+  --grid-line: rgba(13, 11, 8, 0.04);
+
   --background: #F0E9DB;
   --foreground: #0D0B08;
   --card: #E8DFCC;
@@ -201,6 +220,19 @@ html[data-theme="dark"] {
   --gradient-card: linear-gradient(180deg, var(--card) 0%, rgba(38, 33, 27, 0.8) 100%);
   --shadow-elevated: 0 8px 32px -8px rgba(0,0,0,.4), 0 2px 8px -2px rgba(0,0,0,.3);
   --shadow-float: 0 20px 60px -15px rgba(0,0,0,.5), 0 4px 16px -4px rgba(0,0,0,.3);
+
+  /* Accents modules — identiques en dark mode */
+  --accent-00: #F5B820;
+  --accent-01: #FF6B1F;
+  --accent-02: #E63326;
+  --accent-03: #F2B8A2;
+  --accent-04: #2B7A6F;
+  --accent-05: #0D4D35;
+
+  --ds-success: #00FF85;
+  --ds-alert: #FF6B1F;
+
+  --grid-line: rgba(240, 233, 219, 0.03);
 
   --chart-1: #1EA574;
   --chart-2: #FF6B1F;
@@ -719,4 +751,37 @@ html[data-theme="dark"] {
     color: var(--primary);
     text-shadow: 0 0 12px rgba(16,185,129,0.5);
   }
+
+  /* ═══ Design System Phase 1 ═══ */
+  .ds-grid-bg {
+    background-image:
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  @keyframes ds-fade-up {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .ds-reveal {
+    animation: ds-fade-up var(--dur-slow) var(--ease-reveal) both;
+  }
+  .ds-cascade > * {
+    animation: ds-fade-up var(--dur-slow) var(--ease-reveal) both;
+  }
+  .ds-cascade > *:nth-child(1) { animation-delay: 0ms; }
+  .ds-cascade > *:nth-child(2) { animation-delay: 70ms; }
+  .ds-cascade > *:nth-child(3) { animation-delay: 140ms; }
+  .ds-cascade > *:nth-child(4) { animation-delay: 210ms; }
+  .ds-cascade > *:nth-child(5) { animation-delay: 280ms; }
+  .ds-cascade > *:nth-child(6) { animation-delay: 350ms; }
+  .ds-cascade > *:nth-child(7) { animation-delay: 420ms; }
+  .ds-cascade > *:nth-child(8) { animation-delay: 490ms; }
+
+  @keyframes ds-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+  .ds-pulse { animation: ds-pulse 1400ms ease-in-out infinite; }
 }

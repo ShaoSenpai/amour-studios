@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Anton, DM_Sans } from "next/font/google";
+import { Anton, DM_Sans, Instrument_Serif, JetBrains_Mono } from "next/font/google";
 import { ConvexAuthNextjsServerProvider } from "@convex-dev/auth/nextjs/server";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -14,6 +14,21 @@ const anton = Anton({
 });
 
 const dmSans = DM_Sans({
+  subsets: ["latin"],
+  variable: "--font-body-legacy",
+  display: "swap",
+});
+
+const instrumentSerif = Instrument_Serif({
+  weight: "400",
+  style: ["normal", "italic"],
+  subsets: ["latin"],
+  variable: "--font-serif",
+  display: "swap",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  weight: ["400", "500", "700"],
   subsets: ["latin"],
   variable: "--font-body",
   display: "swap",
@@ -34,16 +49,11 @@ export default function RootLayout({
     <ConvexAuthNextjsServerProvider>
       <html
         lang="fr"
-        className={`${anton.variable} ${dmSans.variable} h-full`}
+        className={`${anton.variable} ${dmSans.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable} h-full`}
         suppressHydrationWarning
       >
         <head>
           <ThemeInitScript />
-          <link
-            href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap"
-            rel="stylesheet"
-          />
-          <style>{`:root { --font-serif: 'Instrument Serif', Georgia, serif; }`}</style>
         </head>
         <body className="min-h-full flex flex-col">
           <ConvexClientProvider>

@@ -98,6 +98,9 @@ export default defineSchema({
     muxPlaybackId: v.string(),
     durationSeconds: v.number(),
     xpReward: v.number(),
+    // Si true, la leçon est accessible en mode preview gratuit
+    // (user loggué Discord sans purchaseId). Sinon, elle est verrouillée.
+    previewAccess: v.optional(v.boolean()),
     createdAt: v.number(),
     updatedAt: v.number(),
     deletedAt: v.optional(v.number()),

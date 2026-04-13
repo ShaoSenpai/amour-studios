@@ -408,6 +408,7 @@ type LessonRow = {
   muxAssetId: string;
   durationSeconds: number;
   xpReward: number;
+  previewAccess?: boolean;
 };
 
 function LessonsInModule({
@@ -594,6 +595,7 @@ function LessonForm({
     lesson ? String(Math.round(lesson.durationSeconds / 60)) : ""
   );
   const [xpReward, setXpReward] = useState(String(lesson?.xpReward ?? 100));
+  const [previewAccess, setPreviewAccess] = useState(!!lesson?.previewAccess);
   const [saving, setSaving] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
@@ -613,6 +615,7 @@ function LessonForm({
           muxAssetId: muxAssetId.trim() || "placeholder",
           durationSeconds,
           xpReward: xp,
+          previewAccess,
         });
         toast.success("Leçon mise à jour");
       } else {
@@ -629,6 +632,7 @@ function LessonForm({
           muxAssetId: muxAssetId.trim() || undefined,
           durationSeconds: durationSeconds || undefined,
           xpReward: xp || undefined,
+          previewAccess: previewAccess || undefined,
         });
         toast.success("Leçon créée");
       }
@@ -719,6 +723,31 @@ function LessonForm({
           />
         </div>
       </div>
+
+      {/* Preview free toggle */}
+      <label className="flex items-center gap-3 border border-foreground/15 bg-foreground/[0.03] p-3 cursor-pointer hover:bg-foreground/[0.05]">
+        <input
+          type="checkbox"
+          checked={previewAccess}
+          onChange={(e) => setPreviewAccess(e.target.checked)}
+          className="size-4 accent-[#00FF85]"
+          style={{ minHeight: 0 }}
+        />
+        <div className="flex-1">
+          <div
+            className="font-mono text-[11px] uppercase tracking-[1.5px] text-foreground"
+            style={{ fontFamily: "var(--font-body)" }}
+          >
+            ◦ ACCÈS GRATUIT (PREVIEW)
+          </div>
+          <div
+            className="mt-0.5 font-mono text-[10px] text-foreground/55"
+            style={{ fontFamily: "var(--font-body)" }}
+          >
+            Accessible aux users non-payants — sert d&apos;upsell. Recommandé pour 1 leçon (ex: Vision Board).
+          </div>
+        </div>
+      </label>
 
       <div className="flex gap-2">
         <DSPrimaryBtn type="submit" disabled={saving || !title.trim()}>

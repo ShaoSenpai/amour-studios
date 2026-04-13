@@ -74,6 +74,7 @@ export const create = mutation({
     muxPlaybackId: v.optional(v.string()),
     durationSeconds: v.optional(v.number()),
     xpReward: v.optional(v.number()),
+    previewAccess: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
@@ -97,6 +98,7 @@ export const create = mutation({
       muxPlaybackId: args.muxPlaybackId ?? "placeholder",
       durationSeconds: args.durationSeconds ?? 0,
       xpReward: args.xpReward ?? 100,
+      previewAccess: args.previewAccess,
       createdAt: now,
       updatedAt: now,
     });
@@ -149,6 +151,7 @@ export const update = mutation({
     muxPlaybackId: v.optional(v.string()),
     durationSeconds: v.optional(v.number()),
     xpReward: v.optional(v.number()),
+    previewAccess: v.optional(v.boolean()),
   },
   handler: async (ctx, { lessonId, ...updates }) => {
     await requireAdmin(ctx);

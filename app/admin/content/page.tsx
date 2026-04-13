@@ -37,28 +37,33 @@ export default function AdminContentPage() {
   }
 
   return (
-    <main className="min-h-screen px-6 py-12 max-w-4xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Contenu</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {modules.length} module{modules.length > 1 ? "s" : ""}
+    <main className="ds-grid-bg min-h-screen bg-background text-foreground">
+      <div className="mx-auto max-w-[1200px] px-4 py-10 md:px-6">
+        {/* Hero */}
+        <div className="ds-reveal mb-8">
+          <p
+            className="mb-2 font-mono text-[10px] uppercase tracking-[3px] text-foreground/55"
+            style={{ fontFamily: "var(--font-body)" }}
+          >
+            — Admin · {modules.length} module{modules.length > 1 ? "s" : ""}
           </p>
+          <h1
+            className="text-[clamp(40px,5.5vw,64px)] font-normal leading-[0.95] tracking-[-1.5px]"
+            style={{ fontFamily: "var(--font-serif)" }}
+          >
+            Gérer le <em className="italic text-[#FF6B1F]">contenu</em>
+          </h1>
         </div>
-        <Badge variant="outline" className="border-accent/30 text-accent">
-          Admin
-        </Badge>
-      </div>
 
-      {/* Add module form */}
-      <AddModuleForm />
+        <div className="mb-6">
+          <AddModuleForm />
+        </div>
 
-      {/* Modules list */}
-      <div className="flex flex-col gap-4 mt-6">
-        {modules.map((mod) => (
-          <ModuleCard key={mod._id} module={mod} />
-        ))}
+        <div className="flex flex-col gap-4">
+          {modules.map((mod) => (
+            <ModuleCard key={mod._id} module={mod} />
+          ))}
+        </div>
       </div>
     </main>
   );

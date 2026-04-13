@@ -43,49 +43,71 @@ export default function AdminMembersPage() {
     : pending;
 
   return (
-    <main className="px-6 py-8 max-w-4xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6 reveal">
-        <div>
-          <h1 className="mb-1">Membres</h1>
-          <p className="text-sm text-muted-foreground">
-            {members.length} total · {admins.length} admin{admins.length > 1 ? "s" : ""} · {activeMembers.length} membre{activeMembers.length > 1 ? "s" : ""} · {pending.length} en attente
-          </p>
-        </div>
-      </div>
-
-      {/* Add member */}
-      <AddMemberForm />
-
-      {/* Filters */}
-      <div className="flex gap-2 mb-6 reveal reveal-delay-1 flex-wrap">
-        {(["all", "admin", "member", "pending"] as const).map((f) => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-              filter === f
-                ? "bg-primary text-primary-foreground"
-                : "bg-card border border-border text-muted-foreground hover:text-foreground"
-            }`}
+    <main className="ds-grid-bg min-h-screen bg-background text-foreground">
+      <div className="mx-auto max-w-[1200px] px-4 py-10 md:px-6">
+        {/* Hero */}
+        <div className="ds-reveal mb-8">
+          <p
+            className="mb-2 font-mono text-[10px] uppercase tracking-[3px] text-foreground/55"
+            style={{ fontFamily: "var(--font-body)" }}
           >
-            {f === "all" ? "Tous" : f === "admin" ? "Admins" : f === "member" ? "Membres" : "En attente"}
-          </button>
-        ))}
-      </div>
+            — Admin · {members.length} total · {admins.length} admin · {activeMembers.length} VIP · {pending.length} en attente
+          </p>
+          <h1
+            className="text-[clamp(40px,5.5vw,64px)] font-normal leading-[0.95] tracking-[-1.5px]"
+            style={{ fontFamily: "var(--font-serif)" }}
+          >
+            Les <em className="italic text-[#FF6B1F]">membres</em>
+          </h1>
+        </div>
 
-      {/* Members list */}
-      {filtered.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-muted-foreground text-sm">Aucun membre dans cette catégorie.</p>
+        <div className="mb-6">
+          <AddMemberForm />
         </div>
-      ) : (
-        <div className="flex flex-col gap-3 reveal reveal-delay-2">
-          {filtered.map((member) => (
-            <MemberCard key={member._id} member={member} currentUserId={user._id} />
-          ))}
+
+        {/* Filters — DS mono tabs */}
+        <div
+          className="mb-6 flex flex-wrap gap-4 border-b border-foreground/15 pb-3 font-mono text-[10px] uppercase tracking-[2px]"
+          style={{ fontFamily: "var(--font-body)" }}
+        >
+          {(["all", "admin", "member", "pending"] as const).map((f) => {
+            const label = f === "all" ? "Tous" : f === "admin" ? "Admins" : f === "member" ? "VIP" : "En attente";
+            const count = f === "all" ? members.length : f === "admin" ? admins.length : f === "member" ? activeMembers.length : pending.length;
+            const isActive = filter === f;
+            return (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className={`pb-1 transition-colors ${
+                  isActive
+                    ? "border-b-2 border-[#FF6B1F] text-foreground"
+                    : "text-foreground/40 hover:text-foreground"
+                }`}
+                style={{ minHeight: 0, fontFamily: "var(--font-body)" }}
+              >
+                ◦ {label} ({count})
+              </button>
+            );
+          })}
         </div>
-      )}
+
+        {filtered.length === 0 ? (
+          <div className="border border-dashed border-foreground/15 py-12 text-center">
+            <p
+              className="font-mono text-xs uppercase tracking-[1.5px] text-foreground/50"
+              style={{ fontFamily: "var(--font-body)" }}
+            >
+              ◦ Aucun membre dans cette catégorie
+            </p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {filtered.map((member) => (
+              <MemberCard key={member._id} member={member} currentUserId={user._id} />
+            ))}
+          </div>
+        )}
+      </div>
     </main>
   );
 }

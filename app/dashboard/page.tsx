@@ -35,7 +35,7 @@ export default function DashboardPage() {
   const badges = useQuery(api.badges.myBadges);
   const { signOut } = useAuthActions();
   const updateStreak = useMutation(api.streaks.updateStreak);
-  const { viewAsMember } = useViewMode();
+  const { viewAsMember, viewAsPreview } = useViewMode();
   const [upsellOpen, setUpsellOpen] = useState(false);
   const [upsellModuleTitle, setUpsellModuleTitle] = useState<string | undefined>();
 
@@ -73,7 +73,8 @@ export default function DashboardPage() {
   if (user === null) return null;
   const isAdmin = user.role === "admin" && !viewAsMember;
   // Preview mode = user loggué Discord mais sans paiement (et pas admin)
-  const previewMode = !purchase && !isAdmin;
+  // OU : admin en mode "vue preview" pour tester l'expérience freemium
+  const previewMode = (!purchase && !isAdmin) || viewAsPreview;
 
   // Note (TODO-finitions) : gate onboarding désactivé pour le moment.
   // À réactiver plus tard si on remet en place l'appel d'onboarding manuel.

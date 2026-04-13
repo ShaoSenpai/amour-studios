@@ -3,52 +3,75 @@
 import * as React from "react";
 
 // ============================================================================
-// View-as-member mode (admin only)
+// View-as mode (admin only)
 // ----------------------------------------------------------------------------
-// Permet à un admin de simuler la vue d'un membre normal sans modifier son
-// rôle en DB. Persisté en localStorage. Aucun effet pour les vrais membres.
+// 3 états cycliques : admin → vip → preview → admin
+//   - admin   : vue normale d'admin (toutes les pages, nav admin visible)
+//   - vip     : simule un membre VIP (purchaseId lié) — voit la formation complète
+//   - preview : simule un membre gratuit sans paiement — voit le dashboard
+//                en mode upsell (modules verrouillés + bannière)
+//
+// Persisté en localStorage. Aucun effet pour les vrais membres (sécurité).
 // ============================================================================
 
+export type ViewMode = "admin" | "vip" | "preview";
+
 type ViewModeContext = {
+  viewMode: ViewMode;
+  setViewMode: (v: ViewMode) => void;
+  cycle: () => void;
+  // Convenience : true si on simule un membre (vip OU preview)
   viewAsMember: boolean;
-  setViewAsMember: (v: boolean) => void;
-  toggle: () => void;
+  // Convenience : true si on simule spécifiquement le mode preview gratuit
+  viewAsPreview: boolean;
 };
 
 const Ctx = React.createContext<ViewModeContext>({
+  viewMode: "admin",
+  setViewMode: () => {},
+  cycle: () => {},
   viewAsMember: false,
-  setViewAsMember: () => {},
-  toggle: () => {},
+  viewAsPreview: false,
 });
 
-const STORAGE_KEY = "amour-view-as-member";
+const STORAGE_KEY = "amour-view-mode";
+
+const NEXT: Record<ViewMode, ViewMode> = {
+  admin: "vip",
+  vip: "preview",
+  preview: "admin",
+};
 
 export function ViewModeProvider({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const [viewAsMember, setViewAsMember] = React.useState(false);
+  const [viewMode, setViewMode] = React.useState<ViewMode>("admin");
 
   React.useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved === "true") setViewAsMember(true);
+      if (saved === "vip" || saved === "preview" || saved === "admin") {
+        setViewMode(saved);
+      }
     } catch {}
   }, []);
 
   React.useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, String(viewAsMember));
+      localStorage.setItem(STORAGE_KEY, viewMode);
     } catch {}
-  }, [viewAsMember]);
+  }, [viewMode]);
 
   return (
     <Ctx.Provider
       value={{
-        viewAsMember,
-        setViewAsMember,
-        toggle: () => setViewAsMember((v) => !v),
+        viewMode,
+        setViewMode,
+        cycle: () => setViewMode((v) => NEXT[v]),
+        viewAsMember: viewMode !== "admin",
+        viewAsPreview: viewMode === "preview",
       }}
     >
       {children}
@@ -62,7 +85,7 @@ export function useViewMode() {
 
 /**
  * Hook combiné : retourne le rôle effectif (admin / member) en tenant compte
- * du toggle viewAsMember. Si le user n'est pas vraiment admin, le toggle n'a
+ * du toggle viewMode. Si le user n'est pas vraiment admin, le toggle n'a
  * aucun effet (sécurité).
  */
 export function useEffectiveRole(realRole: string | undefined) {

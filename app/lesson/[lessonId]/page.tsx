@@ -38,7 +38,7 @@ export default function LessonPage({
 
   const me = useQuery(api.users.current);
   const myPurchase = useQuery(api.purchases.current);
-  const { viewAsMember } = useViewMode();
+  const { viewAsMember, viewAsPreview } = useViewMode();
   const lesson = useQuery(api.lessons.get, { lessonId: lessonId as Id<"lessons"> });
   const exercises = useQuery(api.exercises.listByLesson, lesson ? { lessonId: lesson._id } : "skip");
   const progress = useQuery(api.progress.myProgress);
@@ -106,11 +106,12 @@ export default function LessonPage({
   // - admin (et pas en vue membre) → accès total
   // - VIP (purchaseId) → accès total
   // - sinon (preview mode) → accès uniquement aux leçons previewAccess=true
+  // - mode "vue preview" force le comportement preview même si admin/VIP
   const isAdmin = me?.role === "admin" && !viewAsMember;
-  const isVip = !!myPurchase;
-  const previewMode = !isAdmin && !isVip;
+  const isVip = !!myPurchase && !viewAsPreview;
   const lessonAllowed =
-    isAdmin || isVip || (lesson && lesson.previewAccess === true);
+    (isAdmin || isVip || (lesson && lesson.previewAccess === true)) &&
+    !(viewAsPreview && lesson && !lesson.previewAccess);
 
   if (lesson === undefined || exercises === undefined || progress === undefined || lessonModule === undefined || me === undefined || myPurchase === undefined) {
     return (

@@ -16,7 +16,7 @@ export function Topbar() {
   const router = useRouter();
   const inputRef = React.useRef<HTMLInputElement>(null);
   const [query, setQuery] = React.useState("");
-  const { viewAsMember, toggle } = useViewMode();
+  const { viewMode, cycle } = useViewMode();
 
   React.useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -71,21 +71,27 @@ export function Topbar() {
         </form>
 
         <div className="flex items-center gap-2 md:gap-3">
-          {/* Toggle view-as-member — visible uniquement pour les vrais admins */}
+          {/* Cycle vue admin → vip → preview — visible uniquement pour les vrais admins */}
           {user.role === "admin" && (
             <button
               type="button"
-              onClick={toggle}
-              title={viewAsMember ? "Voir en tant qu'admin" : "Voir en tant que membre"}
+              onClick={cycle}
+              title={`Basculer la vue (actuel : ${viewMode}). Cycle : admin → vip → preview gratuit → admin`}
               className={`hidden md:flex items-center gap-1.5 border px-2.5 py-1 font-mono text-[10px] uppercase tracking-[1.5px] transition-colors ${
-                viewAsMember
-                  ? "border-[#FFB347] bg-[rgba(255,179,71,0.12)] text-[#FFB347]"
-                  : "border-foreground/20 bg-foreground/[0.04] text-foreground/60 hover:text-foreground"
+                viewMode === "admin"
+                  ? "border-foreground/20 bg-foreground/[0.04] text-foreground/60 hover:text-foreground"
+                  : viewMode === "vip"
+                  ? "border-[#00FF85] bg-[rgba(0,255,133,0.12)] text-[#00FF85]"
+                  : "border-[#FFB347] bg-[rgba(255,179,71,0.12)] text-[#FFB347]"
               }`}
               style={{ minHeight: 0, fontFamily: "var(--font-body)" }}
             >
-              {viewAsMember ? <EyeOff size={11} /> : <Eye size={11} />}
-              {viewAsMember ? "VUE MEMBRE" : "VUE ADMIN"}
+              {viewMode === "admin" ? <Eye size={11} /> : <EyeOff size={11} />}
+              {viewMode === "admin"
+                ? "VUE ADMIN"
+                : viewMode === "vip"
+                ? "VUE MEMBRE VIP"
+                : "VUE PREVIEW"}
             </button>
           )}
 

@@ -73,26 +73,8 @@ export default function DashboardPage() {
     return <PendingGate email={user.email} onSignOut={() => signOut()} />;
   }
 
-  if (!user.onboardingCompletedAt && !isAdmin) {
-    return (
-      <main className="flex min-h-screen flex-col items-center justify-center px-6 py-16">
-        <div className="w-full max-w-md flex flex-col items-center gap-6 text-center">
-          <h1>
-            Onboarding{" "}
-            <span className="italic text-primary" style={{ fontFamily: "var(--font-serif)" }}>
-              en cours
-            </span>
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Paiement confirmé ! Appel d&apos;onboarding nécessaire.
-          </p>
-          <Button variant="ghost" size="sm" onClick={() => signOut()}>
-            Se déconnecter
-          </Button>
-        </div>
-      </main>
-    );
-  }
+  // Note (TODO-finitions) : gate onboarding désactivé pour le moment.
+  // À réactiver plus tard si on remet en place l'appel d'onboarding manuel.
 
   const firstName = user.name?.split(" ")[0] ?? "artiste";
   const today = new Date().toLocaleDateString("fr-FR", {

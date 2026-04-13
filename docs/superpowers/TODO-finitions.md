@@ -21,6 +21,7 @@ Petits ajustements à reprendre en fin de phase 2 (après que tous les écrans p
 
 ## Global
 
+- [ ] **Onboarding gate** désactivé temporairement (`app/dashboard/page.tsx` ~ligne 76). À ré-activer si on remet en place le système d'appel d'onboarding manuel par admin.
 - [ ] Revoir les micro-animations sur les hover (le letter-spacing du CTA hero pourrait être plus subtil).
 - [ ] **⚠ Passe check-up thème light** — beaucoup d'éléments non-visibles en mode clair (couleurs hardcodées #F0E9DB/#0D0B08 dans les composants DS qui ne s'inversent pas). À refaire en fin de phase 2 avec mapping propre sur `--foreground` / `--background` ou classes `dark:`.
 - [ ] `top-controls.tsx` est désormais orphelin → supprimer dans une passe de cleanup.

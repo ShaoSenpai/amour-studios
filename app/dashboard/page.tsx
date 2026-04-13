@@ -11,7 +11,15 @@ import { Hero } from "@/components/ds/hero";
 import { StatBlock } from "@/components/ds/stat-block";
 import { ProgressStrip } from "@/components/ds/progress-strip";
 import type { ModuleCardState } from "@/components/ds/module-card";
-import { ChevronDown, Lock, Zap, Check } from "lucide-react";
+import { ChevronDown, Lock, Zap, Check, Trophy, PlayCircle } from "lucide-react";
+
+// Couleurs indicatrices (sémantiques, hors palette DA)
+const STATE_COLOR = {
+  done: "#00FF85", // vert — terminé/validé
+  active: "#FFB347", // orange chaud — en cours / hot
+  pending: "rgba(240,233,219,0.45)", // beige muté — à venir
+  locked: "rgba(240,233,219,0.3)", // gris — bloqué
+};
 import { ActivityCard } from "@/components/ds/activity-card";
 import { AnnouncementsBanner } from "@/components/ds/announcements-banner";
 
@@ -554,19 +562,16 @@ function ModuleRowView({
           )}
         </div>
 
-        {/* Right : statut compact + chevron */}
-        <div className="flex shrink-0 items-center gap-4">
-          {/* Statut compact en mono — disparait quand row hover ouvert */}
-          <div
-            className="hidden flex-col items-end gap-1 font-mono text-[10px] uppercase tracking-[1.5px] md:flex"
-            style={{ fontFamily: "var(--font-body)" }}
-          >
-            <span style={{ color: locked ? "rgba(240,233,219,0.4)" : accent }}>
-              {statePill}
-            </span>
-            <span className="text-foreground/40">
-              {String(completed).padStart(2, "0")} / {String(total).padStart(2, "0")}
-            </span>
+        {/* Right : badge statut plein + chevron */}
+        <div className="flex shrink-0 items-center gap-3 md:gap-4">
+          {/* Badge statut PLEIN — couleurs sémantiques (pas DA) */}
+          <div className="hidden flex-col items-end gap-1.5 md:flex">
+            <StatusBadge state={state} />
+            <CountChip
+              completed={completed}
+              total={total}
+              done={state === "completed"}
+            />
           </div>
 
           {/* Chevron / cadenas */}
@@ -575,14 +580,20 @@ function ModuleRowView({
             style={{
               borderColor: locked
                 ? "rgba(240,233,219,0.2)"
+                : state === "completed"
+                ? STATE_COLOR.done
                 : `${accent}50`,
               background: locked
                 ? "transparent"
+                : state === "completed"
+                ? STATE_COLOR.done
                 : expanded
                 ? accent
                 : "transparent",
               color: locked
                 ? "rgba(240,233,219,0.4)"
+                : state === "completed"
+                ? "#0D0B08"
                 : expanded
                 ? "#0D0B08"
                 : accent,
@@ -591,7 +602,13 @@ function ModuleRowView({
             }}
             aria-hidden
           >
-            {locked ? <Lock size={15} /> : <ChevronDown size={16} />}
+            {locked ? (
+              <Lock size={15} />
+            ) : state === "completed" ? (
+              <Trophy size={15} />
+            ) : (
+              <ChevronDown size={16} />
+            )}
           </div>
         </div>
       </button>
@@ -665,6 +682,74 @@ function ModuleRowView({
   );
 }
 
+// ─── Indicateurs sémantiques ─────────────────────────────
+
+function StatusBadge({ state }: { state: ModuleCardState }) {
+  const config = {
+    completed: {
+      label: "✓ COMPLÉTÉ",
+      bg: STATE_COLOR.done,
+      color: "#0D0B08",
+    },
+    "in-progress": {
+      label: "▶ EN COURS",
+      bg: STATE_COLOR.active,
+      color: "#0D0B08",
+    },
+    upcoming: {
+      label: "À VENIR",
+      bg: "transparent",
+      color: STATE_COLOR.pending,
+      border: "1px solid rgba(240,233,219,0.25)",
+    },
+    locked: {
+      label: "◉ VERROUILLÉ",
+      bg: "transparent",
+      color: STATE_COLOR.locked,
+      border: "1px dashed rgba(240,233,219,0.25)",
+    },
+  } as const;
+  const c = config[state];
+  return (
+    <span
+      className="font-mono text-[10px] font-bold uppercase tracking-[1.5px] px-2.5 py-1"
+      style={{
+        background: c.bg,
+        color: c.color,
+        border: "border" in c ? c.border : "none",
+        fontFamily: "var(--font-body)",
+      }}
+    >
+      {c.label}
+    </span>
+  );
+}
+
+function CountChip({
+  completed,
+  total,
+  done,
+}: {
+  completed: number;
+  total: number;
+  done: boolean;
+}) {
+  return (
+    <span
+      className="font-mono text-[10px] tracking-[1.5px]"
+      style={{ fontFamily: "var(--font-body)" }}
+    >
+      <span style={{ color: done ? STATE_COLOR.done : STATE_COLOR.active, fontWeight: 700 }}>
+        {String(completed).padStart(2, "0")}
+      </span>
+      <span className="text-foreground/30 mx-1">/</span>
+      <span className="text-foreground/55">
+        {String(total).padStart(2, "0")} LEÇONS
+      </span>
+    </span>
+  );
+}
+
 function LessonLine({
   href,
   order,
@@ -688,6 +773,33 @@ function LessonLine({
   placeholder: boolean;
   accent: string;
 }) {
+  // ─── State-based colors (semantic, not DA) ───────────────────────
+  const numColor = completed
+    ? "#0D0B08"
+    : videoSeen
+    ? "#0D0B08"
+    : unlocked
+    ? "rgba(240,233,219,0.7)"
+    : STATE_COLOR.locked;
+  const numBg = completed
+    ? STATE_COLOR.done
+    : videoSeen
+    ? STATE_COLOR.active
+    : "transparent";
+  const numBorder = completed || videoSeen
+    ? "transparent"
+    : unlocked
+    ? "rgba(240,233,219,0.2)"
+    : "rgba(240,233,219,0.1)";
+
+  const titleColor = completed
+    ? "rgba(240,233,219,0.85)"
+    : unlocked
+    ? "var(--foreground)"
+    : "rgba(240,233,219,0.45)";
+
+  const xpColor = completed ? STATE_COLOR.done : STATE_COLOR.pending;
+
   const content = (
     <div
       className={`group/lesson flex items-center gap-4 py-3.5 pl-1 pr-2 transition-all duration-400 [transition-timing-function:var(--ease-reveal)] ${
@@ -697,30 +809,22 @@ function LessonLine({
       }`}
     >
       <div
-        className="flex size-7 shrink-0 items-center justify-center border font-mono text-[11px] transition-colors duration-400"
+        className="flex size-8 shrink-0 items-center justify-center border font-mono text-[11px] font-bold transition-all duration-400"
         style={{
-          background: completed
-            ? accent
-            : "transparent",
-          borderColor: completed
-            ? "transparent"
-            : unlocked
-            ? "rgba(240,233,219,0.2)"
-            : "rgba(240,233,219,0.1)",
-          color: completed
-            ? "#0D0B08"
-            : unlocked
-            ? "rgba(240,233,219,0.7)"
-            : "rgba(240,233,219,0.35)",
+          background: numBg,
+          borderColor: numBorder,
+          color: numColor,
           fontFamily: "var(--font-body)",
         }}
       >
         {completed ? (
-          <Check size={12} />
-        ) : unlocked ? (
-          String(order + 1).padStart(2, "0")
-        ) : (
+          <Check size={13} />
+        ) : !unlocked ? (
           <Lock size={11} />
+        ) : videoSeen ? (
+          <PlayCircle size={13} />
+        ) : (
+          String(order + 1).padStart(2, "0")
         )}
       </div>
 
@@ -730,43 +834,85 @@ function LessonLine({
           style={{
             fontFamily: "var(--font-serif)",
             fontSize: "17px",
-            color: unlocked
-              ? "var(--foreground)"
-              : "rgba(240,233,219,0.45)",
+            color: titleColor,
+            textDecoration: completed ? "line-through" : "none",
+            textDecorationColor: "rgba(240,233,219,0.25)",
           }}
         >
           {title}
         </div>
         <div
-          className="mt-1 flex items-center gap-2 font-mono text-[9.5px] uppercase tracking-[1.5px] text-foreground/45"
+          className="mt-1 flex items-center gap-2 font-mono text-[9.5px] uppercase tracking-[1.5px] text-foreground/40"
           style={{ fontFamily: "var(--font-body)" }}
         >
-          <span className="flex items-center gap-1">
-            <Zap size={9} />
+          {/* Status pill compact pour l'état */}
+          {completed ? (
+            <span
+              className="px-1.5 py-[1px] font-bold"
+              style={{
+                background: STATE_COLOR.done,
+                color: "#0D0B08",
+              }}
+            >
+              ✓ FAIT
+            </span>
+          ) : videoSeen ? (
+            <span
+              className="px-1.5 py-[1px] font-bold"
+              style={{
+                background: STATE_COLOR.active,
+                color: "#0D0B08",
+              }}
+            >
+              VIDÉO VUE
+            </span>
+          ) : !unlocked ? (
+            <span
+              className="px-1.5 py-[1px] border border-dashed"
+              style={{
+                color: STATE_COLOR.locked,
+                borderColor: STATE_COLOR.locked,
+              }}
+            >
+              ◉ INACCESSIBLE
+            </span>
+          ) : placeholder ? (
+            <span
+              className="px-1.5 py-[1px] border"
+              style={{
+                color: STATE_COLOR.pending,
+                borderColor: "rgba(240,233,219,0.25)",
+              }}
+            >
+              ◦ BIENTÔT
+            </span>
+          ) : (
+            <span
+              className="px-1.5 py-[1px] border"
+              style={{
+                color: STATE_COLOR.pending,
+                borderColor: "rgba(240,233,219,0.25)",
+              }}
+            >
+              À FAIRE
+            </span>
+          )}
+
+          {/* XP — vert si gagné */}
+          <span
+            className="flex items-center gap-1 font-bold"
+            style={{ color: xpColor }}
+          >
+            <Zap size={10} />
+            {completed ? "+" : ""}
             {xpReward} XP
           </span>
+
+          {/* Durée */}
           {duration > 0 && (
             <>
-              <span className="opacity-40">·</span>
+              <span className="opacity-30">·</span>
               <span>{Math.floor(duration / 60)} min</span>
-            </>
-          )}
-          {placeholder && (
-            <>
-              <span className="opacity-40">·</span>
-              <span>◉ VIDÉO À VENIR</span>
-            </>
-          )}
-          {!unlocked && (
-            <>
-              <span className="opacity-40">·</span>
-              <span>INACCESSIBLE</span>
-            </>
-          )}
-          {videoSeen && !completed && (
-            <>
-              <span className="opacity-40">·</span>
-              <span style={{ color: accent }}>◦ VIDÉO VUE</span>
             </>
           )}
         </div>

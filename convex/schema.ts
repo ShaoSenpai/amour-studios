@@ -43,6 +43,9 @@ export default defineSchema({
     lastActiveAt: v.optional(v.number()),
     createdAt: v.optional(v.number()),
     deletedAt: v.optional(v.number()),
+
+    // IDs d'announcements masquées par le user (via bouton "dismiss")
+    dismissedAnnouncements: v.optional(v.array(v.id("announcements"))),
   })
     .index("email", ["email"])
     .index("phone", ["phone"])
@@ -187,6 +190,24 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index("by_user_lesson", ["userId", "lessonId"]),
+
+  announcements: defineTable({
+    title: v.string(),
+    body: v.string(),
+    createdByAdminId: v.id("users"),
+    createdAt: v.number(),
+    scope: v.union(
+      v.literal("all"),
+      v.literal("vip"),
+      v.literal("pending")
+    ),
+    // Accent color pour afficher la news (choisie parmi la palette modules)
+    accent: v.optional(v.string()),
+    // Si défini, la news disparaît automatiquement après cette date
+    expiresAt: v.optional(v.number()),
+    deletedAt: v.optional(v.number()),
+  })
+    .index("by_createdAt", ["createdAt"]),
 
   notifications: defineTable({
     userId: v.id("users"),

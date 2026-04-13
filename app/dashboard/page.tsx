@@ -12,6 +12,7 @@ import { ProgressStrip } from "@/components/ds/progress-strip";
 import { BentoGrid } from "@/components/ds/bento-grid";
 import { ModuleCard, type ModuleCardState } from "@/components/ds/module-card";
 import { ActivityCard } from "@/components/ds/activity-card";
+import { AnnouncementsBanner } from "@/components/ds/announcements-banner";
 
 export default function DashboardPage() {
   const user = useQuery(api.users.current);
@@ -125,6 +126,7 @@ export default function DashboardPage() {
   return (
     <main className="ds-grid-bg min-h-screen bg-background text-foreground">
       <div className="mx-auto max-w-[1200px] px-4 py-8 md:px-6">
+        <AnnouncementsBanner />
         <Hero
           caption={`Salut ${firstName} · ${dateLabel}`}
           title="Ton univers se construit."

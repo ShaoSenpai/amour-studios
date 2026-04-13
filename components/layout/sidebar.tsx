@@ -18,6 +18,7 @@ import {
   LogOut,
   User,
   MessageCircle,
+  Gauge,
 } from "lucide-react";
 // CSS transitions only — framer-motion removed for Next.js 16 compat
 
@@ -49,7 +50,7 @@ export function Sidebar() {
 
       {/* ── Navigation ── */}
       <nav className="flex-1 py-3 flex flex-col gap-0.5 overflow-y-auto px-2">
-        <NavItem href="/dashboard" icon={Home} label="Dashboard" active={pathname === "/dashboard"} collapsed={collapsed} />
+        <NavItem href="/dashboard" icon={Home} label="La formation" active={pathname === "/dashboard"} collapsed={collapsed} />
 
         {isAdmin && (
           <>
@@ -59,6 +60,7 @@ export function Sidebar() {
               </div>
             )}
             {collapsed && <div className="my-2 mx-2 border-t border-border" />}
+            <NavItem href="/admin" icon={Gauge} label="Cockpit" active={pathname === "/admin"} collapsed={collapsed} />
             <NavItem href="/admin/content" icon={LayoutGrid} label="Contenu" active={pathname.startsWith("/admin/content")} collapsed={collapsed} />
             <NavItem href="/admin/members" icon={Users} label="Membres" active={pathname.startsWith("/admin/members")} collapsed={collapsed} />
           </>

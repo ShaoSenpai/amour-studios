@@ -16,9 +16,9 @@ export function MobileNav() {
   const discordInvite = process.env.NEXT_PUBLIC_DISCORD_INVITE_URL;
 
   const items = [
-    { href: "/dashboard", label: "Home", icon: <Home size={20} />, active: pathname === "/dashboard" },
+    { href: "/dashboard", label: "Formation", icon: <Home size={20} />, active: pathname === "/dashboard" },
     ...(isAdmin
-      ? [{ href: "/admin/content", label: "Admin", icon: <Pencil size={20} />, active: pathname.startsWith("/admin") }]
+      ? [{ href: "/admin", label: "Cockpit", icon: <Pencil size={20} />, active: pathname.startsWith("/admin") }]
       : []),
   ];
 

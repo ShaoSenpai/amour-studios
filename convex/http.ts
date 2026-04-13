@@ -1,6 +1,6 @@
 import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
-import { internal } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import { auth } from "./auth";
 
 // ============================================================================
@@ -15,6 +15,84 @@ const http = httpRouter();
 
 // --- Convex Auth routes ------------------------------------------------------
 auth.addHttpRoutes(http);
+
+// --- CORS pour amourstudios.fr -----------------------------------------------
+const ALLOWED_ORIGINS = new Set([
+  "https://amourstudios.fr",
+  "https://www.amourstudios.fr",
+  // dev local (optionnel)
+  "http://localhost:3000",
+  "http://localhost:5173",
+  "http://localhost:8000",
+]);
+
+function corsHeaders(origin: string | null) {
+  const allowOrigin =
+    origin && ALLOWED_ORIGINS.has(origin) ? origin : "https://www.amourstudios.fr";
+  return {
+    "Access-Control-Allow-Origin": allowOrigin,
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Max-Age": "86400",
+    Vary: "Origin",
+  };
+}
+
+// --- Stripe : create payment intent (appelé depuis amourstudios.fr/paiement) -
+http.route({
+  path: "/api/create-payment-intent",
+  method: "OPTIONS",
+  handler: httpAction(async (_ctx, request) => {
+    return new Response(null, {
+      status: 204,
+      headers: corsHeaders(request.headers.get("origin")),
+    });
+  }),
+});
+
+http.route({
+  path: "/api/create-payment-intent",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const headers = corsHeaders(request.headers.get("origin"));
+    let body: { mode?: string; email?: string };
+    try {
+      body = (await request.json()) as { mode?: string; email?: string };
+    } catch {
+      return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
+        status: 400,
+        headers: { ...headers, "Content-Type": "application/json" },
+      });
+    }
+
+    const mode: "1x" | "3x" = body.mode === "3x" ? "3x" : "1x";
+    const email = typeof body.email === "string" ? body.email : "";
+
+    try {
+      const result = await ctx.runAction(api.stripe.createPaymentIntent, {
+        email,
+        mode,
+      });
+      return new Response(JSON.stringify(result), {
+        status: 200,
+        headers: { ...headers, "Content-Type": "application/json" },
+      });
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : "unknown";
+      console.error("[create-payment-intent] error:", detail);
+      return new Response(
+        JSON.stringify({
+          error: "Erreur lors de la création du paiement",
+          detail,
+        }),
+        {
+          status: 500,
+          headers: { ...headers, "Content-Type": "application/json" },
+        }
+      );
+    }
+  }),
+});
 
 // --- Stripe webhook ----------------------------------------------------------
 http.route({

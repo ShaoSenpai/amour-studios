@@ -9,31 +9,116 @@ import { action, internalAction, internalMutation, internalQuery } from "./_gene
 // ============================================================================
 
 /**
- * Crée un PaymentIntent Stripe pour la formation (497 € one-shot).
+ * Crée un PaymentIntent (1×) ou une Subscription (3×) Stripe.
  * Retourne le clientSecret pour Stripe Elements côté frontend.
+ *
+ * Mode "1x" : PaymentIntent simple de 497 €.
+ * Mode "3x" : Customer + Subscription mensuelle 166 € × 3 cycles
+ *             (cancel_at = +90j → 3 paiements puis stop auto).
  */
 export const createPaymentIntent = action({
   args: {
     email: v.string(),
+    mode: v.optional(v.union(v.literal("1x"), v.literal("3x"))),
   },
-  handler: async (_ctx, { email }) => {
+  handler: async (_ctx, { email, mode = "1x" }) => {
     const Stripe = (await import("stripe")).default;
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
       apiVersion: "2026-03-25.dahlia",
     });
 
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: 49700, // 497,00 €
-      currency: "eur",
-      automatic_payment_methods: { enabled: true },
-      receipt_email: email,
+    const normalizedEmail = email.trim().toLowerCase();
+    if (mode === "3x" && !normalizedEmail) {
+      throw new Error("Email requis pour le paiement en 3 fois");
+    }
+    if (
+      normalizedEmail &&
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)
+    ) {
+      throw new Error("Email invalide");
+    }
+
+    if (mode === "1x") {
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: 49700,
+        currency: "eur",
+        automatic_payment_methods: { enabled: true },
+        receipt_email: normalizedEmail || undefined,
+        description: "AMOURstudios® — Le Programme Créateur (1×)",
+        metadata: {
+          product: "amourstudios_programme_createur",
+          mode: "1x",
+          source: "amourstudios.fr/paiement",
+          email: normalizedEmail,
+        },
+      });
+      return {
+        clientSecret: paymentIntent.client_secret,
+        amount: 49700,
+        currency: "eur",
+        mode: "1x",
+      };
+    }
+
+    // ─── 3× mode : Subscription ────────────────────────────────
+    const PRICE_3X = process.env.STRIPE_PRICE_ID_3X;
+    if (!PRICE_3X) {
+      throw new Error("STRIPE_PRICE_ID_3X non configuré côté Convex");
+    }
+
+    // Réutilise un Customer existant si déjà présent, sinon crée
+    const existing = await stripe.customers.list({
+      email: normalizedEmail,
+      limit: 1,
+    });
+    const customer =
+      existing.data.length > 0
+        ? existing.data[0]
+        : await stripe.customers.create({
+            email: normalizedEmail,
+            description: "AMOURstudios® — inscription 3× paiement",
+            metadata: { source: "amourstudios.fr/paiement" },
+          });
+
+    const threeMonthsFromNow =
+      Math.floor(Date.now() / 1000) + 90 * 24 * 60 * 60;
+
+    const subscription = await stripe.subscriptions.create({
+      customer: customer.id,
+      items: [{ price: PRICE_3X }],
+      payment_behavior: "default_incomplete",
+      payment_settings: { save_default_payment_method: "on_subscription" },
+      expand: ["latest_invoice.payment_intent"],
+      cancel_at: threeMonthsFromNow,
+      description: "AMOURstudios® — Le Programme Créateur (3×)",
       metadata: {
         product: "amourstudios_programme_createur",
-        email,
+        mode: "3x",
+        source: "amourstudios.fr/paiement",
       },
     });
 
-    return { clientSecret: paymentIntent.client_secret };
+    const invoice = subscription.latest_invoice as
+      | { payment_intent?: { client_secret?: string | null } | string | null }
+      | null;
+    const pi =
+      invoice && typeof invoice === "object" ? invoice.payment_intent : null;
+    const clientSecret =
+      pi && typeof pi === "object" ? pi.client_secret : null;
+
+    if (!clientSecret) {
+      throw new Error(
+        "Subscription créée mais payment_intent manquant côté Stripe"
+      );
+    }
+
+    return {
+      clientSecret,
+      amount: 16600,
+      currency: "eur",
+      mode: "3x",
+      subscriptionId: subscription.id,
+    };
   },
 });
 

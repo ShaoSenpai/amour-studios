@@ -166,14 +166,17 @@ export default function ProfilePage() {
 
         {/* Identity card — hero style */}
         <section className="mb-10 grid gap-4 md:grid-cols-[1fr_auto]">
-          <div className="border border-foreground/15 bg-foreground/[0.04] p-6 md:p-8 ds-reveal">
+          <div
+            className="ds-reveal relative overflow-hidden border-l-4 bg-[#F0E9DB] p-6 text-[#0D0B08] md:p-8"
+            style={{ borderLeftColor: "#FF6B1F" }}
+          >
             <div className="flex flex-wrap items-center gap-6">
               {/* Avatar */}
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
-                className="group relative size-24 shrink-0 overflow-hidden border-2 border-foreground/15 bg-foreground/5 transition-all hover:border-[#FF6B1F]/60"
+                className="group relative size-24 shrink-0 overflow-hidden border-2 border-[#0D0B08]/20 bg-[#0D0B08]/5 transition-all hover:border-[#FF6B1F]"
                 aria-label="Changer la photo de profil"
                 style={{ minHeight: 0 }}
               >
@@ -186,7 +189,7 @@ export default function ProfilePage() {
                   />
                 ) : (
                   <span
-                    className="flex size-full items-center justify-center text-3xl italic text-foreground/60"
+                    className="flex size-full items-center justify-center text-3xl italic text-[#0D0B08]/50"
                     style={{ fontFamily: "var(--font-serif)" }}
                   >
                     {(user.name ?? "?")[0]?.toUpperCase()}
@@ -222,14 +225,14 @@ export default function ProfilePage() {
                   </Pill>
                 </div>
                 <p
-                  className="font-mono text-xs text-foreground/60"
+                  className="font-mono text-xs text-[#0D0B08]/70"
                   style={{ fontFamily: "var(--font-body)" }}
                 >
                   {user.email ?? "email non défini"}
                 </p>
                 {user.discordUsername && (
                   <p
-                    className="mt-1 font-mono text-[11px] text-foreground/50"
+                    className="mt-1 font-mono text-[11px] text-[#0D0B08]/60"
                     style={{ fontFamily: "var(--font-body)" }}
                   >
                     ◦ Discord @{user.discordUsername}
@@ -240,10 +243,9 @@ export default function ProfilePage() {
 
             {/* Discord re-sync */}
             {isVip && user.discordId && (
-              <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-foreground/10 pt-4">
-                <Button
-                  variant="outline"
-                  size="sm"
+              <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-[#0D0B08]/15 pt-4">
+                <button
+                  type="button"
                   disabled={syncing}
                   onClick={async () => {
                     setSyncing(true);
@@ -258,21 +260,23 @@ export default function ProfilePage() {
                       setSyncing(false);
                     }
                   }}
-                  className="gap-2 rounded-none border-foreground/20 bg-foreground/[0.04]"
+                  className="flex items-center gap-2 border border-[#0D0B08] bg-[#0D0B08] px-4 py-2 font-mono text-[10px] uppercase tracking-[1.5px] text-[#F0E9DB] transition-all hover:bg-[#0D0B08]/85 disabled:opacity-60"
+                  style={{ minHeight: 0, fontFamily: "var(--font-body)" }}
                 >
                   {syncing ? (
                     <>
-                      <Loader2 size={12} className="animate-spin" />{" "}
-                      Synchronisation…
+                      <Loader2 size={12} className="animate-spin" />
+                      SYNCHRONISATION…
                     </>
                   ) : (
                     <>
-                      <RefreshCw size={12} /> Re-synchroniser le rôle VIP
+                      <RefreshCw size={12} />
+                      RE-SYNCHRONISER VIP
                     </>
                   )}
-                </Button>
+                </button>
                 <p
-                  className="font-mono text-[10px] text-foreground/50"
+                  className="font-mono text-[10px] text-[#0D0B08]/60"
                   style={{ fontFamily: "var(--font-body)" }}
                 >
                   Utile si le rôle n&apos;apparaît pas sur le serveur Discord.
@@ -301,26 +305,35 @@ export default function ProfilePage() {
 
           <div className="ds-cascade grid grid-cols-2 gap-3 md:grid-cols-5">
             <StatBlock
+              variant="filled"
               label="XP TOTAL"
               value={xp.toLocaleString("fr-FR")}
               accent="#00FF85"
             />
-            <StatBlock label="NIVEAU" value={level} accent="#FF6B1F" />
             <StatBlock
+              variant="filled"
+              label="NIVEAU"
+              value={level}
+              accent="#FF6B1F"
+            />
+            <StatBlock
+              variant="filled"
               label="STREAK"
               value={user.streakDays ?? 0}
               unit="j"
               accent="#F5B820"
             />
             <StatBlock
+              variant="filled"
               label="LEÇONS"
               value={`${globalProgress.completed}/${globalProgress.total}`}
               accent="#F2B8A2"
             />
             <StatBlock
+              variant="filled"
               label="BADGES"
               value={badges.length}
-              sub={modules.length > 0 ? `/ ${modules.length}` : undefined}
+              sub={modules.length > 0 ? `${modules.length} au total` : undefined}
               accent="#E63326"
             />
           </div>

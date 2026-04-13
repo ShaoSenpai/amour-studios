@@ -10,8 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Hero } from "@/components/ds/hero";
 import { StatBlock } from "@/components/ds/stat-block";
 import { ProgressStrip } from "@/components/ds/progress-strip";
-import { BentoGrid } from "@/components/ds/bento-grid";
-import { ModuleCard, type ModuleCardState } from "@/components/ds/module-card";
+import type { ModuleCardState } from "@/components/ds/module-card";
+import { ChevronDown, Lock, Zap, Check } from "lucide-react";
 import { ActivityCard } from "@/components/ds/activity-card";
 import { AnnouncementsBanner } from "@/components/ds/announcements-banner";
 
@@ -321,6 +321,15 @@ function PendingGate({
   );
 }
 
+const MODULE_ACCENTS = [
+  "#F5B820",
+  "#FF6B1F",
+  "#E63326",
+  "#F2B8A2",
+  "#2B7A6F",
+  "#0D4D35",
+];
+
 function ModulesBento({
   modules,
   progress,
@@ -337,9 +346,9 @@ function ModulesBento({
   isAdmin: boolean;
 }) {
   return (
-    <BentoGrid>
+    <div className="ds-cascade flex flex-col gap-3">
       {modules.map((mod, idx) => (
-        <ModuleCardBound
+        <ModuleRow
           key={mod._id}
           mod={mod}
           progress={progress}
@@ -348,11 +357,11 @@ function ModulesBento({
           modules={modules}
         />
       ))}
-    </BentoGrid>
+    </div>
   );
 }
 
-function ModuleCardBound({
+function ModuleRow({
   mod,
   progress,
   idx,
@@ -377,12 +386,21 @@ function ModuleCardBound({
     idx > 0 ? { moduleId: modules[idx - 1]._id } : "skip"
   );
 
+  const accent = MODULE_ACCENTS[mod.order % MODULE_ACCENTS.length];
+
   if (lessons === undefined) {
-    return <div className="skeleton h-[200px] rounded-none md:col-span-2" />;
+    return <div className="skeleton h-[140px] rounded-none" />;
   }
 
-  const completed = lessons.filter((l) => progress[l._id]?.lessonCompletedAt).length;
+  const completed = lessons.filter(
+    (l) => progress[l._id]?.lessonCompletedAt
+  ).length;
   const total = lessons.length;
+  const totalXp = lessons.reduce((sum, l) => sum + (l.xpReward ?? 0), 0);
+  const earnedXp = lessons
+    .filter((l) => progress[l._id]?.lessonCompletedAt)
+    .reduce((sum, l) => sum + (l.xpReward ?? 0), 0);
+  const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
 
   let state: ModuleCardState;
   if (total > 0 && completed === total) state = "completed";
@@ -395,25 +413,352 @@ function ModuleCardBound({
     state = prevUnlocked ? "upcoming" : "locked";
   }
 
-  const span: 2 | 4 = state === "in-progress" ? 4 : 2;
+  const locked = state === "locked";
 
   const words = mod.title.split(" ");
   const italicWord = words.length > 1 ? words[words.length - 1] : undefined;
-
-  const firstLessonId = lessons[0]?._id;
+  let titleNode: React.ReactNode = mod.title;
+  if (italicWord && mod.title.includes(italicWord)) {
+    const before = mod.title.substring(
+      0,
+      mod.title.lastIndexOf(italicWord)
+    );
+    titleNode = (
+      <>
+        {before}
+        <em className="italic">{italicWord}</em>
+      </>
+    );
+  }
 
   return (
-    <ModuleCard
-      href={firstLessonId ? `/lesson/${firstLessonId}` : "#"}
-      order={mod.order}
-      title={mod.title}
-      italicWord={italicWord}
-      description={mod.description}
-      badgeLabel={mod.badgeLabel}
+    <ModuleRowView
+      modId={mod._id}
+      accent={accent}
+      locked={locked}
       state={state}
+      order={mod.order}
+      title={titleNode}
+      description={mod.description}
+      lessons={lessons}
+      progress={progress}
       completed={completed}
       total={total}
-      span={span}
+      totalXp={totalXp}
+      earnedXp={earnedXp}
+      percent={percent}
+      isAdmin={isAdmin}
     />
   );
+}
+
+function ModuleRowView({
+  modId,
+  accent,
+  locked,
+  state,
+  order,
+  title,
+  description,
+  lessons,
+  progress,
+  completed,
+  total,
+  totalXp,
+  earnedXp,
+  percent,
+  isAdmin,
+}: {
+  modId: Id<"modules">;
+  accent: string;
+  locked: boolean;
+  state: ModuleCardState;
+  order: number;
+  title: React.ReactNode;
+  description: string;
+  lessons: Array<{
+    _id: Id<"lessons">;
+    title: string;
+    order: number;
+    xpReward: number;
+    durationSeconds: number;
+    muxPlaybackId: string;
+  }>;
+  progress: Record<string, { lessonCompletedAt?: number; videoWatchedAt?: number }>;
+  completed: number;
+  total: number;
+  totalXp: number;
+  earnedXp: number;
+  percent: number;
+  isAdmin: boolean;
+}) {
+  // Default: in-progress module is expanded, others collapsed
+  const [expanded, setExpanded] = useState(state === "in-progress");
+
+  const statePill =
+    state === "completed"
+      ? "✓ COMPLÉTÉ"
+      : state === "in-progress"
+      ? "EN COURS"
+      : state === "upcoming"
+      ? "À VENIR"
+      : "VERROUILLÉ";
+
+  return (
+    <div
+      id={`module-${modId}`}
+      className="relative overflow-hidden transition-colors"
+      style={{
+        background: locked ? "rgba(240,233,219,0.03)" : accent,
+        color: locked ? "rgba(240,233,219,0.5)" : "#0D0B08",
+        border: locked ? "1px dashed rgba(240,233,219,0.15)" : "none",
+      }}
+    >
+      <button
+        type="button"
+        onClick={() => !locked && setExpanded(!expanded)}
+        disabled={locked}
+        className={`relative grid w-full grid-cols-[auto_1fr_auto] items-center gap-4 px-6 py-5 text-left transition-all duration-500 [transition-timing-function:var(--ease-reveal)] md:px-8 md:py-6 ${
+          locked ? "cursor-not-allowed" : "cursor-pointer hover:-translate-y-[1px]"
+        }`}
+        style={{ minHeight: 0 }}
+      >
+        {/* Numéro module */}
+        <div
+          className="text-2xl italic opacity-80 md:text-3xl"
+          style={{ fontFamily: "var(--font-serif)" }}
+        >
+          {String(order + 1).padStart(2, "0")}
+        </div>
+
+        {/* Centre : titre + description + meta */}
+        <div className="min-w-0">
+          <h3
+            className="text-2xl font-normal leading-[1.05] md:text-4xl"
+            style={{ fontFamily: "var(--font-serif)" }}
+          >
+            {title}
+          </h3>
+          {description && (
+            <p
+              className="mt-2 max-w-xl font-mono text-[11px] opacity-75 md:text-xs"
+              style={{ fontFamily: "var(--font-body)" }}
+            >
+              {description}
+            </p>
+          )}
+
+          {/* Meta row */}
+          <div
+            className="mt-4 flex flex-wrap items-center gap-3 font-mono text-[10px] uppercase tracking-[1.5px]"
+            style={{ fontFamily: "var(--font-body)" }}
+          >
+            <span
+              className="border px-2 py-[3px]"
+              style={{
+                background: locked ? "transparent" : "#0D0B08",
+                color: locked ? "inherit" : accent,
+                borderColor: locked ? "currentColor" : "transparent",
+              }}
+            >
+              {locked ? "◉ " : ""}
+              {statePill}
+            </span>
+            <span className="opacity-80">
+              {String(completed).padStart(2, "0")} / {String(total).padStart(2, "0")} leçons
+            </span>
+            <span className="flex items-center gap-1 opacity-80">
+              <Zap size={11} className="inline" />
+              {earnedXp} / {totalXp} XP
+            </span>
+
+            {/* Progress bar (only when not locked and has progress) */}
+            {!locked && state === "in-progress" && (
+              <div className="flex min-w-[120px] flex-1 items-center gap-2">
+                <div className="relative h-[2px] flex-1 bg-current/20">
+                  <div
+                    className="absolute inset-y-0 left-0 bg-current transition-[width] duration-1000 [transition-timing-function:var(--ease-reveal)]"
+                    style={{ width: `${percent}%` }}
+                  />
+                </div>
+                <span className="opacity-80">{percent}%</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right : chevron or lock */}
+        <div
+          className="flex size-11 shrink-0 items-center justify-center transition-transform duration-500 [transition-timing-function:var(--ease-reveal)]"
+          style={{
+            background: "rgba(13,11,8,0.1)",
+            transform: expanded && !locked ? "rotate(180deg)" : "rotate(0)",
+          }}
+          aria-hidden
+        >
+          {locked ? <Lock size={16} /> : <ChevronDown size={16} />}
+        </div>
+      </button>
+
+      {/* Expandable : list of lessons */}
+      <div
+        className={`ds-collapse-wrap ${expanded && !locked ? "open" : ""}`}
+      >
+        <div className="ds-collapse-inner">
+          <div
+            className="border-t px-6 py-4 md:px-8"
+            style={{
+              borderColor: locked
+                ? "rgba(240,233,219,0.15)"
+                : "rgba(13,11,8,0.15)",
+            }}
+          >
+            {lessons.length === 0 ? (
+              <p
+                className="font-mono text-xs opacity-70"
+                style={{ fontFamily: "var(--font-body)" }}
+              >
+                ◦ Aucune leçon disponible pour le moment
+              </p>
+            ) : (
+              <div className="flex flex-col divide-y" style={{ borderColor: "rgba(13,11,8,0.12)" }}>
+                {lessons.map((lesson, i) => {
+                  const isCompleted =
+                    !!progress[lesson._id]?.lessonCompletedAt;
+                  const unlocked =
+                    isAdmin ||
+                    i === 0 ||
+                    !!progress[lessons[i - 1]._id]?.lessonCompletedAt;
+                  const videoSeen = !!progress[lesson._id]?.videoWatchedAt;
+                  const placeholder = lesson.muxPlaybackId === "placeholder";
+
+                  return (
+                    <LessonLine
+                      key={lesson._id}
+                      href={unlocked ? `/lesson/${lesson._id}` : undefined}
+                      order={i}
+                      title={lesson.title}
+                      xpReward={lesson.xpReward}
+                      duration={lesson.durationSeconds}
+                      completed={isCompleted}
+                      unlocked={unlocked}
+                      videoSeen={videoSeen}
+                      placeholder={placeholder}
+                    />
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LessonLine({
+  href,
+  order,
+  title,
+  xpReward,
+  duration,
+  completed,
+  unlocked,
+  videoSeen,
+  placeholder,
+}: {
+  href?: string;
+  order: number;
+  title: string;
+  xpReward: number;
+  duration: number;
+  completed: boolean;
+  unlocked: boolean;
+  videoSeen: boolean;
+  placeholder: boolean;
+}) {
+  const content = (
+    <div
+      className={`flex items-center gap-4 py-3 transition-colors ${
+        unlocked ? "hover:bg-[rgba(13,11,8,0.08)]" : "cursor-not-allowed"
+      }`}
+    >
+      <div
+        className="flex size-7 shrink-0 items-center justify-center font-mono text-[11px]"
+        style={{
+          background: completed
+            ? "#0D0B08"
+            : unlocked
+            ? "rgba(13,11,8,0.12)"
+            : "rgba(13,11,8,0.06)",
+          color: completed ? "#00FF85" : "inherit",
+        }}
+      >
+        {completed ? <Check size={12} /> : unlocked ? String(order + 1).padStart(2, "0") : <Lock size={11} />}
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <div
+          className="truncate text-sm"
+          style={{
+            fontFamily: "var(--font-body)",
+            opacity: unlocked ? 1 : 0.5,
+          }}
+        >
+          {title}
+        </div>
+        <div
+          className="mt-0.5 flex items-center gap-2 font-mono text-[9px] uppercase tracking-[1.5px] opacity-60"
+          style={{ fontFamily: "var(--font-body)" }}
+        >
+          <span className="flex items-center gap-1">
+            <Zap size={9} />
+            {xpReward} XP
+          </span>
+          {duration > 0 && (
+            <>
+              <span>·</span>
+              <span>{Math.floor(duration / 60)} min</span>
+            </>
+          )}
+          {placeholder && (
+            <>
+              <span>·</span>
+              <span className="opacity-70">◉ VIDÉO À VENIR</span>
+            </>
+          )}
+          {!unlocked && (
+            <>
+              <span>·</span>
+              <span>INACCESSIBLE</span>
+            </>
+          )}
+          {videoSeen && !completed && (
+            <>
+              <span>·</span>
+              <span>◦ VIDÉO VUE</span>
+            </>
+          )}
+        </div>
+      </div>
+
+      {unlocked && (
+        <span
+          className="text-xl italic opacity-40 transition-all duration-500 [transition-timing-function:var(--ease-reveal)]"
+          style={{ fontFamily: "var(--font-serif)" }}
+        >
+          →
+        </span>
+      )}
+    </div>
+  );
+
+  if (href) {
+    return (
+      <a href={href} className="block">
+        {content}
+      </a>
+    );
+  }
+  return content;
 }

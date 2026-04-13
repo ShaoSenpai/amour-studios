@@ -13,6 +13,8 @@ import { ProgressStrip } from "@/components/ds/progress-strip";
 import type { ModuleCardState } from "@/components/ds/module-card";
 import { ChevronDown, Lock, Zap, Check, Trophy, PlayCircle } from "lucide-react";
 import { useViewMode } from "@/components/providers/view-mode-provider";
+import { UpsellBanner } from "@/components/ds/upsell-banner";
+import { UpsellModal } from "@/components/ds/upsell-modal";
 
 // Couleurs indicatrices (sémantiques, hors palette DA)
 const STATE_COLOR = {
@@ -34,6 +36,8 @@ export default function DashboardPage() {
   const { signOut } = useAuthActions();
   const updateStreak = useMutation(api.streaks.updateStreak);
   const { viewAsMember } = useViewMode();
+  const [upsellOpen, setUpsellOpen] = useState(false);
+  const [upsellModuleTitle, setUpsellModuleTitle] = useState<string | undefined>();
 
   useEffect(() => {
     if (user) updateStreak().catch(() => {});
@@ -68,10 +72,8 @@ export default function DashboardPage() {
 
   if (user === null) return null;
   const isAdmin = user.role === "admin" && !viewAsMember;
-
-  if (!purchase && !isAdmin) {
-    return <PendingGate email={user.email} onSignOut={() => signOut()} />;
-  }
+  // Preview mode = user loggué Discord mais sans paiement (et pas admin)
+  const previewMode = !purchase && !isAdmin;
 
   // Note (TODO-finitions) : gate onboarding désactivé pour le moment.
   // À réactiver plus tard si on remet en place l'appel d'onboarding manuel.
@@ -88,6 +90,11 @@ export default function DashboardPage() {
     <main className="ds-grid-bg min-h-screen bg-background text-foreground">
       <div className="mx-auto max-w-[1200px] px-4 py-8 md:px-6">
         <AnnouncementsBanner />
+
+        {previewMode && (
+          <UpsellBanner onClick={() => setUpsellOpen(true)} />
+        )}
+
         <Hero
           caption={`Salut ${firstName} · ${dateLabel}`}
           title="Ton univers se construit."
@@ -140,7 +147,16 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <ModulesBento modules={modules} progress={progress} isAdmin={isAdmin} />
+          <ModulesBento
+            modules={modules}
+            progress={progress}
+            isAdmin={isAdmin}
+            previewMode={previewMode}
+            onLockedClick={(modTitle) => {
+              setUpsellModuleTitle(modTitle);
+              setUpsellOpen(true);
+            }}
+          />
         </section>
 
         <section className="mb-10 grid gap-3 md:grid-cols-3">
@@ -177,6 +193,15 @@ export default function DashboardPage() {
           />
         </section>
       </div>
+
+      <UpsellModal
+        open={upsellOpen}
+        onClose={() => {
+          setUpsellOpen(false);
+          setUpsellModuleTitle(undefined);
+        }}
+        moduleTitle={upsellModuleTitle}
+      />
     </main>
   );
 }
@@ -326,6 +351,8 @@ function ModulesBento({
   modules,
   progress,
   isAdmin,
+  previewMode,
+  onLockedClick,
 }: {
   modules: {
     _id: Id<"modules">;
@@ -336,6 +363,8 @@ function ModulesBento({
   }[];
   progress: Record<string, { lessonCompletedAt?: number }>;
   isAdmin: boolean;
+  previewMode: boolean;
+  onLockedClick: (moduleTitle: string) => void;
 }) {
   return (
     <div className="ds-cascade flex flex-col gap-3">
@@ -347,6 +376,8 @@ function ModulesBento({
           idx={idx}
           isAdmin={isAdmin}
           modules={modules}
+          previewMode={previewMode}
+          onLockedClick={onLockedClick}
         />
       ))}
     </div>
@@ -359,6 +390,8 @@ function ModuleRow({
   idx,
   isAdmin,
   modules,
+  previewMode,
+  onLockedClick,
 }: {
   mod: {
     _id: Id<"modules">;
@@ -371,6 +404,8 @@ function ModuleRow({
   idx: number;
   isAdmin: boolean;
   modules: { _id: Id<"modules"> }[];
+  previewMode: boolean;
+  onLockedClick: (moduleTitle: string) => void;
 }) {
   const lessons = useQuery(api.lessons.listByModule, { moduleId: mod._id });
   const prevLessons = useQuery(
@@ -394,10 +429,16 @@ function ModuleRow({
     .reduce((sum, l) => sum + (l.xpReward ?? 0), 0);
   const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
 
+  // Le module a au moins une leçon en preview-access (gratuite) ?
+  const hasPreviewLesson = lessons.some((l) => l.previewAccess);
+
   let state: ModuleCardState;
   if (total > 0 && completed === total) state = "completed";
   else if (completed > 0) state = "in-progress";
-  else {
+  else if (previewMode && !hasPreviewLesson) {
+    // En mode preview, tout est verrouillé sauf les modules avec une preview lesson
+    state = "locked";
+  } else {
     const prevUnlocked =
       idx === 0 ||
       isAdmin ||
@@ -440,6 +481,8 @@ function ModuleRow({
       earnedXp={earnedXp}
       percent={percent}
       isAdmin={isAdmin}
+      previewMode={previewMode}
+      onLockedClick={() => onLockedClick(mod.title)}
     />
   );
 }
@@ -460,6 +503,8 @@ function ModuleRowView({
   earnedXp,
   percent,
   isAdmin,
+  previewMode,
+  onLockedClick,
 }: {
   modId: Id<"modules">;
   accent: string;
@@ -475,6 +520,7 @@ function ModuleRowView({
     xpReward: number;
     durationSeconds: number;
     muxPlaybackId: string;
+    previewAccess?: boolean;
   }>;
   progress: Record<string, { lessonCompletedAt?: number; videoWatchedAt?: number }>;
   completed: number;
@@ -483,6 +529,8 @@ function ModuleRowView({
   earnedXp: number;
   percent: number;
   isAdmin: boolean;
+  previewMode: boolean;
+  onLockedClick: () => void;
 }) {
   // Default: in-progress module is expanded, others collapsed
   const [expanded, setExpanded] = useState(state === "in-progress");
@@ -508,11 +556,19 @@ function ModuleRowView({
     >
       <button
         type="button"
-        onClick={() => !locked && setExpanded(!expanded)}
-        disabled={locked}
+        onClick={() => {
+          if (locked) {
+            // En preview mode : ouvre la modal upsell. Sinon : juste désactivé.
+            if (previewMode) onLockedClick();
+            return;
+          }
+          setExpanded(!expanded);
+        }}
         className={`relative grid w-full grid-cols-[auto_1fr_auto] items-center gap-6 px-6 py-6 pl-8 text-left transition-all duration-500 [transition-timing-function:var(--ease-reveal)] md:px-10 md:py-8 md:pl-14 ${
           locked
-            ? "cursor-not-allowed"
+            ? previewMode
+              ? "cursor-pointer group-hover/module:pl-9 md:group-hover/module:pl-16"
+              : "cursor-not-allowed"
             : "cursor-pointer group-hover/module:pl-9 md:group-hover/module:pl-16"
         }`}
         style={{ minHeight: 0 }}

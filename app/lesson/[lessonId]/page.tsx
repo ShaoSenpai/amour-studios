@@ -13,6 +13,8 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/ds/topbar";
 import { useSidebar } from "@/components/layout/sidebar-provider";
 import { LessonMetaBar } from "@/components/ds/lesson/lesson-meta-bar";
+import { useViewMode } from "@/components/providers/view-mode-provider";
+import { UpsellModal } from "@/components/ds/upsell-modal";
 import { LessonDock, type DockKey } from "@/components/ds/lesson/lesson-dock";
 import { ExercisesPanel } from "@/components/ds/lesson/exercises-panel";
 import { NotesPanel } from "@/components/ds/lesson/notes-panel";
@@ -34,6 +36,9 @@ export default function LessonPage({
   const router = useRouter();
   const wasCollapsedBeforeExosRef = useRef<boolean | null>(null);
 
+  const me = useQuery(api.users.current);
+  const myPurchase = useQuery(api.purchases.current);
+  const { viewAsMember } = useViewMode();
   const lesson = useQuery(api.lessons.get, { lessonId: lessonId as Id<"lessons"> });
   const exercises = useQuery(api.exercises.listByLesson, lesson ? { lessonId: lesson._id } : "skip");
   const progress = useQuery(api.progress.myProgress);
@@ -97,7 +102,17 @@ export default function LessonPage({
     return () => window.removeEventListener("keydown", handler);
   }, [nav, router]);
 
-  if (lesson === undefined || exercises === undefined || progress === undefined || lessonModule === undefined) {
+  // Détection accès :
+  // - admin (et pas en vue membre) → accès total
+  // - VIP (purchaseId) → accès total
+  // - sinon (preview mode) → accès uniquement aux leçons previewAccess=true
+  const isAdmin = me?.role === "admin" && !viewAsMember;
+  const isVip = !!myPurchase;
+  const previewMode = !isAdmin && !isVip;
+  const lessonAllowed =
+    isAdmin || isVip || (lesson && lesson.previewAccess === true);
+
+  if (lesson === undefined || exercises === undefined || progress === undefined || lessonModule === undefined || me === undefined || myPurchase === undefined) {
     return (
       <div className="ds-grid-bg min-h-screen">
         <Sidebar /><Topbar />
@@ -118,6 +133,57 @@ export default function LessonPage({
         <Sidebar /><Topbar />
         <div className={`${collapsed ? "md:ml-[68px]" : "md:ml-[240px]"} flex min-h-screen items-center justify-center`}>
           <p className="text-sm text-muted-foreground">Leçon introuvable</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!lessonAllowed) {
+    return (
+      <div className="ds-grid-bg min-h-screen bg-background text-foreground">
+        <Sidebar />
+        <Topbar />
+        <div
+          className={`${collapsed ? "md:ml-[68px]" : "md:ml-[240px]"} flex min-h-screen items-center justify-center px-6`}
+        >
+          <div className="ds-reveal flex w-full max-w-md flex-col gap-4 text-center">
+            <p
+              className="font-mono text-[10px] uppercase tracking-[3px] text-foreground/55"
+              style={{ fontFamily: "var(--font-body)" }}
+            >
+              — Cette leçon fait partie de la formation complète
+            </p>
+            <h1
+              className="text-[clamp(40px,5vw,56px)] font-normal leading-[0.95] tracking-[-1.5px]"
+              style={{ fontFamily: "var(--font-serif)" }}
+            >
+              Accès <em className="italic text-[#FFB347]">verrouillé</em>
+            </h1>
+            <p
+              className="font-mono text-sm text-foreground/70"
+              style={{ fontFamily: "var(--font-body)" }}
+            >
+              Tu peux explorer la leçon en accès gratuit (Vision Board) ou débloquer toute la formation.
+            </p>
+            <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+              <Link
+                href="/dashboard"
+                className="flex-1 border border-foreground/20 bg-foreground/[0.04] px-4 py-3 font-mono text-[11px] uppercase tracking-[2px] text-foreground/80 hover:bg-foreground/[0.08]"
+                style={{ fontFamily: "var(--font-body)" }}
+              >
+                ← RETOUR AU DASHBOARD
+              </Link>
+              <a
+                href="https://www.amourstudios.fr/paiement"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex flex-1 items-center justify-center gap-2 bg-[#FFB347] px-4 py-3 font-mono text-[11px] uppercase tracking-[2px] text-[#0D0B08] transition-all duration-700 [transition-timing-function:var(--ease-reveal)] hover:tracking-[3px]"
+                style={{ fontFamily: "var(--font-body)" }}
+              >
+                DÉBLOQUER 497 € →
+              </a>
+            </div>
+          </div>
         </div>
       </div>
     );

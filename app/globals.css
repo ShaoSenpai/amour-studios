@@ -784,4 +784,12 @@ html[data-theme="dark"] {
     50% { opacity: 0.3; }
   }
   .ds-pulse { animation: ds-pulse 1400ms ease-in-out infinite; }
+
+  @keyframes ds-panel-slide {
+    from { transform: translateX(100%); opacity: 0.6; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  .ds-panel {
+    animation: ds-panel-slide 600ms cubic-bezier(.2, .9, .3, 1) both;
+  }
 }

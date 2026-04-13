@@ -30,8 +30,9 @@ export default function LessonPage({
   params: Promise<{ lessonId: string }>;
 }) {
   const { lessonId } = use(params);
-  const { collapsed } = useSidebar();
+  const { collapsed, setCollapsed } = useSidebar();
   const router = useRouter();
+  const wasCollapsedBeforeExosRef = useRef<boolean | null>(null);
 
   const lesson = useQuery(api.lessons.get, { lessonId: lessonId as Id<"lessons"> });
   const exercises = useQuery(api.exercises.listByLesson, lesson ? { lessonId: lesson._id } : "skip");
@@ -56,6 +57,21 @@ export default function LessonPage({
   );
 
   const [activePanel, setActivePanel] = useState<DockKey | null>(null);
+
+  // Auto-collapse sidebar quand le panneau Exos (large) est ouvert,
+  // pour libérer de la place pour la vidéo à gauche.
+  useEffect(() => {
+    if (activePanel === "exos") {
+      if (wasCollapsedBeforeExosRef.current === null) {
+        wasCollapsedBeforeExosRef.current = collapsed;
+      }
+      if (!collapsed) setCollapsed(true);
+    } else if (wasCollapsedBeforeExosRef.current !== null) {
+      setCollapsed(wasCollapsedBeforeExosRef.current);
+      wasCollapsedBeforeExosRef.current = null;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activePanel]);
 
   const lessonProgress = lesson && progress ? progress[lesson._id] : undefined;
   const videoWatched = !!lessonProgress?.videoWatchedAt;

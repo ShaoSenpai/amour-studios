@@ -507,26 +507,31 @@ function ModuleRowView({
   return (
     <div
       id={`module-${modId}`}
-      className="relative overflow-hidden transition-colors"
+      className="group/module relative overflow-hidden border border-foreground/10 bg-foreground/[0.02] transition-all duration-500 [transition-timing-function:var(--ease-reveal)] hover:border-foreground/25 hover:bg-foreground/[0.045]"
       style={{
-        background: locked ? "rgba(240,233,219,0.03)" : accent,
-        color: locked ? "rgba(240,233,219,0.5)" : "#0D0B08",
-        border: locked ? "1px dashed rgba(240,233,219,0.15)" : "none",
+        opacity: locked ? 0.55 : 1,
+        // Wide accent stripe on the left — the only place the bright color shows
+        boxShadow: `inset 5px 0 0 0 ${locked ? "rgba(240,233,219,0.15)" : accent}`,
       }}
     >
       <button
         type="button"
         onClick={() => !locked && setExpanded(!expanded)}
         disabled={locked}
-        className={`relative grid w-full grid-cols-[auto_1fr_auto] items-center gap-4 px-6 py-5 text-left transition-all duration-500 [transition-timing-function:var(--ease-reveal)] md:px-8 md:py-6 ${
-          locked ? "cursor-not-allowed" : "cursor-pointer hover:-translate-y-[1px]"
+        className={`relative grid w-full grid-cols-[auto_1fr_auto] items-center gap-5 px-6 py-5 pl-8 text-left transition-all duration-500 [transition-timing-function:var(--ease-reveal)] md:px-10 md:py-7 md:pl-12 ${
+          locked
+            ? "cursor-not-allowed"
+            : "cursor-pointer group-hover/module:pl-9 md:group-hover/module:pl-14"
         }`}
         style={{ minHeight: 0 }}
       >
         {/* Numéro module */}
         <div
-          className="text-2xl italic opacity-80 md:text-3xl"
-          style={{ fontFamily: "var(--font-serif)" }}
+          className="text-3xl italic leading-none tracking-tight transition-colors duration-500"
+          style={{
+            fontFamily: "var(--font-serif)",
+            color: locked ? "rgba(240,233,219,0.35)" : accent,
+          }}
         >
           {String(order + 1).padStart(2, "0")}
         </div>
@@ -534,14 +539,14 @@ function ModuleRowView({
         {/* Centre : titre + description + meta */}
         <div className="min-w-0">
           <h3
-            className="text-2xl font-normal leading-[1.05] md:text-4xl"
+            className="text-[clamp(22px,3.5vw,36px)] font-normal leading-[1.02] tracking-[-1px] text-foreground"
             style={{ fontFamily: "var(--font-serif)" }}
           >
             {title}
           </h3>
           {description && (
             <p
-              className="mt-2 max-w-xl font-mono text-[11px] opacity-75 md:text-xs"
+              className="mt-2 max-w-[52ch] font-mono text-[11.5px] leading-[1.6] text-foreground/55 md:text-[12.5px]"
               style={{ fontFamily: "var(--font-body)" }}
             >
               {description}
@@ -550,38 +555,45 @@ function ModuleRowView({
 
           {/* Meta row */}
           <div
-            className="mt-4 flex flex-wrap items-center gap-3 font-mono text-[10px] uppercase tracking-[1.5px]"
+            className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 font-mono text-[10px] uppercase tracking-[1.8px] text-foreground/55"
             style={{ fontFamily: "var(--font-body)" }}
           >
             <span
               className="border px-2 py-[3px]"
               style={{
-                background: locked ? "transparent" : "#0D0B08",
-                color: locked ? "inherit" : accent,
-                borderColor: locked ? "currentColor" : "transparent",
+                color: locked ? "rgba(240,233,219,0.5)" : accent,
+                borderColor: locked
+                  ? "rgba(240,233,219,0.25)"
+                  : `${accent}80`,
+                background: locked
+                  ? "transparent"
+                  : `${accent}14`,
               }}
             >
               {locked ? "◉ " : ""}
               {statePill}
             </span>
-            <span className="opacity-80">
-              {String(completed).padStart(2, "0")} / {String(total).padStart(2, "0")} leçons
+            <span>
+              {String(completed).padStart(2, "0")} / {String(total).padStart(2, "0")} LEÇONS
             </span>
-            <span className="flex items-center gap-1 opacity-80">
-              <Zap size={11} className="inline" />
+            <span className="flex items-center gap-1">
+              <Zap size={10} />
               {earnedXp} / {totalXp} XP
             </span>
 
             {/* Progress bar (only when not locked and has progress) */}
             {!locked && state === "in-progress" && (
-              <div className="flex min-w-[120px] flex-1 items-center gap-2">
-                <div className="relative h-[2px] flex-1 bg-current/20">
+              <div className="flex min-w-[140px] max-w-[240px] flex-1 items-center gap-2">
+                <div className="relative h-[2px] flex-1 bg-foreground/10">
                   <div
-                    className="absolute inset-y-0 left-0 bg-current transition-[width] duration-1000 [transition-timing-function:var(--ease-reveal)]"
-                    style={{ width: `${percent}%` }}
+                    className="absolute inset-y-0 left-0 transition-[width] duration-1000 [transition-timing-function:var(--ease-reveal)]"
+                    style={{
+                      width: `${percent}%`,
+                      background: accent,
+                    }}
                   />
                 </div>
-                <span className="opacity-80">{percent}%</span>
+                <span style={{ color: accent }}>{percent}%</span>
               </div>
             )}
           </div>
@@ -589,14 +601,27 @@ function ModuleRowView({
 
         {/* Right : chevron or lock */}
         <div
-          className="flex size-11 shrink-0 items-center justify-center transition-transform duration-500 [transition-timing-function:var(--ease-reveal)]"
+          className="flex size-10 shrink-0 items-center justify-center border transition-all duration-500 [transition-timing-function:var(--ease-reveal)]"
           style={{
-            background: "rgba(13,11,8,0.1)",
-            transform: expanded && !locked ? "rotate(180deg)" : "rotate(0)",
+            borderColor: locked
+              ? "rgba(240,233,219,0.2)"
+              : `${accent}50`,
+            background: locked
+              ? "transparent"
+              : expanded
+              ? accent
+              : `${accent}10`,
+            color: locked
+              ? "rgba(240,233,219,0.4)"
+              : expanded
+              ? "#0D0B08"
+              : accent,
+            transform:
+              expanded && !locked ? "rotate(180deg)" : "rotate(0)",
           }}
           aria-hidden
         >
-          {locked ? <Lock size={16} /> : <ChevronDown size={16} />}
+          {locked ? <Lock size={15} /> : <ChevronDown size={16} />}
         </div>
       </button>
 
@@ -605,23 +630,16 @@ function ModuleRowView({
         className={`ds-collapse-wrap ${expanded && !locked ? "open" : ""}`}
       >
         <div className="ds-collapse-inner">
-          <div
-            className="border-t px-6 py-4 md:px-8"
-            style={{
-              borderColor: locked
-                ? "rgba(240,233,219,0.15)"
-                : "rgba(13,11,8,0.15)",
-            }}
-          >
+          <div className="border-t border-foreground/10 px-6 py-2 md:px-10 md:pl-12">
             {lessons.length === 0 ? (
               <p
-                className="font-mono text-xs opacity-70"
+                className="py-4 font-mono text-xs text-foreground/50"
                 style={{ fontFamily: "var(--font-body)" }}
               >
                 ◦ Aucune leçon disponible pour le moment
               </p>
             ) : (
-              <div className="flex flex-col divide-y" style={{ borderColor: "rgba(13,11,8,0.12)" }}>
+              <div className="flex flex-col divide-y divide-foreground/10">
                 {lessons.map((lesson, i) => {
                   const isCompleted =
                     !!progress[lesson._id]?.lessonCompletedAt;
@@ -644,6 +662,7 @@ function ModuleRowView({
                       unlocked={unlocked}
                       videoSeen={videoSeen}
                       placeholder={placeholder}
+                      accent={accent}
                     />
                   );
                 })}
@@ -666,6 +685,7 @@ function LessonLine({
   unlocked,
   videoSeen,
   placeholder,
+  accent,
 }: {
   href?: string;
   order: number;
@@ -676,39 +696,59 @@ function LessonLine({
   unlocked: boolean;
   videoSeen: boolean;
   placeholder: boolean;
+  accent: string;
 }) {
   const content = (
     <div
-      className={`flex items-center gap-4 py-3 transition-colors ${
-        unlocked ? "hover:bg-[rgba(13,11,8,0.08)]" : "cursor-not-allowed"
+      className={`group/lesson flex items-center gap-4 py-3.5 pl-1 pr-2 transition-all duration-400 [transition-timing-function:var(--ease-reveal)] ${
+        unlocked
+          ? "hover:pl-3 hover:bg-foreground/[0.035]"
+          : "cursor-not-allowed"
       }`}
     >
       <div
-        className="flex size-7 shrink-0 items-center justify-center font-mono text-[11px]"
+        className="flex size-7 shrink-0 items-center justify-center border font-mono text-[11px] transition-colors duration-400"
         style={{
           background: completed
+            ? accent
+            : "transparent",
+          borderColor: completed
+            ? "transparent"
+            : unlocked
+            ? "rgba(240,233,219,0.2)"
+            : "rgba(240,233,219,0.1)",
+          color: completed
             ? "#0D0B08"
             : unlocked
-            ? "rgba(13,11,8,0.12)"
-            : "rgba(13,11,8,0.06)",
-          color: completed ? "#00FF85" : "inherit",
+            ? "rgba(240,233,219,0.7)"
+            : "rgba(240,233,219,0.35)",
+          fontFamily: "var(--font-body)",
         }}
       >
-        {completed ? <Check size={12} /> : unlocked ? String(order + 1).padStart(2, "0") : <Lock size={11} />}
+        {completed ? (
+          <Check size={12} />
+        ) : unlocked ? (
+          String(order + 1).padStart(2, "0")
+        ) : (
+          <Lock size={11} />
+        )}
       </div>
 
       <div className="min-w-0 flex-1">
         <div
-          className="truncate text-sm"
+          className="truncate font-normal leading-snug transition-colors"
           style={{
-            fontFamily: "var(--font-body)",
-            opacity: unlocked ? 1 : 0.5,
+            fontFamily: "var(--font-serif)",
+            fontSize: "17px",
+            color: unlocked
+              ? "var(--foreground)"
+              : "rgba(240,233,219,0.45)",
           }}
         >
           {title}
         </div>
         <div
-          className="mt-0.5 flex items-center gap-2 font-mono text-[9px] uppercase tracking-[1.5px] opacity-60"
+          className="mt-1 flex items-center gap-2 font-mono text-[9.5px] uppercase tracking-[1.5px] text-foreground/45"
           style={{ fontFamily: "var(--font-body)" }}
         >
           <span className="flex items-center gap-1">
@@ -717,26 +757,26 @@ function LessonLine({
           </span>
           {duration > 0 && (
             <>
-              <span>·</span>
+              <span className="opacity-40">·</span>
               <span>{Math.floor(duration / 60)} min</span>
             </>
           )}
           {placeholder && (
             <>
-              <span>·</span>
-              <span className="opacity-70">◉ VIDÉO À VENIR</span>
+              <span className="opacity-40">·</span>
+              <span>◉ VIDÉO À VENIR</span>
             </>
           )}
           {!unlocked && (
             <>
-              <span>·</span>
+              <span className="opacity-40">·</span>
               <span>INACCESSIBLE</span>
             </>
           )}
           {videoSeen && !completed && (
             <>
-              <span>·</span>
-              <span>◦ VIDÉO VUE</span>
+              <span className="opacity-40">·</span>
+              <span style={{ color: accent }}>◦ VIDÉO VUE</span>
             </>
           )}
         </div>
@@ -744,7 +784,7 @@ function LessonLine({
 
       {unlocked && (
         <span
-          className="text-xl italic opacity-40 transition-all duration-500 [transition-timing-function:var(--ease-reveal)]"
+          className="text-xl italic text-foreground/25 transition-all duration-500 [transition-timing-function:var(--ease-reveal)] group-hover/lesson:translate-x-1 group-hover/lesson:text-foreground/60"
           style={{ fontFamily: "var(--font-serif)" }}
         >
           →

@@ -123,7 +123,7 @@ export default function LessonPage({
         style={{
           paddingRight:
             activePanel === "exos"
-              ? "min(65vw, 65vw)"
+              ? "min(55vw, 55vw)"
               : activePanel
               ? "min(420px, 100vw)"
               : 0,

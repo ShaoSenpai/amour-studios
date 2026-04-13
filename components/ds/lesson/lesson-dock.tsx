@@ -16,7 +16,7 @@ export function LessonDock({
 }) {
   const dockRight =
     active === "exos"
-      ? "calc(65vw + 16px)"
+      ? "calc(55vw + 16px)"
       : active
       ? "calc(420px + 16px)"
       : "16px";

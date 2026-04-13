@@ -49,11 +49,12 @@ export function LessonPanel({
   return (
     <aside
       className={cn(
-        "ds-panel fixed right-0 top-0 z-40 flex h-screen flex-col overflow-y-auto border-l border-foreground/15 bg-background",
-        width === "wide" ? "w-full md:w-[65vw]" : "w-full md:w-[420px]"
+        "ds-panel fixed right-0 top-[var(--topbar-h)] z-40 flex flex-col overflow-y-auto border-l border-foreground/15 bg-background",
+        width === "wide" ? "w-full md:w-[55vw]" : "w-full md:w-[420px]"
       )}
+      style={{ height: "calc(100vh - var(--topbar-h))" }}
     >
-      <div className="sticky top-0 z-10 flex items-baseline justify-between gap-3 border-b border-foreground/15 bg-background/90 px-6 py-4 backdrop-blur-md">
+      <div className="sticky top-0 z-10 flex items-baseline justify-between gap-3 border-b border-foreground/15 bg-background px-6 py-4">
         <h2
           className="truncate text-3xl font-normal leading-none"
           style={{ fontFamily: "var(--font-serif)" }}

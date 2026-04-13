@@ -792,4 +792,6 @@ html[data-theme="dark"] {
   .ds-panel {
     animation: ds-panel-slide 600ms cubic-bezier(.2, .9, .3, 1) both;
   }
+
+  :root { --topbar-h: 60px; }
 }

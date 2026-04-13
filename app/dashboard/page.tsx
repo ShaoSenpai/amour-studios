@@ -518,16 +518,16 @@ function ModuleRowView({
         type="button"
         onClick={() => !locked && setExpanded(!expanded)}
         disabled={locked}
-        className={`relative grid w-full grid-cols-[auto_1fr_auto] items-center gap-5 px-6 py-5 pl-8 text-left transition-all duration-500 [transition-timing-function:var(--ease-reveal)] md:px-10 md:py-7 md:pl-12 ${
+        className={`relative grid w-full grid-cols-[auto_1fr_auto] items-center gap-6 px-6 py-6 pl-8 text-left transition-all duration-500 [transition-timing-function:var(--ease-reveal)] md:px-10 md:py-8 md:pl-14 ${
           locked
             ? "cursor-not-allowed"
-            : "cursor-pointer group-hover/module:pl-9 md:group-hover/module:pl-14"
+            : "cursor-pointer group-hover/module:pl-9 md:group-hover/module:pl-16"
         }`}
         style={{ minHeight: 0 }}
       >
         {/* Numéro module */}
         <div
-          className="text-3xl italic leading-none tracking-tight transition-colors duration-500"
+          className="text-3xl italic leading-none tracking-tight transition-colors duration-500 md:text-4xl"
           style={{
             fontFamily: "var(--font-serif)",
             color: locked ? "rgba(240,233,219,0.35)" : accent,
@@ -536,94 +536,84 @@ function ModuleRowView({
           {String(order + 1).padStart(2, "0")}
         </div>
 
-        {/* Centre : titre + description + meta */}
+        {/* Centre : titre + description (uniquement) */}
         <div className="min-w-0">
           <h3
-            className="text-[clamp(22px,3.5vw,36px)] font-normal leading-[1.02] tracking-[-1px] text-foreground"
+            className="text-[clamp(22px,3.5vw,38px)] font-normal leading-[1.02] tracking-[-1px] text-foreground"
             style={{ fontFamily: "var(--font-serif)" }}
           >
             {title}
           </h3>
           {description && (
             <p
-              className="mt-2 max-w-[52ch] font-mono text-[11.5px] leading-[1.6] text-foreground/55 md:text-[12.5px]"
+              className="mt-2.5 max-w-[52ch] font-mono text-[12px] leading-[1.55] text-foreground/55 md:text-[13px]"
               style={{ fontFamily: "var(--font-body)" }}
             >
               {description}
             </p>
           )}
+        </div>
 
-          {/* Meta row */}
+        {/* Right : statut compact + chevron */}
+        <div className="flex shrink-0 items-center gap-4">
+          {/* Statut compact en mono — disparait quand row hover ouvert */}
           <div
-            className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 font-mono text-[10px] uppercase tracking-[1.8px] text-foreground/55"
+            className="hidden flex-col items-end gap-1 font-mono text-[10px] uppercase tracking-[1.5px] md:flex"
             style={{ fontFamily: "var(--font-body)" }}
           >
-            <span
-              className="border px-2 py-[3px]"
-              style={{
-                color: locked ? "rgba(240,233,219,0.5)" : accent,
-                borderColor: locked
-                  ? "rgba(240,233,219,0.25)"
-                  : `${accent}80`,
-                background: locked
-                  ? "transparent"
-                  : `${accent}14`,
-              }}
-            >
-              {locked ? "◉ " : ""}
+            <span style={{ color: locked ? "rgba(240,233,219,0.4)" : accent }}>
               {statePill}
             </span>
-            <span>
-              {String(completed).padStart(2, "0")} / {String(total).padStart(2, "0")} LEÇONS
+            <span className="text-foreground/40">
+              {String(completed).padStart(2, "0")} / {String(total).padStart(2, "0")}
             </span>
-            <span className="flex items-center gap-1">
-              <Zap size={10} />
-              {earnedXp} / {totalXp} XP
-            </span>
+          </div>
 
-            {/* Progress bar (only when not locked and has progress) */}
-            {!locked && state === "in-progress" && (
-              <div className="flex min-w-[140px] max-w-[240px] flex-1 items-center gap-2">
-                <div className="relative h-[2px] flex-1 bg-foreground/10">
-                  <div
-                    className="absolute inset-y-0 left-0 transition-[width] duration-1000 [transition-timing-function:var(--ease-reveal)]"
-                    style={{
-                      width: `${percent}%`,
-                      background: accent,
-                    }}
-                  />
-                </div>
-                <span style={{ color: accent }}>{percent}%</span>
-              </div>
-            )}
+          {/* Chevron / cadenas */}
+          <div
+            className="flex size-10 items-center justify-center border transition-all duration-500 [transition-timing-function:var(--ease-reveal)]"
+            style={{
+              borderColor: locked
+                ? "rgba(240,233,219,0.2)"
+                : `${accent}50`,
+              background: locked
+                ? "transparent"
+                : expanded
+                ? accent
+                : "transparent",
+              color: locked
+                ? "rgba(240,233,219,0.4)"
+                : expanded
+                ? "#0D0B08"
+                : accent,
+              transform:
+                expanded && !locked ? "rotate(180deg)" : "rotate(0)",
+            }}
+            aria-hidden
+          >
+            {locked ? <Lock size={15} /> : <ChevronDown size={16} />}
           </div>
         </div>
-
-        {/* Right : chevron or lock */}
-        <div
-          className="flex size-10 shrink-0 items-center justify-center border transition-all duration-500 [transition-timing-function:var(--ease-reveal)]"
-          style={{
-            borderColor: locked
-              ? "rgba(240,233,219,0.2)"
-              : `${accent}50`,
-            background: locked
-              ? "transparent"
-              : expanded
-              ? accent
-              : `${accent}10`,
-            color: locked
-              ? "rgba(240,233,219,0.4)"
-              : expanded
-              ? "#0D0B08"
-              : accent,
-            transform:
-              expanded && !locked ? "rotate(180deg)" : "rotate(0)",
-          }}
-          aria-hidden
-        >
-          {locked ? <Lock size={15} /> : <ChevronDown size={16} />}
-        </div>
       </button>
+
+      {/* Progress bar — fine ligne en bas du row, seulement si en cours */}
+      {!locked && state === "in-progress" && (
+        <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-foreground/[0.06]">
+          <div
+            className="h-full transition-[width] duration-1000 [transition-timing-function:var(--ease-reveal)]"
+            style={{
+              width: `${percent}%`,
+              background: accent,
+            }}
+          />
+        </div>
+      )}
+      {!locked && state === "completed" && (
+        <div
+          className="absolute bottom-0 left-0 right-0 h-[2px]"
+          style={{ background: accent }}
+        />
+      )}
 
       {/* Expandable : list of lessons */}
       <div

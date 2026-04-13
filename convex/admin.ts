@@ -434,6 +434,75 @@ export const broadcastNotification = mutation({
   },
 });
 
+/**
+ * Vue aplatie de tout le contenu : modules + lessons (avec moduleTitle) +
+ * exercises (avec lessonTitle et moduleTitle). Utilisé par /admin/content.
+ */
+export const allContent = query({
+  args: {},
+  handler: async (ctx) => {
+    await requireAdmin(ctx);
+
+    const modulesRaw = await ctx.db
+      .query("modules")
+      .withIndex("by_order")
+      .filter((q) => q.eq(q.field("deletedAt"), undefined))
+      .collect();
+    const modules = modulesRaw.sort((a, b) => a.order - b.order);
+
+    const lessonsRaw = await ctx.db
+      .query("lessons")
+      .filter((q) => q.eq(q.field("deletedAt"), undefined))
+      .collect();
+
+    const exercisesRaw = await ctx.db
+      .query("exercises")
+      .filter((q) => q.eq(q.field("deletedAt"), undefined))
+      .collect();
+
+    const modById = new Map(modules.map((m) => [m._id, m]));
+    const lessonById = new Map(lessonsRaw.map((l) => [l._id, l]));
+
+    const lessons = lessonsRaw
+      .map((l) => ({
+        ...l,
+        moduleTitle: modById.get(l.moduleId)?.title ?? "—",
+        moduleOrder: modById.get(l.moduleId)?.order ?? 0,
+      }))
+      .sort((a, b) => a.moduleOrder - b.moduleOrder || a.order - b.order);
+
+    const exercises = exercisesRaw
+      .map((e) => {
+        const lesson = lessonById.get(e.lessonId);
+        const mod = lesson ? modById.get(lesson.moduleId) : undefined;
+        return {
+          ...e,
+          lessonTitle: lesson?.title ?? "—",
+          lessonOrder: lesson?.order ?? 0,
+          moduleTitle: mod?.title ?? "—",
+          moduleOrder: mod?.order ?? 0,
+        };
+      })
+      .sort(
+        (a, b) =>
+          a.moduleOrder - b.moduleOrder ||
+          a.lessonOrder - b.lessonOrder ||
+          a._creationTime - b._creationTime
+      );
+
+    return {
+      modules,
+      lessons,
+      exercises,
+      counts: {
+        modules: modules.length,
+        lessons: lessons.length,
+        exercises: exercises.length,
+      },
+    };
+  },
+});
+
 // Satisfy linter — reserve room for future internal schedulers
 export const _markActive = internalMutation({
   args: { userId: v.id("users") },

@@ -59,6 +59,21 @@ export const update = mutation({
   },
 });
 
+export const countByLesson = query({
+  args: { lessonId: v.id("lessons") },
+  handler: async (ctx, { lessonId }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return 0;
+    const notes = await ctx.db
+      .query("notes")
+      .withIndex("by_user_lesson", (q) =>
+        q.eq("userId", userId).eq("lessonId", lessonId)
+      )
+      .collect();
+    return notes.length;
+  },
+});
+
 /**
  * Delete a note.
  */

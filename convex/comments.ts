@@ -53,6 +53,18 @@ export const listByLesson = query({
   },
 });
 
+export const countByLesson = query({
+  args: { lessonId: v.id("lessons") },
+  handler: async (ctx, { lessonId }) => {
+    const comments = await ctx.db
+      .query("comments")
+      .withIndex("by_lesson", (q) => q.eq("lessonId", lessonId))
+      .filter((q) => q.eq(q.field("deletedAt"), undefined))
+      .collect();
+    return comments.length;
+  },
+});
+
 export const create = mutation({
   args: {
     lessonId: v.id("lessons"),

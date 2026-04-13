@@ -1,8 +1,9 @@
 "use client";
 
 import { useQuery, useMutation } from "convex/react";
+import { toast } from "sonner";
 import { useAuthActions } from "@convex-dev/auth/react";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
@@ -59,39 +60,7 @@ export default function DashboardPage() {
   const isAdmin = user.role === "admin";
 
   if (!purchase && !isAdmin) {
-    return (
-      <main className="flex min-h-screen flex-col items-center justify-center px-6 py-16">
-        <div className="w-full max-w-md flex flex-col items-center gap-6 text-center">
-          <h1>
-            Accès en{" "}
-            <span className="italic text-primary" style={{ fontFamily: "var(--font-serif)" }}>
-              attente
-            </span>
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Ton compte est connecté, mais aucun achat n&apos;est lié à{" "}
-            <span className="font-medium text-foreground">{user.email}</span>.
-          </p>
-          <a
-            href="https://www.amourstudios.fr/paiement"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex h-12 w-full max-w-xs items-center justify-center bg-primary text-primary-foreground font-medium"
-          >
-            Acheter la formation — 497 €
-          </a>
-          <p className="text-xs text-muted-foreground">
-            Déjà payé ?{" "}
-            <a href="mailto:contact@amourstudios.fr" className="text-primary hover:underline">
-              contact@amourstudios.fr
-            </a>
-          </p>
-          <Button variant="ghost" size="sm" onClick={() => signOut()}>
-            Se déconnecter
-          </Button>
-        </div>
-      </main>
-    );
+    return <PendingGate email={user.email} onSignOut={() => signOut()} />;
   }
 
   if (!user.onboardingCompletedAt && !isAdmin) {
@@ -215,6 +184,138 @@ export default function DashboardPage() {
             }
           />
         </section>
+      </div>
+    </main>
+  );
+}
+
+// ─── Pending gate (user connecté mais pas de purchase lié) ────────
+function PendingGate({
+  email,
+  onSignOut,
+}: {
+  email?: string;
+  onSignOut: () => void;
+}) {
+  const claimByEmail = useMutation(api.users.claimPurchaseByEmail);
+  const [altEmail, setAltEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  return (
+    <main className="ds-grid-bg flex min-h-screen flex-col items-center justify-center px-6 py-16 bg-background text-foreground">
+      <div className="ds-reveal flex w-full max-w-lg flex-col gap-4">
+        <p
+          className="font-mono text-[10px] uppercase tracking-[3px] text-foreground/55"
+          style={{ fontFamily: "var(--font-body)" }}
+        >
+          — Compte connecté · Aucun paiement détecté
+        </p>
+        <h1
+          className="text-[clamp(40px,5.5vw,64px)] font-normal leading-[0.95] tracking-[-1.5px]"
+          style={{ fontFamily: "var(--font-serif)" }}
+        >
+          Accès en <em className="italic text-[#FF6B1F]">attente</em>
+        </h1>
+        <p
+          className="font-mono text-sm text-foreground/70"
+          style={{ fontFamily: "var(--font-body)" }}
+        >
+          Ton compte Discord ({email ?? "—"}) n&apos;est lié à aucun paiement.
+          3 solutions :
+        </p>
+
+        {/* 1. Auto-claim by email */}
+        <div className="border border-foreground/15 bg-foreground/[0.04] p-5">
+          <p
+            className="mb-2 font-mono text-[10px] uppercase tracking-[2px] text-foreground/60"
+            style={{ fontFamily: "var(--font-body)" }}
+          >
+            ◦ 1. J&apos;ai payé avec un autre email
+          </p>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <input
+              type="email"
+              placeholder="email utilisé au paiement"
+              value={altEmail}
+              onChange={(e) => setAltEmail(e.target.value)}
+              className="flex-1 border border-foreground/15 bg-background px-3 py-2 font-mono text-xs outline-none focus:border-[#FF6B1F]"
+              style={{ minHeight: 0, fontFamily: "var(--font-body)" }}
+            />
+            <button
+              disabled={!altEmail.trim() || loading}
+              onClick={async () => {
+                setLoading(true);
+                try {
+                  await claimByEmail({ email: altEmail });
+                  toast.success("Accès VIP débloqué 🎉");
+                  setTimeout(() => window.location.reload(), 800);
+                } catch (err) {
+                  toast.error(
+                    err instanceof Error ? err.message : "Erreur"
+                  );
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              className="bg-[#00FF85] px-4 py-2 font-mono text-[10px] uppercase tracking-[2px] text-[#0D0B08] disabled:opacity-50"
+              style={{ minHeight: 0, fontFamily: "var(--font-body)" }}
+            >
+              {loading ? "…" : "LIER MON COMPTE"}
+            </button>
+          </div>
+        </div>
+
+        {/* 2. Buy */}
+        <a
+          href="https://www.amourstudios.fr"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group flex items-center justify-between border border-foreground/15 bg-foreground/[0.04] px-5 py-5 transition-all hover:bg-foreground/[0.08]"
+        >
+          <div>
+            <p
+              className="mb-2 font-mono text-[10px] uppercase tracking-[2px] text-foreground/60"
+              style={{ fontFamily: "var(--font-body)" }}
+            >
+              ◦ 2. Pas encore acheté la formation
+            </p>
+            <p
+              className="text-xl italic"
+              style={{ fontFamily: "var(--font-serif)" }}
+            >
+              Rejoindre Amour Studios — 497 €
+            </p>
+          </div>
+          <span
+            className="text-3xl italic transition-transform duration-700 [transition-timing-function:var(--ease-reveal)] group-hover:translate-x-1"
+            style={{ color: "#FF6B1F", fontFamily: "var(--font-serif)" }}
+          >
+            →
+          </span>
+        </a>
+
+        {/* 3. SAV */}
+        <p
+          className="font-mono text-xs text-foreground/50"
+          style={{ fontFamily: "var(--font-body)" }}
+        >
+          ◦ 3. Besoin d&apos;aide ?{" "}
+          <a
+            href="mailto:contact@amourstudios.fr"
+            className="text-[#FF6B1F] underline-offset-2 hover:underline"
+          >
+            contact@amourstudios.fr
+          </a>{" "}
+          — réponse sous 24h.
+        </p>
+
+        <button
+          onClick={onSignOut}
+          className="mt-4 self-start font-mono text-[10px] uppercase tracking-[1.5px] text-foreground/50 hover:text-foreground"
+          style={{ minHeight: 0, fontFamily: "var(--font-body)" }}
+        >
+          ← Se déconnecter
+        </button>
       </div>
     </main>
   );

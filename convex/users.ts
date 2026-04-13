@@ -98,3 +98,126 @@ export const requestDiscordRoleSync = action({
     return { ok: true };
   },
 });
+
+// ============================================================================
+// Claim flow — lier un paiement Stripe au user courant
+// ============================================================================
+
+/**
+ * Query publique : check si un purchase existe pour une session Stripe donnée.
+ * Utile pour la page /claim pour afficher l'état en temps réel (retry si le
+ * webhook n'est pas encore arrivé).
+ */
+export const purchaseForSession = query({
+  args: { sessionId: v.string() },
+  handler: async (ctx, { sessionId }) => {
+    const purchase = await ctx.db
+      .query("purchases")
+      .withIndex("by_stripe_session", (q) => q.eq("stripeSessionId", sessionId))
+      .first();
+    if (!purchase) return null;
+    return {
+      _id: purchase._id,
+      status: purchase.status,
+      email: purchase.email,
+      hasUser: !!purchase.userId,
+    };
+  },
+});
+
+/**
+ * Mutation publique : lie un purchase au user courant via la session Stripe.
+ * Idempotent — si déjà lié, no-op.
+ */
+export const claimPurchaseBySession = mutation({
+  args: { sessionId: v.string() },
+  handler: async (ctx, { sessionId }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Non authentifié");
+
+    const purchase = await ctx.db
+      .query("purchases")
+      .withIndex("by_stripe_session", (q) => q.eq("stripeSessionId", sessionId))
+      .first();
+
+    if (!purchase) {
+      throw new Error("Paiement introuvable — il est peut-être encore en cours de traitement");
+    }
+    if (purchase.status !== "paid") {
+      throw new Error("Ce paiement n'est pas validé");
+    }
+    if (purchase.userId && purchase.userId !== userId) {
+      throw new Error("Ce paiement est déjà lié à un autre compte");
+    }
+
+    // Link purchase ↔ user
+    if (!purchase.userId) {
+      await ctx.db.patch(purchase._id, { userId });
+    }
+    const user = await ctx.db.get(userId);
+    if (user && !user.purchaseId) {
+      await ctx.db.patch(userId, { purchaseId: purchase._id });
+    }
+
+    // Schedule Discord role assignment (fail-silent)
+    if (user?.discordId && user?.email) {
+      await ctx.scheduler.runAfter(0, internal.stripe.assignDiscordRole, {
+        discordId: user.discordId,
+        email: user.email,
+      });
+    }
+
+    return { ok: true, purchaseId: purchase._id };
+  },
+});
+
+/**
+ * Mutation publique : fallback si l'email Discord ≠ email Stripe.
+ * Le user entre son email de paiement → on cherche un purchase "paid" non lié
+ * à ce email → on le lie au user courant.
+ */
+export const claimPurchaseByEmail = mutation({
+  args: { email: v.string() },
+  handler: async (ctx, { email }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Non authentifié");
+    const normalized = email.trim().toLowerCase();
+    if (!normalized) throw new Error("Email requis");
+
+    const user = await ctx.db.get(userId);
+    if (user?.purchaseId) {
+      throw new Error("Ton compte est déjà lié à un paiement");
+    }
+
+    const purchase = await ctx.db
+      .query("purchases")
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("email"), normalized),
+          q.eq(q.field("status"), "paid")
+        )
+      )
+      .first();
+
+    if (!purchase) {
+      throw new Error("Aucun paiement trouvé pour cet email");
+    }
+    if (purchase.userId && purchase.userId !== userId) {
+      throw new Error("Ce paiement est déjà lié à un autre compte");
+    }
+
+    if (!purchase.userId) {
+      await ctx.db.patch(purchase._id, { userId });
+    }
+    await ctx.db.patch(userId, { purchaseId: purchase._id });
+
+    if (user?.discordId && user?.email) {
+      await ctx.scheduler.runAfter(0, internal.stripe.assignDiscordRole, {
+        discordId: user.discordId,
+        email: user.email,
+      });
+    }
+
+    return { ok: true };
+  },
+});

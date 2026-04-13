@@ -126,6 +126,28 @@ export const purchaseForSession = query({
 });
 
 /**
+ * Même chose via payment_intent_id (intégration Stripe Elements).
+ */
+export const purchaseForPaymentIntent = query({
+  args: { paymentIntentId: v.string() },
+  handler: async (ctx, { paymentIntentId }) => {
+    const purchase = await ctx.db
+      .query("purchases")
+      .withIndex("by_payment_intent", (q) =>
+        q.eq("stripePaymentIntentId", paymentIntentId)
+      )
+      .first();
+    if (!purchase) return null;
+    return {
+      _id: purchase._id,
+      status: purchase.status,
+      email: purchase.email,
+      hasUser: !!purchase.userId,
+    };
+  },
+});
+
+/**
  * Mutation publique : lie un purchase au user courant via la session Stripe.
  * Idempotent — si déjà lié, no-op.
  */
@@ -160,6 +182,51 @@ export const claimPurchaseBySession = mutation({
     }
 
     // Schedule Discord role assignment (fail-silent)
+    if (user?.discordId && user?.email) {
+      await ctx.scheduler.runAfter(0, internal.stripe.assignDiscordRole, {
+        discordId: user.discordId,
+        email: user.email,
+      });
+    }
+
+    return { ok: true, purchaseId: purchase._id };
+  },
+});
+
+/**
+ * Même chose via payment_intent_id (intégration Stripe Elements).
+ */
+export const claimPurchaseByPaymentIntent = mutation({
+  args: { paymentIntentId: v.string() },
+  handler: async (ctx, { paymentIntentId }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Non authentifié");
+
+    const purchase = await ctx.db
+      .query("purchases")
+      .withIndex("by_payment_intent", (q) =>
+        q.eq("stripePaymentIntentId", paymentIntentId)
+      )
+      .first();
+
+    if (!purchase) {
+      throw new Error("Paiement introuvable — il est peut-être encore en cours de traitement");
+    }
+    if (purchase.status !== "paid") {
+      throw new Error("Ce paiement n'est pas validé");
+    }
+    if (purchase.userId && purchase.userId !== userId) {
+      throw new Error("Ce paiement est déjà lié à un autre compte");
+    }
+
+    if (!purchase.userId) {
+      await ctx.db.patch(purchase._id, { userId });
+    }
+    const user = await ctx.db.get(userId);
+    if (user && !user.purchaseId) {
+      await ctx.db.patch(userId, { purchaseId: purchase._id });
+    }
+
     if (user?.discordId && user?.email) {
       await ctx.scheduler.runAfter(0, internal.stripe.assignDiscordRole, {
         discordId: user.discordId,

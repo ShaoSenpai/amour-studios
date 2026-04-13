@@ -14,22 +14,28 @@ import {
   ArrowRight,
 } from "lucide-react";
 
-// Cookie helpers — le session_id doit survivre à l'OAuth Discord round-trip.
-const COOKIE_NAME = "amour_claim_session";
+// Cookie helpers — le claim token doit survivre à l'OAuth Discord round-trip.
+type ClaimKind = "session" | "pi";
+const COOKIE_NAME = "amour_claim";
 const COOKIE_MAX_AGE = 60 * 60; // 1h
 
-function setClaimCookie(sessionId: string) {
+function setClaimCookie(kind: ClaimKind, value: string) {
   if (typeof document === "undefined") return;
   document.cookie = `${COOKIE_NAME}=${encodeURIComponent(
-    sessionId
+    `${kind}:${value}`
   )}; path=/; max-age=${COOKIE_MAX_AGE}; SameSite=Lax`;
 }
-function getClaimCookie(): string | null {
+function getClaimCookie(): { kind: ClaimKind; value: string } | null {
   if (typeof document === "undefined") return null;
   const match = document.cookie.match(
     new RegExp(`(?:^|; )${COOKIE_NAME}=([^;]+)`)
   );
-  return match ? decodeURIComponent(match[1]) : null;
+  if (!match) return null;
+  const decoded = decodeURIComponent(match[1]);
+  const [kind, ...rest] = decoded.split(":");
+  const value = rest.join(":");
+  if ((kind === "session" || kind === "pi") && value) return { kind, value };
+  return null;
 }
 function clearClaimCookie() {
   if (typeof document === "undefined") return;
@@ -55,26 +61,41 @@ function ClaimInner() {
   const router = useRouter();
   const { signIn } = useAuthActions();
 
-  // Extract session from URL or cookie (survived OAuth)
+  // Extract claim token from URL (supports both ?session= and ?pi=) or cookie
   const sessionFromUrl = search.get("session");
-  const [sessionId, setSessionId] = useState<string | null>(null);
+  const piFromUrl = search.get("pi") ?? search.get("payment_intent");
+  const [claimRef, setClaimRef] = useState<
+    { kind: ClaimKind; value: string } | null
+  >(null);
 
   useEffect(() => {
     if (sessionFromUrl) {
-      setSessionId(sessionFromUrl);
-      setClaimCookie(sessionFromUrl);
+      setClaimRef({ kind: "session", value: sessionFromUrl });
+      setClaimCookie("session", sessionFromUrl);
+    } else if (piFromUrl) {
+      setClaimRef({ kind: "pi", value: piFromUrl });
+      setClaimCookie("pi", piFromUrl);
     } else {
       const fromCookie = getClaimCookie();
-      if (fromCookie) setSessionId(fromCookie);
+      if (fromCookie) setClaimRef(fromCookie);
     }
-  }, [sessionFromUrl]);
+  }, [sessionFromUrl, piFromUrl]);
 
   const currentUser = useQuery(api.users.current);
-  const purchase = useQuery(
+
+  const purchaseFromSession = useQuery(
     api.users.purchaseForSession,
-    sessionId ? { sessionId } : "skip"
+    claimRef?.kind === "session" ? { sessionId: claimRef.value } : "skip"
   );
-  const claim = useMutation(api.users.claimPurchaseBySession);
+  const purchaseFromPi = useQuery(
+    api.users.purchaseForPaymentIntent,
+    claimRef?.kind === "pi" ? { paymentIntentId: claimRef.value } : "skip"
+  );
+  const purchase =
+    claimRef?.kind === "session" ? purchaseFromSession : purchaseFromPi;
+
+  const claimBySession = useMutation(api.users.claimPurchaseBySession);
+  const claimByPi = useMutation(api.users.claimPurchaseByPaymentIntent);
 
   const [claimState, setClaimState] = useState<
     "idle" | "claiming" | "done" | "error"
@@ -87,10 +108,9 @@ function ClaimInner() {
       currentUser &&
       purchase &&
       purchase.status === "paid" &&
-      sessionId &&
+      claimRef &&
       claimState === "idle"
     ) {
-      // Already linked ? redirect direct
       if (currentUser.purchaseId) {
         clearClaimCookie();
         setClaimState("done");
@@ -99,7 +119,11 @@ function ClaimInner() {
         return;
       }
       setClaimState("claiming");
-      claim({ sessionId })
+      const promise =
+        claimRef.kind === "session"
+          ? claimBySession({ sessionId: claimRef.value })
+          : claimByPi({ paymentIntentId: claimRef.value });
+      promise
         .then(() => {
           clearClaimCookie();
           setClaimState("done");
@@ -111,12 +135,12 @@ function ClaimInner() {
           setErrorMsg(err instanceof Error ? err.message : "Erreur inconnue");
         });
     }
-  }, [currentUser, purchase, sessionId, claim, claimState, router]);
+  }, [currentUser, purchase, claimRef, claimBySession, claimByPi, claimState, router]);
 
   // ── Render states ──────────────────────────────────────
 
   // Pas de session dans l'URL
-  if (!sessionId && currentUser !== undefined) {
+  if (!claimRef && currentUser !== undefined) {
     return (
       <Screen>
         <Header tag="◦ ACCÈS" title="Session introuvable" italicWord="introuvable" />
@@ -142,7 +166,7 @@ function ClaimInner() {
   // Loading — attend la query Convex
   if (
     currentUser === undefined ||
-    (sessionId && purchase === undefined)
+    (claimRef && purchase === undefined)
   ) {
     return (
       <Screen>
@@ -160,7 +184,7 @@ function ClaimInner() {
   }
 
   // Webhook pas encore reçu — retry automatique toutes les 2s
-  if (sessionId && purchase === null) {
+  if (claimRef && purchase === null) {
     return (
       <Screen>
         <Header
@@ -189,7 +213,7 @@ function ClaimInner() {
 
   // User pas encore authentifié → Yes/No Discord
   if (!currentUser) {
-    return <HasDiscordScreen sessionId={sessionId!} signIn={signIn} />;
+    return <HasDiscordScreen claimRef={claimRef!} signIn={signIn} />;
   }
 
   // Claim en cours
@@ -282,20 +306,23 @@ function ClaimInner() {
 // ─── Sub-screens ──────────────────────────────────────
 
 function HasDiscordScreen({
-  sessionId,
+  claimRef,
   signIn,
 }: {
-  sessionId: string;
+  claimRef: { kind: ClaimKind; value: string };
   signIn: ReturnType<typeof useAuthActions>["signIn"];
 }) {
   const [choice, setChoice] = useState<"yes" | "no" | null>(null);
   const discordInvite = process.env.NEXT_PUBLIC_DISCORD_INVITE_URL;
 
   const triggerSignIn = async () => {
-    // Keep session_id dans le cookie — le callback reviendra sur /claim
-    setClaimCookie(sessionId);
+    // Keep token dans le cookie — le callback reviendra sur /claim
+    setClaimCookie(claimRef.kind, claimRef.value);
+    const param = claimRef.kind === "session" ? "session" : "pi";
     try {
-      await signIn("discord", { redirectTo: `/claim?session=${sessionId}` });
+      await signIn("discord", {
+        redirectTo: `/claim?${param}=${claimRef.value}`,
+      });
     } catch {
       toast.error("Impossible de se connecter à Discord. Réessaie.");
     }

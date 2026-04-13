@@ -71,6 +71,7 @@ export default defineSchema({
   })
     .index("by_email", ["email"])
     .index("by_stripe_session", ["stripeSessionId"])
+    .index("by_payment_intent", ["stripePaymentIntentId"])
     .index("by_status", ["status"]),
 
   modules: defineTable({

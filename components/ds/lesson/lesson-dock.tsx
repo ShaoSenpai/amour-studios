@@ -14,6 +14,12 @@ export function LessonDock({
   onSelect: (k: DockKey | null) => void;
   counts: Partial<Record<DockKey, number | undefined>>;
 }) {
+  const dockRight =
+    active === "exos"
+      ? "calc(65vw + 16px)"
+      : active
+      ? "calc(420px + 16px)"
+      : "16px";
   const items: { key: DockKey; icon: string; label: string }[] = [
     { key: "exos", icon: "✎", label: "Exos" },
     { key: "notes", icon: "¶", label: "Notes" },
@@ -34,7 +40,9 @@ export function LessonDock({
   }, [onSelect]);
 
   return (
-    <div className="fixed bottom-2 left-1/2 z-30 flex -translate-x-1/2 flex-row gap-2 safe-area-bottom md:bottom-auto md:left-auto md:right-4 md:top-1/2 md:-translate-x-0 md:-translate-y-1/2 md:flex-col">
+    <div
+      className="fixed bottom-2 left-1/2 z-50 flex -translate-x-1/2 flex-row gap-2 safe-area-bottom md:bottom-auto md:left-auto md:top-1/2 md:right-[var(--dock-right)] md:-translate-x-0 md:-translate-y-1/2 md:flex-col md:transition-[right] md:duration-600 md:[transition-timing-function:var(--ease-reveal)]"
+      style={{ ["--dock-right" as string]: dockRight }}>
       {items.map((it) => {
         const isActive = active === it.key;
         const count = counts[it.key];

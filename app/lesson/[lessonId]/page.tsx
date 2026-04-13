@@ -118,7 +118,17 @@ export default function LessonPage({
       <Sidebar />
       <Topbar />
 
-      <div className={`${collapsed ? "md:ml-[68px]" : "md:ml-[240px]"} pb-28 md:pb-8`}>
+      <div
+        className={`${collapsed ? "md:ml-[68px]" : "md:ml-[240px]"} pb-28 md:pb-8 transition-[padding-right] duration-600 [transition-timing-function:var(--ease-reveal)]`}
+        style={{
+          paddingRight:
+            activePanel === "exos"
+              ? "min(65vw, 65vw)"
+              : activePanel
+              ? "min(420px, 100vw)"
+              : 0,
+        }}
+      >
         <div className="mx-auto max-w-[1200px] px-4 py-6 md:px-6">
 
           <LessonMetaBar

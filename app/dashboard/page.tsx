@@ -434,11 +434,14 @@ function ModuleRow({
   const hasPreviewLesson = lessons.some((l) => l.previewAccess);
 
   let state: ModuleCardState;
-  if (total > 0 && completed === total) state = "completed";
-  else if (completed > 0) state = "in-progress";
-  else if (previewMode && !hasPreviewLesson) {
-    // En mode preview, tout est verrouillé sauf les modules avec une preview lesson
+  if (previewMode && !hasPreviewLesson) {
+    // En mode preview, tout module sans lesson preview est VERROUILLÉ —
+    // peu importe la progression passée (cas admin en VUE PREVIEW).
     state = "locked";
+  } else if (total > 0 && completed === total) {
+    state = "completed";
+  } else if (completed > 0) {
+    state = "in-progress";
   } else {
     const prevUnlocked =
       idx === 0 ||
@@ -484,6 +487,7 @@ function ModuleRow({
       isAdmin={isAdmin}
       previewMode={previewMode}
       onLockedClick={() => onLockedClick(mod.title)}
+      hasPreviewLesson={hasPreviewLesson}
     />
   );
 }
@@ -532,6 +536,7 @@ function ModuleRowView({
   isAdmin: boolean;
   previewMode: boolean;
   onLockedClick: () => void;
+  hasPreviewLesson: boolean;
 }) {
   // Default: in-progress module is expanded, others collapsed
   const [expanded, setExpanded] = useState(state === "in-progress");
@@ -691,10 +696,13 @@ function ModuleRowView({
                 {lessons.map((lesson, i) => {
                   const isCompleted =
                     !!progress[lesson._id]?.lessonCompletedAt;
-                  const unlocked =
-                    isAdmin ||
-                    i === 0 ||
-                    !!progress[lessons[i - 1]._id]?.lessonCompletedAt;
+                  // En preview mode : seules les leçons previewAccess=true sont accessibles
+                  // (peu importe la progress passée du compte admin)
+                  const unlocked = previewMode
+                    ? lesson.previewAccess === true
+                    : isAdmin ||
+                      i === 0 ||
+                      !!progress[lessons[i - 1]._id]?.lessonCompletedAt;
                   const videoSeen = !!progress[lesson._id]?.videoWatchedAt;
                   const placeholder = lesson.muxPlaybackId === "placeholder";
 

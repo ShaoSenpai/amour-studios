@@ -4,6 +4,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { useState } from "react";
+import { Mail } from "lucide-react";
 import { toast } from "sonner";
 import { StatBlock } from "@/components/ds/stat-block";
 import { Pill } from "@/components/ds/pill";
@@ -406,6 +407,7 @@ function AnnouncementsSection({
   const create = useMutation(api.announcements.create);
   const remove = useMutation(api.announcements.remove);
   const broadcast = useMutation(api.admin.broadcastNotification);
+  const broadcastEmail = useMutation(api.emails.broadcastEmail);
 
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
@@ -505,6 +507,23 @@ function AnnouncementsSection({
               />
             ))}
           </div>
+
+          <EmailAlso
+            disabled={!title.trim() || !body.trim()}
+            onSend={async () => {
+              try {
+                const res = await broadcastEmail({
+                  scope,
+                  title,
+                  body,
+                  accent,
+                });
+                toast.success(`Email envoyé à ${res.sent} membre(s)`);
+              } catch (err) {
+                toast.error(err instanceof Error ? err.message : "Erreur email");
+              }
+            }}
+          />
 
           <button
             disabled={!title.trim() || !body.trim() || creating}
@@ -662,5 +681,36 @@ function AnnouncementsSection({
         </div>
       )}
     </section>
+  );
+}
+
+
+function EmailAlso({
+  disabled,
+  onSend,
+}: {
+  disabled: boolean;
+  onSend: () => Promise<void>;
+}) {
+  const [sending, setSending] = useState(false);
+  return (
+    <button
+      type="button"
+      disabled={disabled || sending}
+      onClick={async () => {
+        if (!confirm("Envoyer aussi cette news par email aux membres du segment ?")) return;
+        setSending(true);
+        try {
+          await onSend();
+        } finally {
+          setSending(false);
+        }
+      }}
+      className="mb-2 flex w-full items-center justify-center gap-2 border border-foreground/20 bg-foreground/[0.04] px-4 py-3 font-mono text-[11px] uppercase tracking-[2px] text-foreground/80 transition-all hover:bg-foreground/[0.08] hover:tracking-[3px] disabled:opacity-50"
+      style={{ minHeight: 0, fontFamily: "var(--font-body)" }}
+    >
+      <Mail size={13} />
+      {sending ? "ENVOI EMAIL…" : "ENVOYER AUSSI PAR EMAIL"}
+    </button>
   );
 }

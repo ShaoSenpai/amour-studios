@@ -148,6 +148,14 @@ http.route({
 
         console.log(`✅ Purchase fulfilled for ${email} (${pi.id})`);
 
+        // Email de confirmation avec lien /claim (fail-silent)
+        const firstName = (pi.metadata?.firstName as string | undefined) ?? "";
+        await ctx.runAction(internal.emails.sendClaimEmail, {
+          to: email,
+          firstName,
+          paymentIntentId: pi.id,
+        });
+
         // Assigner le rôle Discord VIP si le user existe et a un discordId
         const user = await ctx.runQuery(internal.stripe.findUserByEmail, { email });
         if (user?.discordId) {

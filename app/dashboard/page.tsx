@@ -12,6 +12,7 @@ import { StatBlock } from "@/components/ds/stat-block";
 import { ProgressStrip } from "@/components/ds/progress-strip";
 import type { ModuleCardState } from "@/components/ds/module-card";
 import { ChevronDown, Lock, Zap, Check, Trophy, PlayCircle } from "lucide-react";
+import { useViewMode } from "@/components/providers/view-mode-provider";
 
 // Couleurs indicatrices (sémantiques, hors palette DA)
 const STATE_COLOR = {
@@ -32,6 +33,7 @@ export default function DashboardPage() {
   const badges = useQuery(api.badges.myBadges);
   const { signOut } = useAuthActions();
   const updateStreak = useMutation(api.streaks.updateStreak);
+  const { viewAsMember } = useViewMode();
 
   useEffect(() => {
     if (user) updateStreak().catch(() => {});
@@ -65,7 +67,7 @@ export default function DashboardPage() {
   }
 
   if (user === null) return null;
-  const isAdmin = user.role === "admin";
+  const isAdmin = user.role === "admin" && !viewAsMember;
 
   if (!purchase && !isAdmin) {
     return <PendingGate email={user.email} onSignOut={() => signOut()} />;

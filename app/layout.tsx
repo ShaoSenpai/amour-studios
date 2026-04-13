@@ -4,6 +4,7 @@ import { ConvexAuthNextjsServerProvider } from "@convex-dev/auth/nextjs/server";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ConvexClientProvider } from "@/components/providers/convex-client-provider";
+import { ViewModeProvider } from "@/components/providers/view-mode-provider";
 import "./globals.css";
 
 const anton = Anton({
@@ -57,10 +58,12 @@ export default function RootLayout({
         </head>
         <body className="min-h-full flex flex-col">
           <ConvexClientProvider>
-            <TooltipProvider delay={150}>
-              {children}
-              <Toaster position="top-right" />
-            </TooltipProvider>
+            <ViewModeProvider>
+              <TooltipProvider delay={150}>
+                {children}
+                <Toaster position="top-right" />
+              </TooltipProvider>
+            </ViewModeProvider>
           </ConvexClientProvider>
         </body>
       </html>

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/convex/_generated/api";
 import { Home, Pencil, MessageCircle } from "lucide-react";
+import { useEffectiveRole } from "@/components/providers/view-mode-provider";
 
 export function MobileNav() {
   const user = useQuery(api.users.current);
@@ -12,7 +13,8 @@ export function MobileNav() {
 
   if (!user) return null;
 
-  const isAdmin = user.role === "admin";
+  const effectiveRole = useEffectiveRole(user.role);
+  const isAdmin = effectiveRole === "admin";
   const discordInvite = process.env.NEXT_PUBLIC_DISCORD_INVITE_URL;
 
   const items = [

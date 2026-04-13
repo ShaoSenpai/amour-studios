@@ -9,6 +9,7 @@ import { Logo } from "./logo";
 import { XpBar } from "@/components/gamification/xp-bar";
 import { StreakBadge } from "@/components/gamification/streak-badge";
 import { useSidebar } from "./sidebar-provider";
+import { useEffectiveRole } from "@/components/providers/view-mode-provider";
 import {
   Home,
   LayoutGrid,
@@ -30,7 +31,8 @@ export function Sidebar() {
 
   if (!user) return null;
 
-  const isAdmin = user.role === "admin";
+  const effectiveRole = useEffectiveRole(user.role);
+  const isAdmin = effectiveRole === "admin";
   const discordInvite = process.env.NEXT_PUBLIC_DISCORD_INVITE_URL;
 
   return (

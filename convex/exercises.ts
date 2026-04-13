@@ -25,6 +25,8 @@ export const create = mutation({
     qcmOptions: v.optional(
       v.array(v.object({ label: v.string(), isCorrect: v.boolean() }))
     ),
+    exerciseUrl: v.optional(v.string()),
+    config: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
@@ -48,6 +50,8 @@ export const update = mutation({
     qcmOptions: v.optional(
       v.array(v.object({ label: v.string(), isCorrect: v.boolean() }))
     ),
+    exerciseUrl: v.optional(v.string()),
+    config: v.optional(v.string()),
   },
   handler: async (ctx, { exerciseId, ...updates }) => {
     await requireAdmin(ctx);

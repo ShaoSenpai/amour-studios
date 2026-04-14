@@ -655,7 +655,7 @@ function AutoRefresher({ onStuck }: { onStuck?: () => void }) {
 function ClaimingFallback({ onRetry }: { onRetry: () => void }) {
   const [visible, setVisible] = useState(false);
   useEffect(() => {
-    const id = setTimeout(() => setVisible(true), 10000);
+    const id = setTimeout(() => setVisible(true), 5000);
     return () => clearTimeout(id);
   }, []);
   if (!visible) return null;

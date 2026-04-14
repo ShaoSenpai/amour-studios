@@ -532,10 +532,10 @@ function ModuleRowView({
   return (
     <div
       id={`module-${modId}`}
-      className="group/module relative overflow-hidden rounded-md border border-foreground/15 bg-foreground/[0.05] transition-colors duration-300 hover:border-foreground/30 hover:bg-foreground/[0.07]"
+      className="group/module relative overflow-hidden rounded-md border border-foreground/20 bg-foreground/[0.08] transition-colors duration-300 hover:border-foreground/35 hover:bg-foreground/[0.1]"
       style={{
-        opacity: locked ? 0.7 : 1,
-        boxShadow: `inset 4px 0 0 0 ${locked ? "rgba(240,233,219,0.2)" : accent}`,
+        opacity: locked ? 0.75 : 1,
+        boxShadow: `inset 4px 0 0 0 ${locked ? "rgba(240,233,219,0.25)" : accent}`,
       }}
     >
       <button

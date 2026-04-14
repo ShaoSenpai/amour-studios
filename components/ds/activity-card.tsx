@@ -31,7 +31,7 @@ export function ActivityCard({
   return (
     <div
       className={cn(
-        "relative border border-foreground/15 bg-foreground/[0.04] p-5",
+        "relative rounded-md border border-foreground/20 bg-foreground/[0.08] p-5",
         className
       )}
     >

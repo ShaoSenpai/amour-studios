@@ -59,7 +59,7 @@ export function ModulePanel({
                   <div
                     className={`flex size-6 shrink-0 items-center justify-center font-mono text-[10px] ${
                       isCompleted
-                        ? "bg-[#00FF85] text-[#0D0B08]"
+                        ? "bg-[color:var(--state-done-bg)] text-[color:var(--state-done-fg)]"
                         : isCurrent
                         ? "bg-[#FF6B1F] text-[#0D0B08]"
                         : isUnlocked

@@ -476,9 +476,9 @@ export default function ProfilePage() {
               disabled={!dirty || saving}
               className={`gap-2 rounded-none px-6 ${
                 dirty
-                  ? "bg-[#00FF85] text-[#0D0B08] hover:bg-[#00cc6b]"
+                  ? "bg-[color:var(--state-done-bg)] text-[#0D0B08] hover:bg-[#00cc6b]"
                   : saved
-                  ? "bg-[rgba(0,255,133,0.2)] text-[#00FF85]"
+                  ? "bg-[rgba(0,255,133,0.2)] text-[color:var(--state-done)]"
                   : "bg-foreground/5 text-foreground/50"
               }`}
               style={{ fontFamily: "var(--font-body)" }}

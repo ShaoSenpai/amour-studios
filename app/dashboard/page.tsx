@@ -125,7 +125,7 @@ export default function DashboardPage() {
               className="hidden gap-4 font-mono text-[10px] uppercase tracking-[2px] md:flex"
               style={{ fontFamily: "var(--font-body)" }}
             >
-              <span className="border-b border-[#00FF85] pb-1">◦ Tous</span>
+              <span className="border-b border-[color:var(--state-done)] pb-1">◦ Tous</span>
               <span className="opacity-40">◦ En cours</span>
               <span className="opacity-40">◦ Complétés</span>
               <span className="opacity-40">◦ À venir</span>
@@ -259,7 +259,7 @@ function PendingGate({
                   setLoading(false);
                 }
               }}
-              className="bg-[#00FF85] px-4 py-2 font-mono text-[10px] uppercase tracking-[2px] text-[#0D0B08] disabled:opacity-50"
+              className="bg-[color:var(--state-done-bg)] px-4 py-2 font-mono text-[10px] uppercase tracking-[2px] text-[#0D0B08] disabled:opacity-50"
               style={{ minHeight: 0, fontFamily: "var(--font-body)" }}
             >
               {loading ? "…" : "LIER MON COMPTE"}

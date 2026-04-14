@@ -31,12 +31,12 @@ export function ProgressStrip({
           className="absolute inset-y-0 left-0 transition-[width] duration-1000 [transition-timing-function:var(--ease-reveal)]"
           style={{
             width: `${clamped}%`,
-            background: "linear-gradient(90deg, #00FF85, #FF6B1F)",
+            background: "linear-gradient(90deg, var(--progress-grad-from), var(--progress-grad-to))",
           }}
         />
       </div>
       <span
-        className="text-xl italic text-[#00FF85]"
+        className="text-xl italic text-[color:var(--state-done)]"
         style={{ fontFamily: "var(--font-serif)" }}
       >
         {clamped}%

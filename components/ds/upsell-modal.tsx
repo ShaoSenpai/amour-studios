@@ -92,7 +92,7 @@ export function UpsellModal({
               "Accès à vie — ton rythme",
             ].map((b) => (
               <li key={b} className="flex items-start gap-2.5">
-                <Check size={14} className="mt-[3px] shrink-0 text-[#00FF85]" />
+                <Check size={14} className="mt-[3px] shrink-0 text-[color:var(--state-done)]" />
                 <span>{b}</span>
               </li>
             ))}

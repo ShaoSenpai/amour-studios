@@ -22,7 +22,10 @@ export function CommentSection({ lessonId }: { lessonId: Id<"lessons"> }) {
 
   return (
     <div>
-      <h2 className="font-semibold mb-4">
+      <h2
+        className="mb-4 text-2xl italic"
+        style={{ fontFamily: "var(--font-serif)" }}
+      >
         Commentaires ({comments.length})
       </h2>
 
@@ -99,16 +102,32 @@ function NewCommentForm({
         value={content}
         onChange={(e) => setContent(e.target.value)}
         placeholder={parentCommentId ? "Répondre..." : "Ajouter un commentaire..."}
-        className="flex-1 h-9 rounded-md border border-border bg-background px-3 text-sm"
+        className="flex-1 h-10 rounded-md border border-foreground/25 bg-foreground/[0.04] px-3 text-sm font-mono outline-none transition-colors focus:border-foreground/50 focus:bg-foreground/[0.06]"
+        style={{ fontFamily: "var(--font-body)", minHeight: 0 }}
         maxLength={2000}
       />
-      <Button type="submit" size="sm" disabled={!content.trim() || submitting} className="active:scale-[0.98]">
+      <button
+        type="submit"
+        disabled={!content.trim() || submitting}
+        className="rounded-md px-4 font-mono text-[11px] font-bold uppercase tracking-[2px] transition-opacity hover:opacity-90 disabled:opacity-40"
+        style={{
+          background: "var(--state-done-bg)",
+          color: "var(--state-done-fg)",
+          fontFamily: "var(--font-body)",
+          minHeight: 0,
+        }}
+      >
         {parentCommentId ? "Répondre" : "Poster"}
-      </Button>
+      </button>
       {parentCommentId && onDone && (
-        <Button type="button" variant="ghost" size="sm" onClick={onDone}>
+        <button
+          type="button"
+          onClick={onDone}
+          className="rounded-md border border-foreground/25 px-3 font-mono text-[11px] uppercase tracking-[1.5px] text-foreground/70 hover:bg-foreground/[0.05]"
+          style={{ fontFamily: "var(--font-body)", minHeight: 0 }}
+        >
           Annuler
-        </Button>
+        </button>
       )}
     </form>
   );

@@ -103,9 +103,15 @@ export function ExercisesPanel({
                   />
                   {videoWatched && !exerciseCompleted && (
                     <div className="mt-3 flex justify-end">
-                      <Button
-                        size="sm"
-                        className="gap-1.5 rounded-full"
+                      <button
+                        type="button"
+                        className="flex items-center gap-1.5 rounded-md px-4 py-2 font-mono text-[11px] font-bold uppercase tracking-[2px] transition-opacity hover:opacity-90"
+                        style={{
+                          background: "var(--state-done-bg)",
+                          color: "var(--state-done-fg)",
+                          fontFamily: "var(--font-body)",
+                          minHeight: 0,
+                        }}
                         onClick={async () => {
                           await completeExercise({ lessonId });
                           fireConfetti();
@@ -113,12 +119,12 @@ export function ExercisesPanel({
                         }}
                       >
                         <Check size={14} /> Marquer comme complété
-                      </Button>
+                      </button>
                     </div>
                   )}
                 </>
               ) : (
-                <div className="border border-foreground/15 bg-foreground/[0.04] p-5">
+                <div className="rounded-md border border-foreground/20 bg-foreground/[0.06] p-5">
                   <h3
                     className="mb-3 text-xl italic"
                     style={{ fontFamily: "var(--font-serif)" }}
@@ -126,14 +132,20 @@ export function ExercisesPanel({
                     {active.title}
                   </h3>
                   {active.contentMarkdown && (
-                    <p className="mb-4 whitespace-pre-line text-sm text-foreground/70">
+                    <p className="mb-4 whitespace-pre-line text-sm text-foreground/75">
                       {active.contentMarkdown}
                     </p>
                   )}
                   {!exerciseCompleted && (
-                    <Button
-                      size="sm"
-                      className="rounded-full"
+                    <button
+                      type="button"
+                      className="rounded-md px-4 py-2 font-mono text-[11px] font-bold uppercase tracking-[2px] transition-opacity hover:opacity-90 disabled:opacity-40"
+                      style={{
+                        background: "var(--state-done-bg)",
+                        color: "var(--state-done-fg)",
+                        fontFamily: "var(--font-body)",
+                        minHeight: 0,
+                      }}
                       disabled={!videoWatched}
                       onClick={async () => {
                         await completeExercise({ lessonId });
@@ -142,13 +154,16 @@ export function ExercisesPanel({
                       }}
                     >
                       Valider l&apos;exercice
-                    </Button>
+                    </button>
                   )}
                 </div>
               )}
 
               {exerciseCompleted && (
-                <p className="mt-3 flex items-center gap-1 font-mono text-xs text-[#00FF85]" style={{ fontFamily: "var(--font-body)" }}>
+                <p
+                  className="mt-3 flex items-center gap-1 font-mono text-xs font-bold"
+                  style={{ fontFamily: "var(--font-body)", color: "var(--state-done)" }}
+                >
                   <Check size={12} /> Exercice complété
                 </p>
               )}

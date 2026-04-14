@@ -38,8 +38,13 @@ export function TimestampedNotes({ lessonId }: { lessonId: Id<"lessons"> }) {
   const sortedNotes = [...(notes ?? [])].sort((a, b) => (a.timestampSeconds ?? 0) - (b.timestampSeconds ?? 0));
 
   return (
-    <div className="glass-card rounded-2xl p-5">
-      <h3 className="text-sm font-semibold mb-4 section-accent">Mes notes</h3>
+    <div className="rounded-md border border-foreground/15 bg-foreground/[0.04] p-5">
+      <h3
+        className="mb-4 text-xl italic"
+        style={{ fontFamily: "var(--font-serif)" }}
+      >
+        Mes notes
+      </h3>
 
       {/* Add note */}
       <div className="flex gap-2 mb-4">
@@ -49,16 +54,22 @@ export function TimestampedNotes({ lessonId }: { lessonId: Id<"lessons"> }) {
           value={content}
           onChange={(e) => setContent(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") handleAdd(); }}
-          className="flex-1 h-9 rounded-lg bg-white/5 border border-white/8 px-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:border-primary/40"
+          className="flex-1 h-10 rounded-md border border-foreground/25 bg-foreground/[0.04] px-3 text-sm font-mono outline-none transition-colors focus:border-foreground/50 focus:bg-foreground/[0.06]"
+          style={{ fontFamily: "var(--font-body)", minHeight: 0 }}
         />
-        <Button
-          size="sm"
+        <button
           onClick={handleAdd}
           disabled={!content.trim() || saving}
-          className="rounded-lg h-9 px-3"
+          className="flex h-10 items-center justify-center rounded-md px-3 transition-opacity hover:opacity-90 disabled:opacity-40"
+          style={{
+            background: "var(--state-done-bg)",
+            color: "var(--state-done-fg)",
+            minHeight: 0,
+          }}
+          aria-label="Ajouter"
         >
           <Plus size={14} />
-        </Button>
+        </button>
       </div>
 
       {/* Notes list */}

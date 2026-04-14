@@ -9,6 +9,7 @@ import { Pill } from "./pill";
 import { NotificationBell } from "@/components/layout/notification-bell";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { useViewMode } from "@/components/providers/view-mode-provider";
+import { useSidebar } from "@/components/layout/sidebar-provider";
 import { Search, Eye, EyeOff } from "lucide-react";
 
 export function Topbar() {
@@ -17,6 +18,7 @@ export function Topbar() {
   const inputRef = React.useRef<HTMLInputElement>(null);
   const [query, setQuery] = React.useState("");
   const { viewMode, cycle } = useViewMode();
+  const { collapsed } = useSidebar();
 
   React.useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -37,7 +39,11 @@ export function Topbar() {
   const isVip = !!user.purchaseId;
 
   return (
-    <div className="sticky top-0 z-30 border-b border-foreground/15 bg-background/90 backdrop-blur-md">
+    <div
+      className={`sticky top-0 z-30 border-b border-foreground/15 bg-background/90 backdrop-blur-md transition-[padding-left] duration-300 ease-[cubic-bezier(.22,1,.36,1)] ${
+        collapsed ? "md:pl-[68px]" : "md:pl-[240px]"
+      }`}
+    >
       <div className="mx-auto grid max-w-[1200px] grid-cols-[auto_1fr_auto] items-center gap-4 px-4 py-3 md:px-6">
         <Link
           href="/dashboard"

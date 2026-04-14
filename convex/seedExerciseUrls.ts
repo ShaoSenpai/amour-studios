@@ -10,28 +10,28 @@ const MAPPINGS: Array<{ lessonSlug: string; url: string; title: string }> = [
     url: `${BASE}/MODULE01/VIDEO01/AMOUR_STUDIOS_M01_V01_EXERCICE_INTERACTIF.html`,
   },
   {
-    lessonSlug: "mon-positionnement",
-    title: "Mon Positionnement",
+    lessonSlug: "ton-positionnement",
+    title: "Ton Positionnement",
     url: `${BASE}/MODULE01/VIDEO02/AMOUR_STUDIOS_M01_V02_EXERCICE_INTERACTIF.html`,
   },
   {
-    lessonSlug: "comment-faire-sa-veille-concurrentielle",
-    title: "Ma Veille Concurrentielle",
+    lessonSlug: "veille-concurrentielle",
+    title: "Veille concurrentielle",
     url: `${BASE}/MODULE01/VIDEO03/AMOUR_STUDIOS_M01_V03_EXERCICE_INTERACTIF.html`,
   },
   {
-    lessonSlug: "mes-valeurs-et-ce-que-j-ai-envie-de-montrer",
-    title: "Mes Valeurs",
+    lessonSlug: "tes-valeurs",
+    title: "Tes valeurs",
     url: `${BASE}/MODULE01/VIDEO04/AMOUR_STUDIOS_M01_V04_EXERCICE_INTERACTIF.html`,
   },
   {
-    lessonSlug: "mon-viewer-ideal-persona",
-    title: "Mon Viewer Idéal",
+    lessonSlug: "ton-viewer-ideal",
+    title: "Ton viewer idéal",
     url: `${BASE}/MODULE01/VIDEO05/AMOUR_STUDIOS_M01_V05_EXERCICE_INTERACTIF.html`,
   },
   {
-    lessonSlug: "en-quoi-je-suis-different",
-    title: "Ma Différenciation",
+    lessonSlug: "ta-differenciation",
+    title: "Ta différenciation",
     url: `${BASE}/MODULE01/VIDEO06/AMOUR_STUDIOS_M01_V06_EXERCICE_INTERACTIF.html`,
   },
   {

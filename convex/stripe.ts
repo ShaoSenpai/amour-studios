@@ -94,7 +94,13 @@ export const createPaymentIntent = action({
         save_default_payment_method: "on_subscription",
         payment_method_types: ["card"],
       },
-      expand: ["latest_invoice.payment_intent"],
+      // Stripe API ≥ 2024-11 : payment_intent est déprécié sur invoice.
+      // On expand les 2 chemins et on fallback : confirmation_secret (nouveau)
+      // puis payment_intent (legacy).
+      expand: [
+        "latest_invoice.confirmation_secret",
+        "latest_invoice.payment_intent",
+      ],
       cancel_at: threeMonthsFromNow,
       description: "AMOURstudios® — Le Programme Créateur (3×)",
       metadata: {
@@ -105,12 +111,32 @@ export const createPaymentIntent = action({
     });
 
     const invoice = subscription.latest_invoice as
-      | { payment_intent?: { client_secret?: string | null } | string | null }
+      | {
+          confirmation_secret?: { client_secret?: string | null } | null;
+          payment_intent?: { client_secret?: string | null } | string | null;
+        }
       | null;
-    const pi =
-      invoice && typeof invoice === "object" ? invoice.payment_intent : null;
-    const clientSecret =
-      pi && typeof pi === "object" ? pi.client_secret : null;
+
+    let clientSecret: string | null = null;
+    if (invoice && typeof invoice === "object") {
+      // 1) Nouveau champ (Stripe API ≥ 2024-11)
+      if (
+        invoice.confirmation_secret &&
+        typeof invoice.confirmation_secret === "object" &&
+        invoice.confirmation_secret.client_secret
+      ) {
+        clientSecret = invoice.confirmation_secret.client_secret;
+      }
+      // 2) Ancien champ (backward compat)
+      if (
+        !clientSecret &&
+        invoice.payment_intent &&
+        typeof invoice.payment_intent === "object" &&
+        invoice.payment_intent.client_secret
+      ) {
+        clientSecret = invoice.payment_intent.client_secret;
+      }
+    }
 
     if (!clientSecret) {
       throw new Error(

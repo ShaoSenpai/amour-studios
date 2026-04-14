@@ -553,35 +553,33 @@ function ModuleRowView({
   return (
     <div
       id={`module-${modId}`}
-      className="group/module relative overflow-hidden border border-foreground/10 bg-foreground/[0.02] transition-all duration-500 [transition-timing-function:var(--ease-reveal)] hover:border-foreground/25 hover:bg-foreground/[0.045]"
+      className="group/module relative border border-foreground/10 transition-colors duration-300 hover:border-foreground/25"
       style={{
         opacity: locked ? 0.55 : 1,
-        // Wide accent stripe on the left — the only place the bright color shows
-        boxShadow: `inset 5px 0 0 0 ${locked ? "rgba(240,233,219,0.15)" : accent}`,
+        boxShadow: `inset 4px 0 0 0 ${locked ? "rgba(240,233,219,0.15)" : accent}`,
       }}
     >
       <button
         type="button"
         onClick={() => {
           if (locked) {
-            // En preview mode : ouvre la modal upsell. Sinon : juste désactivé.
             if (previewMode) onLockedClick();
             return;
           }
           setExpanded(!expanded);
         }}
-        className={`relative grid w-full grid-cols-[auto_1fr_auto] items-center gap-6 px-6 py-6 pl-8 text-left transition-all duration-500 [transition-timing-function:var(--ease-reveal)] md:px-10 md:py-8 md:pl-14 ${
+        className={`grid w-full grid-cols-[auto_1fr_auto] items-center gap-5 px-5 py-5 pl-7 text-left md:px-8 md:pl-10 ${
           locked
             ? previewMode
-              ? "cursor-pointer group-hover/module:pl-9 md:group-hover/module:pl-16"
+              ? "cursor-pointer"
               : "cursor-not-allowed"
-            : "cursor-pointer group-hover/module:pl-9 md:group-hover/module:pl-16"
+            : "cursor-pointer"
         }`}
         style={{ minHeight: 0 }}
       >
         {/* Numéro module */}
         <div
-          className="text-3xl italic leading-none tracking-tight transition-colors duration-500 md:text-4xl"
+          className="text-[28px] italic leading-none tracking-tight md:text-[34px]"
           style={{
             fontFamily: "var(--font-serif)",
             color: locked ? "rgba(240,233,219,0.35)" : accent,
@@ -593,7 +591,7 @@ function ModuleRowView({
         {/* Centre : titre + description (uniquement) */}
         <div className="min-w-0">
           <h3
-            className="text-[clamp(22px,3.5vw,38px)] font-normal leading-[1.02] tracking-[-1px] text-foreground"
+            className="text-[clamp(20px,2.8vw,28px)] font-normal leading-[1.1] tracking-[-0.5px] text-foreground"
             style={{ fontFamily: "var(--font-serif)" }}
           >
             {title}
@@ -608,75 +606,38 @@ function ModuleRowView({
           )}
         </div>
 
-        {/* Right : badge statut plein + chevron */}
-        <div className="flex shrink-0 items-center gap-3 md:gap-4">
-          {/* Badge statut PLEIN — couleurs sémantiques (pas DA) */}
-          <div className="hidden flex-col items-end gap-1.5 md:flex">
-            <StatusBadge state={state} />
-            <CountChip
-              completed={completed}
-              total={total}
-              done={state === "completed"}
-            />
+        <div className="flex shrink-0 items-center gap-4">
+          {/* Compteur leçons — avec check vert si complet */}
+          <div
+            className="hidden items-center gap-2 font-mono text-[11px] tracking-[1px] md:flex"
+            style={{ fontFamily: "var(--font-body)" }}
+          >
+            <span style={{ color: state === "completed" ? STATE_COLOR.done : "var(--foreground)" }}>
+              {String(completed).padStart(2, "0")}
+            </span>
+            <span className="opacity-40">/</span>
+            <span className="opacity-60">{String(total).padStart(2, "0")}</span>
+            {state === "completed" && (
+              <Check size={14} style={{ color: STATE_COLOR.done }} />
+            )}
           </div>
 
-          {/* Chevron / cadenas */}
+          {/* Chevron / cadenas — petit et discret */}
           <div
-            className="flex size-10 items-center justify-center border transition-all duration-500 [transition-timing-function:var(--ease-reveal)]"
+            className="flex size-8 items-center justify-center border transition-transform duration-300"
             style={{
               borderColor: locked
                 ? "rgba(240,233,219,0.2)"
-                : state === "completed"
-                ? STATE_COLOR.done
-                : `${accent}50`,
-              background: locked
-                ? "transparent"
-                : state === "completed"
-                ? STATE_COLOR.done
-                : expanded
-                ? accent
-                : "transparent",
-              color: locked
-                ? "rgba(240,233,219,0.4)"
-                : state === "completed"
-                ? "#0D0B08"
-                : expanded
-                ? "#0D0B08"
-                : accent,
-              transform:
-                expanded && !locked ? "rotate(180deg)" : "rotate(0)",
+                : "rgba(240,233,219,0.25)",
+              color: locked ? "rgba(240,233,219,0.4)" : "var(--foreground)",
+              transform: expanded && !locked ? "rotate(180deg)" : "rotate(0)",
             }}
             aria-hidden
           >
-            {locked ? (
-              <Lock size={15} />
-            ) : state === "completed" ? (
-              <Trophy size={15} />
-            ) : (
-              <ChevronDown size={16} />
-            )}
+            {locked ? <Lock size={13} /> : <ChevronDown size={14} />}
           </div>
         </div>
       </button>
-
-      {/* Progress bar — fine ligne en bas du row, seulement si en cours */}
-      {!locked && state === "in-progress" && (
-        <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-foreground/[0.06]">
-          <div
-            className="h-full transition-[width] duration-1000 [transition-timing-function:var(--ease-reveal)]"
-            style={{
-              width: `${percent}%`,
-              background: accent,
-            }}
-          />
-        </div>
-      )}
-      {!locked && state === "completed" && (
-        <div
-          className="absolute bottom-0 left-0 right-0 h-[2px]"
-          style={{ background: accent }}
-        />
-      )}
 
       {/* Expandable : list of lessons */}
       <div

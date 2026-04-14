@@ -8,8 +8,6 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { Hero } from "@/components/ds/hero";
-import { StatBlock } from "@/components/ds/stat-block";
-import { ProgressStrip } from "@/components/ds/progress-strip";
 import type { ModuleCardState } from "@/components/ds/module-card";
 import { ChevronDown, Lock, Check } from "lucide-react";
 import { useViewMode } from "@/components/providers/view-mode-provider";
@@ -102,30 +100,11 @@ export default function DashboardPage() {
           italicWord="univers"
           ctaLabel={resumeHref ? "Reprendre la formation" : "Explorer les modules"}
           ctaHref={resumeHref ?? "#modules"}
-          aside={
-            <>
-              <StatBlock
-                label="PROGRESSION"
-                value={globalProgress.percent}
-                unit="%"
-                sub={`${globalProgress.completed} / ${globalProgress.total} leçons`}
-                accent="#00FF85"
-              />
-              <StatBlock
-                label="STREAK"
-                value={user.streakDays ?? 0}
-                unit="j"
-                sub="Garde le rythme"
-                accent="#FF6B1F"
-              />
-            </>
-          }
-          className="mb-4"
-        />
-
-        <ProgressStrip
-          percent={globalProgress.percent}
-          fraction={`${globalProgress.completed}/${globalProgress.total}`}
+          progress={{
+            percent: globalProgress.percent,
+            completed: globalProgress.completed,
+            total: globalProgress.total,
+          }}
           className="mb-8"
         />
 
@@ -553,28 +532,16 @@ function ModuleRowView({
   return (
     <div
       id={`module-${modId}`}
-      className="group/module relative border border-foreground/10 transition-colors duration-300 hover:border-foreground/25"
+      className="group/module relative overflow-hidden rounded-md border border-foreground/15 bg-foreground/[0.05] transition-colors duration-300 hover:border-foreground/30 hover:bg-foreground/[0.07]"
       style={{
-        opacity: locked ? 0.55 : 1,
-        boxShadow: `inset 4px 0 0 0 ${locked ? "rgba(240,233,219,0.15)" : accent}`,
+        opacity: locked ? 0.7 : 1,
+        boxShadow: `inset 4px 0 0 0 ${locked ? "rgba(240,233,219,0.2)" : accent}`,
       }}
     >
       <button
         type="button"
-        onClick={() => {
-          if (locked) {
-            if (previewMode) onLockedClick();
-            return;
-          }
-          setExpanded(!expanded);
-        }}
-        className={`grid w-full grid-cols-[auto_1fr_auto] items-center gap-5 px-5 py-5 pl-7 text-left md:px-8 md:pl-10 ${
-          locked
-            ? previewMode
-              ? "cursor-pointer"
-              : "cursor-not-allowed"
-            : "cursor-pointer"
-        }`}
+        onClick={() => setExpanded(!expanded)}
+        className="grid w-full cursor-pointer grid-cols-[auto_1fr_auto] items-center gap-5 px-5 py-5 pl-7 text-left md:px-8 md:pl-10"
         style={{ minHeight: 0 }}
       >
         {/* Numéro module */}
@@ -630,7 +597,7 @@ function ModuleRowView({
                 ? "rgba(240,233,219,0.2)"
                 : "rgba(240,233,219,0.25)",
               color: locked ? "rgba(240,233,219,0.4)" : "var(--foreground)",
-              transform: expanded && !locked ? "rotate(180deg)" : "rotate(0)",
+              transform: expanded ? "rotate(180deg)" : "rotate(0)",
             }}
             aria-hidden
           >
@@ -639,9 +606,9 @@ function ModuleRowView({
         </div>
       </button>
 
-      {/* Expandable : list of lessons */}
+      {/* Expandable : list of lessons (toujours dépliable, même verrouillé) */}
       <div
-        className={`ds-collapse-wrap ${expanded && !locked ? "open" : ""}`}
+        className={`ds-collapse-wrap ${expanded ? "open" : ""}`}
       >
         <div className="ds-collapse-inner">
           <div className="border-t border-foreground/10 px-6 py-2 md:px-10 md:pl-12">
@@ -680,6 +647,9 @@ function ModuleRowView({
                       videoSeen={videoSeen}
                       placeholder={placeholder}
                       accent={accent}
+                      onLockedClick={
+                        !unlocked && previewMode ? onLockedClick : undefined
+                      }
                     />
                   );
                 })}
@@ -703,6 +673,7 @@ function LessonLine({
   videoSeen,
   placeholder,
   accent,
+  onLockedClick,
 }: {
   href?: string;
   order: number;
@@ -714,6 +685,7 @@ function LessonLine({
   videoSeen: boolean;
   placeholder: boolean;
   accent: string;
+  onLockedClick?: () => void;
 }) {
   // ─── Pastille sémantique ───────────────────────────────
   const pillBg = completed
@@ -836,6 +808,18 @@ function LessonLine({
       <a href={href} className="block">
         {content}
       </a>
+    );
+  }
+  if (onLockedClick) {
+    return (
+      <button
+        type="button"
+        onClick={onLockedClick}
+        className="block w-full text-left"
+        style={{ minHeight: 0 }}
+      >
+        {content}
+      </button>
     );
   }
   return content;

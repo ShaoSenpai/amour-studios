@@ -785,6 +785,16 @@ html[data-theme="dark"] {
   }
   .ds-pulse { animation: ds-pulse 1400ms ease-in-out infinite; }
 
+  @keyframes ds-progress-grow {
+    from { transform: scaleX(0); }
+    to { transform: scaleX(1); }
+  }
+  .ds-progress-fill {
+    transform-origin: left center;
+    animation: ds-progress-grow 1200ms cubic-bezier(.2, .9, .3, 1) both;
+    animation-delay: 300ms;
+  }
+
   @keyframes ds-panel-slide {
     from { transform: translateX(100%); opacity: 0.6; }
     to { transform: translateX(0); opacity: 1; }

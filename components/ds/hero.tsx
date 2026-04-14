@@ -10,7 +10,7 @@ export function Hero({
   italicWord,
   ctaLabel,
   ctaHref,
-  aside,
+  progress,
   className,
 }: {
   caption: string;
@@ -18,7 +18,7 @@ export function Hero({
   italicWord?: string;
   ctaLabel?: string;
   ctaHref?: string;
-  aside?: React.ReactNode;
+  progress?: { percent: number; completed: number; total: number };
   className?: string;
 }) {
   let titleRender: React.ReactNode = title;
@@ -34,8 +34,8 @@ export function Hero({
   }
 
   return (
-    <section className={cn("ds-reveal grid gap-4 md:grid-cols-[2fr_1fr]", className)}>
-      <div className="relative overflow-hidden bg-[#F0E9DB] p-8 text-[#0D0B08] md:p-10">
+    <section className={cn("ds-reveal", className)}>
+      <div className="relative overflow-hidden rounded-md bg-[#F0E9DB] p-8 text-[#0D0B08] md:p-12">
         <div
           className="mb-3 font-mono text-[10px] uppercase tracking-[3px] opacity-55"
           style={{ fontFamily: "var(--font-body)" }}
@@ -51,7 +51,7 @@ export function Hero({
         {ctaLabel && ctaHref && (
           <Link
             href={ctaHref}
-            className="group inline-flex items-center gap-2.5 bg-[#0D0B08] px-5 py-3 font-mono text-[11px] uppercase tracking-[2px] text-[#F0E9DB] transition-all duration-700 [transition-timing-function:var(--ease-reveal)] hover:tracking-[3px] hover:pr-7"
+            className="group inline-flex items-center gap-2.5 rounded-sm bg-[#0D0B08] px-5 py-3 font-mono text-[11px] uppercase tracking-[2px] text-[#F0E9DB] transition-all duration-700 [transition-timing-function:var(--ease-reveal)] hover:tracking-[3px] hover:pr-7"
             style={{ fontFamily: "var(--font-body)" }}
           >
             {ctaLabel}
@@ -63,6 +63,31 @@ export function Hero({
             </span>
           </Link>
         )}
+
+        {progress && (
+          <div className="mt-10 border-t border-[#0D0B08]/15 pt-5">
+            <div className="mb-2 flex items-baseline justify-between font-mono text-[10px] uppercase tracking-[2px] opacity-65" style={{ fontFamily: "var(--font-body)" }}>
+              <span>◦ Progression</span>
+              <span>
+                <span className="font-bold" style={{ color: "#00A86B" }}>
+                  {progress.percent}%
+                </span>
+                <span className="mx-2 opacity-30">·</span>
+                <span>{progress.completed}/{progress.total} leçons</span>
+              </span>
+            </div>
+            <div className="h-2 w-full overflow-hidden rounded-full bg-[#0D0B08]/10">
+              <div
+                className="ds-progress-fill h-full rounded-full"
+                style={{
+                  width: `${progress.percent}%`,
+                  background: "linear-gradient(90deg, #00FF85 0%, #FF6B1F 100%)",
+                }}
+              />
+            </div>
+          </div>
+        )}
+
         <span
           aria-hidden
           className="pointer-events-none absolute -bottom-6 -right-6 text-[260px] italic leading-[0.7] opacity-[0.06]"
@@ -71,7 +96,6 @@ export function Hero({
           ·
         </span>
       </div>
-      {aside && <div className="flex flex-col gap-4">{aside}</div>}
     </section>
   );
 }

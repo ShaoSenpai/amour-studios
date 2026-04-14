@@ -186,6 +186,43 @@ function ClaimInner() {
     );
   }
 
+  // Token expiré — message dédié (pas la même UX que "en cours de traitement")
+  if (claimRef?.kind === "token" && tokenExpired) {
+    return (
+      <Screen>
+        <Header tag="◦ LIEN EXPIRÉ" title="Ce lien a expiré." italicWord="expiré" />
+        <p className="mb-6 font-mono text-sm text-foreground/70" style={fontBody}>
+          Les liens d&apos;activation sont valables <strong className="text-foreground">7 jours</strong>.
+          Celui-ci n&apos;est plus valide. Contacte-nous pour débloquer ton accès manuellement.
+        </p>
+        <Button onClick={() => (window.location.href = "mailto:contact@amourstudios.fr?subject=Lien%20claim%20expir%C3%A9")}>
+          Contacter le support
+          <ArrowRight size={14} />
+        </Button>
+      </Screen>
+    );
+  }
+
+  // Token invalide (pas expiré mais introuvable) — erreur explicite, pas de spinner fantôme
+  if (
+    claimRef?.kind === "token" &&
+    purchaseFromToken === null
+  ) {
+    return (
+      <Screen>
+        <Header tag="◦ LIEN INVALIDE" title="Lien d'activation non reconnu." italicWord="non reconnu" />
+        <p className="mb-6 font-mono text-sm text-foreground/70" style={fontBody}>
+          Ce lien n&apos;existe pas ou a déjà été utilisé. Si tu viens de payer,
+          vérifie ton email — le bon lien t&apos;a été envoyé.
+        </p>
+        <Button onClick={() => (window.location.href = "mailto:contact@amourstudios.fr")}>
+          Contacter le support
+          <ArrowRight size={14} />
+        </Button>
+      </Screen>
+    );
+  }
+
   // Loading — attend la query Convex
   if (
     currentUser === undefined ||

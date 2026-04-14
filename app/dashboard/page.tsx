@@ -543,12 +543,12 @@ function ModuleRowView({
         boxShadow: `inset 4px 0 0 0 ${locked ? "var(--state-locked-border)" : accent}`,
       }}
     >
-      {/* Fill accent bas→haut au hover */}
+      {/* Fill accent plein bas→haut au hover */}
       {!locked && (
         <span
           aria-hidden
-          className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-0 origin-bottom transition-[height] duration-500 ease-[cubic-bezier(.22,1,.36,1)] group-hover/module:h-full"
-          style={{ background: `linear-gradient(to top, ${accent}22, ${accent}08 60%, transparent)` }}
+          className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-0 origin-bottom transition-[height] duration-400 ease-[cubic-bezier(.22,1,.36,1)] group-hover/module:h-full"
+          style={{ background: `${accent}28` }}
         />
       )}
       <button
@@ -728,8 +728,8 @@ function LessonLine({
       {unlocked && (
         <span
           aria-hidden
-          className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-0 origin-bottom transition-[height] duration-400 ease-[cubic-bezier(.22,1,.36,1)] group-hover/lesson:h-full"
-          style={{ background: `linear-gradient(to top, ${accent}26, ${accent}0a 70%, transparent)` }}
+          className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-0 origin-bottom transition-[height] duration-300 ease-[cubic-bezier(.22,1,.36,1)] group-hover/lesson:h-full"
+          style={{ background: `${accent}40` }}
         />
       )}
       <div className="relative z-10 flex flex-1 items-center gap-4">

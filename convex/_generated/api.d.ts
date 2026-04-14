@@ -25,6 +25,7 @@ import type * as notifications from "../notifications.js";
 import type * as onboarding from "../onboarding.js";
 import type * as progress from "../progress.js";
 import type * as purchases from "../purchases.js";
+import type * as seedExerciseUrls from "../seedExerciseUrls.js";
 import type * as streaks from "../streaks.js";
 import type * as stripe from "../stripe.js";
 import type * as users from "../users.js";
@@ -53,6 +54,7 @@ declare const fullApi: ApiFromModules<{
   onboarding: typeof onboarding;
   progress: typeof progress;
   purchases: typeof purchases;
+  seedExerciseUrls: typeof seedExerciseUrls;
   streaks: typeof streaks;
   stripe: typeof stripe;
   users: typeof users;

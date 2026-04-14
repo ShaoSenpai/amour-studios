@@ -28,9 +28,8 @@ export const createPaymentIntent = action({
     });
 
     const normalizedEmail = email.trim().toLowerCase();
-    if (mode === "3x" && !normalizedEmail) {
-      throw new Error("Email requis pour le paiement en 3 fois");
-    }
+    // Email optionnel même en 3× : Stripe accepte un Customer sans email.
+    // Il sera collecté au confirmPayment via billing_details côté frontend.
     if (
       normalizedEmail &&
       !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)
@@ -69,19 +68,27 @@ export const createPaymentIntent = action({
       throw new Error("STRIPE_PRICE_ID_3X non configuré côté Convex");
     }
 
-    // Réutilise un Customer existant si déjà présent, sinon crée
-    const existing = await stripe.customers.list({
-      email: normalizedEmail,
-      limit: 1,
-    });
-    const customer =
-      existing.data.length > 0
-        ? existing.data[0]
-        : await stripe.customers.create({
-            email: normalizedEmail,
-            description: "AMOURstudios® — inscription 3× paiement",
-            metadata: { source: "amourstudios.fr/paiement" },
-          });
+    // Réutilise un Customer existant si email fourni, sinon crée (avec ou sans email)
+    let customer;
+    if (normalizedEmail) {
+      const existing = await stripe.customers.list({
+        email: normalizedEmail,
+        limit: 1,
+      });
+      customer =
+        existing.data.length > 0
+          ? existing.data[0]
+          : await stripe.customers.create({
+              email: normalizedEmail,
+              description: "AMOURstudios® — inscription 3× paiement",
+              metadata: { source: "amourstudios.fr/paiement" },
+            });
+    } else {
+      customer = await stripe.customers.create({
+        description: "AMOURstudios® — inscription 3× paiement (email à confirmer)",
+        metadata: { source: "amourstudios.fr/paiement" },
+      });
+    }
 
     const threeMonthsFromNow =
       Math.floor(Date.now() / 1000) + 90 * 24 * 60 * 60;

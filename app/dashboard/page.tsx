@@ -537,16 +537,24 @@ function ModuleRowView({
   return (
     <div
       id={`module-${modId}`}
-      className="group/module relative overflow-hidden rounded-md border border-foreground/20 bg-foreground/[0.08] transition-colors duration-300 hover:border-foreground/35 hover:bg-foreground/[0.1]"
+      className="group/module relative overflow-hidden rounded-md border border-foreground/20 bg-foreground/[0.08] transition-[border-color] duration-300 hover:border-foreground/40"
       style={{
         opacity: locked ? 0.75 : 1,
         boxShadow: `inset 4px 0 0 0 ${locked ? "var(--state-locked-border)" : accent}`,
       }}
     >
+      {/* Fill accent bas→haut au hover */}
+      {!locked && (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-0 origin-bottom transition-[height] duration-500 ease-[cubic-bezier(.22,1,.36,1)] group-hover/module:h-full"
+          style={{ background: `linear-gradient(to top, ${accent}22, ${accent}08 60%, transparent)` }}
+        />
+      )}
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
-        className="grid w-full cursor-pointer grid-cols-[auto_1fr_auto] items-center gap-5 px-5 py-5 pl-7 text-left md:px-8 md:pl-10"
+        className="relative z-10 grid w-full cursor-pointer grid-cols-[auto_1fr_auto] items-center gap-5 px-5 py-5 pl-7 text-left md:px-8 md:pl-10"
         style={{ minHeight: 0 }}
       >
         {/* Numéro module */}
@@ -713,12 +721,18 @@ function LessonLine({
 
   const content = (
     <div
-      className={`group/lesson flex items-center gap-4 py-3 px-2 transition-colors duration-200 ${
-        unlocked
-          ? "hover:bg-foreground/[0.03]"
-          : "cursor-not-allowed"
+      className={`group/lesson relative flex items-center gap-4 overflow-hidden py-3 px-2 ${
+        unlocked ? "" : "cursor-not-allowed"
       }`}
     >
+      {unlocked && (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-0 origin-bottom transition-[height] duration-400 ease-[cubic-bezier(.22,1,.36,1)] group-hover/lesson:h-full"
+          style={{ background: `linear-gradient(to top, ${accent}26, ${accent}0a 70%, transparent)` }}
+        />
+      )}
+      <div className="relative z-10 flex flex-1 items-center gap-4">
       <div
         className="flex size-6 shrink-0 items-center justify-center rounded-full border font-mono text-[10px] font-bold"
         style={{
@@ -806,6 +820,7 @@ function LessonLine({
             →
           </span>
         )}
+      </div>
       </div>
     </div>
   );

@@ -786,15 +786,15 @@ function LessonLine({
   // ─── Pastille sémantique ───────────────────────────────
   const pillBg = completed
     ? STATE_COLOR.done
-    : videoSeen
+    : videoSeen && unlocked
     ? STATE_COLOR.active
     : "transparent";
-  const pillBorder = completed || videoSeen
+  const pillBorder = completed || (videoSeen && unlocked)
     ? "transparent"
     : unlocked
     ? "rgba(240,233,219,0.3)"
     : "rgba(240,233,219,0.15)";
-  const pillColor = completed || videoSeen
+  const pillColor = completed || (videoSeen && unlocked)
     ? "#0D0B08"
     : unlocked
     ? "rgba(240,233,219,0.8)"
@@ -874,10 +874,11 @@ function LessonLine({
           </span>
         ) : !unlocked ? (
           <span
-            className="font-mono text-[10px] uppercase tracking-[1.5px] px-2 py-1 border border-dashed"
+            className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-[1.5px] px-2 py-1 border border-dashed"
             style={{ color: STATE_COLOR.locked, borderColor: "rgba(240,233,219,0.25)", fontFamily: "var(--font-body)" }}
           >
-            🔒 BLOQUÉ
+            <Lock size={10} aria-hidden />
+            BLOQUÉ
           </span>
         ) : placeholder ? (
           <span

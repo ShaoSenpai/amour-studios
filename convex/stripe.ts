@@ -17,12 +17,12 @@ function generateClaimToken(): string {
 // ============================================================================
 
 /**
- * Crée un PaymentIntent (1×) ou une Subscription (3×) Stripe.
+ * Crée un PaymentIntent Stripe (mode 1× ou 3×).
  * Retourne le clientSecret pour Stripe Elements côté frontend.
  *
- * Mode "1x" : PaymentIntent simple de 497 €.
- * Mode "3x" : Customer + Subscription mensuelle 166 € × 3 cycles
- *             (cancel_at = +90j → 3 paiements puis stop auto).
+ * Mode "1x" : PaymentIntent CB de 497 €.
+ * Mode "3x" : PaymentIntent Klarna de 497 € (Klarna débite 3× 165,67 € côté client,
+ *             nous on encaisse 497 € en une fois, Klarna prend le risque de défaut).
  */
 export const createPaymentIntent = action({
   args: {
@@ -81,118 +81,42 @@ export const createPaymentIntent = action({
       };
     }
 
-    // ─── 3× mode : Subscription ────────────────────────────────
-    const PRICE_3X = process.env.STRIPE_PRICE_ID_3X;
-    if (!PRICE_3X) {
-      throw new Error("STRIPE_PRICE_ID_3X non configuré côté Convex");
-    }
-
-    // Réutilise un Customer existant si email fourni, sinon crée (avec ou sans email)
-    let customer;
-    if (normalizedEmail) {
-      const existing = await stripe.customers.list({
-        email: normalizedEmail,
-        limit: 1,
-      });
-      customer =
-        existing.data.length > 0
-          ? existing.data[0]
-          : await stripe.customers.create({
-              email: normalizedEmail,
-              description: "AMOURstudios® — inscription 3× paiement",
-              metadata: { source: "amourstudios.fr/paiement" },
-            });
-    } else {
-      customer = await stripe.customers.create({
-        description: "AMOURstudios® — inscription 3× paiement (email à confirmer)",
-        metadata: { source: "amourstudios.fr/paiement" },
-      });
-    }
-
-    const threeMonthsFromNow =
-      Math.floor(Date.now() / 1000) + 90 * 24 * 60 * 60;
-
+    // ─── 3× mode : PaymentIntent Klarna ─────────────────────────
+    // Klarna "Pay in 3" : client paie 3× sans frais, Stripe nous verse
+    // les 497 € en une fois (J+1), Klarna assume le risque de défaut.
+    // Redirection obligatoire vers l'UI Klarna pour l'autorisation.
     const claimToken = generateClaimToken();
-    const subscription = await stripe.subscriptions.create({
-      customer: customer.id,
-      items: [{ price: PRICE_3X }],
-      payment_behavior: "default_incomplete",
-      payment_settings: {
-        save_default_payment_method: "on_subscription",
-        payment_method_types: ["card"],
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: 49700,
+      currency: "eur",
+      payment_method_types: ["klarna"],
+      payment_method_options: {
+        klarna: {
+          preferred_locale: "fr-FR",
+        },
       },
-      // Stripe API ≥ 2024-11 : payment_intent est déprécié sur invoice.
-      // On expand les 2 chemins et on fallback : confirmation_secret (nouveau)
-      // puis payment_intent (legacy).
-      expand: [
-        "latest_invoice.confirmation_secret",
-        "latest_invoice.payment_intent",
-      ],
-      cancel_at: threeMonthsFromNow,
-      description: "AMOURstudios® — Le Programme Créateur (3×)",
+      receipt_email: normalizedEmail || undefined,
+      description: "AMOURstudios® — Le Programme Créateur (3× Klarna)",
       metadata: {
         product: "amourstudios_programme_createur",
         mode: "3x",
         source: "amourstudios.fr/paiement",
+        email: normalizedEmail,
         claim_token: claimToken,
       },
     });
 
-    const invoice = subscription.latest_invoice as
-      | {
-          confirmation_secret?: { client_secret?: string | null } | null;
-          payment_intent?: { client_secret?: string | null } | string | null;
-        }
-      | null;
-
-    let clientSecret: string | null = null;
-    if (invoice && typeof invoice === "object") {
-      // 1) Nouveau champ (Stripe API ≥ 2024-11)
-      if (
-        invoice.confirmation_secret &&
-        typeof invoice.confirmation_secret === "object" &&
-        invoice.confirmation_secret.client_secret
-      ) {
-        clientSecret = invoice.confirmation_secret.client_secret;
-      }
-      // 2) Ancien champ (backward compat)
-      if (
-        !clientSecret &&
-        invoice.payment_intent &&
-        typeof invoice.payment_intent === "object" &&
-        invoice.payment_intent.client_secret
-      ) {
-        clientSecret = invoice.payment_intent.client_secret;
-      }
-    }
-
-    if (!clientSecret) {
-      throw new Error(
-        "Subscription créée mais payment_intent manquant côté Stripe"
-      );
-    }
-
-    // Extract PI id pour lier le claim token
-    const piId =
-      invoice && typeof invoice === "object" &&
-      invoice.payment_intent &&
-      typeof invoice.payment_intent === "object" &&
-      "id" in invoice.payment_intent
-        ? (invoice.payment_intent as { id: string }).id
-        : clientSecret.split("_secret_")[0];
-
     await ctx.runMutation(internal.claimTokens.create, {
       token: claimToken,
-      paymentIntentId: piId,
+      paymentIntentId: paymentIntent.id,
       email: normalizedEmail,
     });
 
     return {
-      clientSecret,
-      amount: 16600,
+      clientSecret: paymentIntent.client_secret,
+      amount: 49700,
       currency: "eur",
       mode: "3x",
-      subscriptionId: subscription.id,
       claimToken,
     };
   },

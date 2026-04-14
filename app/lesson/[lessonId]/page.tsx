@@ -15,7 +15,8 @@ import { useSidebar } from "@/components/layout/sidebar-provider";
 import { LessonMetaBar } from "@/components/ds/lesson/lesson-meta-bar";
 import { useViewMode } from "@/components/providers/view-mode-provider";
 import { UpsellModal } from "@/components/ds/upsell-modal";
-import { LessonDock, type DockKey } from "@/components/ds/lesson/lesson-dock";
+import type { DockKey } from "@/components/ds/lesson/lesson-dock";
+import { Pencil, FileText, MessageCircle, List } from "lucide-react";
 import { ExercisesPanel } from "@/components/ds/lesson/exercises-panel";
 import { NotesPanel } from "@/components/ds/lesson/notes-panel";
 import { CommentsPanel } from "@/components/ds/lesson/comments-panel";
@@ -101,6 +102,19 @@ export default function LessonPage({
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [nav, router]);
+
+  // Raccourcis ⌘/Ctrl+1-4 pour ouvrir les panneaux (anciennement dans LessonDock)
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey)) return;
+      if (e.key === "1") { e.preventDefault(); setActivePanel((p) => (p === "exos" ? null : "exos")); }
+      if (e.key === "2") { e.preventDefault(); setActivePanel((p) => (p === "notes" ? null : "notes")); }
+      if (e.key === "3") { e.preventDefault(); setActivePanel((p) => (p === "comments" ? null : "comments")); }
+      if (e.key === "4") { e.preventDefault(); setActivePanel((p) => (p === "module" ? null : "module")); }
+    };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, []);
 
   // Détection accès :
   // - admin (et pas en vue membre) → accès total
@@ -332,6 +346,43 @@ export default function LessonPage({
             )}
           </div>
 
+          {/* Barre d'actions inline : Exos / Notes / Com. / Module */}
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            {([
+              { key: "exos" as DockKey, label: "Exos", icon: Pencil, count: exercises.length },
+              { key: "notes" as DockKey, label: "Notes", icon: FileText, count: notesCount ?? undefined },
+              { key: "comments" as DockKey, label: "Commentaires", icon: MessageCircle, count: commentsCount ?? undefined },
+              { key: "module" as DockKey, label: "Module", icon: List, count: undefined },
+            ]).map(({ key, label, icon: Icon, count }) => {
+              const isActive = activePanel === key;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setActivePanel(isActive ? null : key)}
+                  className={`group relative inline-flex h-10 items-center gap-2 rounded-full border px-4 font-mono text-[11px] font-bold uppercase tracking-[1.5px] transition-all ${
+                    isActive
+                      ? "border-[#FF6B1F] bg-[#FF6B1F] text-[#0D0B08]"
+                      : "border-foreground/25 bg-foreground/[0.04] text-foreground/80 hover:border-foreground/45 hover:bg-foreground/[0.08] hover:text-foreground"
+                  }`}
+                  style={{ fontFamily: "var(--font-body)", minHeight: 0 }}
+                >
+                  <Icon size={13} />
+                  <span>{label}</span>
+                  {typeof count === "number" && count > 0 && (
+                    <span
+                      className={`flex min-w-[18px] items-center justify-center rounded-full px-1.5 text-[9px] font-bold ${
+                        isActive ? "bg-[#0D0B08] text-[#FF6B1F]" : "bg-[#FF6B1F] text-[#0D0B08]"
+                      }`}
+                    >
+                      {count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
           {nav && (nav.prev || nav.next) && (
             <div className="mt-6 grid grid-cols-2 gap-3">
               {nav.prev ? (
@@ -372,16 +423,6 @@ export default function LessonPage({
           )}
         </div>
       </div>
-
-      <LessonDock
-        active={activePanel}
-        onSelect={setActivePanel}
-        counts={{
-          exos: exercises.length,
-          notes: notesCount ?? undefined,
-          comments: commentsCount ?? undefined,
-        }}
-      />
 
       <ExercisesPanel
         open={activePanel === "exos"}

@@ -4,13 +4,16 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Bell } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export function NotificationBell() {
   const unreadCount = useQuery(api.notifications.unreadCount);
   const notifications = useQuery(api.notifications.list);
   const markAllRead = useMutation(api.notifications.markAllRead);
+  const markRead = useMutation(api.notifications.markRead);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -55,15 +58,32 @@ export function NotificationBell() {
                 <p className="text-[10px] text-muted-foreground">Rien de nouveau</p>
               </div>
             ) : (
-              notifications.map((notif) => (
-                <div
-                  key={notif._id}
-                  className={`px-4 py-3 border-b border-border/30 last:border-0 ${notif.read ? "opacity-40" : ""}`}
-                >
-                  <p className="text-[11px] leading-relaxed">{notif.message}</p>
-                  <p className="text-[9px] text-muted-foreground mt-1">{formatTime(notif.createdAt)}</p>
-                </div>
-              ))
+              notifications.map((notif) => {
+                const clickable = !!notif.lessonId;
+                const handleClick = async () => {
+                  if (!notif.read) {
+                    markRead({ notificationId: notif._id }).catch(() => {});
+                  }
+                  if (clickable) {
+                    setOpen(false);
+                    router.push(`/lesson/${notif.lessonId}`);
+                  }
+                };
+                return (
+                  <button
+                    key={notif._id}
+                    onClick={handleClick}
+                    type="button"
+                    className={`block w-full text-left px-4 py-3 border-b border-border/30 last:border-0 transition-colors ${
+                      notif.read ? "opacity-50" : ""
+                    } ${clickable ? "cursor-pointer hover:bg-foreground/[0.04]" : "cursor-default"}`}
+                    style={{ minHeight: 0 }}
+                  >
+                    <p className="text-[11px] leading-relaxed">{notif.message}</p>
+                    <p className="text-[9px] text-muted-foreground mt-1">{formatTime(notif.createdAt)}</p>
+                  </button>
+                );
+              })
             )}
           </div>
         </div>

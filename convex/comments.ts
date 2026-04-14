@@ -100,15 +100,39 @@ export const create = mutation({
       updatedAt: now,
     });
 
-    // Notifier l'auteur du commentaire parent si c'est une réponse
+    const currentUser = await ctx.db.get(userId);
+    const authorName = currentUser?.name ?? "Quelqu'un";
+    const lesson = await ctx.db.get(lessonId);
+    const lessonTitle = lesson?.title ?? "une leçon";
+
+    // 1. Notifier l'auteur du commentaire parent si c'est une réponse
     if (parentCommentId) {
       const parentComment = await ctx.db.get(parentCommentId);
       if (parentComment && parentComment.userId !== userId) {
-        const currentUser = await ctx.db.get(userId);
         await ctx.runMutation(internal.notifications.createInternal, {
           userId: parentComment.userId,
           type: "comment_reply",
-          message: `${currentUser?.name ?? "Quelqu'un"} a répondu à votre commentaire`,
+          message: `${authorName} a répondu à votre commentaire`,
+          lessonId,
+          commentId,
+        });
+      }
+    } else {
+      // 2. Nouveau commentaire top-level → notifier tous les VIP + admins
+      //    (sauf l'auteur lui-même, et sauf les users sans accès VIP/admin)
+      const allUsers = await ctx.db.query("users").collect();
+      const targets = allUsers.filter((u) => {
+        if (u._id === userId) return false;
+        if (u.role === "admin") return true;
+        if (u.purchaseId) return true; // VIP
+        return false;
+      });
+
+      for (const target of targets) {
+        await ctx.runMutation(internal.notifications.createInternal, {
+          userId: target._id,
+          type: "new_comment",
+          message: `${authorName} a commenté « ${lessonTitle} »`,
           lessonId,
           commentId,
         });

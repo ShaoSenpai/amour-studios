@@ -91,7 +91,12 @@ export const markAllRead = mutation({
 export const createInternal = internalMutation({
   args: {
     userId: v.id("users"),
-    type: v.union(v.literal("comment_reply"), v.literal("new_content"), v.literal("badge_earned")),
+    type: v.union(
+      v.literal("comment_reply"),
+      v.literal("new_content"),
+      v.literal("badge_earned"),
+      v.literal("new_comment")
+    ),
     message: v.string(),
     lessonId: v.optional(v.id("lessons")),
     commentId: v.optional(v.id("comments")),

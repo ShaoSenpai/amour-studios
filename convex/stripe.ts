@@ -42,7 +42,7 @@ export const createPaymentIntent = action({
       const paymentIntent = await stripe.paymentIntents.create({
         amount: 49700,
         currency: "eur",
-        automatic_payment_methods: { enabled: true },
+        payment_method_types: ["card", "paypal"],
         receipt_email: normalizedEmail || undefined,
         description: "AMOURstudios® — Le Programme Créateur (1×)",
         metadata: {
@@ -87,7 +87,10 @@ export const createPaymentIntent = action({
       customer: customer.id,
       items: [{ price: PRICE_3X }],
       payment_behavior: "default_incomplete",
-      payment_settings: { save_default_payment_method: "on_subscription" },
+      payment_settings: {
+        save_default_payment_method: "on_subscription",
+        payment_method_types: ["card"],
+      },
       expand: ["latest_invoice.payment_intent"],
       cancel_at: threeMonthsFromNow,
       description: "AMOURstudios® — Le Programme Créateur (3×)",

@@ -145,8 +145,8 @@ function IframeContent({
         src={url}
         onLoad={() => setLoaded(true)}
         className={`w-full h-full border-0 ${loaded ? "opacity-100" : "opacity-0"}`}
-        allow="clipboard-write"
-        sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+        allow="clipboard-write; downloads"
+        sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-forms allow-downloads"
         title="Exercice interactif"
       />
 

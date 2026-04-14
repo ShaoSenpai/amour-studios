@@ -14,12 +14,6 @@ export function LessonDock({
   onSelect: (k: DockKey | null) => void;
   counts: Partial<Record<DockKey, number | undefined>>;
 }) {
-  const dockRight =
-    active === "exos"
-      ? "calc(55vw + 16px)"
-      : active
-      ? "calc(420px + 16px)"
-      : "16px";
   const items: { key: DockKey; icon: string; label: string }[] = [
     { key: "exos", icon: "✎", label: "Exos" },
     { key: "notes", icon: "¶", label: "Notes" },
@@ -39,10 +33,15 @@ export function LessonDock({
     return () => window.removeEventListener("keydown", h);
   }, [onSelect]);
 
+  // Masqué quand un panneau est ouvert (fermer via × ESC ou Escape)
+  const hidden = active !== null;
   return (
     <div
-      className="fixed bottom-2 left-1/2 z-50 flex -translate-x-1/2 flex-row gap-2 safe-area-bottom md:bottom-auto md:left-auto md:top-1/2 md:right-[var(--dock-right)] md:-translate-x-0 md:-translate-y-1/2 md:flex-col md:transition-[right] md:duration-600 md:[transition-timing-function:var(--ease-reveal)]"
-      style={{ ["--dock-right" as string]: dockRight }}>
+      className={cn(
+        "fixed bottom-2 left-1/2 z-50 flex -translate-x-1/2 flex-row gap-2 safe-area-bottom transition-all duration-300 md:bottom-auto md:left-auto md:top-1/2 md:right-4 md:-translate-x-0 md:-translate-y-1/2 md:flex-col",
+        hidden ? "pointer-events-none opacity-0 md:translate-x-[120%]" : "pointer-events-auto opacity-100"
+      )}
+    >
       {items.map((it) => {
         const isActive = active === it.key;
         const count = counts[it.key];

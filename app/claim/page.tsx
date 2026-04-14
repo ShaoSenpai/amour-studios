@@ -23,7 +23,7 @@ function setClaimCookie(kind: ClaimKind, value: string) {
   if (typeof document === "undefined") return;
   document.cookie = `${COOKIE_NAME}=${encodeURIComponent(
     `${kind}:${value}`
-  )}; path=/; max-age=${COOKIE_MAX_AGE}; SameSite=Lax`;
+  )}; path=/; max-age=${COOKIE_MAX_AGE}; SameSite=Lax; Secure`;
 }
 function getClaimCookie(): { kind: ClaimKind; value: string } | null {
   if (typeof document === "undefined") return null;

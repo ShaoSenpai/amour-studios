@@ -17,14 +17,20 @@ const http = httpRouter();
 auth.addHttpRoutes(http);
 
 // --- CORS pour amourstudios.fr -----------------------------------------------
-const ALLOWED_ORIGINS = new Set([
-  "https://amourstudios.fr",
-  "https://www.amourstudios.fr",
-  // dev local (optionnel)
-  "http://localhost:3000",
-  "http://localhost:5173",
-  "http://localhost:8000",
-]);
+// Localhost autorisé uniquement sur deployment DEV. En PROD on ne laisse
+// passer que les origines amourstudios.fr officielles.
+const IS_PROD = (process.env.CONVEX_CLOUD_URL ?? "").includes("frugal-curlew-831");
+const ALLOWED_ORIGINS = new Set<string>(
+  IS_PROD
+    ? ["https://amourstudios.fr", "https://www.amourstudios.fr"]
+    : [
+        "https://amourstudios.fr",
+        "https://www.amourstudios.fr",
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://localhost:8000",
+      ]
+);
 
 function corsHeaders(origin: string | null) {
   const allowOrigin =
@@ -55,6 +61,28 @@ http.route({
   method: "POST",
   handler: httpAction(async (ctx, request) => {
     const headers = corsHeaders(request.headers.get("origin"));
+
+    // Rate limit : max 15 requêtes/min par IP. Bloque le spam de PaymentIntents.
+    const ip =
+      request.headers.get("x-forwarded-for")?.split(",")[0].trim() ||
+      request.headers.get("cf-connecting-ip") ||
+      "unknown";
+    const rl = await ctx.runMutation(internal.rateLimit.checkAndIncrement, {
+      key: `create-payment-intent:${ip}`,
+      max: 15,
+    });
+    if (!rl.allowed) {
+      return new Response(
+        JSON.stringify({
+          error: "Trop de requêtes. Attends une minute et réessaie.",
+        }),
+        {
+          status: 429,
+          headers: { ...headers, "Content-Type": "application/json" },
+        }
+      );
+    }
+
     let body: { mode?: string; email?: string };
     try {
       body = (await request.json()) as { mode?: string; email?: string };
@@ -80,10 +108,11 @@ http.route({
     } catch (err) {
       const detail = err instanceof Error ? err.message : "unknown";
       console.error("[create-payment-intent] error:", detail);
+      // En prod on ne leak PAS les détails internes (stack Stripe, chemins Convex).
       return new Response(
         JSON.stringify({
-          error: "Erreur lors de la création du paiement",
-          detail,
+          error: "Erreur lors de la création du paiement. Réessaie dans quelques secondes.",
+          ...(IS_PROD ? {} : { detail }),
         }),
         {
           status: 500,
@@ -185,13 +214,30 @@ http.route({
         const invoiceData = event.data.object as {
           id: string;
           customer_email?: string;
-          payment_intent?: string;
+          payment_intent?: string | null;
+          confirmation_secret?: { payment_intent?: string | null } | null;
           customer?: string;
           amount_paid?: number;
           currency?: string;
         };
-        const email = invoiceData.customer_email || "";
-        const pi = invoiceData.payment_intent || "";
+        const email = (invoiceData.customer_email || "")
+          .trim()
+          .toLowerCase();
+        // Stripe API ≥ 2024-11 : payment_intent déprécié → fallback si besoin
+        // via refetch depuis l'invoice complète.
+        let pi = invoiceData.payment_intent || "";
+        if (!pi) {
+          try {
+            const full = await stripe.invoices.retrieve(invoiceData.id, {
+              expand: ["payment_intent"],
+            });
+            const fullPi = (full as unknown as { payment_intent?: { id?: string } | string | null }).payment_intent;
+            if (typeof fullPi === "string") pi = fullPi;
+            else if (fullPi && typeof fullPi === "object" && fullPi.id) pi = fullPi.id;
+          } catch (err) {
+            console.warn("Failed to refetch invoice PI:", err);
+          }
+        }
 
         if (!email || !pi) {
           console.warn("invoice.paid without email or PI, skipping");

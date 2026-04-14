@@ -74,6 +74,13 @@ export default defineSchema({
     .index("by_payment_intent", ["stripePaymentIntentId"])
     .index("by_status", ["status"]),
 
+  // Rate limit buckets : key = "endpoint:ip", window glissante 60s.
+  rateLimits: defineTable({
+    key: v.string(),
+    count: v.number(),
+    windowStart: v.number(),
+  }).index("by_key", ["key"]),
+
   // Claim tokens — clés secrètes uniques qui prouvent la propriété d'un paiement.
   // Générées au createPaymentIntent, envoyées au return_url + email, valides 7j,
   // à usage unique. Sécurise le flux /claim contre le hijack de PI ID.

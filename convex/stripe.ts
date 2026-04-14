@@ -38,11 +38,14 @@ export const createPaymentIntent = action({
     const normalizedEmail = email.trim().toLowerCase();
     // Email optionnel même en 3× : Stripe accepte un Customer sans email.
     // Il sera collecté au confirmPayment via billing_details côté frontend.
-    if (
-      normalizedEmail &&
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)
-    ) {
+    // Regex RFC-ish stricte : 1 seul @, pas de multi-points consécutifs,
+    // TLD min 2 chars, caractères autorisés uniquement.
+    const EMAIL_RE = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$/;
+    if (normalizedEmail && !EMAIL_RE.test(normalizedEmail)) {
       throw new Error("Email invalide");
+    }
+    if (normalizedEmail && normalizedEmail.length > 254) {
+      throw new Error("Email trop long");
     }
 
     if (mode === "1x") {

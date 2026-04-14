@@ -158,7 +158,7 @@ export default function LessonPage({
               className="text-[clamp(40px,5vw,56px)] font-normal leading-[0.95] tracking-[-1.5px]"
               style={{ fontFamily: "var(--font-serif)" }}
             >
-              Accès <em className="italic text-[#FFB347]">verrouillé</em>
+              Accès <em className="italic text-[#FF6B1F]">verrouillé</em>
             </h1>
             <p
               className="font-mono text-sm text-foreground/70"
@@ -178,7 +178,7 @@ export default function LessonPage({
                 href="https://www.amourstudios.fr/paiement"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group flex flex-1 items-center justify-center gap-2 bg-[#FFB347] px-4 py-3 font-mono text-[11px] uppercase tracking-[2px] text-[#0D0B08] transition-all duration-700 [transition-timing-function:var(--ease-reveal)] hover:tracking-[3px]"
+                className="group flex flex-1 items-center justify-center gap-2 bg-[#FF6B1F] px-4 py-3 font-mono text-[11px] uppercase tracking-[2px] text-[#0D0B08] transition-all duration-700 [transition-timing-function:var(--ease-reveal)] hover:tracking-[3px]"
                 style={{ fontFamily: "var(--font-body)" }}
               >
                 DÉBLOQUER 497 € →
@@ -243,13 +243,12 @@ export default function LessonPage({
           </p>
 
           <div
-            className="aspect-video overflow-hidden border border-foreground/10 bg-[#0a0a0a]"
-            style={{ boxShadow: "0 0 120px rgba(0,255,133,0.08)" }}
+            className="aspect-video overflow-hidden rounded-md border border-foreground/20 bg-[#0a0a0a]"
           >
             <div className="relative flex h-full flex-col items-center justify-center gap-4">
               {lesson.muxPlaybackId === "placeholder" ? (
                 <>
-                  <div className={`flex size-20 items-center justify-center rounded-full bg-[rgba(0,255,133,0.1)] ${!videoWatched ? "play-pulse" : ""}`}>
+                  <div className={`flex size-20 items-center justify-center rounded-full bg-[rgba(0,255,133,0.12)] ${!videoWatched ? "play-pulse" : ""}`}>
                     <Play size={32} className="ml-1 text-[#00FF85]" />
                   </div>
                   <p
@@ -283,13 +282,19 @@ export default function LessonPage({
             </div>
           </div>
 
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border border-foreground/15 bg-foreground/[0.03] px-4 py-3">
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-md border border-foreground/20 bg-foreground/[0.06] px-4 py-3">
             <div className="flex items-center gap-2">
-              <div className={`flex size-5 items-center justify-center rounded-full ${videoWatched ? "bg-[#00FF85] text-[#0D0B08]" : "bg-foreground/10 text-foreground/60"}`}>
+              <div
+                className="flex size-5 items-center justify-center rounded-full"
+                style={{
+                  background: videoWatched ? "var(--state-done-bg)" : "var(--fg-line)",
+                  color: videoWatched ? "var(--state-done-fg)" : "var(--fg-soft)",
+                }}
+              >
                 {videoWatched ? <Check size={12} /> : <Circle size={12} />}
               </div>
               <span
-                className="font-mono text-[10px] uppercase tracking-[1.5px] text-foreground/70"
+                className="font-mono text-[10px] uppercase tracking-[1.5px] text-foreground/80"
                 style={{ fontFamily: "var(--font-body)" }}
               >
                 {videoWatched ? "VIDÉO VUE" : "REGARDE LA VIDÉO POUR DÉBLOQUER LA SUITE"}
@@ -298,7 +303,8 @@ export default function LessonPage({
             {!hasExercises && videoWatched && !lessonCompleted && (
               <Button
                 size="sm"
-                className="rounded-none bg-[#00FF85] text-[#0D0B08] hover:bg-[#00cc6b]"
+                className="rounded-md"
+                style={{ background: "var(--state-done-bg)", color: "var(--state-done-fg)" }}
                 onClick={async () => {
                   await completeExercise({ lessonId: lesson._id });
                   toast.success("Leçon complétée !");
@@ -310,16 +316,22 @@ export default function LessonPage({
           </div>
 
           {lessonCompleted && (
-            <div className="mt-6 border border-[rgba(0,255,133,0.3)] bg-[rgba(0,255,133,0.05)] p-6 text-center">
+            <div
+              className="mt-6 rounded-md border p-6 text-center"
+              style={{
+                borderColor: "var(--state-done)",
+                background: "color-mix(in srgb, var(--state-done) 10%, transparent)",
+              }}
+            >
               <p
-                className="mb-2 text-4xl italic text-[#00FF85]"
-                style={{ fontFamily: "var(--font-serif)" }}
+                className="mb-2 text-4xl italic"
+                style={{ fontFamily: "var(--font-serif)", color: "var(--state-done)" }}
               >
                 Bravo !
               </p>
               <p
-                className="font-mono text-xs text-[rgba(0,255,133,0.8)]"
-                style={{ fontFamily: "var(--font-body)" }}
+                className="font-mono text-xs font-bold"
+                style={{ fontFamily: "var(--font-body)", color: "var(--state-done)" }}
               >
                 +{lesson.xpReward} XP gagnés <Zap size={10} className="inline" />
               </p>
@@ -331,19 +343,26 @@ export default function LessonPage({
               {nav.prev ? (
                 <Link
                   href={`/lesson/${nav.prev._id}`}
-                  className="group border border-foreground/15 bg-foreground/[0.03] p-4 transition-colors hover:bg-foreground/[0.08]"
+                  className="group flex items-center gap-4 rounded-md border-2 border-foreground/25 bg-foreground/[0.08] p-5 transition-all hover:border-foreground/50 hover:bg-foreground/[0.14]"
                 >
                   <div
-                    className="flex items-center gap-1 font-mono text-[9px] uppercase tracking-[2px] text-foreground/50"
-                    style={{ fontFamily: "var(--font-body)" }}
+                    className="flex size-10 shrink-0 items-center justify-center rounded-full border border-foreground/30 transition-transform group-hover:-translate-x-0.5"
                   >
-                    <ChevronLeft size={11} /> PRÉCÉDENT
+                    <ChevronLeft size={18} />
                   </div>
-                  <div
-                    className="mt-1 text-xl italic"
-                    style={{ fontFamily: "var(--font-serif)" }}
-                  >
-                    {nav.prev.title}
+                  <div className="min-w-0 flex-1">
+                    <div
+                      className="font-mono text-[10px] font-bold uppercase tracking-[2px] text-foreground/60"
+                      style={{ fontFamily: "var(--font-body)" }}
+                    >
+                      PRÉCÉDENT
+                    </div>
+                    <div
+                      className="mt-0.5 truncate font-mono text-sm font-semibold text-foreground"
+                      style={{ fontFamily: "var(--font-body)" }}
+                    >
+                      {nav.prev.title}
+                    </div>
                   </div>
                 </Link>
               ) : (
@@ -352,19 +371,32 @@ export default function LessonPage({
               {nav.next ? (
                 <Link
                   href={`/lesson/${nav.next._id}`}
-                  className="group border border-foreground/15 bg-foreground/[0.03] p-4 text-right transition-colors hover:bg-foreground/[0.08]"
+                  className="group flex items-center gap-4 rounded-md border-2 p-5 transition-all md:flex-row-reverse md:text-right"
+                  style={{
+                    borderColor: "var(--state-done)",
+                    background: "color-mix(in srgb, var(--state-done) 10%, transparent)",
+                    color: "var(--foreground)",
+                  }}
                 >
                   <div
-                    className="flex items-center justify-end gap-1 font-mono text-[9px] uppercase tracking-[2px] text-foreground/50"
-                    style={{ fontFamily: "var(--font-body)" }}
+                    className="flex size-10 shrink-0 items-center justify-center rounded-full transition-transform group-hover:translate-x-0.5"
+                    style={{ background: "var(--state-done-bg)", color: "var(--state-done-fg)" }}
                   >
-                    SUIVANT <ChevronRight size={11} />
+                    <ChevronRight size={18} />
                   </div>
-                  <div
-                    className="mt-1 text-xl italic"
-                    style={{ fontFamily: "var(--font-serif)" }}
-                  >
-                    {nav.next.title}
+                  <div className="min-w-0 flex-1">
+                    <div
+                      className="font-mono text-[10px] font-bold uppercase tracking-[2px]"
+                      style={{ fontFamily: "var(--font-body)", color: "var(--state-done)" }}
+                    >
+                      SUIVANT
+                    </div>
+                    <div
+                      className="mt-0.5 truncate font-mono text-sm font-semibold text-foreground"
+                      style={{ fontFamily: "var(--font-body)" }}
+                    >
+                      {nav.next.title}
+                    </div>
                   </div>
                 </Link>
               ) : (

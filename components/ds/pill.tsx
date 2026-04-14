@@ -14,9 +14,9 @@ export function Pill({
 }) {
   const variants: Record<PillVariant, string> = {
     success:
-      "bg-[color:color-mix(in_srgb,var(--state-done)_15%,transparent)] text-[color:var(--state-done)] border-[color:color-mix(in_srgb,var(--state-done)_40%,transparent)]",
+      "bg-[color:var(--state-done-bg)] text-[color:var(--state-done-fg)] border-[color:var(--state-done-bg)]",
     alert:
-      "bg-[rgba(255,107,31,0.15)] text-[#FF6B1F] border-[rgba(255,107,31,0.4)]",
+      "bg-[#FF6B1F] text-[#0D0B08] border-[#FF6B1F]",
     neutral:
       "bg-foreground/[0.06] text-foreground/80 border-foreground/20",
     locked:

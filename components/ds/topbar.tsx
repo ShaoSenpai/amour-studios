@@ -87,8 +87,8 @@ export function Topbar() {
                 viewMode === "admin"
                   ? "border-foreground/25 bg-foreground/[0.05] text-foreground/70 hover:text-foreground"
                   : viewMode === "vip"
-                  ? "border-[color:var(--state-done)] bg-[color:color-mix(in_srgb,var(--state-done)_15%,transparent)] text-[color:var(--state-done)]"
-                  : "border-[#FF6B1F] bg-[rgba(255,107,31,0.15)] text-[#FF6B1F]"
+                  ? "border-[color:var(--state-done-bg)] bg-[color:var(--state-done-bg)] text-[color:var(--state-done-fg)]"
+                  : "border-[#FF6B1F] bg-[#FF6B1F] text-[#0D0B08]"
               }`}
               style={{ minHeight: 0, fontFamily: "var(--font-body)" }}
             >

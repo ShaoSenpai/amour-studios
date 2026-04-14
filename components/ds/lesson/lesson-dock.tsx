@@ -51,10 +51,10 @@ export function LessonDock({
             key={it.key}
             onClick={() => onSelect(isActive ? null : it.key)}
             className={cn(
-              "relative flex h-16 w-16 flex-col items-center justify-center gap-1 border font-mono text-[8px] uppercase tracking-[1.5px] transition-all duration-500 [transition-timing-function:var(--ease-reveal)]",
+              "relative flex h-16 w-16 flex-col items-center justify-center gap-1 rounded-md border font-mono text-[8px] uppercase tracking-[1.5px] transition-all duration-500 [transition-timing-function:var(--ease-reveal)]",
               isActive
-                ? "border-[#FF6B1F] bg-[#FF6B1F] text-[#0D0B08]"
-                : "border-foreground/15 bg-background/85 text-foreground backdrop-blur-md hover:-translate-y-0.5 hover:bg-foreground/10 md:bg-foreground/[0.04]"
+                ? "border-[#FF6B1F] bg-[#FF6B1F] text-[#0D0B08] shadow-lg"
+                : "border-foreground/25 bg-foreground/[0.08] text-foreground hover:-translate-y-0.5 hover:border-foreground/45 hover:bg-foreground/[0.14]"
             )}
             style={{ minHeight: 0, fontFamily: "var(--font-body)" }}
             aria-label={it.label}

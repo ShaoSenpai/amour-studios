@@ -328,16 +328,16 @@ export default function LessonPage({
           </div>
 
           {nav && (nav.prev || nav.next) && (
-            <div className="mt-6 flex items-center justify-between gap-3">
+            <div className="mt-6 flex items-stretch justify-between gap-3">
               {nav.prev ? (
                 <Link
                   href={`/lesson/${nav.prev._id}`}
-                  className="group inline-flex items-center gap-2 rounded-full border border-foreground/25 bg-foreground/[0.04] px-4 py-2 font-mono text-[11px] uppercase tracking-[1.5px] text-foreground/75 transition-all hover:border-foreground/50 hover:bg-foreground/[0.08] hover:text-foreground"
+                  className="group inline-flex h-11 items-center gap-2 rounded-full border border-foreground/25 bg-foreground/[0.04] px-5 font-mono text-[11px] font-bold uppercase tracking-[1.5px] text-foreground/80 transition-all hover:border-foreground/50 hover:bg-foreground/[0.08] hover:text-foreground"
                   style={{ fontFamily: "var(--font-body)", minHeight: 0 }}
                 >
                   <ChevronLeft size={14} className="transition-transform group-hover:-translate-x-0.5" />
-                  <span className="hidden sm:inline text-foreground/50">PRÉCÉDENT ·</span>
-                  <span className="max-w-[28ch] truncate font-semibold">{nav.prev.title}</span>
+                  <span className="hidden sm:inline opacity-60">PRÉCÉDENT ·</span>
+                  <span className="max-w-[28ch] truncate">{nav.prev.title}</span>
                 </Link>
               ) : (
                 <div />
@@ -345,7 +345,7 @@ export default function LessonPage({
               {nav.next ? (
                 <Link
                   href={`/lesson/${nav.next._id}`}
-                  className="group ml-auto inline-flex items-center gap-2 rounded-full px-5 py-2.5 font-mono text-[11px] font-bold uppercase tracking-[2px] transition-all hover:gap-3"
+                  className="group ml-auto inline-flex h-11 items-center gap-2 rounded-full px-5 font-mono text-[11px] font-bold uppercase tracking-[1.5px] transition-all hover:gap-3"
                   style={{
                     background: "var(--state-done-bg)",
                     color: "var(--state-done-fg)",

@@ -11,7 +11,7 @@ import { Hero } from "@/components/ds/hero";
 import { StatBlock } from "@/components/ds/stat-block";
 import { ProgressStrip } from "@/components/ds/progress-strip";
 import type { ModuleCardState } from "@/components/ds/module-card";
-import { ChevronDown, Lock, Zap, Check, Trophy, PlayCircle } from "lucide-react";
+import { ChevronDown, Lock, Check } from "lucide-react";
 import { useViewMode } from "@/components/providers/view-mode-provider";
 import { UpsellBanner } from "@/components/ds/upsell-banner";
 import { UpsellModal } from "@/components/ds/upsell-modal";
@@ -689,74 +689,6 @@ function ModuleRowView({
         </div>
       </div>
     </div>
-  );
-}
-
-// ─── Indicateurs sémantiques ─────────────────────────────
-
-function StatusBadge({ state }: { state: ModuleCardState }) {
-  const config = {
-    completed: {
-      label: "✓ COMPLÉTÉ",
-      bg: STATE_COLOR.done,
-      color: "#0D0B08",
-    },
-    "in-progress": {
-      label: "▶ EN COURS",
-      bg: STATE_COLOR.active,
-      color: "#0D0B08",
-    },
-    upcoming: {
-      label: "À VENIR",
-      bg: "transparent",
-      color: STATE_COLOR.pending,
-      border: "1px solid rgba(240,233,219,0.25)",
-    },
-    locked: {
-      label: "◉ VERROUILLÉ",
-      bg: "transparent",
-      color: STATE_COLOR.locked,
-      border: "1px dashed rgba(240,233,219,0.25)",
-    },
-  } as const;
-  const c = config[state];
-  return (
-    <span
-      className="font-mono text-[10px] font-bold uppercase tracking-[1.5px] px-2.5 py-1"
-      style={{
-        background: c.bg,
-        color: c.color,
-        border: "border" in c ? c.border : "none",
-        fontFamily: "var(--font-body)",
-      }}
-    >
-      {c.label}
-    </span>
-  );
-}
-
-function CountChip({
-  completed,
-  total,
-  done,
-}: {
-  completed: number;
-  total: number;
-  done: boolean;
-}) {
-  return (
-    <span
-      className="font-mono text-[10px] tracking-[1.5px]"
-      style={{ fontFamily: "var(--font-body)" }}
-    >
-      <span style={{ color: done ? STATE_COLOR.done : STATE_COLOR.active, fontWeight: 700 }}>
-        {String(completed).padStart(2, "0")}
-      </span>
-      <span className="text-foreground/30 mx-1">/</span>
-      <span className="text-foreground/55">
-        {String(total).padStart(2, "0")} LEÇONS
-      </span>
-    </span>
   );
 }
 

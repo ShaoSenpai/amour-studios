@@ -128,8 +128,11 @@ http.route({
     switch (event.type) {
       case "payment_intent.succeeded": {
         const pi = event.data.object;
-        const email =
-          pi.metadata?.email || pi.receipt_email || "";
+        const email = (
+          pi.metadata?.email || pi.receipt_email || ""
+        )
+          .trim()
+          .toLowerCase();
 
         if (!email) {
           console.warn("payment_intent.succeeded without email, skipping");
@@ -148,13 +151,22 @@ http.route({
 
         console.log(`✅ Purchase fulfilled for ${email} (${pi.id})`);
 
-        // Email de confirmation avec lien /claim (fail-silent)
+        // Email de confirmation avec claim token signé (fail-silent)
         const firstName = (pi.metadata?.firstName as string | undefined) ?? "";
-        await ctx.runAction(internal.emails.sendClaimEmail, {
-          to: email,
-          firstName,
-          paymentIntentId: pi.id,
-        });
+        const claimToken =
+          (pi.metadata?.claim_token as string | undefined) ||
+          (await ctx.runQuery(internal.claimTokens.byPaymentIntent, {
+            paymentIntentId: pi.id,
+          }));
+        if (claimToken) {
+          await ctx.runAction(internal.emails.sendClaimEmail, {
+            to: email,
+            firstName,
+            claimToken,
+          });
+        } else {
+          console.warn(`No claim token found for ${pi.id} — email skipped`);
+        }
 
         // Assigner le rôle Discord VIP si le user existe et a un discordId
         const user = await ctx.runQuery(internal.stripe.findUserByEmail, { email });

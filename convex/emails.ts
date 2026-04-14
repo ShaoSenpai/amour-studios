@@ -116,12 +116,12 @@ const APP_URL = "https://amour-studios.vercel.app";
 
 function claimEmailHtml({
   firstName,
-  paymentIntentId,
+  claimToken,
 }: {
   firstName: string;
-  paymentIntentId: string;
+  claimToken: string;
 }) {
-  const claimUrl = `${APP_URL}/claim?pi=${encodeURIComponent(paymentIntentId)}`;
+  const claimUrl = `${APP_URL}/claim?t=${encodeURIComponent(claimToken)}`;
   const body = `
     <p style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:rgba(240,233,219,0.55);margin:0 0 16px;">— Paiement validé · 497 €</p>
     <h1 style="font-family:'Instrument Serif',Georgia,serif;font-size:44px;line-height:0.95;font-weight:400;letter-spacing:-1.5px;margin:0 0 24px;color:#F0E9DB;">
@@ -159,16 +159,16 @@ export const sendClaimEmail = internalAction({
   args: {
     to: v.string(),
     firstName: v.optional(v.string()),
-    paymentIntentId: v.string(),
+    claimToken: v.string(),
   },
-  handler: async (_ctx, { to, firstName, paymentIntentId }) => {
+  handler: async (_ctx, { to, firstName, claimToken }) => {
     if (!to) return { ok: false, reason: "no_email" };
     await sendViaResend({
       to,
       subject: "Ton accès Amour Studios — dernière étape",
       html: claimEmailHtml({
         firstName: firstName ?? "",
-        paymentIntentId,
+        claimToken,
       }),
     });
     return { ok: true };

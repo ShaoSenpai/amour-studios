@@ -74,6 +74,21 @@ export default defineSchema({
     .index("by_payment_intent", ["stripePaymentIntentId"])
     .index("by_status", ["status"]),
 
+  // Claim tokens — clés secrètes uniques qui prouvent la propriété d'un paiement.
+  // Générées au createPaymentIntent, envoyées au return_url + email, valides 7j,
+  // à usage unique. Sécurise le flux /claim contre le hijack de PI ID.
+  claimTokens: defineTable({
+    token: v.string(),
+    paymentIntentId: v.string(),
+    email: v.optional(v.string()),
+    expiresAt: v.number(),
+    claimedAt: v.optional(v.number()),
+    claimedByUserId: v.optional(v.id("users")),
+    createdAt: v.number(),
+  })
+    .index("by_token", ["token"])
+    .index("by_payment_intent", ["paymentIntentId"]),
+
   modules: defineTable({
     title: v.string(),
     slug: v.string(),

@@ -12,6 +12,7 @@ import type * as admin from "../admin.js";
 import type * as announcements from "../announcements.js";
 import type * as auth from "../auth.js";
 import type * as badges from "../badges.js";
+import type * as claimTokens from "../claimTokens.js";
 import type * as comments from "../comments.js";
 import type * as emails from "../emails.js";
 import type * as exerciseResponses from "../exerciseResponses.js";
@@ -42,6 +43,7 @@ declare const fullApi: ApiFromModules<{
   announcements: typeof announcements;
   auth: typeof auth;
   badges: typeof badges;
+  claimTokens: typeof claimTokens;
   comments: typeof comments;
   emails: typeof emails;
   exerciseResponses: typeof exerciseResponses;

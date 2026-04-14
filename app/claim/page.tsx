@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 
 // Cookie helpers — le claim token doit survivre à l'OAuth Discord round-trip.
-type ClaimKind = "session" | "pi";
+type ClaimKind = "session" | "pi" | "token";
 const COOKIE_NAME = "amour_claim";
 const COOKIE_MAX_AGE = 60 * 60; // 1h
 
@@ -34,7 +34,7 @@ function getClaimCookie(): { kind: ClaimKind; value: string } | null {
   const decoded = decodeURIComponent(match[1]);
   const [kind, ...rest] = decoded.split(":");
   const value = rest.join(":");
-  if ((kind === "session" || kind === "pi") && value) return { kind, value };
+  if ((kind === "session" || kind === "pi" || kind === "token") && value) return { kind, value };
   return null;
 }
 function clearClaimCookie() {
@@ -61,7 +61,8 @@ function ClaimInner() {
   const router = useRouter();
   const { signIn } = useAuthActions();
 
-  // Extract claim token from URL (supports both ?session= and ?pi=) or cookie
+  // Extract claim token from URL (supports ?t=, ?session=, ?pi=) or cookie
+  const tokenFromUrl = search.get("t");
   const sessionFromUrl = search.get("session");
   const piFromUrl = search.get("pi") ?? search.get("payment_intent");
   const [claimRef, setClaimRef] = useState<
@@ -69,7 +70,10 @@ function ClaimInner() {
   >(null);
 
   useEffect(() => {
-    if (sessionFromUrl) {
+    if (tokenFromUrl) {
+      setClaimRef({ kind: "token", value: tokenFromUrl });
+      setClaimCookie("token", tokenFromUrl);
+    } else if (sessionFromUrl) {
       setClaimRef({ kind: "session", value: sessionFromUrl });
       setClaimCookie("session", sessionFromUrl);
     } else if (piFromUrl) {
@@ -79,7 +83,7 @@ function ClaimInner() {
       const fromCookie = getClaimCookie();
       if (fromCookie) setClaimRef(fromCookie);
     }
-  }, [sessionFromUrl, piFromUrl]);
+  }, [tokenFromUrl, sessionFromUrl, piFromUrl]);
 
   const currentUser = useQuery(api.users.current);
 
@@ -91,11 +95,28 @@ function ClaimInner() {
     api.users.purchaseForPaymentIntent,
     claimRef?.kind === "pi" ? { paymentIntentId: claimRef.value } : "skip"
   );
+  const purchaseFromToken = useQuery(
+    api.claimTokens.purchaseForToken,
+    claimRef?.kind === "token" ? { token: claimRef.value } : "skip"
+  );
+  const tokenExpired =
+    claimRef?.kind === "token" &&
+    purchaseFromToken &&
+    "expired" in purchaseFromToken
+      ? true
+      : false;
   const purchase =
-    claimRef?.kind === "session" ? purchaseFromSession : purchaseFromPi;
+    claimRef?.kind === "session"
+      ? purchaseFromSession
+      : claimRef?.kind === "token"
+      ? tokenExpired
+        ? null
+        : (purchaseFromToken as Exclude<typeof purchaseFromToken, { expired: true }>)
+      : purchaseFromPi;
 
   const claimBySession = useMutation(api.users.claimPurchaseBySession);
   const claimByPi = useMutation(api.users.claimPurchaseByPaymentIntent);
+  const claimByToken = useMutation(api.claimTokens.claimByToken);
 
   const [claimState, setClaimState] = useState<
     "idle" | "claiming" | "done" | "error"
@@ -122,6 +143,8 @@ function ClaimInner() {
       const promise =
         claimRef.kind === "session"
           ? claimBySession({ sessionId: claimRef.value })
+          : claimRef.kind === "token"
+          ? claimByToken({ token: claimRef.value })
           : claimByPi({ paymentIntentId: claimRef.value });
       promise
         .then(() => {
@@ -135,7 +158,7 @@ function ClaimInner() {
           setErrorMsg(err instanceof Error ? err.message : "Erreur inconnue");
         });
     }
-  }, [currentUser, purchase, claimRef, claimBySession, claimByPi, claimState, router]);
+  }, [currentUser, purchase, claimRef, claimBySession, claimByPi, claimByToken, claimState, router]);
 
   // ── Render states ──────────────────────────────────────
 

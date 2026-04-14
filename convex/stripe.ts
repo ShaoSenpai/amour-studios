@@ -1,5 +1,13 @@
 import { v } from "convex/values";
 import { action, internalAction, internalMutation, internalQuery } from "./_generated/server";
+import { internal } from "./_generated/api";
+
+// Génère un token aléatoire cryptographiquement sûr (32 octets = 64 chars hex).
+function generateClaimToken(): string {
+  const array = new Uint8Array(32);
+  crypto.getRandomValues(array);
+  return Array.from(array, (b) => b.toString(16).padStart(2, "0")).join("");
+}
 
 // ============================================================================
 // Amour Studios — Stripe actions & mutations
@@ -21,7 +29,7 @@ export const createPaymentIntent = action({
     email: v.string(),
     mode: v.optional(v.union(v.literal("1x"), v.literal("3x"))),
   },
-  handler: async (_ctx, { email, mode = "1x" }) => {
+  handler: async (ctx, { email, mode = "1x" }) => {
     const Stripe = (await import("stripe")).default;
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
       apiVersion: "2026-03-25.dahlia",
@@ -38,6 +46,7 @@ export const createPaymentIntent = action({
     }
 
     if (mode === "1x") {
+      const claimToken = generateClaimToken();
       const paymentIntent = await stripe.paymentIntents.create({
         amount: 49700,
         currency: "eur",
@@ -52,13 +61,20 @@ export const createPaymentIntent = action({
           mode: "1x",
           source: "amourstudios.fr/paiement",
           email: normalizedEmail,
+          claim_token: claimToken,
         },
+      });
+      await ctx.runMutation(internal.claimTokens.create, {
+        token: claimToken,
+        paymentIntentId: paymentIntent.id,
+        email: normalizedEmail,
       });
       return {
         clientSecret: paymentIntent.client_secret,
         amount: 49700,
         currency: "eur",
         mode: "1x",
+        claimToken,
       };
     }
 
@@ -93,6 +109,7 @@ export const createPaymentIntent = action({
     const threeMonthsFromNow =
       Math.floor(Date.now() / 1000) + 90 * 24 * 60 * 60;
 
+    const claimToken = generateClaimToken();
     const subscription = await stripe.subscriptions.create({
       customer: customer.id,
       items: [{ price: PRICE_3X }],
@@ -114,6 +131,7 @@ export const createPaymentIntent = action({
         product: "amourstudios_programme_createur",
         mode: "3x",
         source: "amourstudios.fr/paiement",
+        claim_token: claimToken,
       },
     });
 
@@ -151,12 +169,28 @@ export const createPaymentIntent = action({
       );
     }
 
+    // Extract PI id pour lier le claim token
+    const piId =
+      invoice && typeof invoice === "object" &&
+      invoice.payment_intent &&
+      typeof invoice.payment_intent === "object" &&
+      "id" in invoice.payment_intent
+        ? (invoice.payment_intent as { id: string }).id
+        : clientSecret.split("_secret_")[0];
+
+    await ctx.runMutation(internal.claimTokens.create, {
+      token: claimToken,
+      paymentIntentId: piId,
+      email: normalizedEmail,
+    });
+
     return {
       clientSecret,
       amount: 16600,
       currency: "eur",
       mode: "3x",
       subscriptionId: subscription.id,
+      claimToken,
     };
   },
 });

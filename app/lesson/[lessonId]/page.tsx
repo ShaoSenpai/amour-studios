@@ -299,6 +299,18 @@ export default function LessonPage({
               >
                 {videoWatched ? "VIDÉO VUE" : "REGARDE LA VIDÉO POUR DÉBLOQUER LA SUITE"}
               </span>
+              {lessonCompleted && (
+                <span
+                  className="ml-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-[1.5px]"
+                  style={{
+                    background: "var(--state-done-bg)",
+                    color: "var(--state-done-fg)",
+                    fontFamily: "var(--font-body)",
+                  }}
+                >
+                  <Zap size={10} /> +{lesson.xpReward} XP · BRAVO
+                </span>
+              )}
             </div>
             {!hasExercises && videoWatched && !lessonCompleted && (
               <Button
@@ -315,55 +327,17 @@ export default function LessonPage({
             )}
           </div>
 
-          {lessonCompleted && (
-            <div
-              className="mt-6 rounded-md border p-6 text-center"
-              style={{
-                borderColor: "var(--state-done)",
-                background: "color-mix(in srgb, var(--state-done) 10%, transparent)",
-              }}
-            >
-              <p
-                className="mb-2 text-4xl italic"
-                style={{ fontFamily: "var(--font-serif)", color: "var(--state-done)" }}
-              >
-                Bravo !
-              </p>
-              <p
-                className="font-mono text-xs font-bold"
-                style={{ fontFamily: "var(--font-body)", color: "var(--state-done)" }}
-              >
-                +{lesson.xpReward} XP gagnés <Zap size={10} className="inline" />
-              </p>
-            </div>
-          )}
-
           {nav && (nav.prev || nav.next) && (
-            <div className="mt-8 grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div className="mt-6 flex items-center justify-between gap-3">
               {nav.prev ? (
                 <Link
                   href={`/lesson/${nav.prev._id}`}
-                  className="group flex items-center gap-4 rounded-md border-2 border-foreground/25 bg-foreground/[0.08] p-5 transition-all hover:border-foreground/50 hover:bg-foreground/[0.14]"
+                  className="group inline-flex items-center gap-2 rounded-full border border-foreground/25 bg-foreground/[0.04] px-4 py-2 font-mono text-[11px] uppercase tracking-[1.5px] text-foreground/75 transition-all hover:border-foreground/50 hover:bg-foreground/[0.08] hover:text-foreground"
+                  style={{ fontFamily: "var(--font-body)", minHeight: 0 }}
                 >
-                  <div
-                    className="flex size-10 shrink-0 items-center justify-center rounded-full border border-foreground/30 transition-transform group-hover:-translate-x-0.5"
-                  >
-                    <ChevronLeft size={18} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div
-                      className="font-mono text-[10px] font-bold uppercase tracking-[2px] text-foreground/60"
-                      style={{ fontFamily: "var(--font-body)" }}
-                    >
-                      PRÉCÉDENT
-                    </div>
-                    <div
-                      className="mt-0.5 truncate font-mono text-sm font-semibold text-foreground"
-                      style={{ fontFamily: "var(--font-body)" }}
-                    >
-                      {nav.prev.title}
-                    </div>
-                  </div>
+                  <ChevronLeft size={14} className="transition-transform group-hover:-translate-x-0.5" />
+                  <span className="hidden sm:inline text-foreground/50">PRÉCÉDENT ·</span>
+                  <span className="max-w-[28ch] truncate font-semibold">{nav.prev.title}</span>
                 </Link>
               ) : (
                 <div />
@@ -371,33 +345,17 @@ export default function LessonPage({
               {nav.next ? (
                 <Link
                   href={`/lesson/${nav.next._id}`}
-                  className="group flex items-center gap-4 rounded-md border-2 p-5 transition-all md:flex-row-reverse md:text-right"
+                  className="group ml-auto inline-flex items-center gap-2 rounded-full px-5 py-2.5 font-mono text-[11px] font-bold uppercase tracking-[2px] transition-all hover:gap-3"
                   style={{
-                    borderColor: "var(--state-done)",
-                    background: "color-mix(in srgb, var(--state-done) 10%, transparent)",
-                    color: "var(--foreground)",
+                    background: "var(--state-done-bg)",
+                    color: "var(--state-done-fg)",
+                    fontFamily: "var(--font-body)",
+                    minHeight: 0,
                   }}
                 >
-                  <div
-                    className="flex size-10 shrink-0 items-center justify-center rounded-full transition-transform group-hover:translate-x-0.5"
-                    style={{ background: "var(--state-done-bg)", color: "var(--state-done-fg)" }}
-                  >
-                    <ChevronRight size={18} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div
-                      className="font-mono text-[10px] font-bold uppercase tracking-[2px]"
-                      style={{ fontFamily: "var(--font-body)", color: "var(--state-done)" }}
-                    >
-                      SUIVANT
-                    </div>
-                    <div
-                      className="mt-0.5 truncate font-mono text-sm font-semibold text-foreground"
-                      style={{ fontFamily: "var(--font-body)" }}
-                    >
-                      {nav.next.title}
-                    </div>
-                  </div>
+                  <span className="hidden sm:inline opacity-70">SUIVANT ·</span>
+                  <span className="max-w-[28ch] truncate">{nav.next.title}</span>
+                  <ChevronRight size={14} className="transition-transform group-hover:translate-x-0.5" />
                 </Link>
               ) : (
                 <div />

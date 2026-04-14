@@ -120,10 +120,10 @@ export function TimestampedNotes({ lessonId }: { lessonId: Id<"lessons"> }) {
         <button
           onClick={handleAdd}
           disabled={!content.trim() || saving}
-          className="flex size-10 shrink-0 items-center justify-center rounded-md transition-opacity hover:opacity-90 disabled:opacity-40"
+          className="flex size-10 shrink-0 items-center justify-center rounded-md transition-opacity hover:opacity-90 disabled:opacity-60"
           style={{
-            background: "var(--state-done-bg)",
-            color: "var(--state-done-fg)",
+            background: "#FF6B1F",
+            color: "#0D0B08",
             minHeight: 0,
           }}
           aria-label="Ajouter"
@@ -172,10 +172,10 @@ export function TimestampedNotes({ lessonId }: { lessonId: Id<"lessons"> }) {
                       <button
                         onClick={() => handleSaveEdit(note._id)}
                         disabled={!editContent.trim()}
-                        className="flex items-center gap-1 rounded-md px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[1.5px] disabled:opacity-40"
+                        className="flex items-center gap-1 rounded-md px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[1.5px] disabled:opacity-60"
                         style={{
-                          background: "var(--state-done-bg)",
-                          color: "var(--state-done-fg)",
+                          background: "#FF6B1F",
+                          color: "#0D0B08",
                           fontFamily: "var(--font-body)",
                           minHeight: 0,
                         }}

@@ -109,10 +109,10 @@ function NewCommentForm({
       <button
         type="submit"
         disabled={!content.trim() || submitting}
-        className="rounded-md px-4 font-mono text-[11px] font-bold uppercase tracking-[2px] transition-opacity hover:opacity-90 disabled:opacity-40"
+        className="rounded-md px-4 font-mono text-[11px] font-bold uppercase tracking-[2px] transition-opacity hover:opacity-90 disabled:opacity-60"
         style={{
-          background: "var(--state-done-bg)",
-          color: "var(--state-done-fg)",
+          background: "#FF6B1F",
+          color: "#0D0B08",
           fontFamily: "var(--font-body)",
           minHeight: 0,
         }}

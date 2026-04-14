@@ -207,6 +207,12 @@ function ClaimInner() {
           </span>
         </div>
         <AutoRefresher />
+        <ClaimingFallback
+          onRetry={() => {
+            // Force reload la query Convex
+            window.location.reload();
+          }}
+        />
       </Screen>
     );
   }
@@ -229,6 +235,12 @@ function ClaimInner() {
             Liaison de ton paiement…
           </span>
         </div>
+        <ClaimingFallback
+          onRetry={() => {
+            setClaimState("idle");
+            setErrorMsg(null);
+          }}
+        />
       </Screen>
     );
   }
@@ -627,11 +639,51 @@ function Step({
 
 // Polls the query every 2s by forcing re-renders. Convex query is reactive
 // anyway but purchases may insert slightly after auth; this is a safety belt.
-function AutoRefresher() {
+function AutoRefresher({ onStuck }: { onStuck?: () => void }) {
   const [, setTick] = useState(0);
   useEffect(() => {
     const id = setInterval(() => setTick((t) => t + 1), 2000);
-    return () => clearInterval(id);
-  }, []);
+    const stuckId = onStuck ? setTimeout(() => onStuck(), 12000) : null;
+    return () => {
+      clearInterval(id);
+      if (stuckId) clearTimeout(stuckId);
+    };
+  }, [onStuck]);
   return null;
+}
+
+function ClaimingFallback({ onRetry }: { onRetry: () => void }) {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const id = setTimeout(() => setVisible(true), 10000);
+    return () => clearTimeout(id);
+  }, []);
+  if (!visible) return null;
+  return (
+    <div className="mt-8 border-t border-foreground/15 pt-6">
+      <p
+        className="mb-4 font-mono text-xs uppercase tracking-[1.5px] text-foreground/55"
+        style={{ fontFamily: "var(--font-body)" }}
+      >
+        — Ça prend plus longtemps que d&apos;habitude
+      </p>
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <button
+          type="button"
+          onClick={onRetry}
+          className="inline-flex h-10 items-center gap-2 rounded-full border border-foreground/25 bg-foreground/[0.04] px-5 font-mono text-[11px] font-bold uppercase tracking-[1.5px] text-foreground/80 transition-all hover:border-foreground/50 hover:bg-foreground/[0.08] hover:text-foreground"
+          style={{ fontFamily: "var(--font-body)", minHeight: 0 }}
+        >
+          Réessayer
+        </button>
+        <a
+          href="mailto:contact@amourstudios.fr?subject=Probl%C3%A8me%20claim%20paiement"
+          className="inline-flex h-10 items-center gap-2 rounded-full px-5 font-mono text-[11px] font-bold uppercase tracking-[1.5px] text-[#FF6B1F] transition-opacity hover:opacity-80"
+          style={{ fontFamily: "var(--font-body)", minHeight: 0 }}
+        >
+          Contacter le support
+        </a>
+      </div>
+    </div>
+  );
 }

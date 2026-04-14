@@ -639,11 +639,15 @@ function ModuleRowView({
                     !!progress[lesson._id]?.lessonCompletedAt;
                   // En preview mode : seules les leçons previewAccess=true sont accessibles
                   // (peu importe la progress passée du compte admin)
+                  // Un module verrouillé (prev module pas fini) verrouille TOUTES ses leçons.
+                  // Sinon : séquentiel intra-module (la précédente doit être complétée).
                   const unlocked = previewMode
                     ? lesson.previewAccess === true
                     : isAdmin ||
-                      i === 0 ||
-                      !!progress[lessons[i - 1]._id]?.lessonCompletedAt;
+                      (!locked && (
+                        i === 0 ||
+                        !!progress[lessons[i - 1]._id]?.lessonCompletedAt
+                      ));
                   const videoSeen = !!progress[lesson._id]?.videoWatchedAt;
                   const placeholder = lesson.muxPlaybackId === "placeholder";
 

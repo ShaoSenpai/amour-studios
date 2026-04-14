@@ -14,6 +14,76 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 // ============================================================================
 
 /**
+ * Vérifie si l'utilisateur courant peut accéder à une leçon selon les règles
+ * de progression séquentielle : module précédent 100% complété + leçons
+ * précédentes du même module complétées. Admin toujours true.
+ * Preview : true si lesson.previewAccess === true.
+ */
+export const canAccessLesson = query({
+  args: { lessonId: v.id("lessons") },
+  handler: async (ctx, { lessonId }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return false;
+
+    const user = await ctx.db.get(userId);
+    if (!user) return false;
+    if (user.role === "admin") return true;
+
+    const lesson = await ctx.db.get(lessonId);
+    if (!lesson) return false;
+    if (lesson.previewAccess) return true;
+
+    // VIP = a un purchaseId. Les non-VIP n'ont accès qu'aux leçons previewAccess=true.
+    if (!user.purchaseId) return false;
+
+    const currentModule = await ctx.db.get(lesson.moduleId);
+    if (!currentModule) return false;
+
+    // Leçons du module courant ordonnées
+    const siblings = await ctx.db
+      .query("lessons")
+      .withIndex("by_module", (q) => q.eq("moduleId", lesson.moduleId))
+      .collect();
+    siblings.sort((a, b) => a.order - b.order);
+
+    // Progression de l'utilisateur
+    const progress = await ctx.db
+      .query("progress")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .collect();
+    const done = new Set(
+      progress.filter((p) => p.lessonCompletedAt).map((p) => p.lessonId)
+    );
+
+    // Toutes les leçons du même module d'ordre inférieur doivent être complétées
+    for (const s of siblings) {
+      if (s._id === lesson._id) break;
+      if (!done.has(s._id)) return false;
+    }
+
+    // Si c'est la première leçon d'un module (order === 0), le module précédent
+    // doit être totalement complété (à moins que ce soit le module 0).
+    if (lesson.order === 0 && currentModule.order > 0) {
+      const prevModule = await ctx.db
+        .query("modules")
+        .withIndex("by_order", (q) => q.eq("order", currentModule.order - 1))
+        .first();
+      if (prevModule) {
+        const prevLessons = await ctx.db
+          .query("lessons")
+          .withIndex("by_module", (q) => q.eq("moduleId", prevModule._id))
+          .collect();
+        for (const pl of prevLessons) {
+          if (!done.has(pl._id)) return false;
+        }
+      }
+    }
+
+    return true;
+  },
+});
+
+/**
  * Retourne toute la progression du user courant, indexée par lessonId.
  */
 export const myProgress = query({

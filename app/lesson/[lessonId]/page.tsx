@@ -61,6 +61,10 @@ export default function LessonPage({
     api.comments.countByLesson,
     lesson ? { lessonId: lesson._id } : "skip"
   );
+  const canAccess = useQuery(
+    api.progress.canAccessLesson,
+    lesson ? { lessonId: lesson._id } : "skip"
+  );
 
   const [activePanel, setActivePanel] = useState<DockKey | null>(null);
 
@@ -123,11 +127,17 @@ export default function LessonPage({
   // - mode "vue preview" force le comportement preview même si admin/VIP
   const isAdmin = me?.role === "admin" && !viewAsMember;
   const isVip = !!myPurchase && !viewAsPreview;
-  const lessonAllowed =
-    (isAdmin || isVip || (lesson && lesson.previewAccess === true)) &&
-    !(viewAsPreview && lesson && !lesson.previewAccess);
+  // Accès :
+  //   admin (pas en vue membre) → toujours
+  //   preview mode (viewAsPreview ou non-VIP) → uniquement leçons previewAccess=true
+  //   VIP → dépend de la progression séquentielle (canAccessLesson côté serveur)
+  const lessonAllowed = isAdmin
+    ? true
+    : viewAsPreview || !myPurchase
+    ? !!(lesson && lesson.previewAccess === true)
+    : canAccess === true;
 
-  if (lesson === undefined || exercises === undefined || progress === undefined || lessonModule === undefined || me === undefined || myPurchase === undefined) {
+  if (lesson === undefined || exercises === undefined || progress === undefined || lessonModule === undefined || me === undefined || myPurchase === undefined || canAccess === undefined) {
     return (
       <div className="ds-grid-bg min-h-screen">
         <Sidebar /><Topbar />

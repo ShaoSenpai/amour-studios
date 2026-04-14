@@ -42,7 +42,10 @@ export const createPaymentIntent = action({
       const paymentIntent = await stripe.paymentIntents.create({
         amount: 49700,
         currency: "eur",
-        payment_method_types: ["card", "paypal"],
+        // Card inclut auto Apple Pay + Google Pay. `allow_redirects: never`
+        // exclut Bancontact/iDEAL/Klarna/Wero/EPS (tous redirect-based).
+        // PayPal à réactiver dès que le compte Stripe l'a enabled côté dashboard.
+        automatic_payment_methods: { enabled: true, allow_redirects: "never" },
         receipt_email: normalizedEmail || undefined,
         description: "AMOURstudios® — Le Programme Créateur (1×)",
         metadata: {

@@ -38,7 +38,8 @@ export function ActivityCard({
       {live && (
         <span
           aria-label="Live"
-          className="absolute right-5 top-5 h-1.5 w-1.5 rounded-full bg-[#00FF85] ds-pulse"
+          className="absolute right-5 top-5 h-1.5 w-1.5 rounded-full ds-pulse"
+          style={{ background: "var(--state-done)" }}
         />
       )}
       <div

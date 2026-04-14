@@ -14,12 +14,17 @@ import { useViewMode } from "@/components/providers/view-mode-provider";
 import { UpsellBanner } from "@/components/ds/upsell-banner";
 import { UpsellModal } from "@/components/ds/upsell-modal";
 
-// Couleurs indicatrices (sémantiques, hors palette DA)
+// Couleurs indicatrices (sémantiques, theme-aware via CSS vars)
 const STATE_COLOR = {
-  done: "#00FF85", // vert — terminé/validé
-  active: "#FFB347", // orange chaud — en cours / hot
-  pending: "rgba(240,233,219,0.45)", // beige muté — à venir
-  locked: "rgba(240,233,219,0.3)", // gris — bloqué
+  done: "var(--state-done)",
+  active: "var(--state-active)",
+  pending: "var(--state-pending)",
+  locked: "var(--state-locked)",
+  doneBg: "var(--state-done-bg)",
+  doneFg: "var(--state-done-fg)",
+  activeBg: "var(--state-active-bg)",
+  activeFg: "var(--state-active-fg)",
+  lockedBorder: "var(--state-locked-border)",
 };
 import { ActivityCard } from "@/components/ds/activity-card";
 import { AnnouncementsBanner } from "@/components/ds/announcements-banner";
@@ -535,7 +540,7 @@ function ModuleRowView({
       className="group/module relative overflow-hidden rounded-md border border-foreground/20 bg-foreground/[0.08] transition-colors duration-300 hover:border-foreground/35 hover:bg-foreground/[0.1]"
       style={{
         opacity: locked ? 0.75 : 1,
-        boxShadow: `inset 4px 0 0 0 ${locked ? "rgba(240,233,219,0.25)" : accent}`,
+        boxShadow: `inset 4px 0 0 0 ${locked ? "var(--state-locked-border)" : accent}`,
       }}
     >
       <button
@@ -549,7 +554,7 @@ function ModuleRowView({
           className="text-[28px] italic leading-none tracking-tight md:text-[34px]"
           style={{
             fontFamily: "var(--font-serif)",
-            color: locked ? "rgba(240,233,219,0.35)" : accent,
+            color: locked ? "var(--state-locked)" : accent,
           }}
         >
           {String(order + 1).padStart(2, "0")}
@@ -594,9 +599,9 @@ function ModuleRowView({
             className="flex size-8 items-center justify-center border transition-transform duration-300"
             style={{
               borderColor: locked
-                ? "rgba(240,233,219,0.2)"
-                : "rgba(240,233,219,0.25)",
-              color: locked ? "rgba(240,233,219,0.4)" : "var(--foreground)",
+                ? "var(--fg-faint)"
+                : "var(--state-locked-border)",
+              color: locked ? "var(--state-locked)" : "var(--foreground)",
               transform: expanded ? "rotate(180deg)" : "rotate(0)",
             }}
             aria-hidden
@@ -689,19 +694,21 @@ function LessonLine({
 }) {
   // ─── Pastille sémantique ───────────────────────────────
   const pillBg = completed
-    ? STATE_COLOR.done
+    ? STATE_COLOR.doneBg
     : videoSeen && unlocked
-    ? STATE_COLOR.active
+    ? STATE_COLOR.activeBg
     : "transparent";
   const pillBorder = completed || (videoSeen && unlocked)
     ? "transparent"
     : unlocked
-    ? "rgba(240,233,219,0.3)"
-    : "rgba(240,233,219,0.15)";
-  const pillColor = completed || (videoSeen && unlocked)
-    ? "#0D0B08"
+    ? "var(--fg-faint)"
+    : "var(--fg-line)";
+  const pillColor = completed
+    ? STATE_COLOR.doneFg
+    : videoSeen && unlocked
+    ? STATE_COLOR.activeFg
     : unlocked
-    ? "rgba(240,233,219,0.8)"
+    ? "var(--foreground)"
     : STATE_COLOR.locked;
 
   const content = (
@@ -737,10 +744,10 @@ function LessonLine({
             fontFamily: "var(--font-serif)",
             fontSize: "16px",
             color: completed
-              ? "rgba(240,233,219,0.8)"
+              ? "var(--fg-soft)"
               : unlocked
               ? "var(--foreground)"
-              : "rgba(240,233,219,0.45)",
+              : "var(--state-locked)",
           }}
         >
           {title}
@@ -753,7 +760,7 @@ function LessonLine({
           {duration > 0 && <span className="opacity-30">·</span>}
           <span
             className="font-bold"
-            style={{ color: completed ? STATE_COLOR.done : "rgba(240,233,219,0.55)" }}
+            style={{ color: completed ? STATE_COLOR.done : "var(--fg-soft)" }}
           >
             {completed ? "+" : ""}
             {xpReward} XP
@@ -765,21 +772,21 @@ function LessonLine({
         {completed ? (
           <span
             className="font-mono text-[10px] font-bold uppercase tracking-[1.5px] px-2 py-1"
-            style={{ background: STATE_COLOR.done, color: "#0D0B08", fontFamily: "var(--font-body)" }}
+            style={{ background: STATE_COLOR.doneBg, color: STATE_COLOR.doneFg, fontFamily: "var(--font-body)" }}
           >
             ✓ FAIT
           </span>
         ) : videoSeen ? (
           <span
             className="font-mono text-[10px] font-bold uppercase tracking-[1.5px] px-2 py-1"
-            style={{ background: STATE_COLOR.active, color: "#0D0B08", fontFamily: "var(--font-body)" }}
+            style={{ background: STATE_COLOR.activeBg, color: STATE_COLOR.activeFg, fontFamily: "var(--font-body)" }}
           >
             ● ACTIF
           </span>
         ) : !unlocked ? (
           <span
             className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-[1.5px] px-2 py-1 border border-dashed"
-            style={{ color: STATE_COLOR.locked, borderColor: "rgba(240,233,219,0.25)", fontFamily: "var(--font-body)" }}
+            style={{ color: STATE_COLOR.locked, borderColor: STATE_COLOR.lockedBorder, fontFamily: "var(--font-body)" }}
           >
             <Lock size={10} aria-hidden />
             BLOQUÉ
@@ -787,13 +794,13 @@ function LessonLine({
         ) : placeholder ? (
           <span
             className="font-mono text-[10px] uppercase tracking-[1.5px] px-2 py-1 border"
-            style={{ color: STATE_COLOR.pending, borderColor: "rgba(240,233,219,0.25)", fontFamily: "var(--font-body)" }}
+            style={{ color: STATE_COLOR.pending, borderColor: STATE_COLOR.lockedBorder, fontFamily: "var(--font-body)" }}
           >
             BIENTÔT
           </span>
         ) : (
           <span
-            className="text-lg italic text-foreground/25 group-hover/lesson:text-foreground/60 transition-colors"
+            className="text-lg italic text-foreground/30 group-hover/lesson:text-foreground/70 transition-colors"
             style={{ fontFamily: "var(--font-serif)" }}
           >
             →

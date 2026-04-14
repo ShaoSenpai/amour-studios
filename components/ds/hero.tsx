@@ -35,7 +35,13 @@ export function Hero({
 
   return (
     <section className={cn("ds-reveal", className)}>
-      <div className="relative overflow-hidden rounded-md bg-[#F0E9DB] p-8 text-[#0D0B08] md:p-12">
+      <div
+        className="relative overflow-hidden rounded-md p-8 text-[#0D0B08] md:p-12"
+        style={{
+          background: "var(--hero-bg)",
+          border: "1px solid var(--hero-border)",
+        }}
+      >
         <div
           className="mb-3 font-mono text-[10px] uppercase tracking-[3px] opacity-55"
           style={{ fontFamily: "var(--font-body)" }}
@@ -66,13 +72,13 @@ export function Hero({
 
         {progress && (
           <div className="mt-10 border-t border-[#0D0B08]/15 pt-5">
-            <div className="mb-2 flex items-baseline justify-between font-mono text-[10px] uppercase tracking-[2px] opacity-65" style={{ fontFamily: "var(--font-body)" }}>
+            <div className="mb-2 flex items-baseline justify-between font-mono text-[10px] uppercase tracking-[2px] opacity-70" style={{ fontFamily: "var(--font-body)" }}>
               <span>◦ Progression</span>
               <span>
-                <span className="font-bold" style={{ color: "#00A86B" }}>
+                <span className="font-bold" style={{ color: "#0D4D35" }}>
                   {progress.percent}%
                 </span>
-                <span className="mx-2 opacity-30">·</span>
+                <span className="mx-2 opacity-40">·</span>
                 <span>{progress.completed}/{progress.total} leçons</span>
               </span>
             </div>
@@ -81,7 +87,7 @@ export function Hero({
                 className="ds-progress-fill h-full rounded-full"
                 style={{
                   width: `${progress.percent}%`,
-                  background: "linear-gradient(90deg, #00FF85 0%, #FF6B1F 100%)",
+                  background: "linear-gradient(90deg, #0D4D35 0%, #FF6B1F 100%)",
                 }}
               />
             </div>

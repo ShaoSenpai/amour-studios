@@ -100,6 +100,25 @@
   --ds-success: #00FF85;
   --ds-alert: #FF6B1F;
 
+  /* Semantic states — theme-aware. Light mode = darker/denser */
+  --state-done: #0D4D35;
+  --state-done-bg: #0D4D35;
+  --state-done-fg: #F0E9DB;
+  --state-active: #C2410C;
+  --state-active-bg: #FF6B1F;
+  --state-active-fg: #F0E9DB;
+  --state-pending: rgba(13,11,8,.5);
+  --state-locked: rgba(13,11,8,.35);
+  --state-locked-border: rgba(13,11,8,.25);
+  --fg-soft: rgba(13,11,8,.65);
+  --fg-muted: rgba(13,11,8,.45);
+  --fg-faint: rgba(13,11,8,.25);
+  --fg-line: rgba(13,11,8,.12);
+  --hero-bg: #DDD1B8;
+  --hero-border: rgba(13,11,8,.2);
+  --progress-grad-from: #0D4D35;
+  --progress-grad-to: #FF6B1F;
+
   --ease-reveal: cubic-bezier(.2, .9, .3, 1);
   --dur-fast: 300ms;
   --dur-med: 700ms;
@@ -231,6 +250,25 @@ html[data-theme="dark"] {
 
   --ds-success: #00FF85;
   --ds-alert: #FF6B1F;
+
+  /* Semantic states — dark mode (brights OK on dark bg) */
+  --state-done: #00FF85;
+  --state-done-bg: #00FF85;
+  --state-done-fg: #0D0B08;
+  --state-active: #FFB347;
+  --state-active-bg: #FFB347;
+  --state-active-fg: #0D0B08;
+  --state-pending: rgba(240,233,219,.45);
+  --state-locked: rgba(240,233,219,.3);
+  --state-locked-border: rgba(240,233,219,.25);
+  --fg-soft: rgba(240,233,219,.6);
+  --fg-muted: rgba(240,233,219,.4);
+  --fg-faint: rgba(240,233,219,.2);
+  --fg-line: rgba(240,233,219,.12);
+  --hero-bg: #F0E9DB;
+  --hero-border: transparent;
+  --progress-grad-from: #00FF85;
+  --progress-grad-to: #FF6B1F;
 
   --grid-line: rgba(240, 233, 219, 0.03);
 

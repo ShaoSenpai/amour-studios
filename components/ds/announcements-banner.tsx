@@ -17,7 +17,7 @@ export function AnnouncementsBanner() {
         return (
           <div
             key={a._id}
-            className="relative border-l-4 bg-foreground/[0.04] px-5 py-4 pr-10"
+            className="relative rounded-md border border-foreground/15 border-l-4 bg-foreground/[0.08] px-5 py-4 pr-10"
             style={{ borderLeftColor: accent }}
           >
             <button

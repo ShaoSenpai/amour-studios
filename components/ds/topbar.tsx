@@ -44,7 +44,7 @@ export function Topbar() {
           className="flex items-center gap-2 font-serif text-xl italic text-foreground"
           style={{ fontFamily: "var(--font-serif)" }}
         >
-          <span className="h-2 w-2 rounded-full bg-[#00FF85] ds-pulse" aria-hidden />
+          <span className="h-2 w-2 rounded-full ds-pulse" style={{ background: "var(--state-done)" }} aria-hidden />
           <span className="hidden sm:inline">Amour Studios</span>
           <span className="sm:hidden">A.</span>
         </Link>
@@ -79,10 +79,10 @@ export function Topbar() {
               title={`Basculer la vue (actuel : ${viewMode}). Cycle : admin → vip → preview gratuit → admin`}
               className={`hidden md:flex items-center gap-1.5 border px-2.5 py-1 font-mono text-[10px] uppercase tracking-[1.5px] transition-colors ${
                 viewMode === "admin"
-                  ? "border-foreground/20 bg-foreground/[0.04] text-foreground/60 hover:text-foreground"
+                  ? "border-foreground/25 bg-foreground/[0.05] text-foreground/70 hover:text-foreground"
                   : viewMode === "vip"
-                  ? "border-[#00FF85] bg-[rgba(0,255,133,0.12)] text-[#00FF85]"
-                  : "border-[#FFB347] bg-[rgba(255,179,71,0.12)] text-[#FFB347]"
+                  ? "border-[color:var(--state-done)] bg-[color:color-mix(in_srgb,var(--state-done)_15%,transparent)] text-[color:var(--state-done)]"
+                  : "border-[#FF6B1F] bg-[rgba(255,107,31,0.15)] text-[#FF6B1F]"
               }`}
               style={{ minHeight: 0, fontFamily: "var(--font-body)" }}
             >

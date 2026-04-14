@@ -39,7 +39,6 @@ export function Hero({
         className="relative overflow-hidden rounded-md p-8 text-[#0D0B08] md:p-12"
         style={{
           background: "var(--hero-bg)",
-          border: "1px solid var(--hero-border)",
         }}
       >
         <div

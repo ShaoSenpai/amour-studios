@@ -537,7 +537,7 @@ function ModuleRowView({
   return (
     <div
       id={`module-${modId}`}
-      className="group/module relative overflow-hidden rounded-md border border-foreground/20 bg-foreground/[0.08] transition-[border-color] duration-300 hover:border-foreground/40"
+      className="group/module relative overflow-hidden rounded-md border border-foreground/20 bg-[color:var(--paper-2,var(--card))] transition-[border-color] duration-300 hover:border-foreground/40"
       style={{
         opacity: locked ? 0.75 : 1,
         boxShadow: `inset 4px 0 0 0 ${locked ? "var(--state-locked-border)" : accent}`,

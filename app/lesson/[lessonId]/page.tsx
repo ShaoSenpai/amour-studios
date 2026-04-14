@@ -313,31 +313,37 @@ export default function LessonPage({
               )}
             </div>
             {!hasExercises && videoWatched && !lessonCompleted && (
-              <Button
-                size="sm"
-                className="rounded-md"
-                style={{ background: "var(--state-done-bg)", color: "var(--state-done-fg)" }}
+              <button
+                type="button"
+                className="inline-flex h-9 items-center gap-2 rounded-full px-4 font-mono text-[11px] font-bold uppercase tracking-[1.5px] transition-opacity hover:opacity-90"
+                style={{
+                  background: "var(--state-done-bg)",
+                  color: "var(--state-done-fg)",
+                  fontFamily: "var(--font-body)",
+                  minHeight: 0,
+                }}
                 onClick={async () => {
                   await completeExercise({ lessonId: lesson._id });
                   toast.success("Leçon complétée !");
                 }}
               >
-                Valider la leçon →
-              </Button>
+                Valider la leçon <ChevronRight size={13} />
+              </button>
             )}
           </div>
 
           {nav && (nav.prev || nav.next) && (
-            <div className="mt-6 flex items-stretch justify-between gap-3">
+            <div className="mt-6 grid grid-cols-2 gap-3">
               {nav.prev ? (
                 <Link
                   href={`/lesson/${nav.prev._id}`}
-                  className="group inline-flex h-11 items-center gap-2 rounded-full border border-foreground/25 bg-foreground/[0.04] px-5 font-mono text-[11px] font-bold uppercase tracking-[1.5px] text-foreground/80 transition-all hover:border-foreground/50 hover:bg-foreground/[0.08] hover:text-foreground"
-                  style={{ fontFamily: "var(--font-body)", minHeight: 0 }}
+                  className="group flex h-11 min-w-0 items-center gap-2 justify-self-start rounded-full border border-foreground/25 bg-foreground/[0.04] pl-3 pr-5 font-mono text-[11px] font-bold uppercase tracking-[1.5px] text-foreground/80 transition-all hover:border-foreground/50 hover:bg-foreground/[0.08] hover:text-foreground"
+                  style={{ fontFamily: "var(--font-body)", minHeight: 0, maxWidth: "100%" }}
                 >
-                  <ChevronLeft size={14} className="transition-transform group-hover:-translate-x-0.5" />
-                  <span className="hidden sm:inline opacity-60">PRÉCÉDENT ·</span>
-                  <span className="max-w-[28ch] truncate">{nav.prev.title}</span>
+                  <ChevronLeft size={14} className="shrink-0 transition-transform group-hover:-translate-x-0.5" />
+                  <span className="hidden whitespace-nowrap opacity-60 sm:inline">PRÉCÉDENT</span>
+                  <span className="hidden opacity-30 sm:inline">·</span>
+                  <span className="truncate">{nav.prev.title}</span>
                 </Link>
               ) : (
                 <div />
@@ -345,17 +351,19 @@ export default function LessonPage({
               {nav.next ? (
                 <Link
                   href={`/lesson/${nav.next._id}`}
-                  className="group ml-auto inline-flex h-11 items-center gap-2 rounded-full px-5 font-mono text-[11px] font-bold uppercase tracking-[1.5px] transition-all hover:gap-3"
+                  className="group flex h-11 min-w-0 items-center gap-2 justify-self-end rounded-full pl-5 pr-3 font-mono text-[11px] font-bold uppercase tracking-[1.5px] transition-all"
                   style={{
                     background: "var(--state-done-bg)",
                     color: "var(--state-done-fg)",
                     fontFamily: "var(--font-body)",
                     minHeight: 0,
+                    maxWidth: "100%",
                   }}
                 >
-                  <span className="hidden sm:inline opacity-70">SUIVANT ·</span>
-                  <span className="max-w-[28ch] truncate">{nav.next.title}</span>
-                  <ChevronRight size={14} className="transition-transform group-hover:translate-x-0.5" />
+                  <span className="hidden whitespace-nowrap opacity-70 sm:inline">SUIVANT</span>
+                  <span className="hidden opacity-40 sm:inline">·</span>
+                  <span className="truncate">{nav.next.title}</span>
+                  <ChevronRight size={14} className="shrink-0 transition-transform group-hover:translate-x-0.5" />
                 </Link>
               ) : (
                 <div />

@@ -96,13 +96,19 @@ function NewCommentForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex gap-2">
-      <input
-        type="text"
+    <form onSubmit={handleSubmit} className="flex items-start gap-2">
+      <textarea
         value={content}
         onChange={(e) => setContent(e.target.value)}
-        placeholder={parentCommentId ? "Répondre..." : "Ajouter un commentaire..."}
-        className="flex-1 h-10 rounded-md border border-foreground/25 bg-foreground/[0.04] px-3 text-sm font-mono outline-none transition-colors focus:border-foreground/50 focus:bg-foreground/[0.06]"
+        onKeyDown={(e) => {
+          if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+            e.preventDefault();
+            handleSubmit(e as unknown as React.FormEvent);
+          }
+        }}
+        placeholder={parentCommentId ? "Répondre… (⌘+Entrée)" : "Ajouter un commentaire… (⌘+Entrée)"}
+        rows={2}
+        className="flex-1 resize-none rounded-md border border-foreground/25 bg-foreground/[0.04] px-3 py-2 text-sm font-mono leading-relaxed outline-none transition-colors focus:border-foreground/50 focus:bg-foreground/[0.06]"
         style={{ fontFamily: "var(--font-body)", minHeight: 0 }}
         maxLength={2000}
       />
@@ -200,7 +206,7 @@ function CommentThread({
               {formatDate(comment.createdAt)}
             </span>
           </div>
-          <p className="text-sm mt-1 whitespace-pre-line">{comment.content}</p>
+          <p className="text-sm mt-1 whitespace-pre-line break-words [overflow-wrap:anywhere]">{comment.content}</p>
           <div className="flex items-center gap-2 mt-2">
             <button
               onClick={() => setReplying(!replying)}
@@ -264,7 +270,7 @@ function CommentThread({
                     {formatDate(reply.createdAt)}
                   </span>
                 </div>
-                <p className="text-xs mt-0.5 whitespace-pre-line">
+                <p className="text-xs mt-0.5 whitespace-pre-line break-words [overflow-wrap:anywhere]">
                   {reply.content}
                 </p>
               </div>

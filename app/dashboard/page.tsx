@@ -783,56 +783,44 @@ function LessonLine({
   placeholder: boolean;
   accent: string;
 }) {
-  // ─── State-based colors (semantic, not DA) ───────────────────────
-  const numColor = completed
-    ? "#0D0B08"
-    : videoSeen
-    ? "#0D0B08"
-    : unlocked
-    ? "rgba(240,233,219,0.7)"
-    : STATE_COLOR.locked;
-  const numBg = completed
+  // ─── Pastille sémantique ───────────────────────────────
+  const pillBg = completed
     ? STATE_COLOR.done
     : videoSeen
     ? STATE_COLOR.active
     : "transparent";
-  const numBorder = completed || videoSeen
+  const pillBorder = completed || videoSeen
     ? "transparent"
     : unlocked
-    ? "rgba(240,233,219,0.2)"
-    : "rgba(240,233,219,0.1)";
-
-  const titleColor = completed
-    ? "rgba(240,233,219,0.85)"
+    ? "rgba(240,233,219,0.3)"
+    : "rgba(240,233,219,0.15)";
+  const pillColor = completed || videoSeen
+    ? "#0D0B08"
     : unlocked
-    ? "var(--foreground)"
-    : "rgba(240,233,219,0.45)";
-
-  const xpColor = completed ? STATE_COLOR.done : STATE_COLOR.pending;
+    ? "rgba(240,233,219,0.8)"
+    : STATE_COLOR.locked;
 
   const content = (
     <div
-      className={`group/lesson flex items-center gap-4 py-3.5 pl-1 pr-2 transition-all duration-400 [transition-timing-function:var(--ease-reveal)] ${
+      className={`group/lesson flex items-center gap-4 py-3 px-2 transition-colors duration-200 ${
         unlocked
-          ? "hover:pl-3 hover:bg-foreground/[0.035]"
+          ? "hover:bg-foreground/[0.03]"
           : "cursor-not-allowed"
       }`}
     >
       <div
-        className="flex size-8 shrink-0 items-center justify-center border font-mono text-[11px] font-bold transition-all duration-400"
+        className="flex size-6 shrink-0 items-center justify-center rounded-full border font-mono text-[10px] font-bold"
         style={{
-          background: numBg,
-          borderColor: numBorder,
-          color: numColor,
+          background: pillBg,
+          borderColor: pillBorder,
+          color: pillColor,
           fontFamily: "var(--font-body)",
         }}
       >
         {completed ? (
-          <Check size={13} />
+          <Check size={11} />
         ) : !unlocked ? (
-          <Lock size={11} />
-        ) : videoSeen ? (
-          <PlayCircle size={13} />
+          <Lock size={10} />
         ) : (
           String(order + 1).padStart(2, "0")
         )}
@@ -840,102 +828,73 @@ function LessonLine({
 
       <div className="min-w-0 flex-1">
         <div
-          className="truncate font-normal leading-snug transition-colors"
+          className="truncate font-normal leading-snug"
           style={{
             fontFamily: "var(--font-serif)",
-            fontSize: "17px",
-            color: titleColor,
-            textDecoration: completed ? "line-through" : "none",
-            textDecorationColor: "rgba(240,233,219,0.25)",
+            fontSize: "16px",
+            color: completed
+              ? "rgba(240,233,219,0.8)"
+              : unlocked
+              ? "var(--foreground)"
+              : "rgba(240,233,219,0.45)",
           }}
         >
           {title}
         </div>
         <div
-          className="mt-1 flex items-center gap-2 font-mono text-[9.5px] uppercase tracking-[1.5px] text-foreground/40"
+          className="mt-0.5 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[1.5px] text-foreground/50"
           style={{ fontFamily: "var(--font-body)" }}
         >
-          {/* Status pill compact pour l'état */}
-          {completed ? (
-            <span
-              className="px-1.5 py-[1px] font-bold"
-              style={{
-                background: STATE_COLOR.done,
-                color: "#0D0B08",
-              }}
-            >
-              ✓ FAIT
-            </span>
-          ) : videoSeen ? (
-            <span
-              className="px-1.5 py-[1px] font-bold"
-              style={{
-                background: STATE_COLOR.active,
-                color: "#0D0B08",
-              }}
-            >
-              VIDÉO VUE
-            </span>
-          ) : !unlocked ? (
-            <span
-              className="px-1.5 py-[1px] border border-dashed"
-              style={{
-                color: STATE_COLOR.locked,
-                borderColor: STATE_COLOR.locked,
-              }}
-            >
-              ◉ INACCESSIBLE
-            </span>
-          ) : placeholder ? (
-            <span
-              className="px-1.5 py-[1px] border"
-              style={{
-                color: STATE_COLOR.pending,
-                borderColor: "rgba(240,233,219,0.25)",
-              }}
-            >
-              ◦ BIENTÔT
-            </span>
-          ) : (
-            <span
-              className="px-1.5 py-[1px] border"
-              style={{
-                color: STATE_COLOR.pending,
-                borderColor: "rgba(240,233,219,0.25)",
-              }}
-            >
-              À FAIRE
-            </span>
-          )}
-
-          {/* XP — vert si gagné */}
+          {duration > 0 && <span>{Math.floor(duration / 60)} min</span>}
+          {duration > 0 && <span className="opacity-30">·</span>}
           <span
-            className="flex items-center gap-1 font-bold"
-            style={{ color: xpColor }}
+            className="font-bold"
+            style={{ color: completed ? STATE_COLOR.done : "rgba(240,233,219,0.55)" }}
           >
-            <Zap size={10} />
             {completed ? "+" : ""}
             {xpReward} XP
           </span>
-
-          {/* Durée */}
-          {duration > 0 && (
-            <>
-              <span className="opacity-30">·</span>
-              <span>{Math.floor(duration / 60)} min</span>
-            </>
-          )}
         </div>
       </div>
 
-      {unlocked && (
-        <span
-          className="text-xl italic text-foreground/25 transition-all duration-500 [transition-timing-function:var(--ease-reveal)] group-hover/lesson:translate-x-1 group-hover/lesson:text-foreground/60"
-          style={{ fontFamily: "var(--font-serif)" }}
-        >
-          →
-        </span>
-      )}
+      <div className="shrink-0">
+        {completed ? (
+          <span
+            className="font-mono text-[10px] font-bold uppercase tracking-[1.5px] px-2 py-1"
+            style={{ background: STATE_COLOR.done, color: "#0D0B08", fontFamily: "var(--font-body)" }}
+          >
+            ✓ FAIT
+          </span>
+        ) : videoSeen ? (
+          <span
+            className="font-mono text-[10px] font-bold uppercase tracking-[1.5px] px-2 py-1"
+            style={{ background: STATE_COLOR.active, color: "#0D0B08", fontFamily: "var(--font-body)" }}
+          >
+            ● ACTIF
+          </span>
+        ) : !unlocked ? (
+          <span
+            className="font-mono text-[10px] uppercase tracking-[1.5px] px-2 py-1 border border-dashed"
+            style={{ color: STATE_COLOR.locked, borderColor: "rgba(240,233,219,0.25)", fontFamily: "var(--font-body)" }}
+          >
+            🔒 BLOQUÉ
+          </span>
+        ) : placeholder ? (
+          <span
+            className="font-mono text-[10px] uppercase tracking-[1.5px] px-2 py-1 border"
+            style={{ color: STATE_COLOR.pending, borderColor: "rgba(240,233,219,0.25)", fontFamily: "var(--font-body)" }}
+          >
+            BIENTÔT
+          </span>
+        ) : (
+          <span
+            className="text-lg italic text-foreground/25 group-hover/lesson:text-foreground/60 transition-colors"
+            style={{ fontFamily: "var(--font-serif)" }}
+          >
+            →
+          </span>
+        )}
+      </div>
     </div>
   );
 

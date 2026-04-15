@@ -130,7 +130,7 @@ export default function ProfilePage() {
   const firstName = user.name?.split(" ")[0] ?? "artiste";
   const xp = user.xp ?? 0;
   const level = Math.floor(xp / 500) + 1;
-  const isVip = !!user.purchaseId;
+  const isVip = !!user.purchaseId || user.role === "admin";
 
   // Build a map moduleId → {title, order, color, badgeLabel}
   const moduleById = new Map(

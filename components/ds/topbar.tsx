@@ -36,7 +36,7 @@ export function Topbar() {
 
   const xp = user.xp ?? 0;
   const level = Math.floor(xp / 500) + 1;
-  const isVip = !!user.purchaseId;
+  const isVip = !!user.purchaseId || user.role === "admin";
 
   return (
     <div

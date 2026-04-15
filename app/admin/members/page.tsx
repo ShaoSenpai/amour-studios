@@ -122,12 +122,12 @@ function AddMemberForm() {
   const [name, setName] = useState("");
   const [role, setRole] = useState<"member" | "admin">("member");
   const [reason, setReason] = useState("");
-  const [expiresInDays, setExpiresInDays] = useState("");
+  const [expiresDate, setExpiresDate] = useState("");
   const [loading, setLoading] = useState(false);
 
   const reset = () => {
     setEmail(""); setDiscordId(""); setName(""); setRole("member");
-    setReason(""); setExpiresInDays(""); setOpen(false);
+    setReason(""); setExpiresDate(""); setOpen(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -136,11 +136,10 @@ function AddMemberForm() {
     if (mode === "discordId" && !discordId.trim()) return;
     setLoading(true);
     try {
-      const days = parseInt(expiresInDays, 10);
-      const expiresAt =
-        Number.isFinite(days) && days > 0
-          ? Date.now() + days * 24 * 60 * 60 * 1000
-          : undefined;
+      // Date choisie dans le calendrier → timestamp fin de journée 23:59:59 local
+      const expiresAt = expiresDate
+        ? new Date(`${expiresDate}T23:59:59`).getTime()
+        : undefined;
 
       await addMember({
         mode,
@@ -258,14 +257,20 @@ function AddMemberForm() {
           onChange={(e) => setReason(e.target.value)}
           className="h-9 rounded-full border border-border bg-background px-4 text-sm"
         />
-        <input
-          type="number"
-          placeholder="Expire dans X jours (vide = illimité)"
-          min="1"
-          value={expiresInDays}
-          onChange={(e) => setExpiresInDays(e.target.value)}
-          className="h-9 rounded-full border border-border bg-background px-4 text-sm"
-        />
+        <div className="relative">
+          <input
+            type="date"
+            value={expiresDate}
+            min={new Date().toISOString().split("T")[0]}
+            onChange={(e) => setExpiresDate(e.target.value)}
+            className="h-9 w-full rounded-full border border-border bg-background px-4 text-sm"
+          />
+          {!expiresDate && (
+            <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+              Expire le… (vide = illimité)
+            </span>
+          )}
+        </div>
       </div>
 
       <p className="ds-label text-foreground/50">

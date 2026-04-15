@@ -36,7 +36,6 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
           const guilds = (await res.json()) as Array<{ id: string }>;
           const isMember = guilds.some((g) => g.id === requiredGuildId);
           if (!isMember) {
-            // Bloque le signIn — user non-membre du serveur Amour Studios
             throw new Error("NOT_IN_DISCORD_SERVER");
           }
         }

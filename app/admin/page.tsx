@@ -433,10 +433,7 @@ function AnnouncementsSection({
       <div className="grid gap-6 md:grid-cols-2">
         {/* Poster une news */}
         <div className="border border-foreground/15 bg-foreground/[0.03] p-5">
-          <h3
-            className="mb-3 text-2xl italic"
-            style={{ fontFamily: "var(--font-serif)" }}
-          >
+          <h3 className="ds-section mb-3 flex items-center">
             <Megaphone
               size={18}
               className="mr-2 inline text-foreground"
@@ -549,10 +546,7 @@ function AnnouncementsSection({
 
         {/* Notif in-app */}
         <div className="border border-foreground/15 bg-foreground/[0.03] p-5">
-          <h3
-            className="mb-3 text-2xl italic"
-            style={{ fontFamily: "var(--font-serif)" }}
-          >
+          <h3 className="ds-section mb-3 flex items-center">
             <Send size={18} className="mr-2 inline text-[#2B7A6F]" />
             Broadcast <em>notif</em>
           </h3>

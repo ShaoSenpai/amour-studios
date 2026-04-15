@@ -144,38 +144,46 @@ export default function DashboardPage() {
           />
         </section>
 
-        <section className="mb-10 grid gap-3 md:grid-cols-3">
-          <ActivityCard
-            label={`NOUVEAU · ${modules.length} MODULES`}
-            title="Nouvelle leçon publiée"
-            italicWord="publiée"
-            body={`Module ${modules[0]?.title ?? "—"} — check les dernières leçons ajoutées.`}
-            live
-          />
-          <ActivityCard
-            label={badges.length > 0 ? `BADGE · ${badges.length} DÉBLOQUÉS` : "BADGE · À GAGNER"}
-            title={
-              badges.length > 0
-                ? `${badges[badges.length - 1].label} débloqué`
-                : "Ton premier badge t'attend"
-            }
-            italicWord={badges.length > 0 ? "débloqué" : "attend"}
-            body={
-              badges.length > 0
-                ? "Continue pour en débloquer d'autres — chaque module = 1 badge."
-                : "Complète toutes les leçons d'un module pour gagner son badge."
-            }
-          />
-          <ActivityCard
-            label="COMMUNAUTÉ"
-            title="Rejoins la conversation"
-            italicWord="conversation"
-            body={
-              process.env.NEXT_PUBLIC_DISCORD_INVITE_URL
-                ? "Les autres artistes sont sur Discord — #entraide & #nouveautés."
-                : "Discord arrive bientôt."
-            }
-          />
+        <section className="mb-10">
+          <div className="mb-3 flex items-baseline justify-between border-b border-foreground/15 pb-2">
+            <h2 className="ds-section">Actu Amour Studios</h2>
+            <span className="ds-label text-foreground/50">Feed · 3 items</span>
+          </div>
+          <div className="border border-foreground/10 bg-foreground/[0.02]">
+            <ActivityCard
+              kind="lesson"
+              label={`Nouveau · ${modules.length} modules`}
+              title="Nouvelle leçon publiée"
+              body={`Module ${modules[0]?.title ?? "—"} — check les dernières leçons ajoutées.`}
+              live
+            />
+            <ActivityCard
+              kind="badge"
+              label={badges.length > 0 ? `Badge · ${badges.length} débloqués` : "Badge · À gagner"}
+              title={
+                badges.length > 0
+                  ? `${badges[badges.length - 1].label} débloqué`
+                  : "Ton premier badge t'attend"
+              }
+              body={
+                badges.length > 0
+                  ? "Continue pour en débloquer d'autres — chaque module = 1 badge."
+                  : "Complète toutes les leçons d'un module pour gagner son badge."
+              }
+            />
+            <ActivityCard
+              kind="community"
+              label="Communauté"
+              title="Rejoins la conversation"
+              href={process.env.NEXT_PUBLIC_DISCORD_INVITE_URL}
+              ctaLabel="Ouvrir"
+              body={
+                process.env.NEXT_PUBLIC_DISCORD_INVITE_URL
+                  ? "Les autres artistes sont sur Discord — #entraide & #nouveautés."
+                  : "Discord arrive bientôt."
+              }
+            />
+          </div>
         </section>
       </div>
 

@@ -289,10 +289,7 @@ export default function ProfilePage() {
         {/* Stats */}
         <section className="mb-10">
           <div className="mb-5 flex items-baseline justify-between border-b border-foreground/15 pb-3">
-            <h2
-              className="text-2xl italic"
-              style={{ fontFamily: "var(--font-serif)" }}
-            >
+            <h2 className="ds-section">
               Statistiques
             </h2>
             <span
@@ -342,10 +339,7 @@ export default function ProfilePage() {
         {/* Badges */}
         <section className="mb-10">
           <div className="mb-5 flex items-baseline justify-between border-b border-foreground/15 pb-3">
-            <h2
-              className="text-2xl italic"
-              style={{ fontFamily: "var(--font-serif)" }}
-            >
+            <h2 className="ds-section">
               Badges
             </h2>
             <span
@@ -407,10 +401,7 @@ export default function ProfilePage() {
         {/* Account form */}
         <section className="mb-10">
           <div className="mb-5 flex items-baseline justify-between border-b border-foreground/15 pb-3">
-            <h2
-              className="text-2xl italic"
-              style={{ fontFamily: "var(--font-serif)" }}
-            >
+            <h2 className="ds-section">
               Compte
             </h2>
             <span

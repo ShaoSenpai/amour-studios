@@ -124,9 +124,36 @@ export const addMember = mutation({
       .filter((q) => q.eq(q.field("email"), trimmedEmail))
       .first();
 
-    if (existing) throw new Error("Un membre avec cet email existe déjà");
-
     const now = Date.now();
+
+    // Soft-deleted user avec le même email → on le restaure au lieu de re-créer.
+    if (existing && existing.deletedAt) {
+      let purchaseId = existing.purchaseId;
+      if (!purchaseId) {
+        purchaseId = await ctx.db.insert("purchases", {
+          email: trimmedEmail,
+          stripeSessionId: `manual_${now}`,
+          stripePaymentIntentId: `manual_${now}`,
+          amount: 0,
+          currency: "eur",
+          status: "paid",
+          createdAt: now,
+          paidAt: now,
+          userId: existing._id,
+        });
+      }
+      await ctx.db.patch(existing._id, {
+        deletedAt: undefined,
+        role,
+        name: name?.trim() || existing.name,
+        purchaseId,
+        onboardingCompletedAt: existing.onboardingCompletedAt ?? now,
+        lastActiveAt: now,
+      });
+      return existing._id;
+    }
+
+    if (existing) throw new Error("Un membre avec cet email existe déjà");
 
     // Créer un purchase fictif (status "paid") pour bypasser le gate
     const purchaseId = await ctx.db.insert("purchases", {

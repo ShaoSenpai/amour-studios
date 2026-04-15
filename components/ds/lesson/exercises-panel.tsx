@@ -70,7 +70,7 @@ export function ExercisesPanel({
                   onClick={() => setActiveIdx(i)}
                   className={`border px-3 py-1 font-mono text-[9px] uppercase tracking-[1.5px] ${
                     i === activeIdx
-                      ? "border-[#FF6B1F] bg-[#FF6B1F] text-[#0D0B08]"
+                      ? "border-foreground bg-foreground text-background"
                       : "border-foreground/20 bg-foreground/[0.04] text-foreground/60"
                   }`}
                   style={{ minHeight: 0, fontFamily: "var(--font-body-legacy)" }}

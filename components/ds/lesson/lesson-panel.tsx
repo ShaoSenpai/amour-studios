@@ -40,7 +40,7 @@ export function LessonPanel({
     titleNode = (
       <>
         {b}
-        <em className="italic text-[#FF6B1F]">{italicWord}</em>
+        <em className="italic text-foreground">{italicWord}</em>
         {a}
       </>
     );

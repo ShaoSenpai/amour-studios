@@ -52,7 +52,7 @@ export function LessonDock({
             className={cn(
               "relative flex h-16 w-16 flex-col items-center justify-center gap-1 rounded-md border font-mono text-[8px] uppercase tracking-[1.5px] transition-all duration-500 [transition-timing-function:var(--ease-reveal)]",
               isActive
-                ? "border-[#FF6B1F] bg-[#FF6B1F] text-[#0D0B08] shadow-lg"
+                ? "border-foreground bg-foreground text-background shadow-lg"
                 : "border-foreground/25 bg-foreground/[0.08] text-foreground hover:-translate-y-0.5 hover:border-foreground/45 hover:bg-foreground/[0.14]"
             )}
             style={{ minHeight: 0, fontFamily: "var(--font-body-legacy)" }}
@@ -69,7 +69,7 @@ export function LessonDock({
               <span
                 className={cn(
                   "absolute -right-1 -top-1 px-[5px] py-0 font-mono text-[8px] font-bold",
-                  isActive ? "bg-[#0D0B08] text-[#FF6B1F]" : "bg-[#FF6B1F] text-[#0D0B08]"
+                  isActive ? "bg-background text-foreground" : "bg-foreground text-background"
                 )}
               >
                 {count}

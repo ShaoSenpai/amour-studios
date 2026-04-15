@@ -52,7 +52,7 @@ export function ModulePanel({
                 <div
                   className={`flex items-center gap-3 border-l-2 px-3 py-3 transition-colors ${
                     isCurrent
-                      ? "border-[#FF6B1F] bg-[rgba(255,107,31,0.08)]"
+                      ? "border-foreground bg-foreground/[0.08]"
                       : "border-transparent hover:bg-foreground/[0.04]"
                   } ${!isUnlocked ? "cursor-not-allowed opacity-40" : ""}`}
                 >
@@ -61,7 +61,7 @@ export function ModulePanel({
                       isCompleted
                         ? "bg-[color:var(--state-done-bg)] text-[color:var(--state-done-fg)]"
                         : isCurrent
-                        ? "bg-[#FF6B1F] text-[#0D0B08]"
+                        ? "bg-foreground text-background"
                         : isUnlocked
                         ? "bg-foreground/10 text-foreground/70"
                         : "bg-foreground/5 text-foreground/40"
@@ -79,7 +79,7 @@ export function ModulePanel({
                   <div className="min-w-0 flex-1">
                     <div
                       className={`font-mono text-[9px] uppercase tracking-[1.5px] ${
-                        isCurrent ? "text-[#FF6B1F]" : "text-foreground/50"
+                        isCurrent ? "text-foreground" : "text-foreground/50"
                       }`}
                       style={{ fontFamily: "var(--font-body-legacy)" }}
                     >

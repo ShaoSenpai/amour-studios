@@ -110,7 +110,7 @@ export function Topbar() {
           <ThemeToggle />
           <Link
             href="/dashboard/profile"
-            className="flex size-8 items-center justify-center overflow-hidden rounded-full border border-foreground/15 bg-[#FF6B1F] font-serif text-sm italic text-[#0D0B08]"
+            className="flex size-8 items-center justify-center overflow-hidden rounded-full border border-foreground/15 bg-foreground font-serif text-sm italic text-background"
             style={{ fontFamily: "var(--font-serif)", minHeight: 0 }}
             aria-label="Profil"
           >

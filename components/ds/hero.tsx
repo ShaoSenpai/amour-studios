@@ -27,7 +27,7 @@ export function Hero({
     titleRender = (
       <>
         {before}
-        <em className="italic text-[#FF6B1F]">{italicWord}</em>
+        <em className="italic text-foreground">{italicWord}</em>
         {after}
       </>
     );

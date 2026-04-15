@@ -22,7 +22,7 @@ export function ActivityCard({
     titleNode = (
       <>
         {before}
-        <em className="italic text-[#FF6B1F]">{italicWord}</em>
+        <em className="italic text-foreground">{italicWord}</em>
         {after}
       </>
     );

@@ -68,6 +68,16 @@ export default defineSchema({
     userId: v.optional(v.id("users")),
     createdAt: v.number(),
     paidAt: v.optional(v.number()),
+
+    // Audit trail — traçabilité des accès offerts vs payés
+    source: v.optional(
+      v.union(v.literal("stripe"), v.literal("gift"), v.literal("manual"))
+    ),
+    grantedByUserId: v.optional(v.id("users")), // admin qui a offert
+    grantReason: v.optional(v.string()),
+    expiresAt: v.optional(v.number()),           // accès temporaire
+    revokedAt: v.optional(v.number()),
+    revokedReason: v.optional(v.string()),
   })
     .index("by_email", ["email"])
     .index("by_stripe_session", ["stripeSessionId"])

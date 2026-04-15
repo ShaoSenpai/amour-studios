@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { requireAdmin } from "./lib/auth";
 import { internal } from "./_generated/api";
+import { Id } from "./_generated/dataModel";
 
 // ============================================================================
 // Amour Studios — Admin queries & mutations
@@ -100,76 +101,81 @@ export const linkPurchase = mutation({
 });
 
 /**
- * Ajouter un membre manuellement par email + rôle.
- * Crée un "pré-user" dans la base. Quand cette personne se connecte
- * via Discord avec le même email, le callback createOrUpdateUser
- * détectera le user existant et le liera.
- * Crée aussi un purchase fictif pour bypasser le gate paiement.
+ * Offrir / ajouter un accès à un membre.
+ * Mode "email" : match par email (pré-user, se liera au prochain login Discord).
+ * Mode "discordId" : match par Discord ID (user déjà loggué sur le serveur).
+ * Trace qui offre, pourquoi, et la durée optionnelle.
  */
 export const addMember = mutation({
   args: {
-    email: v.string(),
+    mode: v.union(v.literal("email"), v.literal("discordId")),
+    email: v.optional(v.string()),
+    discordId: v.optional(v.string()),
     name: v.optional(v.string()),
     role: v.union(v.literal("admin"), v.literal("member")),
+    reason: v.optional(v.string()),
+    expiresAt: v.optional(v.number()),
   },
-  handler: async (ctx, { email, name, role }) => {
-    await requireAdmin(ctx);
-
-    const trimmedEmail = email.trim().toLowerCase();
-    if (!trimmedEmail) throw new Error("Email requis");
-
-    // Vérifier si un user avec cet email existe déjà
-    const existing = await ctx.db
-      .query("users")
-      .filter((q) => q.eq(q.field("email"), trimmedEmail))
-      .first();
-
+  handler: async (ctx, { mode, email, discordId, name, role, reason, expiresAt }) => {
+    const { userId: adminUserId } = await requireAdmin(ctx);
     const now = Date.now();
 
-    // Soft-deleted user avec le même email → on le restaure au lieu de re-créer.
-    if (existing && existing.deletedAt) {
+    const trimmedEmail = email?.trim().toLowerCase();
+    const trimmedDiscordId = discordId?.trim();
+
+    if (mode === "email" && !trimmedEmail) throw new Error("Email requis");
+    if (mode === "discordId" && !trimmedDiscordId) throw new Error("Discord ID requis");
+
+    // Match user existant par mode choisi
+    const existing =
+      mode === "email"
+        ? await ctx.db
+            .query("users")
+            .filter((q) => q.eq(q.field("email"), trimmedEmail))
+            .first()
+        : await ctx.db
+            .query("users")
+            .withIndex("by_discord", (q) => q.eq("discordId", trimmedDiscordId!))
+            .first();
+
+    const buildPurchasePayload = (targetUserId?: Id<"users">) => ({
+      email: trimmedEmail ?? existing?.email ?? "",
+      stripeSessionId: `manual_${now}`,
+      stripePaymentIntentId: `manual_${now}`,
+      amount: 0,
+      currency: "eur",
+      status: "paid" as const,
+      createdAt: now,
+      paidAt: now,
+      source: "gift" as const,
+      grantedByUserId: adminUserId,
+      grantReason: reason?.trim() || undefined,
+      expiresAt,
+      ...(targetUserId ? { userId: targetUserId } : {}),
+    });
+
+    // User existant (actif ou soft-deleted) → upgrade/restaure
+    if (existing) {
       let purchaseId = existing.purchaseId;
       if (!purchaseId) {
-        purchaseId = await ctx.db.insert("purchases", {
-          email: trimmedEmail,
-          stripeSessionId: `manual_${now}`,
-          stripePaymentIntentId: `manual_${now}`,
-          amount: 0,
-          currency: "eur",
-          status: "paid",
-          createdAt: now,
-          paidAt: now,
-          userId: existing._id,
-        });
+        purchaseId = await ctx.db.insert("purchases", buildPurchasePayload(existing._id));
       }
       await ctx.db.patch(existing._id, {
-        deletedAt: undefined,
+        ...(existing.deletedAt ? { deletedAt: undefined } : {}),
         role,
         name: name?.trim() || existing.name,
         purchaseId,
-        onboardingCompletedAt: existing.onboardingCompletedAt ?? now,
         lastActiveAt: now,
       });
       return existing._id;
     }
 
-    if (existing) throw new Error("Un membre avec cet email existe déjà");
+    // Pas d'user existant → créer pré-user + purchase offert
+    const purchaseId = await ctx.db.insert("purchases", buildPurchasePayload());
 
-    // Créer un purchase fictif (status "paid") pour bypasser le gate
-    const purchaseId = await ctx.db.insert("purchases", {
-      email: trimmedEmail,
-      stripeSessionId: `manual_${now}`,
-      stripePaymentIntentId: `manual_${now}`,
-      amount: 0,
-      currency: "eur",
-      status: "paid",
-      createdAt: now,
-      paidAt: now,
-    });
-
-    // Créer le pré-user
     const userId = await ctx.db.insert("users", {
       email: trimmedEmail,
+      discordId: trimmedDiscordId,
       name: name?.trim() || undefined,
       role,
       purchaseId,
@@ -177,13 +183,35 @@ export const addMember = mutation({
       streakDays: 0,
       lastActiveAt: now,
       createdAt: now,
-      onboardingCompletedAt: now, // bypass onboarding pour les ajouts manuels
     });
 
-    // Lier le purchase au user
     await ctx.db.patch(purchaseId, { userId });
-
     return userId;
+  },
+});
+
+/**
+ * Révoquer l'accès VIP d'un user (sans le supprimer).
+ * Marque le purchase comme revoked et dé-link du user.
+ */
+export const revokeAccess = mutation({
+  args: {
+    userId: v.id("users"),
+    reason: v.optional(v.string()),
+  },
+  handler: async (ctx, { userId, reason }) => {
+    await requireAdmin(ctx);
+    const user = await ctx.db.get(userId);
+    if (!user) throw new Error("User introuvable");
+    if (!user.purchaseId) throw new Error("Aucun accès à révoquer");
+
+    const now = Date.now();
+    await ctx.db.patch(user.purchaseId, {
+      revokedAt: now,
+      revokedReason: reason?.trim() || undefined,
+      status: "refunded",
+    });
+    await ctx.db.patch(userId, { purchaseId: undefined });
   },
 });
 

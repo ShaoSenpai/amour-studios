@@ -116,22 +116,43 @@ export default function AdminMembersPage() {
 function AddMemberForm() {
   const addMember = useMutation(api.admin.addMember);
   const [open, setOpen] = useState(false);
+  const [mode, setMode] = useState<"email" | "discordId">("email");
   const [email, setEmail] = useState("");
+  const [discordId, setDiscordId] = useState("");
   const [name, setName] = useState("");
   const [role, setRole] = useState<"member" | "admin">("member");
+  const [reason, setReason] = useState("");
+  const [expiresInDays, setExpiresInDays] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const reset = () => {
+    setEmail(""); setDiscordId(""); setName(""); setRole("member");
+    setReason(""); setExpiresInDays(""); setOpen(false);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim()) return;
+    if (mode === "email" && !email.trim()) return;
+    if (mode === "discordId" && !discordId.trim()) return;
     setLoading(true);
     try {
-      await addMember({ email: email.trim(), name: name.trim() || undefined, role });
-      toast.success(`${name || email} ajouté en tant que ${role}`);
-      setEmail("");
-      setName("");
-      setRole("member");
-      setOpen(false);
+      const days = parseInt(expiresInDays, 10);
+      const expiresAt =
+        Number.isFinite(days) && days > 0
+          ? Date.now() + days * 24 * 60 * 60 * 1000
+          : undefined;
+
+      await addMember({
+        mode,
+        email: mode === "email" ? email.trim() : undefined,
+        discordId: mode === "discordId" ? discordId.trim() : undefined,
+        name: name.trim() || undefined,
+        role,
+        reason: reason.trim() || undefined,
+        expiresAt,
+      });
+      toast.success(`Accès offert à ${name || email || discordId}`);
+      reset();
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Erreur";
       toast.error(msg);
@@ -144,7 +165,7 @@ function AddMemberForm() {
     return (
       <div className="mb-6 reveal reveal-delay-1">
         <Button variant="outline" className="rounded-full text-xs" onClick={() => setOpen(true)}>
-          + Ajouter un membre
+          + Offrir un accès
         </Button>
       </div>
     );
@@ -152,17 +173,52 @@ function AddMemberForm() {
 
   return (
     <form onSubmit={handleSubmit} className="mb-6 rounded-xl border-[1.5px] border-border bg-card p-5 flex flex-col gap-3 reveal">
-      <h3>Ajouter un membre</h3>
+      <h3 className="ds-section">Offrir un accès</h3>
+
+      {/* Mode */}
+      <div className="flex items-center gap-3">
+        <p className="ds-label text-foreground/60">Identifier par :</p>
+        <div className="flex gap-2">
+          {(["email", "discordId"] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => setMode(m)}
+              className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${
+                mode === m
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {m === "email" ? "Email" : "Discord ID"}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Identifiant + nom */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <input
-          type="email"
-          placeholder="Email *"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          className="h-9 rounded-full border border-border bg-background px-4 text-sm"
-          autoFocus
-        />
+        {mode === "email" ? (
+          <input
+            type="email"
+            placeholder="Email *"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            className="h-9 rounded-full border border-border bg-background px-4 text-sm"
+            autoFocus
+          />
+        ) : (
+          <input
+            type="text"
+            placeholder="Discord ID (18-19 chiffres) *"
+            value={discordId}
+            onChange={(e) => setDiscordId(e.target.value)}
+            required
+            className="h-9 rounded-full border border-border bg-background px-4 text-sm"
+            autoFocus
+          />
+        )}
         <input
           type="text"
           placeholder="Nom (optionnel)"
@@ -171,8 +227,10 @@ function AddMemberForm() {
           className="h-9 rounded-full border border-border bg-background px-4 text-sm"
         />
       </div>
+
+      {/* Rôle */}
       <div className="flex items-center gap-3">
-        <p className="label-caps">Rôle :</p>
+        <p className="ds-label text-foreground/60">Rôle :</p>
         <div className="flex gap-2">
           {(["member", "admin"] as const).map((r) => (
             <button
@@ -190,14 +248,37 @@ function AddMemberForm() {
           ))}
         </div>
       </div>
-      <p className="text-xs text-muted-foreground">
-        Le membre pourra se connecter avec Discord (même email). Le paiement sera bypassé.
+
+      {/* Raison + expiration */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <input
+          type="text"
+          placeholder="Raison (optionnel — ex: concours, ambassadeur…)"
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          className="h-9 rounded-full border border-border bg-background px-4 text-sm"
+        />
+        <input
+          type="number"
+          placeholder="Expire dans X jours (vide = illimité)"
+          min="1"
+          value={expiresInDays}
+          onChange={(e) => setExpiresInDays(e.target.value)}
+          className="h-9 rounded-full border border-border bg-background px-4 text-sm"
+        />
+      </div>
+
+      <p className="ds-label text-foreground/50">
+        {mode === "email"
+          ? "Le membre pourra se connecter via Discord (même email). Rejoindre le serveur Discord est obligatoire."
+          : "Le membre doit être dans le serveur Discord Amour Studios. Accès auto au prochain login."}
       </p>
+
       <div className="flex gap-2">
         <Button type="submit" size="sm" className="rounded-full" disabled={loading}>
-          {loading ? "Ajout..." : "Ajouter"}
+          {loading ? "Ajout..." : "Offrir l'accès"}
         </Button>
-        <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}>
+        <Button type="button" variant="ghost" size="sm" onClick={reset}>
           Annuler
         </Button>
       </div>

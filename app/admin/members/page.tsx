@@ -51,7 +51,7 @@ export default function AdminMembersPage() {
             className="mb-2 font-mono text-[10px] uppercase tracking-[3px] text-foreground/55"
             style={{ fontFamily: "var(--font-body-legacy)" }}
           >
-            — Admin · {members.length} total · {admins.length} admin · {activeMembers.length} VIP · {pending.length} en attente
+            — Admin · {members.length} total · {admins.length} admin · {activeMembers.length} VIP · {pending.length} prospects
           </p>
           <h1
             className="text-[clamp(40px,5.5vw,64px)] font-normal leading-[0.95] tracking-[-1.5px]"
@@ -71,7 +71,7 @@ export default function AdminMembersPage() {
           style={{ fontFamily: "var(--font-body-legacy)" }}
         >
           {(["all", "admin", "member", "pending"] as const).map((f) => {
-            const label = f === "all" ? "Tous" : f === "admin" ? "Admins" : f === "member" ? "VIP" : "En attente";
+            const label = f === "all" ? "Tous" : f === "admin" ? "Admins" : f === "member" ? "VIP" : "Prospects";
             const count = f === "all" ? members.length : f === "admin" ? admins.length : f === "member" ? activeMembers.length : pending.length;
             const isActive = filter === f;
             return (
@@ -191,7 +191,7 @@ function AddMemberForm() {
         </div>
       </div>
       <p className="text-xs text-muted-foreground">
-        Le membre pourra se connecter avec Discord (même email). L&apos;onboarding et le paiement seront bypassés.
+        Le membre pourra se connecter avec Discord (même email). Le paiement sera bypassé.
       </p>
       <div className="flex gap-2">
         <Button type="submit" size="sm" className="rounded-full" disabled={loading}>
@@ -209,17 +209,20 @@ function AddMemberForm() {
 type Member = NonNullable<ReturnType<typeof useQuery<typeof api.admin.listMembers>>>[number];
 
 function MemberCard({ member, currentUserId }: { member: Member; currentUserId: Id<"users"> }) {
-  const completeOnboarding = useMutation(api.onboarding.complete);
   const setRole = useMutation(api.admin.setRole);
   const removeMember = useMutation(api.admin.removeMember);
-  const [notes, setNotes] = useState("");
-  const [showNotes, setShowNotes] = useState(false);
   const [showActions, setShowActions] = useState(false);
 
   const hasPurchase = !!member.purchase;
-  const isOnboarded = !!member.onboardingCompletedAt;
   const isAdmin = member.role === "admin";
   const isSelf = member._id === currentUserId;
+
+  // Statut unique par priorité : Admin > VIP payé > Prospect
+  const status = isAdmin
+    ? { label: "Admin", color: "border-foreground/30 text-foreground" }
+    : hasPurchase
+    ? { label: "VIP", color: "border-[#2B7A6F]/30 text-[#2B7A6F]" }
+    : { label: "Prospect", color: "border-foreground/20 text-foreground/60" };
 
   return (
     <div className="rounded-xl border-[1.5px] border-border bg-card p-4 flex flex-col gap-3 transition-all hover:border-border/80">
@@ -250,23 +253,11 @@ function MemberCard({ member, currentUserId }: { member: Member; currentUserId: 
           </p>
         </div>
 
-        {/* Status badges */}
-        <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
-          {isAdmin && (
-            <Badge variant="outline" className="border-primary/30 text-primary text-xs">Admin</Badge>
-          )}
-          {hasPurchase ? (
-            <Badge variant="outline" className="border-[#2B7A6F]/30 text-[#2B7A6F] text-xs">Payé</Badge>
-          ) : (
-            <Badge variant="outline" className="border-amber-500/30 text-amber-400 text-xs">Non payé</Badge>
-          )}
-          {isOnboarded ? (
-            <Badge variant="outline" className="border-[#2B7A6F]/30 text-[#2B7A6F] text-xs">Onboardé</Badge>
-          ) : member.onboarding?.scheduledAt ? (
-            <Badge variant="outline" className="border-blue-500/30 text-blue-400 text-xs">RDV</Badge>
-          ) : (
-            <Badge variant="outline" className="border-muted-foreground/30 text-muted-foreground text-xs">Attente</Badge>
-          )}
+        {/* Status unique par priorité */}
+        <div className="shrink-0">
+          <Badge variant="outline" className={`${status.color} text-xs`}>
+            {status.label}
+          </Badge>
         </div>
 
         {/* Actions menu toggle */}
@@ -281,36 +272,6 @@ function MemberCard({ member, currentUserId }: { member: Member; currentUserId: 
       {/* Actions panel */}
       {showActions && (
         <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border/50">
-          {/* Onboarding */}
-          {!isOnboarded && hasPurchase && !showNotes && (
-            <Button size="sm" variant="outline" className="rounded-full text-xs" onClick={() => setShowNotes(true)}>
-              Valider onboarding
-            </Button>
-          )}
-
-          {showNotes && (
-            <div className="flex items-center gap-2 flex-1">
-              <input
-                type="text"
-                placeholder="Notes (optionnel)"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                className="flex-1 h-8 rounded-full border border-border bg-background px-3 text-sm"
-              />
-              <Button size="sm" className="rounded-full text-xs" onClick={async () => {
-                await completeOnboarding({ userId: member._id as Id<"users">, notes: notes || undefined });
-                toast.success(`Onboarding validé pour ${member.name}`);
-                setShowNotes(false);
-                setShowActions(false);
-              }}>
-                Confirmer
-              </Button>
-              <Button size="sm" variant="ghost" className="text-xs" onClick={() => setShowNotes(false)}>
-                ×
-              </Button>
-            </div>
-          )}
-
           {/* Role toggle */}
           {!isSelf && (
             <Button
@@ -345,12 +306,6 @@ function MemberCard({ member, currentUserId }: { member: Member; currentUserId: 
         </div>
       )}
 
-      {/* Onboarding notes */}
-      {isOnboarded && member.onboarding?.notes && (
-        <p className="text-xs text-muted-foreground border-t border-border/50 pt-2">
-          Note : {member.onboarding.notes}
-        </p>
-      )}
     </div>
   );
 }

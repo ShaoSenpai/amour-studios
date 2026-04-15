@@ -269,11 +269,6 @@ function Watchlist({
       icon: UserX,
     },
     {
-      key: "noOnboarding" as const,
-      label: "Sans onboarding",
-      icon: AlertTriangle,
-    },
-    {
       key: "vipNoDiscord" as const,
       label: "VIP sans Discord",
       icon: Users,

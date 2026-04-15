@@ -63,8 +63,14 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
       const email = profile.email as string | undefined;
       const image = profile.image as string | undefined;
 
+      // Auto-promotion admin si le Discord ID est dans ADMIN_DISCORD_IDS (CSV)
+      const adminIds = (process.env.ADMIN_DISCORD_IDS ?? "")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const shouldBeAdmin = !!discordId && adminIds.includes(discordId);
+
       if (existingUserId !== null) {
-        // User existant → on met à jour les infos publiques + lastActiveAt
         await ctx.db.patch(existingUserId, {
           name,
           email,
@@ -72,6 +78,7 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
           discordId,
           discordUsername,
           lastActiveAt: now,
+          ...(shouldBeAdmin ? { role: "admin" as const } : {}),
         });
         return existingUserId;
       }
@@ -95,7 +102,7 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
         image,
         discordId,
         discordUsername,
-        role: "member",
+        role: shouldBeAdmin ? "admin" : "member",
         purchaseId,
         xp: 0,
         streakDays: 0,

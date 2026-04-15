@@ -1,13 +1,26 @@
 "use client";
 
 import { useAuthActions } from "@convex-dev/auth/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
+import { Suspense } from "react";
 
-export default function LoginPage() {
+function LoginInner() {
   const { signIn } = useAuthActions();
   const [isLoading, setIsLoading] = useState(false);
+  const searchParams = useSearchParams();
+  const hasError = searchParams.has("error");
+
+  const discordInvite =
+    process.env.NEXT_PUBLIC_DISCORD_INVITE_URL ?? "https://discord.gg/xDg3spYfem";
+
+  useEffect(() => {
+    if (hasError) {
+      toast.error("Connexion refusée — vérifie que tu es dans le Discord Amour Studios.");
+    }
+  }, [hasError]);
 
   const handleDiscordSignIn = async () => {
     setIsLoading(true);
@@ -22,47 +35,43 @@ export default function LoginPage() {
 
   return (
     <main className="ds-grid-bg relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-background px-6 py-16 text-foreground">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(ellipse 60% 50% at 50% 30%, rgba(0,255,133,0.06) 0%, transparent 70%)",
-        }}
-      />
-
       <div className="ds-reveal relative z-10 flex w-full max-w-md flex-col gap-8">
-        {/* Meta */}
-        <p
-          className="font-mono text-[10px] uppercase tracking-[3px] text-foreground/55"
-          style={{ fontFamily: "var(--font-body-legacy)" }}
-        >
-          — Accès exclusif · Discord OAuth
-        </p>
+        <p className="ds-label text-foreground/55">— Accès réservé aux membres</p>
 
-        {/* Hero title */}
-        <h1
-          className="text-[clamp(48px,7vw,84px)] font-normal leading-[0.92] tracking-[-2px]"
-          style={{ fontFamily: "var(--font-serif)" }}
-        >
+        <h1 className="ds-display">
           Entre dans<br />
           ton <em className="italic text-foreground">univers</em>.
         </h1>
 
-        <p
-          className="font-mono text-sm text-foreground/60"
-          style={{ fontFamily: "var(--font-body-legacy)" }}
-        >
-          Connecte-toi avec Discord pour reprendre ta formation et retrouver ta communauté.
+        <p className="ds-body text-foreground/70">
+          Connexion via Discord uniquement. Tu dois faire partie du serveur
+          Amour Studios pour accéder à l&apos;app.
         </p>
 
-        {/* Discord button — filled block */}
+        {hasError && (
+          <div className="border-l-2 border-[#E63326] bg-[#E63326]/[0.06] px-4 py-3">
+            <p className="ds-label mb-1 text-[#E63326]">Connexion refusée</p>
+            <p className="ds-body text-foreground">
+              Ton compte Discord n&apos;est pas membre du serveur Amour Studios.
+              Rejoins-le d&apos;abord, puis réessaie.
+            </p>
+            <Link
+              href={discordInvite}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ds-label mt-3 inline-flex items-center gap-2 bg-[#5865F2] px-3 py-2 text-white transition-opacity hover:opacity-90"
+            >
+              Rejoindre le Discord →
+            </Link>
+          </div>
+        )}
+
         <button
           type="button"
           onClick={handleDiscordSignIn}
           disabled={isLoading}
-          className="group flex w-full items-center justify-center gap-3 bg-[#5865F2] px-6 py-4 font-mono text-[11px] uppercase tracking-[2px] text-white transition-all duration-700 [transition-timing-function:var(--ease-reveal)] hover:tracking-[3px] hover:bg-[#4752C4] disabled:opacity-60"
-          style={{ minHeight: 0, fontFamily: "var(--font-body-legacy)" }}
+          className="group ds-label flex w-full items-center justify-center gap-3 bg-[#5865F2] px-6 py-4 text-white transition-all duration-700 [transition-timing-function:var(--ease-reveal)] hover:tracking-[3px] hover:bg-[#4752C4] disabled:opacity-60"
+          style={{ minHeight: 0 }}
         >
           <DiscordIcon />
           {isLoading ? "REDIRECTION…" : "Continuer avec Discord"}
@@ -74,22 +83,29 @@ export default function LoginPage() {
           </span>
         </button>
 
-        <div
-          className="border-t border-foreground/15 pt-6 font-mono text-[10px] uppercase tracking-[1.5px] text-foreground/50"
-          style={{ fontFamily: "var(--font-body-legacy)" }}
-        >
-          PAS ENCORE LA FORMATION ?{" "}
-          <Link
-            href="https://www.amourstudios.fr"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[#2B7A6F] underline-offset-4 hover:underline"
-          >
-            AMOURSTUDIOS.FR ↗
-          </Link>
+        <div className="border-t border-foreground/15 pt-6">
+          <p className="ds-label text-foreground/50">
+            Pas encore la formation ?{" "}
+            <Link
+              href="https://www.amourstudios.fr"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#2B7A6F] underline-offset-4 hover:underline"
+            >
+              amourstudios.fr ↗
+            </Link>
+          </p>
         </div>
       </div>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginInner />
+    </Suspense>
   );
 }
 

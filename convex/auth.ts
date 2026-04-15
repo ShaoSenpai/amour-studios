@@ -19,10 +19,27 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
     Discord({
       clientId: process.env.DISCORD_CLIENT_ID,
       clientSecret: process.env.DISCORD_CLIENT_SECRET,
-      // On demande le scope minimal : identify + email
-      authorization: { params: { scope: "identify email" } },
-      // Mapping du profil Discord vers les champs Convex Auth
-      profile(discordProfile) {
+      // Scope : identify + email + guilds (guilds requis pour le gate membership)
+      authorization: { params: { scope: "identify email guilds" } },
+      // Mapping du profil Discord vers les champs Convex Auth.
+      // Le 2e arg contient les tokens OAuth — on s'en sert pour vérifier
+      // que le user est bien dans notre serveur Discord avant d'autoriser.
+      async profile(discordProfile, tokens) {
+        const requiredGuildId = process.env.DISCORD_GUILD_ID;
+        if (requiredGuildId) {
+          const res = await fetch("https://discord.com/api/users/@me/guilds", {
+            headers: { Authorization: `Bearer ${tokens.access_token}` },
+          });
+          if (!res.ok) {
+            throw new Error("DISCORD_GUILDS_FETCH_FAILED");
+          }
+          const guilds = (await res.json()) as Array<{ id: string }>;
+          const isMember = guilds.some((g) => g.id === requiredGuildId);
+          if (!isMember) {
+            // Bloque le signIn — user non-membre du serveur Amour Studios
+            throw new Error("NOT_IN_DISCORD_SERVER");
+          }
+        }
         return {
           id: discordProfile.id,
           name: discordProfile.global_name ?? discordProfile.username,

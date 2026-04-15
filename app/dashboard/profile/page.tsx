@@ -308,7 +308,7 @@ export default function ProfilePage() {
               variant="filled"
               label="XP TOTAL"
               value={xp.toLocaleString("fr-FR")}
-              accent="#00FF85"
+              accent="#2B7A6F"
             />
             <StatBlock
               variant="filled"
@@ -476,7 +476,7 @@ export default function ProfilePage() {
               disabled={!dirty || saving}
               className={`gap-2 rounded-none px-6 ${
                 dirty
-                  ? "bg-[color:var(--state-done-bg)] text-[#0D0B08] hover:bg-[#00cc6b]"
+                  ? "bg-[color:var(--state-done-bg)] text-[#0D0B08] hover:bg-[#225f57]"
                   : saved
                   ? "bg-[rgba(0,255,133,0.2)] text-[color:var(--state-done)]"
                   : "bg-foreground/5 text-foreground/50"

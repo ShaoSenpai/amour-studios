@@ -8,7 +8,7 @@ export function StatBlock({
   value,
   unit,
   sub,
-  accent = "#00FF85",
+  accent = "#2B7A6F",
   variant = "outline",
   className,
 }: {

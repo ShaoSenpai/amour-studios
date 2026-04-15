@@ -273,7 +273,7 @@ export default function LessonPage({
               {lesson.muxPlaybackId === "placeholder" ? (
                 <>
                   <div className={`flex size-20 items-center justify-center rounded-full bg-[rgba(0,255,133,0.12)] ${!videoWatched ? "play-pulse" : ""}`}>
-                    <Play size={32} className="ml-1 text-[#00FF85]" />
+                    <Play size={32} className="ml-1 text-[#2B7A6F]" />
                   </div>
                   <p
                     className="font-mono text-xs text-foreground/60"

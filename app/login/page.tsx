@@ -83,7 +83,7 @@ export default function LoginPage() {
             href="https://www.amourstudios.fr"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[#00FF85] underline-offset-4 hover:underline"
+            className="text-[#2B7A6F] underline-offset-4 hover:underline"
           >
             AMOURSTUDIOS.FR ↗
           </Link>

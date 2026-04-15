@@ -84,7 +84,7 @@ export default function AdminCockpitPage() {
                 label="MEMBRES"
                 value={stats.totalMembers}
                 sub={`${stats.vipCount} VIP · ${stats.pendingCount} en attente`}
-                accent="#00FF85"
+                accent="#2B7A6F"
               />
               <StatBlock
                 variant="filled"
@@ -159,7 +159,7 @@ function ActivityStream({
     new_member: "+",
   };
   const colorByType = {
-    payment: "#00FF85",
+    payment: "#2B7A6F",
     lesson_completed: "#FF6B1F",
     badge: "#F5B820",
     comment: "#F2B8A2",
@@ -497,7 +497,7 @@ function AnnouncementsSection({
             ◦ Couleur
           </div>
           <div className="mb-4 flex gap-2">
-            {["#F5B820", "#FF6B1F", "#E63326", "#2B7A6F", "#00FF85"].map((c) => (
+            {["#F5B820", "#FF6B1F", "#E63326", "#2B7A6F", "#2B7A6F"].map((c) => (
               <button
                 key={c}
                 onClick={() => setAccent(c)}
@@ -540,7 +540,7 @@ function AnnouncementsSection({
                 setCreating(false);
               }
             }}
-            className="w-full bg-[#00FF85] px-4 py-3 font-mono text-[11px] uppercase tracking-[2px] text-[#0D0B08] transition-all hover:tracking-[3px] disabled:opacity-50"
+            className="w-full bg-[#2B7A6F] px-4 py-3 font-mono text-[11px] uppercase tracking-[2px] text-[#0D0B08] transition-all hover:tracking-[3px] disabled:opacity-50"
             style={{ minHeight: 0, fontFamily: "var(--font-body)" }}
           >
             {creating ? "PUBLICATION…" : "PUBLIER"}
@@ -553,7 +553,7 @@ function AnnouncementsSection({
             className="mb-3 text-2xl italic"
             style={{ fontFamily: "var(--font-serif)" }}
           >
-            <Send size={18} className="mr-2 inline text-[#00FF85]" />
+            <Send size={18} className="mr-2 inline text-[#2B7A6F]" />
             Broadcast <em>notif</em>
           </h3>
           <p
@@ -567,7 +567,7 @@ function AnnouncementsSection({
             value={notifMessage}
             onChange={(e) => setNotifMessage(e.target.value)}
             rows={3}
-            className="mb-3 w-full resize-none border border-foreground/15 bg-background px-3 py-2 font-mono text-xs outline-none focus:border-[#00FF85]"
+            className="mb-3 w-full resize-none border border-foreground/15 bg-background px-3 py-2 font-mono text-xs outline-none focus:border-[#2B7A6F]"
             style={{ fontFamily: "var(--font-body)" }}
           />
 
@@ -584,7 +584,7 @@ function AnnouncementsSection({
                 onClick={() => setNotifScope(s)}
                 className={`border px-2 py-1 font-mono text-[9px] uppercase tracking-[1.5px] ${
                   notifScope === s
-                    ? "border-[#00FF85] bg-[#00FF85] text-[#0D0B08]"
+                    ? "border-[#2B7A6F] bg-[#2B7A6F] text-[#0D0B08]"
                     : "border-foreground/15 bg-foreground/[0.04] text-foreground/60"
                 }`}
                 style={{ minHeight: 0, fontFamily: "var(--font-body)" }}

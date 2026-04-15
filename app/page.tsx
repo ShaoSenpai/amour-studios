@@ -9,7 +9,7 @@ export default function Home() {
           className="flex items-center gap-2 text-xl italic"
           style={{ fontFamily: "var(--font-serif)" }}
         >
-          <span className="h-2 w-2 rounded-full bg-[#00FF85] ds-pulse" aria-hidden />
+          <span className="h-2 w-2 rounded-full bg-[#2B7A6F] ds-pulse" aria-hidden />
           Amour Studios
         </span>
         <Link
@@ -53,7 +53,7 @@ export default function Home() {
             href="https://www.amourstudios.fr"
             target="_blank"
             rel="noopener noreferrer"
-            className="group flex items-center gap-2.5 bg-[#00FF85] px-6 py-4 font-mono text-[11px] uppercase tracking-[2px] text-[#0D0B08] transition-all duration-700 [transition-timing-function:var(--ease-reveal)] hover:tracking-[3px] hover:bg-[#00cc6b]"
+            className="group flex items-center gap-2.5 bg-[#2B7A6F] px-6 py-4 font-mono text-[11px] uppercase tracking-[2px] text-[#0D0B08] transition-all duration-700 [transition-timing-function:var(--ease-reveal)] hover:tracking-[3px] hover:bg-[#225f57]"
             style={{ fontFamily: "var(--font-body)" }}
           >
             Rejoindre la formation
@@ -86,7 +86,7 @@ export default function Home() {
           { label: "MODULES", value: "06", accent: "#F5B820" },
           { label: "LEÇONS", value: "20+", accent: "#FF6B1F" },
           { label: "COMMUNAUTÉ", value: "VIP", accent: "#E63326" },
-          { label: "ACCÈS", value: "À VIE", accent: "#00FF85" },
+          { label: "ACCÈS", value: "À VIE", accent: "#2B7A6F" },
         ].map((s) => (
           <div
             key={s.label}

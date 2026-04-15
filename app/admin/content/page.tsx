@@ -222,7 +222,7 @@ function AddModuleForm() {
         <button
           type="submit"
           disabled={creating}
-          className="bg-[#00FF85] px-4 py-2 font-mono text-[10px] uppercase tracking-[2px] text-[#0D0B08]"
+          className="bg-[#2B7A6F] px-4 py-2 font-mono text-[10px] uppercase tracking-[2px] text-[#0D0B08]"
           style={{ minHeight: 0, fontFamily: "var(--font-body)" }}
         >
           {creating ? "…" : "Créer"}
@@ -367,7 +367,7 @@ function DSPrimaryBtn({
       type={type}
       onClick={onClick}
       disabled={disabled}
-      className="bg-[#00FF85] px-4 py-2 font-mono text-[10px] uppercase tracking-[2px] text-[#0D0B08] transition-all hover:tracking-[3px] disabled:opacity-50"
+      className="bg-[#2B7A6F] px-4 py-2 font-mono text-[10px] uppercase tracking-[2px] text-[#0D0B08] transition-all hover:tracking-[3px] disabled:opacity-50"
       style={{ minHeight: 0, fontFamily: "var(--font-body)" }}
     >
       {children}
@@ -730,7 +730,7 @@ function LessonForm({
           type="checkbox"
           checked={previewAccess}
           onChange={(e) => setPreviewAccess(e.target.checked)}
-          className="size-4 accent-[#00FF85]"
+          className="size-4 accent-[#2B7A6F]"
           style={{ minHeight: 0 }}
         />
         <div className="flex-1">
@@ -835,7 +835,7 @@ function ExerciseRowExpandable({
             href={exercise.exerciseUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[#00FF85] transition-colors hover:text-[#00FF85]/80"
+            className="text-[#2B7A6F] transition-colors hover:text-[#2B7A6F]/80"
             aria-label="Ouvrir l'exo externe"
             style={{ minHeight: 0 }}
           >
@@ -1306,7 +1306,7 @@ function ExercisesView({
                         href={e.exerciseUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-[1.5px] text-[#00FF85] hover:underline"
+                        className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-[1.5px] text-[#2B7A6F] hover:underline"
                         style={{ fontFamily: "var(--font-body)" }}
                       >
                         EXTERNE <ExternalLink size={10} />

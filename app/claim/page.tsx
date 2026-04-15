@@ -258,7 +258,7 @@ function ClaimInner() {
           automatiquement.
         </p>
         <div className="flex items-center gap-3">
-          <Loader2 className="animate-spin text-[#00FF85]" />
+          <Loader2 className="animate-spin text-[#2B7A6F]" />
           <span
             className="font-mono text-xs uppercase tracking-[2px] text-foreground/60"
             style={fontBody}
@@ -287,7 +287,7 @@ function ClaimInner() {
     return (
       <Screen>
         <div className="flex items-center gap-3">
-          <Loader2 className="animate-spin text-[#00FF85]" />
+          <Loader2 className="animate-spin text-[#2B7A6F]" />
           <span
             className="font-mono text-xs uppercase tracking-[2px] text-foreground/60"
             style={fontBody}
@@ -315,9 +315,9 @@ function ClaimInner() {
           italicWord="Amour Studios"
         />
         <div className="mb-6 flex items-center gap-3 border border-[rgba(0,255,133,0.3)] bg-[rgba(0,255,133,0.05)] px-5 py-4">
-          <CheckCircle2 className="text-[#00FF85]" size={20} />
+          <CheckCircle2 className="text-[#2B7A6F]" size={20} />
           <p
-            className="font-mono text-sm text-[#00FF85]"
+            className="font-mono text-sm text-[#2B7A6F]"
             style={fontBody}
           >
             Ton accès VIP est activé. Rôle Discord attribué.
@@ -420,7 +420,7 @@ function HasDiscordScreen({
             title="Oui, j'ai déjà Discord"
             subtitle="Je me connecte en 2 clics"
             onClick={() => setChoice("yes")}
-            accent="#00FF85"
+            accent="#2B7A6F"
           />
           <OptionCard
             title="Non, pas encore"
@@ -493,7 +493,7 @@ function HasDiscordScreen({
                 href={discordInvite}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[2px] text-[#00FF85] hover:underline"
+                className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[2px] text-[#2B7A6F] hover:underline"
                 style={fontBody}
               >
                 Rejoindre <ExternalLink size={10} />
@@ -591,7 +591,7 @@ function Button({
   return (
     <button
       onClick={onClick}
-      className="group flex items-center gap-2.5 bg-[#00FF85] px-5 py-3 font-mono text-[11px] uppercase tracking-[2px] text-[#0D0B08] transition-all duration-700 [transition-timing-function:var(--ease-reveal)] hover:tracking-[3px] hover:pr-7"
+      className="group flex items-center gap-2.5 bg-[#2B7A6F] px-5 py-3 font-mono text-[11px] uppercase tracking-[2px] text-[#0D0B08] transition-all duration-700 [transition-timing-function:var(--ease-reveal)] hover:tracking-[3px] hover:pr-7"
       style={{ minHeight: 0, ...fontBody }}
     >
       {children}

@@ -256,12 +256,12 @@ function MemberCard({ member, currentUserId }: { member: Member; currentUserId: 
             <Badge variant="outline" className="border-primary/30 text-primary text-xs">Admin</Badge>
           )}
           {hasPurchase ? (
-            <Badge variant="outline" className="border-green-500/30 text-green-400 text-xs">Payé</Badge>
+            <Badge variant="outline" className="border-[#2B7A6F]/30 text-[#2B7A6F] text-xs">Payé</Badge>
           ) : (
             <Badge variant="outline" className="border-amber-500/30 text-amber-400 text-xs">Non payé</Badge>
           )}
           {isOnboarded ? (
-            <Badge variant="outline" className="border-green-500/30 text-green-400 text-xs">Onboardé</Badge>
+            <Badge variant="outline" className="border-[#2B7A6F]/30 text-[#2B7A6F] text-xs">Onboardé</Badge>
           ) : member.onboarding?.scheduledAt ? (
             <Badge variant="outline" className="border-blue-500/30 text-blue-400 text-xs">RDV</Badge>
           ) : (

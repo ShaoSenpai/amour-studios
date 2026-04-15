@@ -43,7 +43,7 @@ export function AnnouncementsBanner() {
                 </h3>
                 <p
                   className="mt-1 font-mono text-xs text-foreground/70"
-                  style={{ fontFamily: "var(--font-body)" }}
+                  style={{ fontFamily: "var(--font-body-legacy)" }}
                 >
                   {a.body}
                 </p>

@@ -123,7 +123,7 @@ export default function DashboardPage() {
             </h2>
             <div
               className="hidden gap-4 font-mono text-[10px] uppercase tracking-[2px] md:flex"
-              style={{ fontFamily: "var(--font-body)" }}
+              style={{ fontFamily: "var(--font-body-legacy)" }}
             >
               <span className="border-b border-[color:var(--state-done)] pb-1">◦ Tous</span>
               <span className="opacity-40">◦ En cours</span>
@@ -208,7 +208,7 @@ function PendingGate({
       <div className="ds-reveal flex w-full max-w-lg flex-col gap-4">
         <p
           className="font-mono text-[10px] uppercase tracking-[3px] text-foreground/55"
-          style={{ fontFamily: "var(--font-body)" }}
+          style={{ fontFamily: "var(--font-body-legacy)" }}
         >
           — Compte connecté · Aucun paiement détecté
         </p>
@@ -216,11 +216,11 @@ function PendingGate({
           className="text-[clamp(40px,5.5vw,64px)] font-normal leading-[0.95] tracking-[-1.5px]"
           style={{ fontFamily: "var(--font-serif)" }}
         >
-          Accès en <em className="italic text-[#FF6B1F]">attente</em>
+          Accès en <em className="italic text-foreground">attente</em>
         </h1>
         <p
           className="font-mono text-sm text-foreground/70"
-          style={{ fontFamily: "var(--font-body)" }}
+          style={{ fontFamily: "var(--font-body-legacy)" }}
         >
           Ton compte Discord ({email ?? "—"}) n&apos;est lié à aucun paiement.
           3 solutions :
@@ -230,7 +230,7 @@ function PendingGate({
         <div className="border border-foreground/15 bg-foreground/[0.04] p-5">
           <p
             className="mb-2 font-mono text-[10px] uppercase tracking-[2px] text-foreground/60"
-            style={{ fontFamily: "var(--font-body)" }}
+            style={{ fontFamily: "var(--font-body-legacy)" }}
           >
             ◦ 1. J&apos;ai payé avec un autre email
           </p>
@@ -240,8 +240,8 @@ function PendingGate({
               placeholder="email utilisé au paiement"
               value={altEmail}
               onChange={(e) => setAltEmail(e.target.value)}
-              className="flex-1 border border-foreground/15 bg-background px-3 py-2 font-mono text-xs outline-none focus:border-[#FF6B1F]"
-              style={{ minHeight: 0, fontFamily: "var(--font-body)" }}
+              className="flex-1 border border-foreground/15 bg-background px-3 py-2 font-mono text-xs outline-none focus:border-foreground"
+              style={{ minHeight: 0, fontFamily: "var(--font-body-legacy)" }}
             />
             <button
               disabled={!altEmail.trim() || loading}
@@ -260,7 +260,7 @@ function PendingGate({
                 }
               }}
               className="bg-[color:var(--state-done-bg)] px-4 py-2 font-mono text-[10px] uppercase tracking-[2px] text-[#0D0B08] disabled:opacity-50"
-              style={{ minHeight: 0, fontFamily: "var(--font-body)" }}
+              style={{ minHeight: 0, fontFamily: "var(--font-body-legacy)" }}
             >
               {loading ? "…" : "LIER MON COMPTE"}
             </button>
@@ -277,7 +277,7 @@ function PendingGate({
           <div>
             <p
               className="mb-2 font-mono text-[10px] uppercase tracking-[2px] text-foreground/60"
-              style={{ fontFamily: "var(--font-body)" }}
+              style={{ fontFamily: "var(--font-body-legacy)" }}
             >
               ◦ 2. Pas encore acheté la formation
             </p>
@@ -299,12 +299,12 @@ function PendingGate({
         {/* 3. SAV */}
         <p
           className="font-mono text-xs text-foreground/50"
-          style={{ fontFamily: "var(--font-body)" }}
+          style={{ fontFamily: "var(--font-body-legacy)" }}
         >
           ◦ 3. Besoin d&apos;aide ?{" "}
           <a
             href="mailto:contact@amourstudios.fr"
-            className="text-[#FF6B1F] underline-offset-2 hover:underline"
+            className="text-foreground underline-offset-2 hover:underline"
           >
             contact@amourstudios.fr
           </a>{" "}
@@ -314,7 +314,7 @@ function PendingGate({
         <button
           onClick={onSignOut}
           className="mt-4 self-start font-mono text-[10px] uppercase tracking-[1.5px] text-foreground/50 hover:text-foreground"
-          style={{ minHeight: 0, fontFamily: "var(--font-body)" }}
+          style={{ minHeight: 0, fontFamily: "var(--font-body-legacy)" }}
         >
           ← Se déconnecter
         </button>
@@ -579,7 +579,7 @@ function ModuleRowView({
           {description && (
             <p
               className="mt-2.5 max-w-[52ch] font-mono text-[12px] leading-[1.55] text-foreground/55 md:text-[13px]"
-              style={{ fontFamily: "var(--font-body)" }}
+              style={{ fontFamily: "var(--font-body-legacy)" }}
             >
               {description}
             </p>
@@ -590,7 +590,7 @@ function ModuleRowView({
           {/* Compteur leçons — avec check vert si complet */}
           <div
             className="hidden items-center gap-2 font-mono text-[11px] tracking-[1px] md:flex"
-            style={{ fontFamily: "var(--font-body)" }}
+            style={{ fontFamily: "var(--font-body-legacy)" }}
           >
             <span style={{ color: state === "completed" ? STATE_COLOR.done : "var(--foreground)" }}>
               {String(completed).padStart(2, "0")}
@@ -628,7 +628,7 @@ function ModuleRowView({
             {lessons.length === 0 ? (
               <p
                 className="py-4 font-mono text-xs text-foreground/50"
-                style={{ fontFamily: "var(--font-body)" }}
+                style={{ fontFamily: "var(--font-body-legacy)" }}
               >
                 ◦ Aucune leçon disponible pour le moment
               </p>
@@ -743,7 +743,7 @@ function LessonLine({
           background: pillBg,
           borderColor: pillBorder,
           color: pillColor,
-          fontFamily: "var(--font-body)",
+          fontFamily: "var(--font-body-legacy)",
         }}
       >
         {completed ? (
@@ -772,7 +772,7 @@ function LessonLine({
         </div>
         <div
           className="mt-0.5 flex items-center gap-2 font-mono text-[10px] uppercase tracking-[1.5px] text-foreground/50"
-          style={{ fontFamily: "var(--font-body)" }}
+          style={{ fontFamily: "var(--font-body-legacy)" }}
         >
           {duration > 0 && <span>{Math.floor(duration / 60)} min</span>}
           {duration > 0 && <span className="opacity-30">·</span>}
@@ -790,21 +790,21 @@ function LessonLine({
         {completed ? (
           <span
             className="font-mono text-[10px] font-bold uppercase tracking-[1.5px] px-2 py-1"
-            style={{ background: STATE_COLOR.doneBg, color: STATE_COLOR.doneFg, fontFamily: "var(--font-body)" }}
+            style={{ background: STATE_COLOR.doneBg, color: STATE_COLOR.doneFg, fontFamily: "var(--font-body-legacy)" }}
           >
             ✓ FAIT
           </span>
         ) : videoSeen ? (
           <span
             className="font-mono text-[10px] font-bold uppercase tracking-[1.5px] px-2 py-1"
-            style={{ background: STATE_COLOR.activeBg, color: STATE_COLOR.activeFg, fontFamily: "var(--font-body)" }}
+            style={{ background: STATE_COLOR.activeBg, color: STATE_COLOR.activeFg, fontFamily: "var(--font-body-legacy)" }}
           >
             ● ACTIF
           </span>
         ) : !unlocked ? (
           <span
             className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-[1.5px] px-2 py-1 border border-dashed"
-            style={{ color: STATE_COLOR.locked, borderColor: STATE_COLOR.lockedBorder, fontFamily: "var(--font-body)" }}
+            style={{ color: STATE_COLOR.locked, borderColor: STATE_COLOR.lockedBorder, fontFamily: "var(--font-body-legacy)" }}
           >
             <Lock size={10} aria-hidden />
             BLOQUÉ
@@ -812,7 +812,7 @@ function LessonLine({
         ) : placeholder ? (
           <span
             className="font-mono text-[10px] uppercase tracking-[1.5px] px-2 py-1 border"
-            style={{ color: STATE_COLOR.pending, borderColor: STATE_COLOR.lockedBorder, fontFamily: "var(--font-body)" }}
+            style={{ color: STATE_COLOR.pending, borderColor: STATE_COLOR.lockedBorder, fontFamily: "var(--font-body-legacy)" }}
           >
             BIENTÔT
           </span>

@@ -52,7 +52,7 @@ function AutoGrowTextarea({
       autoFocus={autoFocus}
       rows={minRows}
       className="w-full resize-none rounded-md border border-foreground/25 bg-foreground/[0.04] px-3 py-2 text-sm font-mono leading-relaxed outline-none transition-colors focus:border-foreground/50 focus:bg-foreground/[0.06]"
-      style={{ fontFamily: "var(--font-body)", minHeight: 0 }}
+      style={{ fontFamily: "var(--font-body-legacy)", minHeight: 0 }}
     />
   );
 }
@@ -136,7 +136,7 @@ export function TimestampedNotes({ lessonId }: { lessonId: Id<"lessons"> }) {
       {sortedNotes.length === 0 ? (
         <p
           className="py-6 text-center font-mono text-xs text-foreground/50"
-          style={{ fontFamily: "var(--font-body)" }}
+          style={{ fontFamily: "var(--font-body-legacy)" }}
         >
           Prends des notes pour retenir l&apos;essentiel.
         </p>
@@ -165,7 +165,7 @@ export function TimestampedNotes({ lessonId }: { lessonId: Id<"lessons"> }) {
                           setEditContent("");
                         }}
                         className="flex items-center gap-1 rounded-md border border-foreground/25 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[1.5px] text-foreground/70 hover:bg-foreground/[0.05]"
-                        style={{ fontFamily: "var(--font-body)", minHeight: 0 }}
+                        style={{ fontFamily: "var(--font-body-legacy)", minHeight: 0 }}
                       >
                         <X size={11} /> Annuler
                       </button>
@@ -176,7 +176,7 @@ export function TimestampedNotes({ lessonId }: { lessonId: Id<"lessons"> }) {
                         style={{
                           background: "#FF6B1F",
                           color: "#0D0B08",
-                          fontFamily: "var(--font-body)",
+                          fontFamily: "var(--font-body-legacy)",
                           minHeight: 0,
                         }}
                       >
@@ -189,14 +189,14 @@ export function TimestampedNotes({ lessonId }: { lessonId: Id<"lessons"> }) {
                     {note.timestampSeconds !== undefined && note.timestampSeconds > 0 && (
                       <span
                         className="mt-0.5 shrink-0 rounded-sm bg-foreground/[0.08] px-1.5 py-0.5 font-mono text-[10px] tracking-wider text-foreground/70"
-                        style={{ fontFamily: "var(--font-body)" }}
+                        style={{ fontFamily: "var(--font-body-legacy)" }}
                       >
                         {formatTimestamp(note.timestampSeconds)}
                       </span>
                     )}
                     <p
                       className="min-w-0 flex-1 whitespace-pre-wrap break-words text-sm leading-relaxed"
-                      style={{ fontFamily: "var(--font-body)" }}
+                      style={{ fontFamily: "var(--font-body-legacy)" }}
                     >
                       {note.content}
                     </p>

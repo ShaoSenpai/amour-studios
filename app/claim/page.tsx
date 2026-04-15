@@ -172,7 +172,7 @@ function ClaimInner() {
           Essaie d&apos;ouvrir le lien depuis ton email Stripe, ou contacte{" "}
           <a
             href="mailto:contact@amourstudios.fr"
-            className="text-[#FF6B1F] underline"
+            className="text-foreground underline"
           >
             contact@amourstudios.fr
           </a>
@@ -231,7 +231,7 @@ function ClaimInner() {
     return (
       <Screen>
         <div className="flex items-center gap-3">
-          <Loader2 className="animate-spin text-[#FF6B1F]" />
+          <Loader2 className="animate-spin text-foreground" />
           <span
             className="font-mono text-xs uppercase tracking-[2px] text-foreground/60"
             style={fontBody}
@@ -358,7 +358,7 @@ function ClaimInner() {
           Contacte-nous à{" "}
           <a
             href="mailto:contact@amourstudios.fr"
-            className="text-[#FF6B1F] underline"
+            className="text-foreground underline"
           >
             contact@amourstudios.fr
           </a>{" "}
@@ -452,7 +452,7 @@ function HasDiscordScreen({
         <button
           onClick={() => setChoice(null)}
           className="mt-4 font-mono text-[10px] uppercase tracking-[1.5px] text-foreground/50 hover:text-foreground"
-          style={{ fontFamily: "var(--font-body)", minHeight: 0 }}
+          style={{ fontFamily: "var(--font-body-legacy)", minHeight: 0 }}
         >
           ← Retour
         </button>
@@ -510,7 +510,7 @@ function HasDiscordScreen({
       <button
         onClick={() => setChoice(null)}
         className="mt-4 font-mono text-[10px] uppercase tracking-[1.5px] text-foreground/50 hover:text-foreground"
-        style={{ fontFamily: "var(--font-body)", minHeight: 0 }}
+        style={{ fontFamily: "var(--font-body-legacy)", minHeight: 0 }}
       >
         ← Retour
       </button>
@@ -520,7 +520,7 @@ function HasDiscordScreen({
 
 // ─── UI helpers ───────────────────────────────────────
 
-const fontBody: React.CSSProperties = { fontFamily: "var(--font-body)" };
+const fontBody: React.CSSProperties = { fontFamily: "var(--font-body-legacy)" };
 const fontSerif: React.CSSProperties = { fontFamily: "var(--font-serif)" };
 
 function Screen({ children }: { children: React.ReactNode }) {
@@ -573,7 +573,7 @@ function Header({
       >
         {before}
         {italicWord && (
-          <em className="italic text-[#FF6B1F]">{italicWord}</em>
+          <em className="italic text-foreground">{italicWord}</em>
         )}
         {after}
       </h1>
@@ -723,7 +723,7 @@ function ClaimingFallback({ onRetry }: { onRetry: () => void }) {
     <div className="mt-8 border-t border-foreground/15 pt-6">
       <p
         className="mb-4 font-mono text-xs uppercase tracking-[1.5px] text-foreground/55"
-        style={{ fontFamily: "var(--font-body)" }}
+        style={{ fontFamily: "var(--font-body-legacy)" }}
       >
         — Ça prend plus longtemps que d&apos;habitude
       </p>
@@ -732,14 +732,14 @@ function ClaimingFallback({ onRetry }: { onRetry: () => void }) {
           type="button"
           onClick={onRetry}
           className="inline-flex h-10 items-center gap-2 rounded-full border border-foreground/25 bg-foreground/[0.04] px-5 font-mono text-[11px] font-bold uppercase tracking-[1.5px] text-foreground/80 transition-all hover:border-foreground/50 hover:bg-foreground/[0.08] hover:text-foreground"
-          style={{ fontFamily: "var(--font-body)", minHeight: 0 }}
+          style={{ fontFamily: "var(--font-body-legacy)", minHeight: 0 }}
         >
           Réessayer
         </button>
         <a
           href="mailto:contact@amourstudios.fr?subject=Probl%C3%A8me%20claim%20paiement"
-          className="inline-flex h-10 items-center gap-2 rounded-full px-5 font-mono text-[11px] font-bold uppercase tracking-[1.5px] text-[#FF6B1F] transition-opacity hover:opacity-80"
-          style={{ fontFamily: "var(--font-body)", minHeight: 0 }}
+          className="inline-flex h-10 items-center gap-2 rounded-full px-5 font-mono text-[11px] font-bold uppercase tracking-[1.5px] text-foreground transition-opacity hover:opacity-80"
+          style={{ fontFamily: "var(--font-body-legacy)", minHeight: 0 }}
         >
           Contacter le support
         </a>

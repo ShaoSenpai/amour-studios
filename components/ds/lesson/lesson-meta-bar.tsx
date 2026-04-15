@@ -17,7 +17,7 @@ export function LessonMetaBar({
   xpReward: number;
 }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-foreground/20 bg-foreground/[0.06] px-4 py-2.5 font-mono text-[10px] uppercase tracking-[1.5px]" style={{ fontFamily: "var(--font-body)" }}>
+    <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-foreground/20 bg-foreground/[0.06] px-4 py-2.5 font-mono text-[10px] uppercase tracking-[1.5px]" style={{ fontFamily: "var(--font-body-legacy)" }}>
       <Link
         href="/dashboard"
         className="flex items-center gap-1 text-foreground/65 transition-colors hover:text-foreground"

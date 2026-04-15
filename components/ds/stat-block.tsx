@@ -31,7 +31,7 @@ export function StatBlock({
       >
         <div
           className="font-mono text-[9px] uppercase tracking-[2.5px] opacity-70"
-          style={{ fontFamily: "var(--font-body)" }}
+          style={{ fontFamily: "var(--font-body-legacy)" }}
         >
           ◦ {label}
         </div>
@@ -45,7 +45,7 @@ export function StatBlock({
         {sub && (
           <div
             className="font-mono text-[10px] opacity-60"
-            style={{ fontFamily: "var(--font-body)" }}
+            style={{ fontFamily: "var(--font-body-legacy)" }}
           >
             {sub}
           </div>
@@ -69,7 +69,7 @@ export function StatBlock({
     >
       <div
         className="mb-2 font-mono text-[9px] uppercase tracking-[2.5px] text-foreground/50"
-        style={{ fontFamily: "var(--font-body)" }}
+        style={{ fontFamily: "var(--font-body-legacy)" }}
       >
         ◦ {label}
       </div>
@@ -83,7 +83,7 @@ export function StatBlock({
       {sub && (
         <div
           className="mt-1 font-mono text-[10px] text-foreground/50"
-          style={{ fontFamily: "var(--font-body)" }}
+          style={{ fontFamily: "var(--font-body-legacy)" }}
         >
           {sub}
         </div>

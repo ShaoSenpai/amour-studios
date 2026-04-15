@@ -44,7 +44,7 @@ export function ActivityCard({
       )}
       <div
         className="mb-3 font-mono text-[9px] uppercase tracking-[2px] text-foreground/50"
-        style={{ fontFamily: "var(--font-body)" }}
+        style={{ fontFamily: "var(--font-body-legacy)" }}
       >
         ◦ {label}
       </div>
@@ -56,7 +56,7 @@ export function ActivityCard({
       </h4>
       <p
         className="font-mono text-[11px] leading-relaxed text-foreground/65"
-        style={{ fontFamily: "var(--font-body)" }}
+        style={{ fontFamily: "var(--font-body-legacy)" }}
       >
         {body}
       </p>

@@ -38,7 +38,7 @@ export function ModulePanel({
         <>
           <p
             className="mb-4 font-mono text-[10px] uppercase tracking-[2px] text-foreground/50"
-            style={{ fontFamily: "var(--font-body)" }}
+            style={{ fontFamily: "var(--font-body-legacy)" }}
           >
             ◦ {mod.badgeLabel} · {lessons.length} LEÇONS
           </p>
@@ -66,7 +66,7 @@ export function ModulePanel({
                         ? "bg-foreground/10 text-foreground/70"
                         : "bg-foreground/5 text-foreground/40"
                     }`}
-                    style={{ fontFamily: "var(--font-body)" }}
+                    style={{ fontFamily: "var(--font-body-legacy)" }}
                   >
                     {isCompleted ? (
                       <Check size={12} />
@@ -81,7 +81,7 @@ export function ModulePanel({
                       className={`font-mono text-[9px] uppercase tracking-[1.5px] ${
                         isCurrent ? "text-[#FF6B1F]" : "text-foreground/50"
                       }`}
-                      style={{ fontFamily: "var(--font-body)" }}
+                      style={{ fontFamily: "var(--font-body-legacy)" }}
                     >
                       {isCurrent
                         ? "◦ EN COURS"

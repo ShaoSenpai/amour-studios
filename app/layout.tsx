@@ -1,18 +1,11 @@
 import type { Metadata } from "next";
-import { Anton, DM_Sans, Instrument_Serif, JetBrains_Mono } from "next/font/google";
+import { DM_Sans, Instrument_Serif } from "next/font/google";
 import { ConvexAuthNextjsServerProvider } from "@convex-dev/auth/nextjs/server";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ConvexClientProvider } from "@/components/providers/convex-client-provider";
 import { ViewModeProvider } from "@/components/providers/view-mode-provider";
 import "./globals.css";
-
-const anton = Anton({
-  weight: "400",
-  subsets: ["latin"],
-  variable: "--font-display",
-  display: "swap",
-});
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
@@ -25,13 +18,6 @@ const instrumentSerif = Instrument_Serif({
   style: ["normal", "italic"],
   subsets: ["latin"],
   variable: "--font-serif",
-  display: "swap",
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  weight: ["400", "500", "700"],
-  subsets: ["latin"],
-  variable: "--font-body",
   display: "swap",
 });
 
@@ -50,7 +36,7 @@ export default function RootLayout({
     <ConvexAuthNextjsServerProvider>
       <html
         lang="fr"
-        className={`${anton.variable} ${dmSans.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable} h-full`}
+        className={`${dmSans.variable} ${instrumentSerif.variable} h-full`}
         suppressHydrationWarning
       >
         <head>

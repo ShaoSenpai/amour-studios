@@ -51,7 +51,7 @@ export default function AdminCockpitPage() {
         <div className="ds-reveal mb-8">
           <p
             className="mb-2 font-mono text-[10px] uppercase tracking-[3px] text-foreground/55"
-            style={{ fontFamily: "var(--font-body)" }}
+            style={{ fontFamily: "var(--font-body-legacy)" }}
           >
             — Cockpit · {new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}
           </p>
@@ -59,7 +59,7 @@ export default function AdminCockpitPage() {
             className="text-[clamp(44px,6vw,72px)] font-normal leading-[0.95] tracking-[-1.5px]"
             style={{ fontFamily: "var(--font-serif)" }}
           >
-            Vue d&apos;<em className="italic text-[#FF6B1F]">ensemble</em>
+            Vue d&apos;<em className="italic text-foreground">ensemble</em>
           </h1>
         </div>
 
@@ -67,7 +67,7 @@ export default function AdminCockpitPage() {
         <section className="mb-10">
           <div
             className="mb-4 border-b border-foreground/15 pb-3 font-mono text-[10px] uppercase tracking-[2px] text-foreground/50"
-            style={{ fontFamily: "var(--font-body)" }}
+            style={{ fontFamily: "var(--font-body-legacy)" }}
           >
             ◦ Chiffres clés
           </div>
@@ -170,7 +170,7 @@ function ActivityStream({
     <div>
       <div
         className="mb-4 border-b border-foreground/15 pb-3 font-mono text-[10px] uppercase tracking-[2px] text-foreground/50"
-        style={{ fontFamily: "var(--font-body)" }}
+        style={{ fontFamily: "var(--font-body-legacy)" }}
       >
         ◦ Activité récente · 30 derniers jours
       </div>
@@ -179,7 +179,7 @@ function ActivityStream({
       ) : activity.length === 0 ? (
         <p
           className="font-mono text-xs text-foreground/50"
-          style={{ fontFamily: "var(--font-body)" }}
+          style={{ fontFamily: "var(--font-body-legacy)" }}
         >
           ◦ Aucune activité récente
         </p>
@@ -199,7 +199,7 @@ function ActivityStream({
               <div className="min-w-0 flex-1">
                 <div
                   className="text-sm"
-                  style={{ fontFamily: "var(--font-body)" }}
+                  style={{ fontFamily: "var(--font-body-legacy)" }}
                 >
                   <span
                     className="italic text-foreground"
@@ -211,7 +211,7 @@ function ActivityStream({
                 </div>
                 <div
                   className="font-mono text-[10px] text-foreground/40"
-                  style={{ fontFamily: "var(--font-body)" }}
+                  style={{ fontFamily: "var(--font-body-legacy)" }}
                 >
                   {new Date(ev.at).toLocaleString("fr-FR", {
                     day: "numeric",
@@ -284,7 +284,7 @@ function Watchlist({
     <div>
       <div
         className="mb-4 border-b border-foreground/15 pb-3 font-mono text-[10px] uppercase tracking-[2px] text-foreground/50"
-        style={{ fontFamily: "var(--font-body)" }}
+        style={{ fontFamily: "var(--font-body-legacy)" }}
       >
         ◦ À surveiller
       </div>
@@ -299,10 +299,10 @@ function Watchlist({
               onClick={() => setSection(s.key)}
               className={`flex items-center gap-1.5 border px-2.5 py-1.5 font-mono text-[9px] uppercase tracking-[1.5px] transition-all ${
                 isActive
-                  ? "border-[#FF6B1F] bg-[#FF6B1F] text-[#0D0B08]"
+                  ? "border-foreground bg-foreground text-background"
                   : "border-foreground/15 bg-foreground/[0.04] text-foreground/60 hover:text-foreground"
               }`}
-              style={{ minHeight: 0, fontFamily: "var(--font-body)" }}
+              style={{ minHeight: 0, fontFamily: "var(--font-body-legacy)" }}
             >
               <s.icon size={11} />
               {s.label} · {count}
@@ -316,7 +316,7 @@ function Watchlist({
       ) : watch[section].length === 0 ? (
         <p
           className="font-mono text-xs text-foreground/50"
-          style={{ fontFamily: "var(--font-body)" }}
+          style={{ fontFamily: "var(--font-body-legacy)" }}
         >
           ◦ Personne dans cette catégorie
         </p>
@@ -352,7 +352,7 @@ function WatchlistRow({ u }: { u: WatchUser }) {
         </div>
         <div
           className="font-mono text-[10px] text-foreground/50"
-          style={{ fontFamily: "var(--font-body)" }}
+          style={{ fontFamily: "var(--font-body-legacy)" }}
         >
           {pct}% · dernière connexion {lastAt}
         </div>
@@ -378,7 +378,7 @@ function WatchlistRow({ u }: { u: WatchUser }) {
           }
         }}
         className="flex items-center gap-1 border border-foreground/20 bg-foreground/[0.04] px-2 py-1 font-mono text-[9px] uppercase tracking-[1.5px] text-foreground/70 transition-colors hover:bg-foreground/[0.08]"
-        style={{ minHeight: 0, fontFamily: "var(--font-body)" }}
+        style={{ minHeight: 0, fontFamily: "var(--font-body-legacy)" }}
       >
         <Send size={10} />
         Relancer
@@ -425,7 +425,7 @@ function AnnouncementsSection({
     <section className="mb-10">
       <div
         className="mb-4 border-b border-foreground/15 pb-3 font-mono text-[10px] uppercase tracking-[2px] text-foreground/50"
-        style={{ fontFamily: "var(--font-body)" }}
+        style={{ fontFamily: "var(--font-body-legacy)" }}
       >
         ◦ Communication
       </div>
@@ -439,13 +439,13 @@ function AnnouncementsSection({
           >
             <Megaphone
               size={18}
-              className="mr-2 inline text-[#FF6B1F]"
+              className="mr-2 inline text-foreground"
             />
             Poster une <em>news</em>
           </h3>
           <p
             className="mb-4 font-mono text-[10px] uppercase tracking-[1.5px] text-foreground/50"
-            style={{ fontFamily: "var(--font-body)" }}
+            style={{ fontFamily: "var(--font-body-legacy)" }}
           >
             ◦ Affichée en banner sur la formation des users
           </p>
@@ -455,21 +455,21 @@ function AnnouncementsSection({
             placeholder="Titre — ex: Nouveau module disponible"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="mb-2 w-full border border-foreground/15 bg-background px-3 py-2 font-mono text-xs text-foreground outline-none focus:border-[#FF6B1F]"
-            style={{ minHeight: 0, fontFamily: "var(--font-body)" }}
+            className="mb-2 w-full border border-foreground/15 bg-background px-3 py-2 font-mono text-xs text-foreground outline-none focus:border-foreground"
+            style={{ minHeight: 0, fontFamily: "var(--font-body-legacy)" }}
           />
           <textarea
             placeholder="Corps — max ~200 caractères"
             value={body}
             onChange={(e) => setBody(e.target.value)}
             rows={3}
-            className="mb-3 w-full resize-none border border-foreground/15 bg-background px-3 py-2 font-mono text-xs text-foreground outline-none focus:border-[#FF6B1F]"
-            style={{ fontFamily: "var(--font-body)" }}
+            className="mb-3 w-full resize-none border border-foreground/15 bg-background px-3 py-2 font-mono text-xs text-foreground outline-none focus:border-foreground"
+            style={{ fontFamily: "var(--font-body-legacy)" }}
           />
 
           <div
             className="mb-2 font-mono text-[9px] uppercase tracking-[2px] text-foreground/50"
-            style={{ fontFamily: "var(--font-body)" }}
+            style={{ fontFamily: "var(--font-body-legacy)" }}
           >
             ◦ Destinataire
           </div>
@@ -480,10 +480,10 @@ function AnnouncementsSection({
                 onClick={() => setScope(s)}
                 className={`border px-2 py-1 font-mono text-[9px] uppercase tracking-[1.5px] ${
                   scope === s
-                    ? "border-[#FF6B1F] bg-[#FF6B1F] text-[#0D0B08]"
+                    ? "border-foreground bg-foreground text-background"
                     : "border-foreground/15 bg-foreground/[0.04] text-foreground/60"
                 }`}
-                style={{ minHeight: 0, fontFamily: "var(--font-body)" }}
+                style={{ minHeight: 0, fontFamily: "var(--font-body-legacy)" }}
               >
                 {s === "all" ? "Tous" : s === "vip" ? "VIP" : "En attente"}
               </button>
@@ -492,7 +492,7 @@ function AnnouncementsSection({
 
           <div
             className="mb-2 font-mono text-[9px] uppercase tracking-[2px] text-foreground/50"
-            style={{ fontFamily: "var(--font-body)" }}
+            style={{ fontFamily: "var(--font-body-legacy)" }}
           >
             ◦ Couleur
           </div>
@@ -541,7 +541,7 @@ function AnnouncementsSection({
               }
             }}
             className="w-full bg-[#2B7A6F] px-4 py-3 font-mono text-[11px] uppercase tracking-[2px] text-[#0D0B08] transition-all hover:tracking-[3px] disabled:opacity-50"
-            style={{ minHeight: 0, fontFamily: "var(--font-body)" }}
+            style={{ minHeight: 0, fontFamily: "var(--font-body-legacy)" }}
           >
             {creating ? "PUBLICATION…" : "PUBLIER"}
           </button>
@@ -558,7 +558,7 @@ function AnnouncementsSection({
           </h3>
           <p
             className="mb-4 font-mono text-[10px] uppercase tracking-[1.5px] text-foreground/50"
-            style={{ fontFamily: "var(--font-body)" }}
+            style={{ fontFamily: "var(--font-body-legacy)" }}
           >
             ◦ Notification in-app envoyée à un segment
           </p>
@@ -568,12 +568,12 @@ function AnnouncementsSection({
             onChange={(e) => setNotifMessage(e.target.value)}
             rows={3}
             className="mb-3 w-full resize-none border border-foreground/15 bg-background px-3 py-2 font-mono text-xs outline-none focus:border-[#2B7A6F]"
-            style={{ fontFamily: "var(--font-body)" }}
+            style={{ fontFamily: "var(--font-body-legacy)" }}
           />
 
           <div
             className="mb-2 font-mono text-[9px] uppercase tracking-[2px] text-foreground/50"
-            style={{ fontFamily: "var(--font-body)" }}
+            style={{ fontFamily: "var(--font-body-legacy)" }}
           >
             ◦ Segment
           </div>
@@ -587,7 +587,7 @@ function AnnouncementsSection({
                     ? "border-[#2B7A6F] bg-[#2B7A6F] text-[#0D0B08]"
                     : "border-foreground/15 bg-foreground/[0.04] text-foreground/60"
                 }`}
-                style={{ minHeight: 0, fontFamily: "var(--font-body)" }}
+                style={{ minHeight: 0, fontFamily: "var(--font-body-legacy)" }}
               >
                 {s === "all" ? "Tous" : s === "vip" ? "VIP" : "En attente"}
               </button>
@@ -612,7 +612,7 @@ function AnnouncementsSection({
               }
             }}
             className="w-full bg-foreground px-4 py-3 font-mono text-[11px] uppercase tracking-[2px] text-background transition-all hover:tracking-[3px] disabled:opacity-50"
-            style={{ minHeight: 0, fontFamily: "var(--font-body)" }}
+            style={{ minHeight: 0, fontFamily: "var(--font-body-legacy)" }}
           >
             {sending ? "ENVOI…" : "ENVOYER"}
           </button>
@@ -624,7 +624,7 @@ function AnnouncementsSection({
         <div className="mt-6">
           <div
             className="mb-3 font-mono text-[10px] uppercase tracking-[2px] text-foreground/50"
-            style={{ fontFamily: "var(--font-body)" }}
+            style={{ fontFamily: "var(--font-body-legacy)" }}
           >
             ◦ News actives · {active.length}
           </div>
@@ -647,13 +647,13 @@ function AnnouncementsSection({
                   </div>
                   <p
                     className="mt-1 font-mono text-xs text-foreground/65"
-                    style={{ fontFamily: "var(--font-body)" }}
+                    style={{ fontFamily: "var(--font-body-legacy)" }}
                   >
                     {a.body}
                   </p>
                   <p
                     className="mt-1 font-mono text-[9px] uppercase tracking-[1.5px] text-foreground/40"
-                    style={{ fontFamily: "var(--font-body)" }}
+                    style={{ fontFamily: "var(--font-body-legacy)" }}
                   >
                     Publié le{" "}
                     {new Date(a.createdAt).toLocaleDateString("fr-FR")}
@@ -707,7 +707,7 @@ function EmailAlso({
         }
       }}
       className="mb-2 flex w-full items-center justify-center gap-2 border border-foreground/20 bg-foreground/[0.04] px-4 py-3 font-mono text-[11px] uppercase tracking-[2px] text-foreground/80 transition-all hover:bg-foreground/[0.08] hover:tracking-[3px] disabled:opacity-50"
-      style={{ minHeight: 0, fontFamily: "var(--font-body)" }}
+      style={{ minHeight: 0, fontFamily: "var(--font-body-legacy)" }}
     >
       <Mail size={13} />
       {sending ? "ENVOI EMAIL…" : "ENVOYER AUSSI PAR EMAIL"}

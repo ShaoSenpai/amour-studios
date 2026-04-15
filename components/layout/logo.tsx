@@ -11,7 +11,7 @@ export function Logo({ size = "md" }: { size?: "sm" | "md" }) {
       <span className="text-mustard">d</span>
       <span className="text-[#E63326]">i</span>
       <span className="text-foreground">o</span>
-      <span className="text-pine">s</span>
+      <span className="text-foreground">s</span>
       <sup className="text-[0.4em] ml-0.5 text-muted-foreground">®</sup>
     </Link>
   );

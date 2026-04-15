@@ -152,7 +152,7 @@ export default function ProfilePage() {
         <div className="mb-10 ds-reveal">
           <p
             className="mb-3 font-mono text-[10px] uppercase tracking-[3px] text-foreground/55"
-            style={{ fontFamily: "var(--font-body)" }}
+            style={{ fontFamily: "var(--font-body-legacy)" }}
           >
             — Compte · NIV.{String(level).padStart(2, "0")} · {xp.toLocaleString("fr-FR")} XP
           </p>
@@ -160,7 +160,7 @@ export default function ProfilePage() {
             className="text-[clamp(48px,7vw,96px)] font-normal leading-[0.92] tracking-[-2px]"
             style={{ fontFamily: "var(--font-serif)" }}
           >
-            Mon profil, <em className="italic text-[#FF6B1F]">{firstName}</em>.
+            Mon profil, <em className="italic text-foreground">{firstName}</em>.
           </h1>
         </div>
 
@@ -168,7 +168,7 @@ export default function ProfilePage() {
         <section className="mb-10 grid gap-4 md:grid-cols-[1fr_auto]">
           <div
             className="ds-reveal relative overflow-hidden border-l-4 bg-[#F0E9DB] p-6 text-[#0D0B08] md:p-8"
-            style={{ borderLeftColor: "#FF6B1F" }}
+            style={{ borderLeftColor: "rgba(13,11,8,0.2)" }}
           >
             <div className="flex flex-wrap items-center gap-6">
               {/* Avatar */}
@@ -176,7 +176,7 @@ export default function ProfilePage() {
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
-                className="group relative size-24 shrink-0 overflow-hidden border-2 border-[#0D0B08]/20 bg-[#0D0B08]/5 transition-all hover:border-[#FF6B1F]"
+                className="group relative size-24 shrink-0 overflow-hidden border-2 border-[#0D0B08]/20 bg-[#0D0B08]/5 transition-all hover:border-foreground"
                 aria-label="Changer la photo de profil"
                 style={{ minHeight: 0 }}
               >
@@ -226,14 +226,14 @@ export default function ProfilePage() {
                 </div>
                 <p
                   className="font-mono text-xs text-[#0D0B08]/70"
-                  style={{ fontFamily: "var(--font-body)" }}
+                  style={{ fontFamily: "var(--font-body-legacy)" }}
                 >
                   {user.email ?? "email non défini"}
                 </p>
                 {user.discordUsername && (
                   <p
                     className="mt-1 font-mono text-[11px] text-[#0D0B08]/60"
-                    style={{ fontFamily: "var(--font-body)" }}
+                    style={{ fontFamily: "var(--font-body-legacy)" }}
                   >
                     ◦ Discord @{user.discordUsername}
                   </p>
@@ -261,7 +261,7 @@ export default function ProfilePage() {
                     }
                   }}
                   className="flex items-center gap-2 border border-[#0D0B08] bg-[#0D0B08] px-4 py-2 font-mono text-[10px] uppercase tracking-[1.5px] text-[#F0E9DB] transition-all hover:bg-[#0D0B08]/85 disabled:opacity-60"
-                  style={{ minHeight: 0, fontFamily: "var(--font-body)" }}
+                  style={{ minHeight: 0, fontFamily: "var(--font-body-legacy)" }}
                 >
                   {syncing ? (
                     <>
@@ -277,7 +277,7 @@ export default function ProfilePage() {
                 </button>
                 <p
                   className="font-mono text-[10px] text-[#0D0B08]/60"
-                  style={{ fontFamily: "var(--font-body)" }}
+                  style={{ fontFamily: "var(--font-body-legacy)" }}
                 >
                   Utile si le rôle n&apos;apparaît pas sur le serveur Discord.
                 </p>
@@ -297,7 +297,7 @@ export default function ProfilePage() {
             </h2>
             <span
               className="font-mono text-[10px] uppercase tracking-[2px] text-foreground/50"
-              style={{ fontFamily: "var(--font-body)" }}
+              style={{ fontFamily: "var(--font-body-legacy)" }}
             >
               ◦ VUE D&apos;ENSEMBLE
             </span>
@@ -350,7 +350,7 @@ export default function ProfilePage() {
             </h2>
             <span
               className="font-mono text-[10px] uppercase tracking-[2px] text-foreground/50"
-              style={{ fontFamily: "var(--font-body)" }}
+              style={{ fontFamily: "var(--font-body-legacy)" }}
             >
               ◦ {badges.length} / {modules.length} DÉBLOQUÉS
             </span>
@@ -390,7 +390,7 @@ export default function ProfilePage() {
                   </div>
                   <div
                     className="mt-4 font-mono text-[9px] uppercase tracking-[1.5px]"
-                    style={{ fontFamily: "var(--font-body)" }}
+                    style={{ fontFamily: "var(--font-body-legacy)" }}
                   >
                     {earned
                       ? `✓ DÉBLOQUÉ LE ${new Date(
@@ -415,7 +415,7 @@ export default function ProfilePage() {
             </h2>
             <span
               className="font-mono text-[10px] uppercase tracking-[2px] text-foreground/50"
-              style={{ fontFamily: "var(--font-body)" }}
+              style={{ fontFamily: "var(--font-body-legacy)" }}
             >
               ◦ MODIFIABLE
             </span>
@@ -425,7 +425,7 @@ export default function ProfilePage() {
             <div className="border-b border-foreground/10 p-4">
               <label
                 className="mb-1.5 block font-mono text-[10px] uppercase tracking-[1.5px] text-foreground/50"
-                style={{ fontFamily: "var(--font-body)" }}
+                style={{ fontFamily: "var(--font-body-legacy)" }}
               >
                 NOM
               </label>
@@ -439,13 +439,13 @@ export default function ProfilePage() {
                 }}
                 className="w-full bg-transparent text-sm font-medium text-foreground outline-none"
                 placeholder="Ton nom"
-                style={{ fontFamily: "var(--font-body)" }}
+                style={{ fontFamily: "var(--font-body-legacy)" }}
               />
             </div>
             <div className="p-4">
               <label
                 className="mb-1.5 block font-mono text-[10px] uppercase tracking-[1.5px] text-foreground/50"
-                style={{ fontFamily: "var(--font-body)" }}
+                style={{ fontFamily: "var(--font-body-legacy)" }}
               >
                 EMAIL
               </label>
@@ -459,11 +459,11 @@ export default function ProfilePage() {
                 }}
                 className="w-full bg-transparent text-sm font-medium text-foreground outline-none"
                 placeholder="ton@email.com"
-                style={{ fontFamily: "var(--font-body)" }}
+                style={{ fontFamily: "var(--font-body-legacy)" }}
               />
               <p
                 className="mt-1.5 font-mono text-[10px] text-amber-500/70"
-                style={{ fontFamily: "var(--font-body)" }}
+                style={{ fontFamily: "var(--font-body-legacy)" }}
               >
                 ⚠ Changer l&apos;email ici ne change pas ton email Discord
               </p>
@@ -481,7 +481,7 @@ export default function ProfilePage() {
                   ? "bg-[rgba(0,255,133,0.2)] text-[color:var(--state-done)]"
                   : "bg-foreground/5 text-foreground/50"
               }`}
-              style={{ fontFamily: "var(--font-body)" }}
+              style={{ fontFamily: "var(--font-body-legacy)" }}
             >
               {saving ? (
                 <>
@@ -500,7 +500,7 @@ export default function ProfilePage() {
             {dirty && (
               <span
                 className="font-mono text-[10px] uppercase tracking-[1.5px] text-foreground/50"
-                style={{ fontFamily: "var(--font-body)" }}
+                style={{ fontFamily: "var(--font-body-legacy)" }}
               >
                 ◦ MODIFICATIONS NON SAUVEGARDÉES
               </span>
@@ -513,7 +513,7 @@ export default function ProfilePage() {
           <button
             onClick={() => signOut()}
             className="flex w-full items-center justify-center gap-2 border border-foreground/15 bg-foreground/[0.02] py-4 font-mono text-[11px] uppercase tracking-[2px] text-foreground/60 transition-all hover:border-[rgba(230,51,38,0.4)] hover:bg-[rgba(230,51,38,0.05)] hover:text-[#E63326]"
-            style={{ fontFamily: "var(--font-body)", minHeight: 0 }}
+            style={{ fontFamily: "var(--font-body-legacy)", minHeight: 0 }}
           >
             <LogOut size={13} /> Se déconnecter
           </button>

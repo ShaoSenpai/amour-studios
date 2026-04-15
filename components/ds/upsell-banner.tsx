@@ -22,7 +22,7 @@ export function UpsellBanner({
         <div className="min-w-0">
           <div
             className="font-mono text-[10px] uppercase tracking-[2px] text-[#FF6B1F]"
-            style={{ fontFamily: "var(--font-body)" }}
+            style={{ fontFamily: "var(--font-body-legacy)" }}
           >
             ◦ MODE PREVIEW · ACCÈS PARTIEL
           </div>
@@ -34,7 +34,7 @@ export function UpsellBanner({
           </div>
           <div
             className="mt-1 font-mono text-[11px] text-foreground/65 md:text-[12px]"
-            style={{ fontFamily: "var(--font-body)" }}
+            style={{ fontFamily: "var(--font-body-legacy)" }}
           >
             Débloque les <strong className="text-foreground">06 modules</strong>,{" "}
             <strong className="text-foreground">20+ leçons</strong> et la communauté VIP — accès à vie.
@@ -45,7 +45,7 @@ export function UpsellBanner({
       <div className="flex shrink-0 items-center gap-2 md:gap-3">
         <span
           className="hidden font-mono text-[11px] uppercase tracking-[1.5px] text-foreground/70 sm:inline"
-          style={{ fontFamily: "var(--font-body)" }}
+          style={{ fontFamily: "var(--font-body-legacy)" }}
         >
           DÈS 497 €
         </span>

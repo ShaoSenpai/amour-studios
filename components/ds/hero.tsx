@@ -38,7 +38,7 @@ export function Hero({
       <div className="relative overflow-hidden p-4 text-foreground md:p-6">
         <div
           className="mb-3 font-mono text-[10px] uppercase tracking-[3px] opacity-55"
-          style={{ fontFamily: "var(--font-body)" }}
+          style={{ fontFamily: "var(--font-body-legacy)" }}
         >
           — {caption}
         </div>
@@ -52,7 +52,7 @@ export function Hero({
           <Link
             href={ctaHref}
             className="group inline-flex items-center gap-2.5 rounded-sm bg-[#0D0B08] px-5 py-3 font-mono text-[11px] uppercase tracking-[2px] text-[#F0E9DB] transition-all duration-700 [transition-timing-function:var(--ease-reveal)] hover:tracking-[3px] hover:pr-7"
-            style={{ fontFamily: "var(--font-body)" }}
+            style={{ fontFamily: "var(--font-body-legacy)" }}
           >
             {ctaLabel}
             <span
@@ -66,25 +66,34 @@ export function Hero({
 
         {progress && (
           <div className="mt-10 border-t border-foreground/20 pt-5">
-            <div className="mb-2 flex items-baseline justify-between font-mono text-[10px] uppercase tracking-[2px] opacity-70" style={{ fontFamily: "var(--font-body)" }}>
-              <span>◦ Progression</span>
-              <span>
-                <span className="font-bold" style={{ color: "var(--state-done)" }}>
-                  {progress.percent}%
-                </span>
-                <span className="mx-2 opacity-40">·</span>
-                <span>{progress.completed}/{progress.total} leçons</span>
-              </span>
-            </div>
-            <div className="h-2 w-full overflow-hidden rounded-full bg-foreground/10">
-              <div
-                className="ds-progress-fill h-full rounded-full"
-                style={{
-                  width: `${progress.percent}%`,
-                  background: "linear-gradient(90deg, var(--progress-grad-from), var(--progress-grad-to))",
-                }}
-              />
-            </div>
+            {progress.completed === 0 ? (
+              <div className="flex items-baseline justify-between text-[10px] uppercase tracking-[2px] opacity-70" style={{ fontFamily: "var(--font-body-legacy)" }}>
+                <span>◦ Prêt à commencer</span>
+                <span>Module 01 en premier</span>
+              </div>
+            ) : (
+              <>
+                <div className="mb-2 flex items-baseline justify-between text-[10px] uppercase tracking-[2px] opacity-70" style={{ fontFamily: "var(--font-body-legacy)" }}>
+                  <span>◦ Progression</span>
+                  <span>
+                    <span className="font-bold" style={{ color: "var(--state-done)" }}>
+                      {progress.percent}%
+                    </span>
+                    <span className="mx-2 opacity-40">·</span>
+                    <span>{progress.completed}/{progress.total} leçons</span>
+                  </span>
+                </div>
+                <div className="h-2 w-full overflow-hidden rounded-full bg-foreground/10">
+                  <div
+                    className="ds-progress-fill h-full rounded-full"
+                    style={{
+                      width: `${progress.percent}%`,
+                      background: "linear-gradient(90deg, var(--progress-grad-from), var(--progress-grad-to))",
+                    }}
+                  />
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>

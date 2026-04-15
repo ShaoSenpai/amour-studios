@@ -49,7 +49,7 @@ export default function AdminMembersPage() {
         <div className="ds-reveal mb-8">
           <p
             className="mb-2 font-mono text-[10px] uppercase tracking-[3px] text-foreground/55"
-            style={{ fontFamily: "var(--font-body)" }}
+            style={{ fontFamily: "var(--font-body-legacy)" }}
           >
             — Admin · {members.length} total · {admins.length} admin · {activeMembers.length} VIP · {pending.length} en attente
           </p>
@@ -57,7 +57,7 @@ export default function AdminMembersPage() {
             className="text-[clamp(40px,5.5vw,64px)] font-normal leading-[0.95] tracking-[-1.5px]"
             style={{ fontFamily: "var(--font-serif)" }}
           >
-            Les <em className="italic text-[#FF6B1F]">membres</em>
+            Les <em className="italic text-foreground">membres</em>
           </h1>
         </div>
 
@@ -68,7 +68,7 @@ export default function AdminMembersPage() {
         {/* Filters — DS mono tabs */}
         <div
           className="mb-6 flex flex-wrap gap-4 border-b border-foreground/15 pb-3 font-mono text-[10px] uppercase tracking-[2px]"
-          style={{ fontFamily: "var(--font-body)" }}
+          style={{ fontFamily: "var(--font-body-legacy)" }}
         >
           {(["all", "admin", "member", "pending"] as const).map((f) => {
             const label = f === "all" ? "Tous" : f === "admin" ? "Admins" : f === "member" ? "VIP" : "En attente";
@@ -80,10 +80,10 @@ export default function AdminMembersPage() {
                 onClick={() => setFilter(f)}
                 className={`pb-1 transition-colors ${
                   isActive
-                    ? "border-b-2 border-[#FF6B1F] text-foreground"
+                    ? "border-b-2 border-foreground text-foreground"
                     : "text-foreground/40 hover:text-foreground"
                 }`}
-                style={{ minHeight: 0, fontFamily: "var(--font-body)" }}
+                style={{ minHeight: 0, fontFamily: "var(--font-body-legacy)" }}
               >
                 ◦ {label} ({count})
               </button>
@@ -95,7 +95,7 @@ export default function AdminMembersPage() {
           <div className="border border-dashed border-foreground/15 py-12 text-center">
             <p
               className="font-mono text-xs uppercase tracking-[1.5px] text-foreground/50"
-              style={{ fontFamily: "var(--font-body)" }}
+              style={{ fontFamily: "var(--font-body-legacy)" }}
             >
               ◦ Aucun membre dans cette catégorie
             </p>

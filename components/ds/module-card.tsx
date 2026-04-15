@@ -78,14 +78,14 @@ export function ModuleCard({
       {description && (
         <p
           className="mt-3 max-w-[240px] font-mono text-[11px] opacity-75"
-          style={{ fontFamily: "var(--font-body)" }}
+          style={{ fontFamily: "var(--font-body-legacy)" }}
         >
           {description}
         </p>
       )}
       <div
         className="mt-auto flex items-center gap-2 pt-4 font-mono text-[9px] uppercase tracking-[1.5px]"
-        style={{ fontFamily: "var(--font-body)" }}
+        style={{ fontFamily: "var(--font-body-legacy)" }}
       >
         <Pill variant={isLocked ? "locked" : "neutral"}>
           {state === "completed" && "✓ COMPLÉTÉ"}

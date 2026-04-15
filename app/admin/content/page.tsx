@@ -58,7 +58,7 @@ export default function AdminContentPage() {
         <div className="ds-reveal mb-8">
           <p
             className="mb-2 font-mono text-[10px] uppercase tracking-[3px] text-foreground/55"
-            style={{ fontFamily: "var(--font-body)" }}
+            style={{ fontFamily: "var(--font-body-legacy)" }}
           >
             — Admin · {content.counts.modules} modules ·{" "}
             {content.counts.lessons} leçons · {content.counts.exercises}{" "}
@@ -68,14 +68,14 @@ export default function AdminContentPage() {
             className="text-[clamp(40px,5.5vw,64px)] font-normal leading-[0.95] tracking-[-1.5px]"
             style={{ fontFamily: "var(--font-serif)" }}
           >
-            Gérer le <em className="italic text-[#FF6B1F]">contenu</em>
+            Gérer le <em className="italic text-foreground">contenu</em>
           </h1>
         </div>
 
         {/* Tabs */}
         <div
           className="mb-6 flex flex-wrap gap-6 border-b border-foreground/15 pb-3 font-mono text-[10px] uppercase tracking-[2px]"
-          style={{ fontFamily: "var(--font-body)" }}
+          style={{ fontFamily: "var(--font-body-legacy)" }}
         >
           {(
             [
@@ -95,10 +95,10 @@ export default function AdminContentPage() {
                 onClick={() => setTab(t.key)}
                 className={`pb-1 transition-colors ${
                   isActive
-                    ? "border-b-2 border-[#FF6B1F] text-foreground"
+                    ? "border-b-2 border-foreground text-foreground"
                     : "text-foreground/40 hover:text-foreground"
                 }`}
-                style={{ minHeight: 0, fontFamily: "var(--font-body)" }}
+                style={{ minHeight: 0, fontFamily: "var(--font-body-legacy)" }}
               >
                 ◦ {t.label} ({t.count})
               </button>
@@ -181,7 +181,7 @@ function AddModuleForm() {
       <button
         onClick={() => setOpen(true)}
         className="mb-4 flex items-center gap-2 border border-dashed border-foreground/20 bg-foreground/[0.02] px-4 py-3 font-mono text-[10px] uppercase tracking-[2px] text-foreground/60 transition-colors hover:bg-foreground/[0.05] hover:text-foreground"
-        style={{ minHeight: 0, fontFamily: "var(--font-body)" }}
+        style={{ minHeight: 0, fontFamily: "var(--font-body-legacy)" }}
       >
         <Plus size={12} /> Ajouter un module
       </button>
@@ -198,8 +198,8 @@ function AddModuleForm() {
         placeholder="Titre du module"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
-        className="border border-foreground/15 bg-background px-3 py-2 font-mono text-xs outline-none focus:border-[#FF6B1F]"
-        style={{ minHeight: 0, fontFamily: "var(--font-body)" }}
+        className="border border-foreground/15 bg-background px-3 py-2 font-mono text-xs outline-none focus:border-foreground"
+        style={{ minHeight: 0, fontFamily: "var(--font-body-legacy)" }}
         autoFocus
       />
       <input
@@ -207,23 +207,23 @@ function AddModuleForm() {
         placeholder="Description courte"
         value={description}
         onChange={(e) => setDescription(e.target.value)}
-        className="border border-foreground/15 bg-background px-3 py-2 font-mono text-xs outline-none focus:border-[#FF6B1F]"
-        style={{ minHeight: 0, fontFamily: "var(--font-body)" }}
+        className="border border-foreground/15 bg-background px-3 py-2 font-mono text-xs outline-none focus:border-foreground"
+        style={{ minHeight: 0, fontFamily: "var(--font-body-legacy)" }}
       />
       <input
         type="text"
         placeholder="Label du badge (ex: Fondations)"
         value={badgeLabel}
         onChange={(e) => setBadgeLabel(e.target.value)}
-        className="border border-foreground/15 bg-background px-3 py-2 font-mono text-xs outline-none focus:border-[#FF6B1F]"
-        style={{ minHeight: 0, fontFamily: "var(--font-body)" }}
+        className="border border-foreground/15 bg-background px-3 py-2 font-mono text-xs outline-none focus:border-foreground"
+        style={{ minHeight: 0, fontFamily: "var(--font-body-legacy)" }}
       />
       <div className="flex gap-2">
         <button
           type="submit"
           disabled={creating}
           className="bg-[#2B7A6F] px-4 py-2 font-mono text-[10px] uppercase tracking-[2px] text-[#0D0B08]"
-          style={{ minHeight: 0, fontFamily: "var(--font-body)" }}
+          style={{ minHeight: 0, fontFamily: "var(--font-body-legacy)" }}
         >
           {creating ? "…" : "Créer"}
         </button>
@@ -231,7 +231,7 @@ function AddModuleForm() {
           type="button"
           onClick={() => setOpen(false)}
           className="border border-foreground/20 px-4 py-2 font-mono text-[10px] uppercase tracking-[2px] text-foreground/60"
-          style={{ minHeight: 0, fontFamily: "var(--font-body)" }}
+          style={{ minHeight: 0, fontFamily: "var(--font-body-legacy)" }}
         >
           Annuler
         </button>
@@ -263,7 +263,7 @@ function ModuleRow({
       <button
         onClick={() => setExpanded(!expanded)}
         className="flex w-full items-center gap-3 p-4 text-left transition-colors hover:bg-foreground/[0.06]"
-        style={{ minHeight: 0, fontFamily: "var(--font-body)" }}
+        style={{ minHeight: 0, fontFamily: "var(--font-body-legacy)" }}
       >
         <span
           className="font-mono text-[10px] uppercase tracking-[2px]"
@@ -280,7 +280,7 @@ function ModuleRow({
           </div>
           <div
             className="truncate font-mono text-[11px] text-foreground/60"
-            style={{ fontFamily: "var(--font-body)" }}
+            style={{ fontFamily: "var(--font-body-legacy)" }}
           >
             {mod.description || "—"}
           </div>
@@ -304,7 +304,7 @@ function ModuleRow({
                   toast.success("Module supprimé");
                 }}
                 className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[1.5px] text-[#E63326]/70 transition-colors hover:text-[#E63326]"
-                style={{ minHeight: 0, fontFamily: "var(--font-body)" }}
+                style={{ minHeight: 0, fontFamily: "var(--font-body-legacy)" }}
               >
                 <Trash2 size={11} /> Supprimer le module
               </button>
@@ -323,8 +323,8 @@ function DSInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
       {...rest}
-      className={`border border-foreground/15 bg-background px-3 py-2 font-mono text-xs outline-none focus:border-[#FF6B1F] ${className}`}
-      style={{ minHeight: 0, fontFamily: "var(--font-body)", ...(rest.style ?? {}) }}
+      className={`border border-foreground/15 bg-background px-3 py-2 font-mono text-xs outline-none focus:border-foreground ${className}`}
+      style={{ minHeight: 0, fontFamily: "var(--font-body-legacy)", ...(rest.style ?? {}) }}
     />
   );
 }
@@ -334,8 +334,8 @@ function DSTextarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
   return (
     <textarea
       {...rest}
-      className={`border border-foreground/15 bg-background px-3 py-2 font-mono text-xs outline-none focus:border-[#FF6B1F] resize-none ${className}`}
-      style={{ fontFamily: "var(--font-body)", ...(rest.style ?? {}) }}
+      className={`border border-foreground/15 bg-background px-3 py-2 font-mono text-xs outline-none focus:border-foreground resize-none ${className}`}
+      style={{ fontFamily: "var(--font-body-legacy)", ...(rest.style ?? {}) }}
     />
   );
 }
@@ -344,7 +344,7 @@ function DSLabel({ children }: { children: React.ReactNode }) {
   return (
     <span
       className="font-mono text-[9px] uppercase tracking-[2px] text-foreground/50"
-      style={{ fontFamily: "var(--font-body)" }}
+      style={{ fontFamily: "var(--font-body-legacy)" }}
     >
       ◦ {children}
     </span>
@@ -368,7 +368,7 @@ function DSPrimaryBtn({
       onClick={onClick}
       disabled={disabled}
       className="bg-[#2B7A6F] px-4 py-2 font-mono text-[10px] uppercase tracking-[2px] text-[#0D0B08] transition-all hover:tracking-[3px] disabled:opacity-50"
-      style={{ minHeight: 0, fontFamily: "var(--font-body)" }}
+      style={{ minHeight: 0, fontFamily: "var(--font-body-legacy)" }}
     >
       {children}
     </button>
@@ -389,7 +389,7 @@ function DSGhostBtn({
       type={type}
       onClick={onClick}
       className="border border-foreground/20 bg-foreground/[0.04] px-4 py-2 font-mono text-[10px] uppercase tracking-[2px] text-foreground/70 transition-colors hover:bg-foreground/[0.08]"
-      style={{ minHeight: 0, fontFamily: "var(--font-body)" }}
+      style={{ minHeight: 0, fontFamily: "var(--font-body-legacy)" }}
     >
       {children}
     </button>
@@ -433,7 +433,7 @@ function LessonsInModule({
           <button
             onClick={() => setAdding(true)}
             className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-[1.5px] text-foreground/60 transition-colors hover:text-foreground"
-            style={{ minHeight: 0, fontFamily: "var(--font-body)" }}
+            style={{ minHeight: 0, fontFamily: "var(--font-body-legacy)" }}
           >
             <Plus size={11} /> Nouvelle leçon
           </button>
@@ -478,7 +478,7 @@ function LessonRowExpandable({
         <button
           onClick={() => setExpanded(!expanded)}
           className="font-mono text-[10px] text-foreground/50 hover:text-foreground"
-          style={{ minHeight: 0, fontFamily: "var(--font-body)" }}
+          style={{ minHeight: 0, fontFamily: "var(--font-body-legacy)" }}
           aria-label={expanded ? "Replier" : "Déplier"}
         >
           <ChevronDown
@@ -488,14 +488,14 @@ function LessonRowExpandable({
         </button>
         <span
           className="font-mono text-[10px] text-foreground/50"
-          style={{ fontFamily: "var(--font-body)" }}
+          style={{ fontFamily: "var(--font-body-legacy)" }}
         >
           {String(lesson.order + 1).padStart(2, "0")}
         </span>
         <span className="flex-1 truncate text-sm">{lesson.title}</span>
         <span
           className="hidden font-mono text-[10px] text-foreground/50 sm:inline"
-          style={{ fontFamily: "var(--font-body)" }}
+          style={{ fontFamily: "var(--font-body-legacy)" }}
         >
           {lesson.durationSeconds > 0
             ? `${Math.floor(lesson.durationSeconds / 60)}m`
@@ -503,7 +503,7 @@ function LessonRowExpandable({
         </span>
         <span
           className="hidden font-mono text-[10px] text-foreground/50 sm:inline"
-          style={{ fontFamily: "var(--font-body)" }}
+          style={{ fontFamily: "var(--font-body-legacy)" }}
         >
           {lesson.xpReward}XP
         </span>
@@ -736,13 +736,13 @@ function LessonForm({
         <div className="flex-1">
           <div
             className="font-mono text-[11px] uppercase tracking-[1.5px] text-foreground"
-            style={{ fontFamily: "var(--font-body)" }}
+            style={{ fontFamily: "var(--font-body-legacy)" }}
           >
             ◦ ACCÈS GRATUIT (PREVIEW)
           </div>
           <div
             className="mt-0.5 font-mono text-[10px] text-foreground/55"
-            style={{ fontFamily: "var(--font-body)" }}
+            style={{ fontFamily: "var(--font-body-legacy)" }}
           >
             Accessible aux users non-payants — sert d&apos;upsell. Recommandé pour 1 leçon (ex: Vision Board).
           </div>
@@ -784,7 +784,7 @@ function ExercisesInLesson({ lessonId }: { lessonId: Id<"lessons"> }) {
           <button
             onClick={() => setAdding(true)}
             className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-[1.5px] text-foreground/60 transition-colors hover:text-foreground"
-            style={{ minHeight: 0, fontFamily: "var(--font-body)" }}
+            style={{ minHeight: 0, fontFamily: "var(--font-body-legacy)" }}
           >
             <Plus size={11} /> Nouvel exercice
           </button>
@@ -971,8 +971,8 @@ function ExerciseForm({
           <select
             value={type}
             onChange={(e) => setType(e.target.value as typeof type)}
-            className="border border-foreground/15 bg-background px-3 py-2 font-mono text-xs outline-none focus:border-[#FF6B1F]"
-            style={{ minHeight: 0, fontFamily: "var(--font-body)" }}
+            className="border border-foreground/15 bg-background px-3 py-2 font-mono text-xs outline-none focus:border-foreground"
+            style={{ minHeight: 0, fontFamily: "var(--font-body-legacy)" }}
           >
             <option value="text">Text</option>
             <option value="checkbox">Checkbox</option>
@@ -1001,7 +1001,7 @@ function ExerciseForm({
         />
         <p
           className="mt-1 font-mono text-[9px] uppercase tracking-[1.5px] text-foreground/40"
-          style={{ fontFamily: "var(--font-body)" }}
+          style={{ fontFamily: "var(--font-body-legacy)" }}
         >
           ◦ Si rempli, l&apos;exo sera affiché en iframe dans le panneau de la leçon
         </p>
@@ -1049,7 +1049,7 @@ function LessonsView({
       <div className="mb-4 flex items-center gap-3 border border-foreground/15 bg-foreground/[0.03] px-3 py-2">
         <span
           className="font-mono text-[10px] uppercase tracking-[1.5px] text-foreground/50"
-          style={{ fontFamily: "var(--font-body)" }}
+          style={{ fontFamily: "var(--font-body-legacy)" }}
         >
           ◦ Filtre
         </span>
@@ -1059,7 +1059,7 @@ function LessonsView({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           className="flex-1 bg-transparent font-mono text-xs outline-none"
-          style={{ minHeight: 0, fontFamily: "var(--font-body)" }}
+          style={{ minHeight: 0, fontFamily: "var(--font-body-legacy)" }}
         />
       </div>
 
@@ -1068,7 +1068,7 @@ function LessonsView({
           <thead>
             <tr
               className="border-b border-foreground/15 text-left font-mono text-[9px] uppercase tracking-[2px] text-foreground/50"
-              style={{ fontFamily: "var(--font-body)" }}
+              style={{ fontFamily: "var(--font-body-legacy)" }}
             >
               <th className="py-2 pr-3">#</th>
               <th className="py-2 pr-3">Module</th>
@@ -1089,14 +1089,14 @@ function LessonsView({
                   key={l._id}
                   className="border-b border-foreground/10 transition-colors hover:bg-foreground/[0.04]"
                 >
-                  <td className="py-2.5 pr-3 font-mono text-[11px] text-foreground/50" style={{ fontFamily: "var(--font-body)" }}>
+                  <td className="py-2.5 pr-3 font-mono text-[11px] text-foreground/50" style={{ fontFamily: "var(--font-body-legacy)" }}>
                     {String(l.moduleOrder + 1).padStart(2, "0")}.
                     {String(l.order + 1).padStart(2, "0")}
                   </td>
                   <td className="py-2.5 pr-3">
                     <span
                       className="font-mono text-[10px] uppercase tracking-[1.5px]"
-                      style={{ color: accent, fontFamily: "var(--font-body)" }}
+                      style={{ color: accent, fontFamily: "var(--font-body-legacy)" }}
                     >
                       {l.moduleTitle}
                     </span>
@@ -1109,7 +1109,7 @@ function LessonsView({
                   </td>
                   <td
                     className="py-2.5 pr-3 font-mono text-xs text-foreground/60"
-                    style={{ fontFamily: "var(--font-body)" }}
+                    style={{ fontFamily: "var(--font-body-legacy)" }}
                   >
                     {l.durationSeconds > 0
                       ? `${Math.floor(l.durationSeconds / 60)}m`
@@ -1117,7 +1117,7 @@ function LessonsView({
                   </td>
                   <td
                     className="py-2.5 pr-3 font-mono text-xs text-foreground/60"
-                    style={{ fontFamily: "var(--font-body)" }}
+                    style={{ fontFamily: "var(--font-body-legacy)" }}
                   >
                     {l.xpReward}
                   </td>
@@ -1160,7 +1160,7 @@ function LessonsView({
                 <td
                   colSpan={7}
                   className="py-10 text-center font-mono text-xs text-foreground/50"
-                  style={{ fontFamily: "var(--font-body)" }}
+                  style={{ fontFamily: "var(--font-body-legacy)" }}
                 >
                   ◦ Aucune leçon ne correspond
                 </td>
@@ -1214,7 +1214,7 @@ function ExercisesView({
         <div className="flex flex-1 items-center gap-3 border border-foreground/15 bg-foreground/[0.03] px-3 py-2 min-w-[200px]">
           <span
             className="font-mono text-[10px] uppercase tracking-[1.5px] text-foreground/50"
-            style={{ fontFamily: "var(--font-body)" }}
+            style={{ fontFamily: "var(--font-body-legacy)" }}
           >
             ◦ Filtre
           </span>
@@ -1224,7 +1224,7 @@ function ExercisesView({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="flex-1 bg-transparent font-mono text-xs outline-none"
-            style={{ minHeight: 0, fontFamily: "var(--font-body)" }}
+            style={{ minHeight: 0, fontFamily: "var(--font-body-legacy)" }}
           />
         </div>
         <div className="flex flex-wrap gap-2">
@@ -1234,10 +1234,10 @@ function ExercisesView({
               onClick={() => setTypeFilter(t)}
               className={`border px-2.5 py-1.5 font-mono text-[9px] uppercase tracking-[1.5px] ${
                 typeFilter === t
-                  ? "border-[#FF6B1F] bg-[#FF6B1F] text-[#0D0B08]"
+                  ? "border-foreground bg-foreground text-background"
                   : "border-foreground/15 bg-foreground/[0.04] text-foreground/60"
               }`}
-              style={{ minHeight: 0, fontFamily: "var(--font-body)" }}
+              style={{ minHeight: 0, fontFamily: "var(--font-body-legacy)" }}
             >
               {t === "all"
                 ? "Tous"
@@ -1254,7 +1254,7 @@ function ExercisesView({
           <thead>
             <tr
               className="border-b border-foreground/15 text-left font-mono text-[9px] uppercase tracking-[2px] text-foreground/50"
-              style={{ fontFamily: "var(--font-body)" }}
+              style={{ fontFamily: "var(--font-body-legacy)" }}
             >
               <th className="py-2 pr-3">#</th>
               <th className="py-2 pr-3">Module / Leçon</th>
@@ -1273,14 +1273,14 @@ function ExercisesView({
                   key={e._id}
                   className="border-b border-foreground/10 transition-colors hover:bg-foreground/[0.04]"
                 >
-                  <td className="py-2.5 pr-3 font-mono text-[11px] text-foreground/50" style={{ fontFamily: "var(--font-body)" }}>
+                  <td className="py-2.5 pr-3 font-mono text-[11px] text-foreground/50" style={{ fontFamily: "var(--font-body-legacy)" }}>
                     {String(e.moduleOrder + 1).padStart(2, "0")}.
                     {String(e.lessonOrder + 1).padStart(2, "0")}
                   </td>
                   <td className="py-2.5 pr-3 min-w-[180px]">
                     <div
                       className="font-mono text-[10px] uppercase tracking-[1.5px]"
-                      style={{ color: accent, fontFamily: "var(--font-body)" }}
+                      style={{ color: accent, fontFamily: "var(--font-body-legacy)" }}
                     >
                       {e.moduleTitle}
                     </div>
@@ -1307,14 +1307,14 @@ function ExercisesView({
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-[1.5px] text-[#2B7A6F] hover:underline"
-                        style={{ fontFamily: "var(--font-body)" }}
+                        style={{ fontFamily: "var(--font-body-legacy)" }}
                       >
                         EXTERNE <ExternalLink size={10} />
                       </a>
                     ) : (
                       <span
                         className="font-mono text-[10px] text-foreground/40"
-                        style={{ fontFamily: "var(--font-body)" }}
+                        style={{ fontFamily: "var(--font-body-legacy)" }}
                       >
                         —
                       </span>
@@ -1342,7 +1342,7 @@ function ExercisesView({
                 <td
                   colSpan={6}
                   className="py-10 text-center font-mono text-xs text-foreground/50"
-                  style={{ fontFamily: "var(--font-body)" }}
+                  style={{ fontFamily: "var(--font-body-legacy)" }}
                 >
                   ◦ Aucun exercice ne correspond
                 </td>

@@ -35,7 +35,7 @@ export default function LoginPage() {
         {/* Meta */}
         <p
           className="font-mono text-[10px] uppercase tracking-[3px] text-foreground/55"
-          style={{ fontFamily: "var(--font-body)" }}
+          style={{ fontFamily: "var(--font-body-legacy)" }}
         >
           — Accès exclusif · Discord OAuth
         </p>
@@ -46,12 +46,12 @@ export default function LoginPage() {
           style={{ fontFamily: "var(--font-serif)" }}
         >
           Entre dans<br />
-          ton <em className="italic text-[#FF6B1F]">univers</em>.
+          ton <em className="italic text-foreground">univers</em>.
         </h1>
 
         <p
           className="font-mono text-sm text-foreground/60"
-          style={{ fontFamily: "var(--font-body)" }}
+          style={{ fontFamily: "var(--font-body-legacy)" }}
         >
           Connecte-toi avec Discord pour reprendre ta formation et retrouver ta communauté.
         </p>
@@ -62,7 +62,7 @@ export default function LoginPage() {
           onClick={handleDiscordSignIn}
           disabled={isLoading}
           className="group flex w-full items-center justify-center gap-3 bg-[#5865F2] px-6 py-4 font-mono text-[11px] uppercase tracking-[2px] text-white transition-all duration-700 [transition-timing-function:var(--ease-reveal)] hover:tracking-[3px] hover:bg-[#4752C4] disabled:opacity-60"
-          style={{ minHeight: 0, fontFamily: "var(--font-body)" }}
+          style={{ minHeight: 0, fontFamily: "var(--font-body-legacy)" }}
         >
           <DiscordIcon />
           {isLoading ? "REDIRECTION…" : "Continuer avec Discord"}
@@ -76,7 +76,7 @@ export default function LoginPage() {
 
         <div
           className="border-t border-foreground/15 pt-6 font-mono text-[10px] uppercase tracking-[1.5px] text-foreground/50"
-          style={{ fontFamily: "var(--font-body)" }}
+          style={{ fontFamily: "var(--font-body-legacy)" }}
         >
           PAS ENCORE LA FORMATION ?{" "}
           <Link

@@ -46,7 +46,7 @@ export function ExercisesPanel({
             target="_blank"
             rel="noopener noreferrer"
             className="flex h-8 items-center gap-1.5 border border-foreground/20 bg-foreground/[0.04] px-3 font-mono text-[10px] uppercase tracking-[1.5px] text-foreground/80 transition-colors hover:bg-foreground/[0.08]"
-            style={{ minHeight: 0, fontFamily: "var(--font-body)" }}
+            style={{ minHeight: 0, fontFamily: "var(--font-body-legacy)" }}
           >
             <span className="hidden sm:inline">Nouvelle fenêtre</span>
             <ExternalLink size={11} />
@@ -57,7 +57,7 @@ export function ExercisesPanel({
       {exercises === undefined ? (
         <div className="skeleton h-60 w-full rounded-none" />
       ) : exercises.length === 0 ? (
-        <p className="font-mono text-xs text-foreground/60" style={{ fontFamily: "var(--font-body)" }}>
+        <p className="font-mono text-xs text-foreground/60" style={{ fontFamily: "var(--font-body-legacy)" }}>
           Aucun exercice pour cette leçon.
         </p>
       ) : (
@@ -73,7 +73,7 @@ export function ExercisesPanel({
                       ? "border-[#FF6B1F] bg-[#FF6B1F] text-[#0D0B08]"
                       : "border-foreground/20 bg-foreground/[0.04] text-foreground/60"
                   }`}
-                  style={{ minHeight: 0, fontFamily: "var(--font-body)" }}
+                  style={{ minHeight: 0, fontFamily: "var(--font-body-legacy)" }}
                 >
                   EXO {String(i + 1).padStart(2, "0")}
                 </button>
@@ -109,7 +109,7 @@ export function ExercisesPanel({
                         style={{
                           background: "var(--state-done-bg)",
                           color: "var(--state-done-fg)",
-                          fontFamily: "var(--font-body)",
+                          fontFamily: "var(--font-body-legacy)",
                           minHeight: 0,
                         }}
                         onClick={async () => {
@@ -143,7 +143,7 @@ export function ExercisesPanel({
                       style={{
                         background: "var(--state-done-bg)",
                         color: "var(--state-done-fg)",
-                        fontFamily: "var(--font-body)",
+                        fontFamily: "var(--font-body-legacy)",
                         minHeight: 0,
                       }}
                       disabled={!videoWatched}
@@ -162,7 +162,7 @@ export function ExercisesPanel({
               {exerciseCompleted && (
                 <p
                   className="mt-3 flex items-center gap-1 font-mono text-xs font-bold"
-                  style={{ fontFamily: "var(--font-body)", color: "var(--state-done)" }}
+                  style={{ fontFamily: "var(--font-body-legacy)", color: "var(--state-done)" }}
                 >
                   <Check size={12} /> Exercice complété
                 </p>

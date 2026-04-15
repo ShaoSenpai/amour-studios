@@ -22,7 +22,7 @@ export function ProgressStrip({
     >
       <span
         className="font-mono text-[10px] uppercase tracking-[2px] text-foreground/60"
-        style={{ fontFamily: "var(--font-body)" }}
+        style={{ fontFamily: "var(--font-body-legacy)" }}
       >
         ◦ {label}
       </span>
@@ -44,7 +44,7 @@ export function ProgressStrip({
       {fraction && (
         <span
           className="font-mono text-[10px] uppercase tracking-[2px] text-foreground/60"
-          style={{ fontFamily: "var(--font-body)" }}
+          style={{ fontFamily: "var(--font-body-legacy)" }}
         >
           {fraction}
         </span>

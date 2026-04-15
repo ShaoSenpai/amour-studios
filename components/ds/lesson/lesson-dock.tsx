@@ -55,7 +55,7 @@ export function LessonDock({
                 ? "border-[#FF6B1F] bg-[#FF6B1F] text-[#0D0B08] shadow-lg"
                 : "border-foreground/25 bg-foreground/[0.08] text-foreground hover:-translate-y-0.5 hover:border-foreground/45 hover:bg-foreground/[0.14]"
             )}
-            style={{ minHeight: 0, fontFamily: "var(--font-body)" }}
+            style={{ minHeight: 0, fontFamily: "var(--font-body-legacy)" }}
             aria-label={it.label}
           >
             <span

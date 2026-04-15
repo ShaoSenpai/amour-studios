@@ -174,7 +174,7 @@ export default function LessonPage({
           <div className="ds-reveal flex w-full max-w-md flex-col gap-4 text-center">
             <p
               className="font-mono text-[10px] uppercase tracking-[3px] text-foreground/55"
-              style={{ fontFamily: "var(--font-body)" }}
+              style={{ fontFamily: "var(--font-body-legacy)" }}
             >
               — Cette leçon fait partie de la formation complète
             </p>
@@ -182,11 +182,11 @@ export default function LessonPage({
               className="text-[clamp(40px,5vw,56px)] font-normal leading-[0.95] tracking-[-1.5px]"
               style={{ fontFamily: "var(--font-serif)" }}
             >
-              Accès <em className="italic text-[#FF6B1F]">verrouillé</em>
+              Accès <em className="italic text-foreground">verrouillé</em>
             </h1>
             <p
               className="font-mono text-sm text-foreground/70"
-              style={{ fontFamily: "var(--font-body)" }}
+              style={{ fontFamily: "var(--font-body-legacy)" }}
             >
               Tu peux explorer la leçon en accès gratuit (Vision Board) ou débloquer toute la formation.
             </p>
@@ -194,7 +194,7 @@ export default function LessonPage({
               <Link
                 href="/dashboard"
                 className="flex-1 border border-foreground/20 bg-foreground/[0.04] px-4 py-3 font-mono text-[11px] uppercase tracking-[2px] text-foreground/80 hover:bg-foreground/[0.08]"
-                style={{ fontFamily: "var(--font-body)" }}
+                style={{ fontFamily: "var(--font-body-legacy)" }}
               >
                 ← RETOUR AU DASHBOARD
               </Link>
@@ -203,7 +203,7 @@ export default function LessonPage({
                 target="_blank"
                 rel="noopener noreferrer"
                 className="group flex flex-1 items-center justify-center gap-2 bg-[#FF6B1F] px-4 py-3 font-mono text-[11px] uppercase tracking-[2px] text-[#0D0B08] transition-all duration-700 [transition-timing-function:var(--ease-reveal)] hover:tracking-[3px]"
-                style={{ fontFamily: "var(--font-body)" }}
+                style={{ fontFamily: "var(--font-body-legacy)" }}
               >
                 DÉBLOQUER 497 € →
               </a>
@@ -253,7 +253,7 @@ export default function LessonPage({
             {italicWord ? (
               <>
                 {lesson.title.substring(0, lesson.title.lastIndexOf(italicWord))}
-                <em className="italic text-[#FF6B1F]">{italicWord}</em>
+                <em className="italic text-foreground">{italicWord}</em>
               </>
             ) : (
               lesson.title
@@ -261,7 +261,7 @@ export default function LessonPage({
           </h1>
           <p
             className="mb-8 font-mono text-sm text-foreground/60"
-            style={{ fontFamily: "var(--font-body)" }}
+            style={{ fontFamily: "var(--font-body-legacy)" }}
           >
             {lesson.description}
           </p>
@@ -277,7 +277,7 @@ export default function LessonPage({
                   </div>
                   <p
                     className="font-mono text-xs text-foreground/60"
-                    style={{ fontFamily: "var(--font-body)" }}
+                    style={{ fontFamily: "var(--font-body-legacy)" }}
                   >
                     Vidéo bientôt disponible
                   </p>
@@ -298,7 +298,7 @@ export default function LessonPage({
               ) : (
                 <p
                   className="font-mono text-xs text-foreground/60"
-                  style={{ fontFamily: "var(--font-body)" }}
+                  style={{ fontFamily: "var(--font-body-legacy)" }}
                 >
                   Mux player
                 </p>
@@ -319,7 +319,7 @@ export default function LessonPage({
               </div>
               <span
                 className="font-mono text-[10px] uppercase tracking-[1.5px] text-foreground/80"
-                style={{ fontFamily: "var(--font-body)" }}
+                style={{ fontFamily: "var(--font-body-legacy)" }}
               >
                 {videoWatched ? "VIDÉO VUE" : "REGARDE LA VIDÉO POUR DÉBLOQUER LA SUITE"}
               </span>
@@ -329,7 +329,7 @@ export default function LessonPage({
                   style={{
                     background: "var(--state-done-bg)",
                     color: "var(--state-done-fg)",
-                    fontFamily: "var(--font-body)",
+                    fontFamily: "var(--font-body-legacy)",
                   }}
                 >
                   <Zap size={10} /> +{lesson.xpReward} XP · BRAVO
@@ -343,7 +343,7 @@ export default function LessonPage({
                 style={{
                   background: "var(--state-done-bg)",
                   color: "var(--state-done-fg)",
-                  fontFamily: "var(--font-body)",
+                  fontFamily: "var(--font-body-legacy)",
                   minHeight: 0,
                 }}
                 onClick={async () => {
@@ -372,17 +372,17 @@ export default function LessonPage({
                   onClick={() => setActivePanel(isActive ? null : key)}
                   className={`group relative inline-flex h-10 items-center gap-2 rounded-full border px-4 font-mono text-[11px] font-bold uppercase tracking-[1.5px] transition-all ${
                     isActive
-                      ? "border-[#FF6B1F] bg-[#FF6B1F] text-[#0D0B08]"
+                      ? "border-foreground bg-foreground text-background"
                       : "border-foreground/25 bg-foreground/[0.04] text-foreground/80 hover:border-foreground/45 hover:bg-foreground/[0.08] hover:text-foreground"
                   }`}
-                  style={{ fontFamily: "var(--font-body)", minHeight: 0 }}
+                  style={{ fontFamily: "var(--font-body-legacy)", minHeight: 0 }}
                 >
                   <Icon size={13} />
                   <span>{label}</span>
                   {typeof count === "number" && count > 0 && (
                     <span
                       className={`flex min-w-[18px] items-center justify-center rounded-full px-1.5 text-[9px] font-bold ${
-                        isActive ? "bg-[#0D0B08] text-[#FF6B1F]" : "bg-[#FF6B1F] text-[#0D0B08]"
+                        isActive ? "bg-[#0D0B08] text-background" : "bg-foreground text-background"
                       }`}
                     >
                       {count}
@@ -399,7 +399,7 @@ export default function LessonPage({
                 <Link
                   href={`/lesson/${nav.prev._id}`}
                   className="group flex h-11 min-w-0 items-center gap-2 justify-self-start rounded-full border border-foreground/25 bg-foreground/[0.04] pl-3 pr-5 font-mono text-[11px] font-bold uppercase tracking-[1.5px] text-foreground/80 transition-all hover:border-foreground/50 hover:bg-foreground/[0.08] hover:text-foreground"
-                  style={{ fontFamily: "var(--font-body)", minHeight: 0, maxWidth: "100%" }}
+                  style={{ fontFamily: "var(--font-body-legacy)", minHeight: 0, maxWidth: "100%" }}
                 >
                   <ChevronLeft size={14} className="shrink-0 transition-transform group-hover:-translate-x-0.5" />
                   <span className="hidden whitespace-nowrap opacity-60 sm:inline">PRÉCÉDENT</span>
@@ -416,7 +416,7 @@ export default function LessonPage({
                   style={{
                     background: "var(--state-done-bg)",
                     color: "var(--state-done-fg)",
-                    fontFamily: "var(--font-body)",
+                    fontFamily: "var(--font-body-legacy)",
                     minHeight: 0,
                     maxWidth: "100%",
                   }}

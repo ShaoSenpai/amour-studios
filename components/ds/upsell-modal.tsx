@@ -52,7 +52,7 @@ export function UpsellModal({
           </button>
           <div
             className="mb-2 flex items-center gap-2 font-mono text-[10px] font-bold uppercase tracking-[2px]"
-            style={{ fontFamily: "var(--font-body)" }}
+            style={{ fontFamily: "var(--font-body-legacy)" }}
           >
             <Lock size={11} />
             ◦ MODULE VERROUILLÉ
@@ -69,7 +69,7 @@ export function UpsellModal({
         <div className="px-6 py-6 md:px-8">
           <p
             className="mb-5 font-mono text-sm text-foreground/80 leading-relaxed"
-            style={{ fontFamily: "var(--font-body)" }}
+            style={{ fontFamily: "var(--font-body-legacy)" }}
           >
             {moduleTitle ? (
               <>
@@ -83,7 +83,7 @@ export function UpsellModal({
           {/* Bénéfices */}
           <ul
             className="mb-6 flex flex-col gap-3 font-mono text-[12px] text-foreground/80"
-            style={{ fontFamily: "var(--font-body)" }}
+            style={{ fontFamily: "var(--font-body-legacy)" }}
           >
             {[
               "06 modules — 20+ leçons vidéo",
@@ -108,7 +108,7 @@ export function UpsellModal({
             </span>
             <span
               className="font-mono text-[10px] uppercase tracking-[1.5px] text-foreground/50"
-              style={{ fontFamily: "var(--font-body)" }}
+              style={{ fontFamily: "var(--font-body-legacy)" }}
             >
               en une fois · accès à vie
             </span>
@@ -120,7 +120,7 @@ export function UpsellModal({
             target="_blank"
             rel="noopener noreferrer"
             className="group flex w-full items-center justify-center gap-2.5 bg-[#FFB347] px-6 py-4 font-mono text-[12px] font-bold uppercase tracking-[2px] text-[#0D0B08] transition-all duration-700 [transition-timing-function:var(--ease-reveal)] hover:tracking-[3px] hover:pr-8"
-            style={{ fontFamily: "var(--font-body)" }}
+            style={{ fontFamily: "var(--font-body-legacy)" }}
           >
             <Zap size={14} />
             DÉBLOQUER MAINTENANT
@@ -132,7 +132,7 @@ export function UpsellModal({
 
           <p
             className="mt-3 text-center font-mono text-[10px] uppercase tracking-[1.5px] text-foreground/40"
-            style={{ fontFamily: "var(--font-body)" }}
+            style={{ fontFamily: "var(--font-body-legacy)" }}
           >
             Apple Pay · Google Pay · CB · 7j satisfait ou remboursé
           </p>

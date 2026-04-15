@@ -109,7 +109,7 @@ function NewCommentForm({
         placeholder={parentCommentId ? "Répondre… (⌘+Entrée)" : "Ajouter un commentaire… (⌘+Entrée)"}
         rows={2}
         className="flex-1 resize-none rounded-md border border-foreground/25 bg-foreground/[0.04] px-3 py-2 text-sm font-mono leading-relaxed outline-none transition-colors focus:border-foreground/50 focus:bg-foreground/[0.06]"
-        style={{ fontFamily: "var(--font-body)", minHeight: 0 }}
+        style={{ fontFamily: "var(--font-body-legacy)", minHeight: 0 }}
         maxLength={2000}
       />
       <button
@@ -119,7 +119,7 @@ function NewCommentForm({
         style={{
           background: "#FF6B1F",
           color: "#0D0B08",
-          fontFamily: "var(--font-body)",
+          fontFamily: "var(--font-body-legacy)",
           minHeight: 0,
         }}
       >
@@ -130,7 +130,7 @@ function NewCommentForm({
           type="button"
           onClick={onDone}
           className="rounded-md border border-foreground/25 px-3 font-mono text-[11px] uppercase tracking-[1.5px] text-foreground/70 hover:bg-foreground/[0.05]"
-          style={{ fontFamily: "var(--font-body)", minHeight: 0 }}
+          style={{ fontFamily: "var(--font-body-legacy)", minHeight: 0 }}
         >
           Annuler
         </button>

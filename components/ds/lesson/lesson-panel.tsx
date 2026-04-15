@@ -67,7 +67,7 @@ export function LessonPanel({
             onClick={onClose}
             aria-label="Fermer le panneau"
             className="flex h-8 items-center justify-center gap-1 border border-foreground/20 bg-foreground/[0.04] px-2 font-mono text-[10px] uppercase tracking-[1.5px] text-foreground/70 transition-colors hover:bg-foreground/[0.08]"
-            style={{ minHeight: 0, fontFamily: "var(--font-body)" }}
+            style={{ minHeight: 0, fontFamily: "var(--font-body-legacy)" }}
           >
             <X size={12} />
             <span className="hidden sm:inline">Esc</span>

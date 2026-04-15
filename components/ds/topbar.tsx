@@ -50,7 +50,6 @@ export function Topbar() {
           className="flex items-center gap-2 font-serif text-xl italic text-foreground"
           style={{ fontFamily: "var(--font-serif)" }}
         >
-          <span className="h-2 w-2 rounded-full ds-pulse" style={{ background: "var(--state-done)" }} aria-hidden />
           <span className="hidden sm:inline">Amour Studios</span>
           <span className="sm:hidden">A.</span>
         </Link>
@@ -69,7 +68,7 @@ export function Topbar() {
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Chercher une leçon, une note…"
             className="flex-1 bg-transparent font-mono text-xs outline-none placeholder:text-foreground/40"
-            style={{ fontFamily: "var(--font-body)", minHeight: 0 }}
+            style={{ fontFamily: "var(--font-body-legacy)", minHeight: 0 }}
           />
           <kbd className="hidden sm:inline border border-foreground/20 px-[5px] py-[1px] font-mono text-[9px] tracking-wider text-foreground/60">
             ⌘K
@@ -90,7 +89,7 @@ export function Topbar() {
                   ? "border-[color:var(--state-done-bg)] bg-[color:var(--state-done-bg)] text-[color:var(--state-done-fg)]"
                   : "border-[#FF6B1F] bg-[#FF6B1F] text-[#0D0B08]"
               }`}
-              style={{ minHeight: 0, fontFamily: "var(--font-body)" }}
+              style={{ minHeight: 0, fontFamily: "var(--font-body-legacy)" }}
             >
               {viewMode === "admin" ? <Eye size={11} /> : <EyeOff size={11} />}
               {viewMode === "admin"
@@ -104,7 +103,7 @@ export function Topbar() {
           <Pill variant={isVip ? "success" : "alert"} className="hidden sm:inline-flex">
             ● {isVip ? "VIP ACTIF" : "EN ATTENTE"}
           </Pill>
-          <span className="hidden font-mono text-[10px] uppercase tracking-[1.5px] text-foreground/60 md:inline" style={{ fontFamily: "var(--font-body)" }}>
+          <span className="hidden font-mono text-[10px] uppercase tracking-[1.5px] text-foreground/60 md:inline" style={{ fontFamily: "var(--font-body-legacy)" }}>
             NIV.{String(level).padStart(2, "0")} · {xp.toLocaleString("fr-FR")} XP
           </span>
           <NotificationBell />

@@ -4,21 +4,22 @@ import { useQuery } from "convex/react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/convex/_generated/api";
-import { Home, Pencil, MessageCircle } from "lucide-react";
+import { Home, Pencil, MessageCircle, Wrench } from "lucide-react";
 import { useEffectiveRole } from "@/components/providers/view-mode-provider";
 
 export function MobileNav() {
   const user = useQuery(api.users.current);
   const pathname = usePathname();
+  const effectiveRole = useEffectiveRole(user?.role);
 
   if (!user) return null;
 
-  const effectiveRole = useEffectiveRole(user.role);
   const isAdmin = effectiveRole === "admin";
   const discordInvite = process.env.NEXT_PUBLIC_DISCORD_INVITE_URL;
 
   const items = [
     { href: "/dashboard", label: "Formation", icon: <Home size={20} />, active: pathname === "/dashboard" },
+    { href: "/dashboard/outils", label: "Outils", icon: <Wrench size={20} />, active: pathname.startsWith("/dashboard/outils") },
     ...(isAdmin
       ? [{ href: "/admin", label: "Cockpit", icon: <Pencil size={20} />, active: pathname.startsWith("/admin") }]
       : []),

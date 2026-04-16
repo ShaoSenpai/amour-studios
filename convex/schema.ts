@@ -165,6 +165,20 @@ export default defineSchema({
     deletedAt: v.optional(v.number()),
   }).index("by_lesson", ["lessonId"]),
 
+  // Outils / ressources statiques (templates, cheat-sheets, PDF…)
+  // Affichés dans /dashboard/outils section "Outils". Alimenté depuis l'admin.
+  tools: defineTable({
+    title: v.string(),
+    description: v.string(),
+    fileUrl: v.string(), // URL publique ou relative
+    category: v.optional(v.string()), // ex: "template", "cheatsheet", "ressource"
+    iconName: v.optional(v.string()),
+    order: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    deletedAt: v.optional(v.number()),
+  }).index("by_order", ["order"]),
+
   exerciseResponses: defineTable({
     userId: v.id("users"),
     exerciseId: v.id("exercises"),

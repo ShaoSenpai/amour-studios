@@ -31,6 +31,7 @@ import type * as reconcileCourse from "../reconcileCourse.js";
 import type * as seedExerciseUrls from "../seedExerciseUrls.js";
 import type * as streaks from "../streaks.js";
 import type * as stripe from "../stripe.js";
+import type * as tools from "../tools.js";
 import type * as users from "../users.js";
 
 import type {
@@ -63,6 +64,7 @@ declare const fullApi: ApiFromModules<{
   seedExerciseUrls: typeof seedExerciseUrls;
   streaks: typeof streaks;
   stripe: typeof stripe;
+  tools: typeof tools;
   users: typeof users;
 }>;
 

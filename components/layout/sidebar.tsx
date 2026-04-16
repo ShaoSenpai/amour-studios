@@ -20,6 +20,7 @@ import {
   User,
   MessageCircle,
   Gauge,
+  Wrench,
 } from "lucide-react";
 // CSS transitions only — framer-motion removed for Next.js 16 compat
 
@@ -28,10 +29,10 @@ export function Sidebar() {
   const { signOut } = useAuthActions();
   const pathname = usePathname();
   const { collapsed, toggle } = useSidebar();
+  const effectiveRole = useEffectiveRole(user?.role);
 
   if (!user) return null;
 
-  const effectiveRole = useEffectiveRole(user.role);
   const isAdmin = effectiveRole === "admin";
   const discordInvite = process.env.NEXT_PUBLIC_DISCORD_INVITE_URL;
 
@@ -53,6 +54,7 @@ export function Sidebar() {
       {/* ── Navigation ── */}
       <nav className="flex-1 py-3 flex flex-col gap-0.5 overflow-y-auto px-2">
         <NavItem href="/dashboard" icon={Home} label="La formation" active={pathname === "/dashboard"} collapsed={collapsed} />
+        <NavItem href="/dashboard/outils" icon={Wrench} label="Mes outils" active={pathname.startsWith("/dashboard/outils")} collapsed={collapsed} />
 
         {isAdmin && (
           <>

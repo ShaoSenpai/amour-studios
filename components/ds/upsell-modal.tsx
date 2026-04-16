@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { X, Lock, ArrowRight, Check, Zap } from "lucide-react";
+import { PaymentModal } from "@/components/payment/payment-modal";
 
 export function UpsellModal({
   open,
@@ -12,6 +13,7 @@ export function UpsellModal({
   onClose: () => void;
   moduleTitle?: string;
 }) {
+  const [paymentOpen, setPaymentOpen] = React.useState(false);
   React.useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
@@ -114,13 +116,12 @@ export function UpsellModal({
             </span>
           </div>
 
-          {/* CTA */}
-          <a
-            href="https://www.amourstudios.fr/paiement"
-            target="_blank"
-            rel="noopener noreferrer"
+          {/* CTA — ouvre le PaymentModal in-app (plus de redirection externe) */}
+          <button
+            type="button"
+            onClick={() => setPaymentOpen(true)}
             className="group flex w-full items-center justify-center gap-2.5 bg-[#FFB347] px-6 py-4 font-mono text-[12px] font-bold uppercase tracking-[2px] text-[#0D0B08] transition-all duration-700 [transition-timing-function:var(--ease-reveal)] hover:tracking-[3px] hover:pr-8"
-            style={{ fontFamily: "var(--font-body-legacy)" }}
+            style={{ fontFamily: "var(--font-body-legacy)", minHeight: 0 }}
           >
             <Zap size={14} />
             DÉBLOQUER MAINTENANT
@@ -128,7 +129,7 @@ export function UpsellModal({
               size={14}
               className="transition-transform duration-700 [transition-timing-function:var(--ease-reveal)] group-hover:translate-x-1"
             />
-          </a>
+          </button>
 
           <p
             className="mt-3 text-center font-mono text-[10px] uppercase tracking-[1.5px] text-foreground/40"
@@ -138,6 +139,15 @@ export function UpsellModal({
           </p>
         </div>
       </div>
+
+      <PaymentModal
+        open={paymentOpen}
+        onClose={() => {
+          setPaymentOpen(false);
+          onClose();
+        }}
+        moduleTitle={moduleTitle}
+      />
     </div>
   );
 }

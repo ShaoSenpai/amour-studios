@@ -28,6 +28,7 @@ const STATE_COLOR = {
 };
 import { ActivityCard } from "@/components/ds/activity-card";
 import { AnnouncementsBanner } from "@/components/ds/announcements-banner";
+import { UnlockOverlay } from "@/components/payment/unlock-overlay";
 
 export default function DashboardPage() {
   const user = useQuery(api.users.current);
@@ -92,6 +93,7 @@ export default function DashboardPage() {
 
   return (
     <main className="ds-grid-bg min-h-screen bg-background text-foreground">
+      <UnlockOverlay />
       <div className="mx-auto max-w-[1200px] px-4 py-8 md:px-6">
         <AnnouncementsBanner />
 

@@ -10,6 +10,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { fireConfetti } from "@/components/gamification/confetti";
 import { fireXpFlyover } from "@/components/gamification/xp-flyover";
+import { PaymentModal } from "@/components/payment/payment-modal";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/ds/topbar";
 import { useSidebar } from "@/components/layout/sidebar-provider";
@@ -68,6 +69,7 @@ export default function LessonPage({
   );
 
   const [activePanel, setActivePanel] = useState<DockKey | null>(null);
+  const [paymentOpen, setPaymentOpen] = useState(false);
 
   // Auto-collapse sidebar quand le panneau Exos (large) est ouvert,
   // pour libérer de la place pour la vidéo à gauche.
@@ -242,18 +244,18 @@ export default function LessonPage({
               >
                 ← RETOUR AU DASHBOARD
               </Link>
-              <a
-                href="https://www.amourstudios.fr/paiement"
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                type="button"
+                onClick={() => setPaymentOpen(true)}
                 className="group flex flex-1 items-center justify-center gap-2 bg-[#FF6B1F] px-4 py-3 font-mono text-[11px] uppercase tracking-[2px] text-[#0D0B08] transition-all duration-700 [transition-timing-function:var(--ease-reveal)] hover:tracking-[3px]"
-                style={{ fontFamily: "var(--font-body-legacy)" }}
+                style={{ fontFamily: "var(--font-body-legacy)", minHeight: 0 }}
               >
                 DÉBLOQUER 497 € →
-              </a>
+              </button>
             </div>
           </div>
         </div>
+        <PaymentModal open={paymentOpen} onClose={() => setPaymentOpen(false)} />
       </div>
     );
   }

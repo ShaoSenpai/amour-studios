@@ -6,6 +6,7 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { toast } from "sonner";
 import { fireConfetti } from "@/components/gamification/confetti";
+import { fireXpFlyover } from "@/components/gamification/xp-flyover";
 import { ExerciseRenderer } from "@/components/exercises/exercise-renderer";
 import { ExerciseIframe } from "@/components/exercises/exercise-iframe";
 import { Button } from "@/components/ui/button";
@@ -18,16 +19,38 @@ export function ExercisesPanel({
   lessonId,
   videoWatched,
   exerciseCompleted,
+  xpReward = 100,
 }: {
   open: boolean;
   onClose: () => void;
   lessonId: Id<"lessons">;
   videoWatched: boolean;
   exerciseCompleted: boolean;
+  xpReward?: number;
 }) {
   const exercises = useQuery(api.exercises.listByLesson, { lessonId });
   const completeExercise = useMutation(api.progress.completeExercise);
   const [activeIdx, setActiveIdx] = React.useState(0);
+
+  const runComplete = React.useCallback(
+    async (rect: DOMRect) => {
+      fireXpFlyover(rect, xpReward);
+      await completeExercise({ lessonId });
+      fireConfetti();
+      toast.success("Exercice complété ! +XP");
+    },
+    [completeExercise, lessonId, xpReward]
+  );
+
+  const iframeFallbackRect = React.useCallback((): DOMRect => {
+    // Pas de click DOM pour l'iframe callback — point de départ : centre viewport
+    return new DOMRect(
+      window.innerWidth / 2 - 40,
+      window.innerHeight / 2 - 20,
+      80,
+      40
+    );
+  }, []);
 
   const active = exercises?.[activeIdx];
   const externalUrl = active?.exerciseUrl;
@@ -89,9 +112,7 @@ export function ExercisesPanel({
                   title={active.title}
                   completed={exerciseCompleted}
                   onComplete={async () => {
-                    await completeExercise({ lessonId });
-                    fireConfetti();
-                    toast.success("Exercice complété ! +XP");
+                    await runComplete(iframeFallbackRect());
                   }}
                 />
               ) : active.config ? (
@@ -112,10 +133,8 @@ export function ExercisesPanel({
                           fontFamily: "var(--font-body-legacy)",
                           minHeight: 0,
                         }}
-                        onClick={async () => {
-                          await completeExercise({ lessonId });
-                          fireConfetti();
-                          toast.success("Exercice complété ! +XP");
+                        onClick={async (e) => {
+                          await runComplete(e.currentTarget.getBoundingClientRect());
                         }}
                       >
                         <Check size={14} /> Marquer comme complété
@@ -147,10 +166,8 @@ export function ExercisesPanel({
                         minHeight: 0,
                       }}
                       disabled={!videoWatched}
-                      onClick={async () => {
-                        await completeExercise({ lessonId });
-                        fireConfetti();
-                        toast.success("Exercice complété !");
+                      onClick={async (e) => {
+                        await runComplete(e.currentTarget.getBoundingClientRect());
                       }}
                     >
                       Valider l&apos;exercice

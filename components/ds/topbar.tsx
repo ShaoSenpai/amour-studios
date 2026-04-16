@@ -103,7 +103,11 @@ export function Topbar() {
           <Pill variant={isVip ? "success" : "alert"} className="hidden sm:inline-flex">
             ● {isVip ? "VIP ACTIF" : "EN ATTENTE"}
           </Pill>
-          <span className="hidden font-mono text-[10px] uppercase tracking-[1.5px] text-foreground/60 md:inline" style={{ fontFamily: "var(--font-body-legacy)" }}>
+          <span
+            className="hidden font-mono text-[10px] uppercase tracking-[1.5px] text-foreground/60 md:inline"
+            style={{ fontFamily: "var(--font-body-legacy)" }}
+            data-xp-target
+          >
             NIV.{String(level).padStart(2, "0")} · {xp.toLocaleString("fr-FR")} XP
           </span>
           <NotificationBell />

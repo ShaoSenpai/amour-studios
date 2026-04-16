@@ -9,6 +9,7 @@ import { useState, use, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { fireConfetti } from "@/components/gamification/confetti";
+import { fireXpFlyover } from "@/components/gamification/xp-flyover";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/ds/topbar";
 import { useSidebar } from "@/components/layout/sidebar-provider";
@@ -346,7 +347,9 @@ export default function LessonPage({
                   fontFamily: "var(--font-body-legacy)",
                   minHeight: 0,
                 }}
-                onClick={async () => {
+                onClick={async (e) => {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  fireXpFlyover(rect, lesson.xpReward);
                   await completeExercise({ lessonId: lesson._id });
                   toast.success("Leçon complétée !");
                 }}
@@ -440,6 +443,7 @@ export default function LessonPage({
         lessonId={lesson._id}
         videoWatched={videoWatched}
         exerciseCompleted={exerciseCompleted}
+        xpReward={lesson.xpReward}
       />
       <NotesPanel
         open={activePanel === "notes"}

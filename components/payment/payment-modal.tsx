@@ -41,7 +41,7 @@ export function PaymentModal({
   const [loading, setLoading] = React.useState(false);
   const [initError, setInitError] = React.useState<string | null>(null);
 
-  // Pré-remplit l'email depuis le user connecté
+  // Pré-remplit l'email depuis le user connecté (une fois)
   React.useEffect(() => {
     if (me?.email && !email) setEmail(me.email);
   }, [me?.email, email]);
@@ -56,14 +56,16 @@ export function PaymentModal({
     return () => window.removeEventListener("keydown", h);
   }, [open, onClose]);
 
-  // Crée le PaymentIntent à l'ouverture + à chaque changement de mode/email
+  // Crée/re-crée le PaymentIntent. L'email n'est pas dans les deps — il est
+  // passé via receipt_email au confirmPayment, donc pas besoin de reset.
   const initPI = React.useCallback(
-    async (m: Mode, emailVal: string) => {
+    async (m: Mode) => {
       setLoading(true);
       setInitError(null);
       setClientSecret(null);
       try {
-        const res = await createPI({ mode: m, email: emailVal });
+        const emailSnapshot = emailRef.current;
+        const res = await createPI({ mode: m, email: emailSnapshot });
         setClientSecret(res.clientSecret);
         setClaimToken(res.claimToken ?? null);
       } catch (err) {
@@ -76,42 +78,44 @@ export function PaymentModal({
     [createPI]
   );
 
-  // Init au premier open
-  const initedRef = React.useRef(false);
+  // Snapshot email pour que initPI utilise la valeur courante sans être une dep
+  const emailRef = React.useRef(email);
+  React.useEffect(() => {
+    emailRef.current = email;
+  }, [email]);
+
+  // Init PI uniquement au premier open + à chaque changement de mode
+  // Jamais ré-init sur changement d'email (l'email est envoyé via receipt_email
+  // au confirmPayment, pas besoin de re-créer le PaymentIntent).
+  const wasOpenRef = React.useRef(false);
   React.useEffect(() => {
     if (!open) {
-      initedRef.current = false;
+      wasOpenRef.current = false;
+      setClientSecret(null);
       return;
     }
-    if (initedRef.current) return;
-    if (me === undefined) return; // wait for user query
-    const seedEmail = me?.email ?? email;
-    initedRef.current = true;
-    initPI(mode, seedEmail);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, me?.email]);
+    if (!wasOpenRef.current) {
+      wasOpenRef.current = true;
+      initPI(mode);
+    }
+  }, [open, mode, initPI]);
 
-  // Sur changement de mode, re-init
-  const prevModeRef = React.useRef(mode);
+  // Changement de mode après ouverture
+  const prevModeRef = React.useRef<Mode | null>(null);
   React.useEffect(() => {
-    if (!open) return;
-    if (prevModeRef.current === mode) return;
-    prevModeRef.current = mode;
-    initPI(mode, email);
-  }, [mode, open, email, initPI]);
-
-  // Debounce email
-  const emailTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-  React.useEffect(() => {
-    if (!open || !clientSecret) return;
-    if (emailTimeoutRef.current) clearTimeout(emailTimeoutRef.current);
-    emailTimeoutRef.current = setTimeout(() => {
-      if (email.trim()) initPI(mode, email);
-    }, 900);
-    return () => {
-      if (emailTimeoutRef.current) clearTimeout(emailTimeoutRef.current);
-    };
-  }, [email, mode, open, clientSecret, initPI]);
+    if (!open) {
+      prevModeRef.current = null;
+      return;
+    }
+    if (prevModeRef.current === null) {
+      prevModeRef.current = mode;
+      return;
+    }
+    if (prevModeRef.current !== mode) {
+      prevModeRef.current = mode;
+      initPI(mode);
+    }
+  }, [mode, open, initPI]);
 
   if (!open) return null;
 
@@ -252,7 +256,7 @@ export function PaymentModal({
               {initError}
               <button
                 className="ml-2 underline"
-                onClick={() => initPI(mode, email)}
+                onClick={() => initPI(mode)}
               >
                 Réessayer
               </button>

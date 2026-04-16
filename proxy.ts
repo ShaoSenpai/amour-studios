@@ -26,17 +26,26 @@ const isProtectedRoute = createRouteMatcher([
 
 const isLoginRoute = createRouteMatcher(["/login"]);
 
-export const proxy = convexAuthNextjsMiddleware(async (request, { convexAuth }) => {
-  const isAuth = await convexAuth.isAuthenticated();
+export const proxy = convexAuthNextjsMiddleware(
+  async (request, { convexAuth }) => {
+    const isAuth = await convexAuth.isAuthenticated();
+    const url = new URL(request.url);
 
-  if (isProtectedRoute(request) && !isAuth) {
-    return nextjsMiddlewareRedirect(request, "/login");
-  }
+    if (isProtectedRoute(request) && !isAuth) {
+      console.log("[auth-debug] protected → redirect login", {
+        path: url.pathname,
+        search: url.search,
+        ua: request.headers.get("user-agent")?.slice(0, 60),
+      });
+      return nextjsMiddlewareRedirect(request, "/login");
+    }
 
-  if (isLoginRoute(request) && isAuth) {
-    return nextjsMiddlewareRedirect(request, "/dashboard");
-  }
-});
+    if (isLoginRoute(request) && isAuth) {
+      return nextjsMiddlewareRedirect(request, "/dashboard");
+    }
+  },
+  { verbose: true }
+);
 
 export const config = {
   // Exclure les assets statiques + la route Convex Auth proxy /api/auth

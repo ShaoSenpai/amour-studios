@@ -40,6 +40,8 @@ export function Hero({
   ctaLabel,
   ctaHref,
   progress,
+  progressUnit = "leçons",
+  progressLabel = "Progression",
   className,
 }: {
   caption: string;
@@ -48,6 +50,8 @@ export function Hero({
   ctaLabel?: string;
   ctaHref?: string;
   progress?: { percent: number; completed: number; total: number };
+  progressUnit?: string;
+  progressLabel?: string;
   className?: string;
 }) {
   let titleRender: React.ReactNode = title;
@@ -137,13 +141,13 @@ export function Hero({
             ) : (
               <>
                 <div className="mb-2 flex items-baseline justify-between text-[10px] uppercase tracking-[2px] opacity-70" style={{ fontFamily: "var(--font-body-legacy)" }}>
-                  <span>◦ Progression</span>
+                  <span>◦ {progressLabel}</span>
                   <span className="tabular-nums">
                     <span className="font-bold" style={{ color: "var(--state-done)" }}>
                       {displayPercent}%
                     </span>
                     <span className="mx-2 opacity-40">·</span>
-                    <span>{displayCompleted}/{progress.total} leçons</span>
+                    <span>{displayCompleted}/{progress.total} {progressUnit}</span>
                   </span>
                 </div>
                 <div className="h-2 w-full overflow-hidden rounded-full bg-foreground/10">

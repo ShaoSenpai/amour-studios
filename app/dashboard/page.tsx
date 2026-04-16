@@ -37,6 +37,7 @@ export default function DashboardPage() {
   const progress = useQuery(api.progress.myProgress);
   const globalProgress = useQuery(api.progress.globalProgress);
   const badges = useQuery(api.badges.myBadges);
+  const previewLesson = useQuery(api.lessons.firstPreview);
   const { signOut } = useAuthActions();
   const updateStreak = useMutation(api.streaks.updateStreak);
   const { viewAsMember, viewAsPreview } = useViewMode();
@@ -101,19 +102,51 @@ export default function DashboardPage() {
           <UpsellBanner onClick={() => setUpsellOpen(true)} />
         )}
 
-        <Hero
-          caption={`Salut ${firstName} · ${dateLabel}`}
-          title="Ton univers se construit."
-          italicWord="univers"
-          ctaLabel={resumeHref ? "Reprendre la formation" : "Explorer les modules"}
-          ctaHref={resumeHref ?? "#modules"}
-          progress={{
-            percent: globalProgress.percent,
-            completed: globalProgress.completed,
-            total: globalProgress.total,
-          }}
-          className="mb-8"
-        />
+        {previewMode && previewLesson ? (() => {
+          const previewProgress = progress[previewLesson._id];
+          const videoDone = !!previewProgress?.videoWatchedAt;
+          const exoDone = !!previewProgress?.exerciseCompletedAt;
+          const completed = (videoDone ? 1 : 0) + (exoDone ? 1 : 0);
+          return (
+            <Hero
+              caption={`Salut ${firstName} · accès gratuit`}
+              title="Teste la méthode gratuitement."
+              italicWord="gratuitement"
+              ctaLabel={
+                completed === 0
+                  ? "Commence ta leçon gratuite →"
+                  : completed === 2
+                  ? "Revoir ta leçon gratuite"
+                  : videoDone
+                  ? "Fais l'exercice"
+                  : "Reprends la vidéo"
+              }
+              ctaHref={`/lesson/${previewLesson._id}`}
+              progress={{
+                percent: Math.round((completed / 2) * 100),
+                completed,
+                total: 2,
+              }}
+              progressLabel="Ta leçon gratuite"
+              progressUnit="étapes"
+              className="mb-8"
+            />
+          );
+        })() : (
+          <Hero
+            caption={`Salut ${firstName} · ${dateLabel}`}
+            title="Ton univers se construit."
+            italicWord="univers"
+            ctaLabel={resumeHref ? "Reprendre la formation" : "Explorer les modules"}
+            ctaHref={resumeHref ?? "#modules"}
+            progress={{
+              percent: globalProgress.percent,
+              completed: globalProgress.completed,
+              total: globalProgress.total,
+            }}
+            className="mb-8"
+          />
+        )}
 
         <section id="modules" className="mb-10">
           <div className="mb-6 flex items-baseline justify-between border-b border-foreground/15 pb-4">

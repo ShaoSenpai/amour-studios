@@ -26,6 +26,39 @@ export const get = query({
 });
 
 /**
+ * Retourne la première leçon avec previewAccess=true (accès gratuit).
+ * Utilisée sur le dashboard free user pour mettre en avant le contenu
+ * gratuit comme hook de conversion.
+ */
+export const firstPreview = query({
+  args: {},
+  handler: async (ctx) => {
+    const modules = await ctx.db
+      .query("modules")
+      .withIndex("by_order")
+      .filter((q) => q.eq(q.field("deletedAt"), undefined))
+      .collect();
+
+    for (const m of modules) {
+      const lessons = await ctx.db
+        .query("lessons")
+        .withIndex("by_module_order", (q) => q.eq("moduleId", m._id))
+        .filter((q) =>
+          q.and(
+            q.eq(q.field("deletedAt"), undefined),
+            q.eq(q.field("previewAccess"), true)
+          )
+        )
+        .collect();
+      if (lessons.length > 0) {
+        return { ...lessons[0], moduleTitle: m.title, moduleBadgeLabel: m.badgeLabel };
+      }
+    }
+    return null;
+  },
+});
+
+/**
  * Recherche de leçons par titre ou description (case-insensitive).
  * Retourne max 20 résultats avec les infos du module associé.
  */

@@ -12,8 +12,10 @@ import { fireConfetti } from "@/components/gamification/confetti";
 // ----------------------------------------------------------------------------
 // S'affiche sur /dashboard?justPaid=1 après paiement réussi. Attend que le
 // webhook Stripe ait créé le purchase et lié l'utilisateur (Convex réactif).
-// Dès que l'utilisateur devient VIP, déclenche une animation "bienvenue"
-// puis retire le param de l'URL pour révéler le dashboard unlocked.
+// Dès que l'utilisateur devient VIP, joue "Bienvenue artiste" puis retire
+// ?justPaid de l'URL.
+// Layout volontairement fixe (min-h + max-w) pour éviter tout saut vertical
+// entre les 2 états.
 // ============================================================================
 
 export function UnlockOverlay() {
@@ -24,95 +26,79 @@ export function UnlockOverlay() {
   const purchase = useQuery(api.purchases.current);
   const user = useQuery(api.users.current);
 
-  const [stage, setStage] = React.useState<"hidden" | "waiting" | "revealing" | "done">(
+  const [stage, setStage] = React.useState<"hidden" | "waiting" | "revealing" | "fading" | "done">(
     justPaid ? "waiting" : "hidden"
   );
 
-  // Passage à "revealing" dès que le purchase apparaît (webhook a fini)
   React.useEffect(() => {
     if (stage !== "waiting") return;
     if (purchase?.status === "paid" || user?.purchaseId) {
       setStage("revealing");
       fireConfetti();
-      setTimeout(() => fireConfetti(), 450);
+      const t = setTimeout(() => fireConfetti(), 500);
+      return () => clearTimeout(t);
     }
   }, [purchase?.status, user?.purchaseId, stage]);
 
-  // Fallback : si le webhook met plus de 15s, on laisse quand même passer
   React.useEffect(() => {
     if (stage !== "waiting") return;
     const t = setTimeout(() => setStage("revealing"), 15000);
     return () => clearTimeout(t);
   }, [stage]);
 
-  // Après le reveal, retire le param ?justPaid=1 de l'URL
   React.useEffect(() => {
     if (stage !== "revealing") return;
+    const t = setTimeout(() => setStage("fading"), 2000);
+    return () => clearTimeout(t);
+  }, [stage]);
+
+  React.useEffect(() => {
+    if (stage !== "fading") return;
     const t = setTimeout(() => {
       setStage("done");
       const url = new URL(window.location.href);
       url.searchParams.delete("justPaid");
       router.replace(url.pathname + (url.search ? url.search : ""), { scroll: false });
-    }, 2400);
+    }, 500);
     return () => clearTimeout(t);
   }, [stage, router]);
 
   if (stage === "hidden" || stage === "done") return null;
 
-  const showSuccess = stage === "revealing";
+  const showSuccess = stage === "revealing" || stage === "fading";
 
   return (
     <div
-      className="fixed inset-0 z-[90] flex items-center justify-center"
+      className="fixed inset-0 z-[90] flex items-center justify-center transition-opacity duration-500 ease-in-out"
       style={{
         background: "rgba(13, 11, 8, 0.96)",
         backdropFilter: "blur(14px)",
-        animation: showSuccess ? "unlock-fade-out 2400ms ease-in forwards" : undefined,
+        opacity: stage === "fading" ? 0 : 1,
+        pointerEvents: stage === "fading" ? "none" : "auto",
       }}
     >
       <style>{`
-        @keyframes unlock-fade-out {
-          0%, 70% { opacity: 1; }
-          100% { opacity: 0; pointer-events: none; }
-        }
         @keyframes unlock-check-pop {
           0% { transform: scale(0) rotate(-30deg); opacity: 0; }
-          60% { transform: scale(1.25) rotate(5deg); opacity: 1; }
+          60% { transform: scale(1.2) rotate(5deg); opacity: 1; }
           100% { transform: scale(1) rotate(0); opacity: 1; }
         }
-        @keyframes unlock-title-rise {
-          0% { transform: translateY(20px); opacity: 0; }
-          100% { transform: translateY(0); opacity: 1; }
+        @keyframes unlock-fade-in {
+          from { opacity: 0; transform: translateY(10px); }
+          to   { opacity: 1; transform: translateY(0); }
         }
       `}</style>
 
-      <div className="flex flex-col items-center gap-6 px-6 text-center text-[#F4EEE1]">
-        {!showSuccess ? (
-          <>
+      {/* Container taille fixe : évite tout saut entre "waiting" et "revealing" */}
+      <div
+        className="flex w-full max-w-md flex-col items-center gap-6 px-6 text-center text-[#F4EEE1]"
+        style={{ minHeight: 280 }}
+      >
+        {/* Icône — même slot 80x80 pour les 2 états */}
+        <div className="flex size-20 items-center justify-center">
+          {!showSuccess ? (
             <Loader2 size={32} className="animate-spin text-[#FFB347]" />
-            <div>
-              <p
-                className="mb-2 font-mono text-[10px] uppercase tracking-[2px] text-[#FFB347]"
-                style={{ fontFamily: "var(--font-body-legacy)" }}
-              >
-                ◦ Liaison du paiement…
-              </p>
-              <h2
-                className="text-3xl italic leading-[1] md:text-4xl"
-                style={{ fontFamily: "var(--font-serif)" }}
-              >
-                On prépare ton accès.
-              </h2>
-              <p
-                className="mt-3 font-mono text-xs text-[#F4EEE1]/60"
-                style={{ fontFamily: "var(--font-body-legacy)" }}
-              >
-                Quelques secondes — Stripe nous confirme ton paiement.
-              </p>
-            </div>
-          </>
-        ) : (
-          <>
+          ) : (
             <div
               className="flex size-20 items-center justify-center rounded-full"
               style={{
@@ -122,28 +108,45 @@ export function UnlockOverlay() {
             >
               <Check size={40} color="var(--state-done-fg)" strokeWidth={3} />
             </div>
-            <div style={{ animation: "unlock-title-rise 500ms ease-out 150ms both" }}>
-              <p
-                className="mb-2 font-mono text-[10px] uppercase tracking-[2px] text-[color:var(--state-done)]"
-                style={{ fontFamily: "var(--font-body-legacy)" }}
-              >
-                ◦ Accès complet débloqué
-              </p>
-              <h2
-                className="text-4xl italic leading-[1] md:text-5xl"
-                style={{ fontFamily: "var(--font-serif)" }}
-              >
+          )}
+        </div>
+
+        {/* Texte — wrapper de hauteur fixe pour éviter le reflow */}
+        <div
+          key={showSuccess ? "success" : "waiting"}
+          className="flex flex-col items-center gap-3"
+          style={{ animation: "unlock-fade-in 400ms ease-out both", minHeight: 140 }}
+        >
+          <p
+            className="font-mono text-[10px] uppercase tracking-[2px]"
+            style={{
+              fontFamily: "var(--font-body-legacy)",
+              color: showSuccess ? "var(--state-done)" : "#FFB347",
+            }}
+          >
+            ◦ {showSuccess ? "Accès complet débloqué" : "Liaison du paiement…"}
+          </p>
+          <h2
+            className="text-4xl italic leading-[1] md:text-5xl"
+            style={{ fontFamily: "var(--font-serif)" }}
+          >
+            {showSuccess ? (
+              <>
                 Bienvenue, <em>artiste.</em>
-              </h2>
-              <p
-                className="mt-4 font-mono text-xs text-[#F4EEE1]/70"
-                style={{ fontFamily: "var(--font-body-legacy)" }}
-              >
-                6 modules · 20+ leçons · communauté VIP
-              </p>
-            </div>
-          </>
-        )}
+              </>
+            ) : (
+              "On prépare ton accès."
+            )}
+          </h2>
+          <p
+            className="font-mono text-xs text-[#F4EEE1]/65"
+            style={{ fontFamily: "var(--font-body-legacy)" }}
+          >
+            {showSuccess
+              ? "6 modules · 20+ leçons · communauté VIP"
+              : "Quelques secondes — Stripe nous confirme ton paiement."}
+          </p>
+        </div>
       </div>
     </div>
   );

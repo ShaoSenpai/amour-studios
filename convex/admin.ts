@@ -23,10 +23,9 @@ export const listMembers = query({
 
     const users = await ctx.db.query("users").collect();
 
+    // Inclure les soft-deleted (l'UI affiche un statut + bouton Restaurer/Hard delete)
     const members = await Promise.all(
-      users
-        .filter((u) => !u.deletedAt)
-        .map(async (user) => {
+      users.map(async (user) => {
           const onboarding = await ctx.db
             .query("onboardingNotes")
             .withIndex("by_user", (q) => q.eq("userId", user._id))
@@ -82,6 +81,118 @@ export const restoreMember = mutation({
   handler: async (ctx, { userId }) => {
     await requireAdmin(ctx);
     await ctx.db.patch(userId, { deletedAt: undefined });
+  },
+});
+
+/**
+ * HARD DELETE — efface définitivement un user et toutes ses données liées.
+ *
+ * ⚠ Irréversible. Utilise removeMember (soft) pour un delete restaurable.
+ *
+ * Ce qui est effacé :
+ *  - user record
+ *  - sessions Convex Auth (authSessions, authRefreshTokens, authAccounts)
+ *  - progression (progress, badges, streaks implicit)
+ *  - contenu utilisateur (notes, commentaires, responses)
+ *  - notifications
+ *  - onboardingNotes
+ *
+ * Ce qui est préservé (pour audit comptable) :
+ *  - purchases → le champ userId est mis à null mais le record reste
+ *
+ * Un admin ne peut pas se hard-delete lui-même.
+ */
+export const hardDeleteMember = mutation({
+  args: { userId: v.id("users") },
+  handler: async (ctx, { userId }) => {
+    const { userId: adminId } = await requireAdmin(ctx);
+    if (userId === adminId) throw new Error("Tu ne peux pas te supprimer toi-même");
+
+    const user = await ctx.db.get(userId);
+    if (!user) throw new Error("User introuvable");
+
+    // 1. Sessions Convex Auth — supprime refresh tokens via session index
+    const sessions = await ctx.db
+      .query("authSessions")
+      .withIndex("userId", (q) => q.eq("userId", userId))
+      .collect();
+    for (const session of sessions) {
+      const refreshTokens = await ctx.db
+        .query("authRefreshTokens")
+        .withIndex("sessionId", (q) => q.eq("sessionId", session._id))
+        .collect();
+      for (const rt of refreshTokens) await ctx.db.delete(rt._id);
+      await ctx.db.delete(session._id);
+    }
+
+    // 2. authAccounts (liens OAuth providers)
+    const accounts = await ctx.db
+      .query("authAccounts")
+      .withIndex("userIdAndProvider", (q) => q.eq("userId", userId))
+      .collect();
+    for (const a of accounts) await ctx.db.delete(a._id);
+
+    // 3. Progression : progress
+    const progressRecords = await ctx.db
+      .query("progress")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .collect();
+    for (const p of progressRecords) await ctx.db.delete(p._id);
+
+    // 4. Badges
+    const badges = await ctx.db
+      .query("badges")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .collect();
+    for (const b of badges) await ctx.db.delete(b._id);
+
+    // 5. Exercice responses
+    const responses = await ctx.db
+      .query("exerciseResponses")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .collect();
+    for (const r of responses) await ctx.db.delete(r._id);
+
+    // 6. Notes
+    const notes = await ctx.db
+      .query("notes")
+      .filter((q) => q.eq(q.field("userId"), userId))
+      .collect();
+    for (const n of notes) await ctx.db.delete(n._id);
+
+    // 7. Commentaires (hard-delete : supprime tout le thread du user)
+    const comments = await ctx.db
+      .query("comments")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .collect();
+    for (const c of comments) await ctx.db.delete(c._id);
+
+    // 8. Notifications
+    const notifications = await ctx.db
+      .query("notifications")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .collect();
+    for (const n of notifications) await ctx.db.delete(n._id);
+
+    // 9. Onboarding notes
+    const onboardingNotes = await ctx.db
+      .query("onboardingNotes")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .collect();
+    for (const o of onboardingNotes) await ctx.db.delete(o._id);
+
+    // 10. Purchases : unlink (préserve le record comptable)
+    if (user.purchaseId) {
+      const purchase = await ctx.db.get(user.purchaseId);
+      if (purchase && purchase.userId === userId) {
+        await ctx.db.patch(user.purchaseId, { userId: undefined });
+      }
+    }
+
+    // 11. Finalement : le user lui-même
+    await ctx.db.delete(userId);
+
+    return { ok: true };
   },
 });
 

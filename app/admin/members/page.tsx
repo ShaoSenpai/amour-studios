@@ -297,14 +297,19 @@ type Member = NonNullable<ReturnType<typeof useQuery<typeof api.admin.listMember
 function MemberCard({ member, currentUserId }: { member: Member; currentUserId: Id<"users"> }) {
   const setRole = useMutation(api.admin.setRole);
   const removeMember = useMutation(api.admin.removeMember);
+  const restoreMember = useMutation(api.admin.restoreMember);
+  const hardDeleteMember = useMutation(api.admin.hardDeleteMember);
   const [showActions, setShowActions] = useState(false);
 
   const hasPurchase = !!member.purchase;
   const isAdmin = member.role === "admin";
   const isSelf = member._id === currentUserId;
+  const isDeleted = !!member.deletedAt;
 
-  // Statut unique par priorité : Admin > VIP payé > Prospect
-  const status = isAdmin
+  // Statut unique par priorité : Supprimé > Admin > VIP payé > Prospect
+  const status = isDeleted
+    ? { label: "Supprimé", color: "border-[#E63326]/40 text-[#E63326]" }
+    : isAdmin
     ? { label: "Admin", color: "border-foreground/30 text-foreground" }
     : hasPurchase
     ? { label: "VIP", color: "border-[#2B7A6F]/30 text-[#2B7A6F]" }
@@ -374,8 +379,8 @@ function MemberCard({ member, currentUserId }: { member: Member; currentUserId: 
             </Button>
           )}
 
-          {/* Remove member */}
-          {!isSelf && (
+          {/* Remove member (soft) */}
+          {!isSelf && !isDeleted && (
             <Button
               size="sm"
               variant="outline"
@@ -387,6 +392,43 @@ function MemberCard({ member, currentUserId }: { member: Member; currentUserId: 
               }}
             >
               Supprimer
+            </Button>
+          )}
+
+          {/* Restore (si soft-deleted) */}
+          {!isSelf && isDeleted && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="rounded-full text-xs text-[#2B7A6F] border-[#2B7A6F]/30 hover:bg-[#2B7A6F]/10"
+              onClick={async () => {
+                await restoreMember({ userId: member._id as Id<"users"> });
+                toast.success(`${member.name} restauré`);
+              }}
+            >
+              Restaurer
+            </Button>
+          )}
+
+          {/* Hard delete (irréversible) */}
+          {!isSelf && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="rounded-full text-xs text-destructive border-destructive/50 hover:bg-destructive/20"
+              onClick={async () => {
+                const name = member.name ?? "ce membre";
+                if (!confirm(
+                  `⚠ HARD DELETE ${name}\n\n` +
+                  `Efface définitivement : user + sessions + progression + notes + commentaires.\n` +
+                  `Les purchases sont préservées (unlinked).\n\n` +
+                  `IRRÉVERSIBLE. Continuer ?`
+                )) return;
+                await hardDeleteMember({ userId: member._id as Id<"users"> });
+                toast.success(`${name} effacé définitivement`);
+              }}
+            >
+              Hard delete
             </Button>
           )}
         </div>

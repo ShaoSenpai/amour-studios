@@ -362,7 +362,7 @@ export default function LessonPage({
               { key: "exos" as DockKey, label: "Exos", icon: Pencil, count: exercises.length },
               { key: "notes" as DockKey, label: "Notes", icon: FileText, count: notesCount ?? undefined },
               { key: "comments" as DockKey, label: "Commentaires", icon: MessageCircle, count: commentsCount ?? undefined },
-              { key: "module" as DockKey, label: "Module", icon: List, count: undefined },
+              { key: "module" as DockKey, label: "Plan", icon: List, count: undefined },
             ]).map(({ key, label, icon: Icon, count }) => {
               const isActive = activePanel === key;
               return (

@@ -18,6 +18,33 @@ export const list = query({
   },
 });
 
+/**
+ * Tous les modules avec leurs leçons — pour le panneau "Plan du cours"
+ * qui permet de naviguer entre modules et leçons depuis la page leçon.
+ * Un seul roundtrip au lieu de N queries listByModule côté client.
+ */
+export const listWithLessons = query({
+  args: {},
+  handler: async (ctx) => {
+    const modules = await ctx.db
+      .query("modules")
+      .withIndex("by_order")
+      .filter((q) => q.eq(q.field("deletedAt"), undefined))
+      .collect();
+
+    const result = [];
+    for (const m of modules) {
+      const lessons = await ctx.db
+        .query("lessons")
+        .withIndex("by_module_order", (q) => q.eq("moduleId", m._id))
+        .filter((q) => q.eq(q.field("deletedAt"), undefined))
+        .collect();
+      result.push({ ...m, lessons });
+    }
+    return result;
+  },
+});
+
 export const get = query({
   args: { moduleId: v.id("modules") },
   handler: async (ctx, { moduleId }) => {

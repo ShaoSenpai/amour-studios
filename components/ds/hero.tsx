@@ -3,6 +3,35 @@
 import * as React from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { useAnimatedNumber } from "@/lib/use-animated-number";
+
+const STORAGE_KEY = "amour-dashboard-progress";
+
+function readLastSeen(): { completed: number; total: number } | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (
+      typeof parsed?.completed === "number" &&
+      typeof parsed?.total === "number"
+    ) {
+      return parsed;
+    }
+  } catch {}
+  return null;
+}
+
+function writeLastSeen(completed: number, total: number) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ completed, total })
+    );
+  } catch {}
+}
 
 export function Hero({
   caption,
@@ -32,6 +61,40 @@ export function Hero({
       </>
     );
   }
+
+  // Initial = dernière valeur vue (localStorage). Tween vers la valeur actuelle.
+  const initialCompleted = React.useMemo(() => {
+    if (!progress) return undefined;
+    const seen = readLastSeen();
+    if (!seen) return progress.completed; // pas d'animation au premier passage
+    // Si le total a changé (nouveaux modules) on évite de tween avec des
+    // données incohérentes — on saute directement à la cible.
+    if (seen.total !== progress.total) return progress.completed;
+    // Si l'utilisateur a moins qu'avant (edge case) → pas d'anim
+    if (seen.completed > progress.completed) return progress.completed;
+    return seen.completed;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const animatedCompleted = useAnimatedNumber(progress?.completed ?? 0, {
+    duration: 1800,
+    initial: initialCompleted,
+  });
+
+  const displayCompleted = Math.floor(animatedCompleted);
+  const displayPercent = progress?.total
+    ? Math.round((animatedCompleted / progress.total) * 100)
+    : 0;
+
+  const completedToSave = progress?.completed;
+  const totalToSave = progress?.total;
+  React.useEffect(() => {
+    if (completedToSave == null || totalToSave == null) return;
+    const t = setTimeout(() => {
+      writeLastSeen(completedToSave, totalToSave);
+    }, 2000);
+    return () => clearTimeout(t);
+  }, [completedToSave, totalToSave]);
 
   return (
     <section className={cn("ds-reveal", className)}>
@@ -75,19 +138,19 @@ export function Hero({
               <>
                 <div className="mb-2 flex items-baseline justify-between text-[10px] uppercase tracking-[2px] opacity-70" style={{ fontFamily: "var(--font-body-legacy)" }}>
                   <span>◦ Progression</span>
-                  <span>
+                  <span className="tabular-nums">
                     <span className="font-bold" style={{ color: "var(--state-done)" }}>
-                      {progress.percent}%
+                      {displayPercent}%
                     </span>
                     <span className="mx-2 opacity-40">·</span>
-                    <span>{progress.completed}/{progress.total} leçons</span>
+                    <span>{displayCompleted}/{progress.total} leçons</span>
                   </span>
                 </div>
                 <div className="h-2 w-full overflow-hidden rounded-full bg-foreground/10">
                   <div
                     className="ds-progress-fill h-full rounded-full"
                     style={{
-                      width: `${progress.percent}%`,
+                      width: `${displayPercent}%`,
                       background: "linear-gradient(90deg, var(--progress-grad-from), var(--progress-grad-to))",
                     }}
                   />

@@ -357,6 +357,24 @@ export default function LessonPage({
                 Valider la leçon <ChevronRight size={13} />
               </button>
             )}
+            {hasExercises && videoWatched && !exerciseCompleted && (
+              <button
+                type="button"
+                onClick={() => setActivePanel("exos")}
+                className="inline-flex h-9 items-center gap-2 rounded-full border border-foreground/30 bg-foreground/[0.08] px-4 font-mono text-[11px] font-bold uppercase tracking-[1.5px] text-foreground transition-all hover:border-foreground/50 hover:bg-foreground/[0.14]"
+                style={{ fontFamily: "var(--font-body-legacy)", minHeight: 0 }}
+              >
+                <Pencil size={12} /> Fais l&apos;exercice pour valider <ChevronRight size={13} />
+              </button>
+            )}
+            {hasExercises && !videoWatched && exerciseCompleted && (
+              <span
+                className="font-mono text-[10px] uppercase tracking-[1.5px] text-foreground/70"
+                style={{ fontFamily: "var(--font-body-legacy)" }}
+              >
+                ◦ Regarde la vidéo pour valider
+              </span>
+            )}
           </div>
 
           {/* Barre d'actions inline : Exos / Notes / Com. / Module */}

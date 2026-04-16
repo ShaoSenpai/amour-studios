@@ -11,6 +11,7 @@ import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { useViewMode } from "@/components/providers/view-mode-provider";
 import { useSidebar } from "@/components/layout/sidebar-provider";
 import { Search, Eye, EyeOff } from "lucide-react";
+import { useAnimatedNumber } from "@/lib/use-animated-number";
 
 export function Topbar() {
   const user = useQuery(api.users.current);
@@ -32,10 +33,13 @@ export function Topbar() {
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
+  const rawXp = user?.xp ?? 0;
+  const animatedXp = useAnimatedNumber(rawXp, { duration: 1400 });
+
   if (!user) return null;
 
-  const xp = user.xp ?? 0;
-  const level = Math.floor(xp / 500) + 1;
+  const xpDisplay = Math.floor(animatedXp);
+  const level = Math.floor(animatedXp / 500) + 1;
   const isVip = !!user.purchaseId || user.role === "admin";
 
   return (
@@ -104,11 +108,11 @@ export function Topbar() {
             ● {isVip ? "VIP ACTIF" : "EN ATTENTE"}
           </Pill>
           <span
-            className="hidden font-mono text-[10px] uppercase tracking-[1.5px] text-foreground/60 md:inline"
+            className="hidden font-mono text-[10px] uppercase tracking-[1.5px] text-foreground/60 tabular-nums md:inline"
             style={{ fontFamily: "var(--font-body-legacy)" }}
             data-xp-target
           >
-            NIV.{String(level).padStart(2, "0")} · {xp.toLocaleString("fr-FR")} XP
+            NIV.{String(level).padStart(2, "0")} · {xpDisplay.toLocaleString("fr-FR")} XP
           </span>
           <NotificationBell />
           <ThemeToggle />

@@ -370,6 +370,7 @@ function PaymentForm({
           options={{
             layout: "tabs",
             paymentMethodOrder: ["card", "apple_pay", "google_pay"],
+            wallets: { link: "never" },
           }}
         />
       </div>

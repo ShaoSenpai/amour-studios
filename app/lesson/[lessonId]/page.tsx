@@ -121,6 +121,49 @@ export default function LessonPage({
     return () => window.removeEventListener("keydown", h);
   }, []);
 
+  // Global listener — écoute la complétion d'exo depuis iframe (postMessage)
+  // OU nouvel onglet (BroadcastChannel). Vit indépendamment du panneau Exos :
+  // si l'utilisateur ferme le panneau pendant qu'il bosse dans une autre fenêtre,
+  // la complétion reste capturée.
+  const lessonIdForListener = lesson?._id;
+  const xpRewardForListener = lesson?.xpReward;
+  useEffect(() => {
+    if (!lessonIdForListener || !xpRewardForListener) return;
+    if (exerciseCompleted) return;
+
+    const fireComplete = async () => {
+      const exosBtn = document.querySelector<HTMLElement>('[data-exos-btn]');
+      const rect =
+        exosBtn?.getBoundingClientRect() ??
+        new DOMRect(window.innerWidth / 2 - 40, window.innerHeight / 2 - 20, 80, 40);
+      fireXpFlyover(rect, xpRewardForListener);
+      await completeExercise({ lessonId: lessonIdForListener });
+      fireConfetti();
+      toast.success("Exercice complété ! +XP");
+    };
+
+    const onMessage = (e: MessageEvent) => {
+      if (e.origin !== window.location.origin) return;
+      if (e.data?.type !== "amour:exercise-complete") return;
+      fireComplete();
+    };
+    window.addEventListener("message", onMessage);
+
+    let channel: BroadcastChannel | null = null;
+    try {
+      channel = new BroadcastChannel("amour-exo");
+      channel.addEventListener("message", (e) => {
+        if (e.data?.type !== "amour:exercise-complete") return;
+        fireComplete();
+      });
+    } catch {}
+
+    return () => {
+      window.removeEventListener("message", onMessage);
+      channel?.close();
+    };
+  }, [lessonIdForListener, xpRewardForListener, exerciseCompleted, completeExercise]);
+
   // Détection accès :
   // - admin (et pas en vue membre) → accès total
   // - VIP (purchaseId) → accès total
@@ -390,6 +433,7 @@ export default function LessonPage({
                 <button
                   key={key}
                   type="button"
+                  data-exos-btn={key === "exos" ? "true" : undefined}
                   onClick={() => setActivePanel(isActive ? null : key)}
                   className={`group relative inline-flex h-10 items-center gap-2 rounded-full border px-4 font-mono text-[11px] font-bold uppercase tracking-[1.5px] transition-all ${
                     isActive

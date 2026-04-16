@@ -43,7 +43,20 @@ export function ExercisesPanel({
   );
 
   const active = exercises?.[activeIdx];
-  const externalUrl = active?.exerciseUrl;
+  // URL enrichie avec ?return= pour que le banner de l'exo sache où ramener
+  // l'utilisateur après génération du PDF (mode "Nouvelle fenêtre")
+  let externalUrl: string | undefined = undefined;
+  if (active?.exerciseUrl && typeof window !== "undefined") {
+    try {
+      const u = new URL(active.exerciseUrl, window.location.origin);
+      if (u.origin === window.location.origin) {
+        u.searchParams.set("return", `/lesson/${lessonId}`);
+      }
+      externalUrl = u.pathname + u.search;
+    } catch {
+      externalUrl = active.exerciseUrl;
+    }
+  }
 
   return (
     <LessonPanel
@@ -98,7 +111,7 @@ export function ExercisesPanel({
             <div>
               {active.exerciseUrl ? (
                 <ExerciseIframe
-                  url={active.exerciseUrl}
+                  url={externalUrl ?? active.exerciseUrl}
                   title={active.title}
                   completed={exerciseCompleted}
                   onComplete={async (rect) => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { Check, Maximize2, Minimize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -23,38 +23,10 @@ export function ExerciseIframe({
   const [fullscreen, setFullscreen] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
-  // Écouter la completion depuis :
-  //  1) postMessage iframe → parent (same-origin)
-  //  2) BroadcastChannel (couvre le cas "Nouvelle fenêtre" avec rel=noopener
-  //     où window.opener est null)
-  useEffect(() => {
-    const fallbackRect = () =>
-      iframeRef.current?.getBoundingClientRect() ??
-      new DOMRect(window.innerWidth / 2 - 40, window.innerHeight / 2 - 20, 80, 40);
-
-    const handler = (e: MessageEvent) => {
-      if (e.origin !== window.location.origin) return;
-      if (e.data?.type !== "amour:exercise-complete") return;
-      if (completed) return;
-      onComplete(fallbackRect());
-    };
-    window.addEventListener("message", handler);
-
-    let channel: BroadcastChannel | null = null;
-    try {
-      channel = new BroadcastChannel("amour-exo");
-      channel.addEventListener("message", (e) => {
-        if (e.data?.type !== "amour:exercise-complete") return;
-        if (completed) return;
-        onComplete(fallbackRect());
-      });
-    } catch {}
-
-    return () => {
-      window.removeEventListener("message", handler);
-      channel?.close();
-    };
-  }, [completed, onComplete]);
+  // Note : l'écoute postMessage / BroadcastChannel est gérée au niveau de la
+  // lesson page (app/lesson/[lessonId]/page.tsx) pour rester active même
+  // quand le panneau Exos est fermé. onComplete n'est plus appelé que par
+  // le bouton "Valider manuellement" ci-dessous.
 
   if (completed) {
     return (

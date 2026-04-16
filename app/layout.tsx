@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { DM_Sans, Instrument_Serif } from "next/font/google";
 import { ConvexAuthNextjsServerProvider } from "@convex-dev/auth/nextjs/server";
 import { Toaster } from "@/components/ui/sonner";
@@ -25,6 +25,17 @@ export const metadata: Metadata = {
   title: "Amour Studios — Formation pour artistes musique",
   description:
     "Maîtrise la création de contenu pour devenir visible en tant qu'artiste musical. Formation vidéo privée et communauté Discord.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#F4EEE1" },
+    { media: "(prefers-color-scheme: dark)", color: "#0D0B08" },
+  ],
 };
 
 export default function RootLayout({

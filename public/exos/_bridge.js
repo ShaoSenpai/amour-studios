@@ -19,16 +19,22 @@
 (function () {
   "use strict";
 
+  var LOG_PREFIX = "[amour-exo]";
+  function log() {
+    try { console.log.apply(console, [LOG_PREFIX].concat([].slice.call(arguments))); } catch (e) {}
+  }
+  log("bridge loaded · v2 · inIframe=" + (window.self !== window.top));
+
   var sent = false;
   var channel = null;
-  try { channel = new BroadcastChannel("amour-exo"); } catch (e) {}
+  try { channel = new BroadcastChannel("amour-exo"); log("BroadcastChannel ok"); } catch (e) { log("BroadcastChannel unavailable"); }
 
   function isInIframe() {
     try { return window.self !== window.top; } catch (e) { return true; }
   }
 
   function notifyComplete(kind) {
-    if (sent) return;
+    if (sent) { log("notifyComplete skipped (already sent)"); return; }
     sent = true;
     var msg = {
       type: "amour:exercise-complete",
@@ -36,12 +42,16 @@
       at: Date.now(),
       href: location.pathname,
     };
-    try { if (window.parent && window.parent !== window) window.parent.postMessage(msg, "*"); } catch (e) {}
-    try { if (window.opener) window.opener.postMessage(msg, "*"); } catch (e) {}
-    try { if (channel) channel.postMessage(msg); } catch (e) {}
+    log("notifyComplete", msg);
+    try { if (window.parent && window.parent !== window) { window.parent.postMessage(msg, "*"); log("→ parent"); } } catch (e) { log("parent err", e); }
+    try { if (window.opener) { window.opener.postMessage(msg, "*"); log("→ opener"); } } catch (e) { log("opener err", e); }
+    try { if (channel) { channel.postMessage(msg); log("→ BroadcastChannel"); } } catch (e) { log("channel err", e); }
 
     // Bandeau visible uniquement en mode standalone (nouvel onglet)
-    if (!isInIframe()) showReturnBanner();
+    if (!isInIframe()) {
+      log("showing return banner");
+      try { showReturnBanner(); } catch (e) { log("banner err", e); }
+    }
 
     setTimeout(function () { sent = false; }, 3000);
   }
@@ -53,16 +63,18 @@
     if (!Ctor || !Ctor.prototype || Ctor.prototype.__amourHooked) return false;
     var origSave = Ctor.prototype.save;
     Ctor.prototype.save = function () {
+      log("jsPDF.save intercepted");
       try { return origSave.apply(this, arguments); }
       finally { notifyComplete("pdf"); }
     };
     Ctor.prototype.__amourHooked = true;
+    log("jsPDF hooked");
     return true;
   }
   if (!tryHookJsPDF()) {
     var tries = 0;
     var int = setInterval(function () {
-      if (tryHookJsPDF() || ++tries > 50) clearInterval(int);
+      if (tryHookJsPDF() || ++tries > 50) { clearInterval(int); if (tries > 50) log("jsPDF never loaded"); }
     }, 100);
   }
 
@@ -71,10 +83,34 @@
   HTMLAnchorElement.prototype.click = function () {
     try {
       var name = (this.download || "").toLowerCase();
-      if (/\.(ics|pdf|csv)$/.test(name)) notifyComplete(name.split(".").pop());
+      if (/\.(ics|pdf|csv)$/.test(name)) {
+        log("anchor.click intercepted (" + name + ")");
+        notifyComplete(name.split(".").pop());
+      }
     } catch (e) {}
     return origClick.apply(this, arguments);
   };
+
+  // ── Belt-and-suspenders : hook click sur boutons à texte "PDF"/"Générer" ─
+  // Si jsPDF save n'est pas interceptée (autre méthode), on déclenche quand
+  // même notifyComplete après 300ms (le téléchargement s'est probablement lancé)
+  document.addEventListener("click", function (e) {
+    var t = e.target;
+    while (t && t !== document.body) {
+      if (t.tagName === "BUTTON" || t.tagName === "A") {
+        var txt = (t.innerText || t.textContent || "").toUpperCase();
+        if (/GÉNÉRER|GENERER|TÉLÉCHARGER|TELECHARGER|PDF|EXPORTER/.test(txt) &&
+            !/ANNULER|RETOUR/.test(txt)) {
+          log("completion button clicked, arming fallback: " + txt.substring(0, 40));
+          setTimeout(function () {
+            if (!sent) { log("fallback notify (button-click)"); notifyComplete("button"); }
+          }, 800);
+          return;
+        }
+      }
+      t = t.parentNode;
+    }
+  }, true);
 
   // ── Banner retour à la leçon (standalone mode) ────────────────────────────
   function getReturnUrl() {

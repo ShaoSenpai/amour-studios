@@ -42,16 +42,6 @@ export function ExercisesPanel({
     [completeExercise, lessonId, xpReward]
   );
 
-  const iframeFallbackRect = React.useCallback((): DOMRect => {
-    // Pas de click DOM pour l'iframe callback — point de départ : centre viewport
-    return new DOMRect(
-      window.innerWidth / 2 - 40,
-      window.innerHeight / 2 - 20,
-      80,
-      40
-    );
-  }, []);
-
   const active = exercises?.[activeIdx];
   const externalUrl = active?.exerciseUrl;
 
@@ -111,8 +101,8 @@ export function ExercisesPanel({
                   url={active.exerciseUrl}
                   title={active.title}
                   completed={exerciseCompleted}
-                  onComplete={async () => {
-                    await runComplete(iframeFallbackRect());
+                  onComplete={async (rect) => {
+                    await runComplete(rect);
                   }}
                 />
               ) : active.config ? (

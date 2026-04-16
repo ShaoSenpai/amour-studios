@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AMOUR STUDIOS — Ma Différenciation</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap');
+
+:root {
+  --beige: #EAE4DA;
+  --noir:  #1D1D1B;
+  --rouge: #C63F3E;
+  --muted: #6A6A68;
+  --warm:  #C8C2B8;
+  --cream: #F0EBE3;
+  --gold:  #A8845A;
+  --teal:  #3E6B6A;
+  --dark2: #252320;
+}
+
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+* { cursor: none !important; }
+
+#cur  { position:fixed; width:10px; height:10px; background:var(--rouge); border-radius:50%; pointer-events:none; z-index:9999; transform:translate(-50%,-50%); mix-blend-mode:multiply; }
+#curR { position:fixed; width:34px; height:34px; border:1.5px solid var(--rouge); border-radius:50%; pointer-events:none; z-index:9998; transform:translate(-50%,-50%); opacity:.4; }
+
+body { background:var(--beige); color:var(--noir); font-family:'DM Sans',sans-serif; min-height:100vh; overflow-x:hidden; }
+body::before { content:''; position:fixed; inset:0; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"); pointer-events:none; z-index:1000; opacity:.65; }
+
+.pbar-c { position:fixed; top:0; left:0; width:100%; height:3px; background:var(--warm); z-index:900; }
+.pbar   { height:100%; background:var(--rouge); width:0%; transition:width .2s ease; }
+
+header { padding:40px 60px 0; display:flex; justify-content:space-between; align-items:flex-start; opacity:0; transform:translateY(-20px); animation:fdDown .8s ease forwards .1s; }
+.logo-tag { font-family:'Bebas Neue',sans-serif; font-size:11px; letter-spacing:3px; color:var(--muted); border:1px solid var(--warm); padding:6px 12px; }
+.mod-tag  { font-size:11px; letter-spacing:2px; color:var(--muted); text-align:right; line-height:1.6; }
+
+.hero { padding:60px 60px 20px; position:relative; opacity:0; transform:translateY(30px); animation:fdUp .9s ease forwards .3s; }
+.hero-label { font-size:11px; letter-spacing:4px; color:var(--rouge); text-transform:uppercase; margin-bottom:16px; display:flex; align-items:center; gap:12px; }
+.hero-label::after { content:''; width:40px; height:1px; background:var(--rouge); }
+h1 { font-family:'Bebas Neue',sans-serif; font-size:clamp(64px,10vw,120px); line-height:.88; will-change:transform; }
+h1 .w1 { display:block; color:var(--noir); }
+h1 .w2 { display:block; color:var(--rouge); }
+h1 .w3 { display:block; color:var(--warm); font-size:.65em; }
+.hero-sub  { font-family:'Playfair Display',serif; font-style:italic; font-size:15px; color:var(--muted); margin-top:22px; max-width:480px; line-height:1.65; }
+.hero-deco { position:absolute; right:60px; top:50%; transform:translateY(-50%); font-family:'Bebas Neue',sans-serif; font-size:180px; color:var(--warm); opacity:.12; line-height:1; pointer-events:none; user-select:none; will-change:transform; }
+
+.divider { width:calc(100% - 120px); margin:0 60px; height:1px; background:linear-gradient(to right,var(--noir),transparent); opacity:0; animation:fdIn 1s ease forwards .6s; }
+
+main { padding:60px 60px 140px; max-width:1000px; margin:0 auto; }
+
+.section { margin-bottom:80px; opacity:0; transform:translateY(50px); transition:opacity .75s cubic-bezier(.22,.68,0,1.2),transform .75s cubic-bezier(.22,.68,0,1.2); }
+.section.visible { opacity:1; transform:translateY(0); }
+.section-number { font-family:'Bebas Neue',sans-serif; font-size:90px; line-height:1; color:var(--warm); display:block; margin-bottom:-20px; transition:color .4s; }
+.section.visible:hover .section-number { color:rgba(198,63,62,.1); }
+.section-title { font-family:'Bebas Neue',sans-serif; font-size:28px; letter-spacing:2px; color:var(--noir); position:relative; display:inline-block; }
+.section-title::after { content:''; position:absolute; bottom:-4px; left:0; width:0; height:2px; background:var(--rouge); transition:width .6s cubic-bezier(.22,.68,0,1.2); }
+.section.visible .section-title::after { width:100%; }
+.section-desc  { font-family:'Playfair Display',serif; font-style:italic; font-size:14px; color:var(--muted); margin-top:8px; }
+.section-header { margin-bottom:28px; }
+.card-3d { transform-style:preserve-3d; transition:box-shadow .4s ease,transform .15s ease; will-change:transform; }
+
+/* ── SECTION 01 — 3 CARTES UNICITÉ ──────────────────────────── */
+.trois-cartes { display:grid; grid-template-columns:repeat(3,1fr); gap:3px; }
+
+.unicite-card { background:var(--cream); position:relative; overflow:hidden; }
+.unicite-card::before { content:''; position:absolute; top:0; left:0; width:100%; height:3px; background:var(--rouge); }
+.unicite-card:nth-child(2) { background:var(--noir); }
+.unicite-card:nth-child(2) .uc-num  { color:#3A3330; }
+.unicite-card:nth-child(2) .uc-label{ color:var(--cream); }
+.unicite-card:nth-child(2) .uc-hint { color:var(--warm); }
+.unicite-card:nth-child(2) textarea  { color:rgba(255,255,255,.9); border-bottom-color:rgba(255,255,255,.15); }
+.unicite-card:nth-child(2) textarea::placeholder { color:rgba(255,255,255,.22); }
+
+.uc-num   { font-family:'Bebas Neue',sans-serif; font-size:56px; line-height:1; color:var(--warm); padding:18px 20px 0; }
+.uc-label { font-family:'Bebas Neue',sans-serif; font-size:15px; letter-spacing:2px; color:var(--noir); padding:4px 20px 6px; }
+.uc-hint  { font-family:'Playfair Display',serif; font-style:italic; font-size:11px; color:var(--muted); padding:0 20px 14px; line-height:1.5; }
+.unicite-card textarea { width:100%; background:transparent; border:none; border-bottom:1px solid var(--warm); outline:none; font-family:'DM Sans',sans-serif; font-size:13px; color:var(--noir); resize:none; min-height:60px; padding:0 20px 16px; line-height:1.75; overflow:hidden; }
+.unicite-card textarea::placeholder { color:var(--warm); font-style:italic; font-size:12px; }
+.unicite-card:focus-within::before { background:var(--rouge); }
+
+/* ── SECTION 02 — CONCURRENTS ────────────────────────────────── */
+.concurrents-grid { display:grid; grid-template-columns:1fr 1fr; gap:3px; }
+
+.concurrent-item { background:var(--cream); padding:20px 24px; position:relative; transition:background .25s; }
+.concurrent-item::before { content:''; position:absolute; left:0; top:0; width:3px; height:0; background:var(--rouge); transition:height .45s cubic-bezier(.22,.68,0,1.2); }
+.concurrent-item:hover::before,
+.concurrent-item:focus-within::before { height:100%; }
+.concurrent-item:focus-within { background:#fff; }
+.ci-header { display:flex; align-items:center; gap:12px; margin-bottom:10px; }
+.ci-num { width:28px; height:28px; border-radius:50%; background:var(--rouge); color:white; font-family:'Bebas Neue',sans-serif; font-size:13px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.ci-title { font-family:'Bebas Neue',sans-serif; font-size:14px; letter-spacing:1.5px; color:var(--noir); }
+.concurrent-item textarea { width:100%; background:transparent; border:none; outline:none; font-family:'DM Sans',sans-serif; font-size:13px; color:var(--noir); resize:none; min-height:48px; line-height:1.7; overflow:hidden; }
+.concurrent-item textarea::placeholder { color:var(--warm); font-style:italic; font-size:12px; }
+
+/* Opportunity block */
+.opportunite-block { background:var(--rouge); padding:24px 28px; margin-top:3px; }
+.op-label { font-family:'Bebas Neue',sans-serif; font-size:10px; letter-spacing:3px; color:rgba(255,255,255,.5); margin-bottom:8px; }
+.op-title { font-family:'Bebas Neue',sans-serif; font-size:28px; color:white; margin-bottom:12px; }
+.opportunite-block textarea { width:100%; background:transparent; border:none; border-bottom:1px solid rgba(255,255,255,.25); outline:none; font-family:'Playfair Display',serif; font-style:italic; font-size:14px; color:white; resize:none; min-height:44px; line-height:1.7; overflow:hidden; }
+.opportunite-block textarea::placeholder { color:rgba(255,255,255,.35); font-style:italic; }
+
+/* ── SECTION 03 — MON ANGLE ──────────────────────────────────── */
+.angle-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:3px; margin-bottom:3px; }
+
+.angle-card { background:var(--cream); padding:20px 22px; position:relative; transition:background .25s; }
+.angle-card:nth-child(2) { background:var(--noir); }
+.angle-card::before { content:''; position:absolute; top:0; left:0; width:100%; height:3px; transition:background .3s; }
+.angle-card:nth-child(1)::before { background:var(--rouge); }
+.angle-card:nth-child(2)::before { background:var(--gold); }
+.angle-card:nth-child(3)::before { background:var(--teal); }
+.angle-card:focus-within { background:#fafaf8; }
+.angle-card:nth-child(2):focus-within { background:#2a2724; }
+
+.ac-icon { font-family:'Bebas Neue',sans-serif; font-size:36px; line-height:1; margin-bottom:4px; }
+.angle-card:nth-child(1) .ac-icon { color:var(--rouge); }
+.angle-card:nth-child(2) .ac-icon { color:var(--gold); }
+.angle-card:nth-child(3) .ac-icon { color:var(--teal); }
+
+.ac-title { font-family:'Bebas Neue',sans-serif; font-size:15px; letter-spacing:2px; margin-bottom:4px; }
+.angle-card:nth-child(1) .ac-title { color:var(--noir); }
+.angle-card:nth-child(2) .ac-title { color:var(--cream); }
+.angle-card:nth-child(3) .ac-title { color:var(--noir); }
+
+.ac-hint { font-family:'Playfair Display',serif; font-style:italic; font-size:11px; margin-bottom:12px; line-height:1.5; }
+.angle-card:nth-child(1) .ac-hint { color:var(--muted); }
+.angle-card:nth-child(2) .ac-hint { color:var(--warm); }
+.angle-card:nth-child(3) .ac-hint { color:var(--muted); }
+
+.angle-card textarea { width:100%; background:transparent; border:none; outline:none; font-family:'DM Sans',sans-serif; font-size:13px; resize:none; min-height:52px; line-height:1.75; overflow:hidden; }
+.angle-card:nth-child(1) textarea { color:var(--noir); border-bottom:1px solid var(--warm); }
+.angle-card:nth-child(2) textarea { color:rgba(255,255,255,.9); border-bottom:1px solid rgba(255,255,255,.15); }
+.angle-card:nth-child(3) textarea { color:var(--noir); border-bottom:1px solid var(--warm); }
+.angle-card textarea::placeholder { color:var(--warm); font-style:italic; font-size:12px; }
+.angle-card:nth-child(2) textarea::placeholder { color:rgba(255,255,255,.22); }
+
+/* Formule block */
+.formule-block { background:var(--noir); padding:28px 32px; display:flex; align-items:center; gap:24px; position:relative; overflow:hidden; }
+.formule-block::after { content:''; position:absolute; bottom:0; left:0; width:0; height:3px; background:var(--rouge); transition:width .8s cubic-bezier(.22,.68,0,1.2); }
+.formule-block:focus-within::after { width:100%; }
+.formule-label { font-family:'Bebas Neue',sans-serif; font-size:10px; letter-spacing:3px; color:var(--rouge); white-space:nowrap; }
+.formule-text  { flex:1; font-family:'Playfair Display',serif; font-style:italic; font-size:15px; color:var(--cream); line-height:1.6; }
+.formule-text textarea { width:100%; background:transparent; border:none; outline:none; font-family:'Playfair Display',serif; font-style:italic; font-size:16px; color:var(--cream); resize:none; min-height:36px; line-height:1.6; overflow:hidden; }
+.formule-text textarea::placeholder { color:rgba(255,255,255,.2); }
+
+/* ── SECTION 04 — POURQUOI MOI ───────────────────────────────── */
+.pourquoi-wrap { background:var(--noir); padding:52px 48px; position:relative; overflow:hidden; }
+.pourquoi-wrap::before { content:'❝'; position:absolute; top:8px; left:20px; font-size:120px; color:var(--rouge); opacity:.1; font-family:'Playfair Display',serif; line-height:1; }
+.pourquoi-wrap::after { content:''; position:absolute; bottom:0; left:0; width:0; height:3px; background:var(--rouge); transition:width .8s cubic-bezier(.22,.68,0,1.2); }
+.pourquoi-wrap:focus-within::after { width:100%; }
+.pourquoi-wrap textarea { width:100%; background:transparent; border:none; border-bottom:1px solid rgba(255,255,255,.1); outline:none; font-family:'Playfair Display',serif; font-style:italic; font-size:clamp(16px,2.5vw,24px); color:var(--cream); resize:none; min-height:60px; text-align:center; line-height:1.55; position:relative; z-index:1; padding-bottom:18px; overflow:hidden; }
+.pourquoi-wrap textarea::placeholder { color:rgba(255,255,255,.18); }
+.pourquoi-hint { font-size:9px; letter-spacing:3px; color:var(--muted); text-align:center; margin-top:18px; text-transform:uppercase; }
+
+/* ── SECTION 05 — CONTENU SIGNATURE ─────────────────────────── */
+.signature-grid { display:grid; grid-template-columns:1fr 1fr; gap:3px; }
+
+.sig-card { background:var(--cream); padding:24px; position:relative; overflow:hidden; transition:background .25s; }
+.sig-card::before { content:''; position:absolute; left:0; top:0; width:3px; height:0; background:var(--rouge); transition:height .45s cubic-bezier(.22,.68,0,1.2); }
+.sig-card:hover::before,
+.sig-card:focus-within::before { height:100%; }
+.sig-card:focus-within { background:#fff; }
+.sig-card.dark { background:var(--noir); }
+.sig-card.dark:focus-within { background:#252320; }
+
+.sc-title { font-family:'Bebas Neue',sans-serif; font-size:16px; letter-spacing:2px; margin-bottom:6px; }
+.sig-card:not(.dark) .sc-title { color:var(--noir); }
+.sig-card.dark .sc-title { color:var(--cream); }
+
+.sc-hint  { font-family:'Playfair Display',serif; font-style:italic; font-size:11px; margin-bottom:14px; line-height:1.5; }
+.sig-card:not(.dark) .sc-hint { color:var(--muted); }
+.sig-card.dark .sc-hint { color:var(--warm); }
+
+.sig-card textarea { width:100%; background:transparent; border:none; outline:none; font-family:'DM Sans',sans-serif; font-size:13px; resize:none; min-height:68px; line-height:1.75; overflow:hidden; }
+.sig-card:not(.dark) textarea { color:var(--noir); border-bottom:1px solid var(--warm); }
+.sig-card.dark textarea { color:rgba(255,255,255,.9); border-bottom:1px solid rgba(255,255,255,.12); }
+.sig-card textarea::placeholder { color:var(--warm); font-style:italic; font-size:12px; }
+.sig-card.dark textarea::placeholder { color:rgba(255,255,255,.2); }
+
+/* Seul toi block */
+.seul-toi { background:var(--rouge); padding:28px 24px; display:flex; flex-direction:column; justify-content:space-between; }
+.st-title  { font-family:'Bebas Neue',sans-serif; font-size:52px; color:white; line-height:.9; margin-bottom:16px; }
+.st-sub    { font-family:'Playfair Display',serif; font-style:italic; font-size:12px; color:rgba(255,255,255,.7); line-height:1.5; }
+
+/* ── GENERATE ─────────────────────────────────────────────────── */
+.generate-wrap { position:fixed; bottom:40px; right:60px; z-index:500; opacity:0; animation:fdUp .8s ease forwards 1.2s; }
+.gen-btn { background:var(--rouge); color:var(--cream); border:none; font-family:'Bebas Neue',sans-serif; font-size:15px; letter-spacing:3px; padding:16px 32px; cursor:none; display:flex; align-items:center; gap:14px; box-shadow:0 8px 32px rgba(198,63,62,.28); position:relative; overflow:hidden; transition:box-shadow .35s,transform .35s; }
+.gen-btn::before { content:''; position:absolute; inset:0; background:var(--noir); transform:translateX(-100%); transition:transform .45s cubic-bezier(.22,.68,0,1.2); }
+.gen-btn:hover::before { transform:translateX(0); }
+.gen-btn span, .ring-wrap { position:relative; z-index:1; }
+.gen-btn:hover { box-shadow:0 16px 48px rgba(29,29,27,.32); transform:translateY(-3px); }
+.gen-btn:active { transform:translateY(-1px); }
+.ring-wrap  { width:44px; height:44px; position:relative; }
+.ring-wrap svg { transform:rotate(-90deg); }
+.ring-bg    { fill:none; stroke:rgba(255,255,255,.15); stroke-width:3; }
+.ring-fill  { fill:none; stroke:white; stroke-width:3; stroke-linecap:round; stroke-dasharray:113; stroke-dashoffset:113; transition:stroke-dashoffset .5s; }
+.ring-label { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:'Bebas Neue',sans-serif; font-size:12px; color:white; }
+
+.toast { position:fixed; bottom:120px; right:60px; background:var(--noir); color:var(--cream); font-size:13px; padding:14px 24px; opacity:0; transform:translateY(10px); transition:all .4s; pointer-events:none; z-index:600; border-left:3px solid var(--rouge); }
+.toast.show { opacity:1; transform:translateY(0); }
+.footer-line { position:fixed; bottom:0; left:0; width:100%; height:4px; background:var(--rouge); }
+
+@keyframes fdUp   { to { opacity:1; transform:translateY(0); } }
+@keyframes fdDown { to { opacity:1; transform:translateY(0); } }
+@keyframes fdIn   { to { opacity:1; } }
+
+::-webkit-scrollbar { width:4px; }
+::-webkit-scrollbar-track { background:var(--beige); }
+::-webkit-scrollbar-thumb { background:var(--warm); }
+::-webkit-scrollbar-thumb:hover { background:var(--rouge); }
+
+@media (max-width:768px) {
+  header, main { padding:24px; }
+  .hero { padding:40px 24px 20px; }
+  .hero-deco { display:none; }
+  .divider { width:calc(100% - 48px); margin:0 24px; }
+  .trois-cartes, .angle-grid, .signature-grid, .concurrents-grid { grid-template-columns:1fr; }
+  .generate-wrap { bottom:20px; right:20px; }
+}
+</style>
+</head>
+<body>
+
+<div id="cur"></div>
+<div id="curR"></div>
+<div class="pbar-c"><div class="pbar" id="pbar"></div></div>
+
+<header>
+  <div class="logo-tag">AMOUR STUDIOS</div>
+  <div class="mod-tag">MODULE 01 — VIDÉO 06<br>MA DIFFÉRENCIATION</div>
+</header>
+
+<div class="hero">
+  <div class="hero-label">Exercice élève</div>
+  <h1 id="heroT">
+    <span class="w1">TON</span>
+    <span class="w2">ESPACE</span>
+    <span class="w3">UNIQUE.</span>
+  </h1>
+  <p class="hero-sub">Personne ne peut faire exactement ce que toi tu fais.<br>Encore faut-il savoir quoi.</p>
+  <div class="hero-deco" id="heroD">06</div>
+</div>
+
+<div class="divider"></div>
+
+<main>
+
+  <!-- 01 — 3 CHOSES QUI ME RENDENT UNIQUE -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-number">01</span>
+      <div class="section-title">3 choses qui me rendent unique</div>
+      <p class="section-desc">Parcours, style, personnalité, histoire, vision. Choisis les 3 qui te définissent.</p>
+    </div>
+    <div class="trois-cartes">
+      <div class="unicite-card card-3d">
+        <div class="uc-num">01</div>
+        <div class="uc-label">UNICITÉ</div>
+        <div class="uc-hint">Ce que ton parcours t'a donné que les autres n'ont pas.</div>
+        <textarea id="v6_u1" placeholder="ex : J'ai grandi entre deux cultures, ça donne à mon rap une couleur que personne d'autre ne peut reproduire..."></textarea>
+      </div>
+      <div class="unicite-card card-3d">
+        <div class="uc-num">02</div>
+        <div class="uc-label">STYLE</div>
+        <div class="uc-hint">La manière dont tu livres ton art — ton ton, ton univers visuel.</div>
+        <textarea id="v6_u2" placeholder="ex : Mon écriture mélange images concrètes et mélancolie. Je filme tout en un plan séquence..."></textarea>
+      </div>
+      <div class="unicite-card card-3d">
+        <div class="uc-num">03</div>
+        <div class="uc-label">VISION</div>
+        <div class="uc-hint">L'angle sous lequel tu vois les choses — ta signature mentale.</div>
+        <textarea id="v6_u3" placeholder="ex : Je veux montrer que la vraie force vient de la vulnérabilité. Pas du masque..."></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- 02 — CE QUE MES CONCURRENTS NE FONT PAS -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-number">02</span>
+      <div class="section-title">Ce que mes concurrents ne font pas</div>
+      <p class="section-desc">Les angles libres que ta veille t'a permis d'identifier.</p>
+    </div>
+    <div class="concurrents-grid">
+      <div class="concurrent-item card-3d">
+        <div class="ci-header">
+          <div class="ci-num">1</div>
+          <div class="ci-title">GAP REPÉRÉ</div>
+        </div>
+        <textarea id="v6_gap1" placeholder="ex : Aucun ne montre son process créatif en détail, de l'idée au résultat final..."></textarea>
+      </div>
+      <div class="concurrent-item card-3d">
+        <div class="ci-header">
+          <div class="ci-num">2</div>
+          <div class="ci-title">GAP REPÉRÉ</div>
+        </div>
+        <textarea id="v6_gap2" placeholder="ex : Personne ne parle de ses doutes et échecs avec cette franchise-là..."></textarea>
+      </div>
+      <div class="concurrent-item card-3d">
+        <div class="ci-header">
+          <div class="ci-num">3</div>
+          <div class="ci-title">GAP REPÉRÉ</div>
+        </div>
+        <textarea id="v6_gap3" placeholder="ex : Aucun ne crée ce lien direct, intime, entre le live et sa communauté..."></textarea>
+      </div>
+      <div class="concurrent-item card-3d">
+        <div class="ci-header">
+          <div class="ci-num">4</div>
+          <div class="ci-title">GAP REPÉRÉ</div>
+        </div>
+        <textarea id="v6_gap4" placeholder="ex : Personne ne combine ce style visuel avec cette profondeur de texte..."></textarea>
+      </div>
+    </div>
+    <div class="opportunite-block">
+      <div class="op-label">MON OPPORTUNITÉ</div>
+      <div class="op-title">L'ANGLE QUE JE VAIS OCCUPER</div>
+      <textarea id="v6_opportunite" placeholder="Résume en 1–2 phrases l'espace que toi seul peux occuper dans ton écosystème..."></textarea>
+    </div>
+  </div>
+
+  <!-- 03 — MON ANGLE PROPRE -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-number">03</span>
+      <div class="section-title">Mon angle propre</div>
+      <p class="section-desc">Ta manière de présenter ton art — celle qui t'appartient.</p>
+    </div>
+    <div class="angle-grid">
+      <div class="angle-card card-3d">
+        <div class="ac-icon">F</div>
+        <div class="ac-title">FORMAT</div>
+        <div class="ac-hint">La forme que prend ton contenu. Comment tu le livres.</div>
+        <textarea id="v6_format" placeholder="ex : Reels en un seul plan, sessions live non éditées, mini-docs..."></textarea>
+      </div>
+      <div class="angle-card card-3d">
+        <div class="ac-icon">T</div>
+        <div class="ac-title">TON</div>
+        <div class="ac-hint">La voix, l'énergie, l'attitude que tu mets dans chaque contenu.</div>
+        <textarea id="v6_ton" placeholder="ex : Brut, direct, sans fioriture. Jamais de performatif. Toujours du vrai..."></textarea>
+      </div>
+      <div class="angle-card card-3d">
+        <div class="ac-icon">T</div>
+        <div class="ac-title">THÈME</div>
+        <div class="ac-hint">Le sujet central ou l'univers que tu explores en boucle.</div>
+        <textarea id="v6_theme" placeholder="ex : La dualité entre le quotidien banal et l'ambition démesurée..."></textarea>
+      </div>
+    </div>
+    <div class="formule-block">
+      <div class="formule-label">MA FORMULE</div>
+      <div class="formule-text">
+        <textarea id="v6_formule" placeholder="Je fais [FORMAT] avec [TON] sur [THÈME]. — Écris ta formule complète ici..."></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- 04 — POURQUOI ME SUIVRE MOI -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-number">04</span>
+      <div class="section-title">Pourquoi me suivre moi ?</div>
+      <p class="section-desc">En une phrase. Concret et précis. Pas de généralités.</p>
+    </div>
+    <div class="pourquoi-wrap">
+      <textarea id="v6_pourquoi" placeholder="Parce que [toi seul] fais [quoi] pour [qui] d'une manière que personne d'autre ne peut reproduire."></textarea>
+      <div class="pourquoi-hint">Une seule phrase — la plus honnête que tu puisses écrire</div>
+    </div>
+  </div>
+
+  <!-- 05 — MON CONTENU SIGNATURE -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-number">05</span>
+      <div class="section-title">Mon contenu signature</div>
+      <p class="section-desc">Un format, un style, un thème récurrent — que seul toi peux faire.</p>
+    </div>
+    <div class="signature-grid">
+      <div class="sig-card card-3d">
+        <div class="sc-title">LE FORMAT</div>
+        <div class="sc-hint">La série ou le format récurrent qui te représente.</div>
+        <textarea id="v6_sig_format" placeholder="ex : Une série « 1 texte / 1 lieu / 1 prise » — même décor à chaque fois..."></textarea>
+      </div>
+      <div class="sig-card card-3d">
+        <div class="sc-title">LE NOM</div>
+        <div class="sc-hint">Donne un nom à ce format. Il doit t'appartenir.</div>
+        <textarea id="v6_sig_nom" placeholder="ex : « RAW SESSIONS » / « LETTRE À » / « BRUT DE QUARTIER »..."></textarea>
+      </div>
+      <div class="sig-card dark card-3d">
+        <div class="sc-title">POURQUOI SEUL TOI ?</div>
+        <div class="sc-hint">Ce qui rend ce contenu non-copiable, non-remplaçable.</div>
+        <textarea id="v6_sig_pourquoi" placeholder="ex : Parce que c'est mon vécu, ma voix, mon endroit. Impossible à simuler..."></textarea>
+      </div>
+      <div class="seul-toi">
+        <div class="st-title">SEUL<br>TOI.</div>
+        <div class="st-sub">Ce contenu n'appartient qu'à toi.<br>Pas copiable. Pas remplaçable.</div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<div class="generate-wrap">
+  <button class="gen-btn" onclick="generatePDF()">
+    <div class="ring-wrap">
+      <svg width="44" height="44" viewBox="0 0 40 40">
+        <circle class="ring-bg"   cx="20" cy="20" r="18"/>
+        <circle class="ring-fill" id="ringFill" cx="20" cy="20" r="18"/>
+      </svg>
+      <div class="ring-label" id="ringLabel">0%</div>
+    </div>
+    <span>GÉNÉRER MON PDF</span>
+  </button>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="footer-line"></div>
+
+<script>
+// ── CURSOR ────────────────────────────────────────────────────────
+var cur = document.getElementById('cur');
+var curR = document.getElementById('curR');
+var mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',function(e){ mx=e.clientX; my=e.clientY; cur.style.left=mx+'px'; cur.style.top=my+'px'; });
+(function tick(){ rx+=(mx-rx)*0.12; ry+=(my-ry)*0.12; curR.style.left=rx+'px'; curR.style.top=ry+'px'; requestAnimationFrame(tick); })();
+
+// ── AUTO-RESIZE ───────────────────────────────────────────────────
+function autoResize(el){ el.style.height='auto'; el.style.height=el.scrollHeight+'px'; }
+document.querySelectorAll('textarea').forEach(function(ta){
+  ta.addEventListener('input',function(){ autoResize(ta); });
+  autoResize(ta);
+});
+
+// ── PARALLAX ──────────────────────────────────────────────────────
+var heroT=document.getElementById('heroT'), heroD=document.getElementById('heroD');
+window.addEventListener('scroll',function(){
+  var sy=window.scrollY;
+  if(heroT) heroT.style.transform='translateY('+(sy*0.18)+'px)';
+  if(heroD) heroD.style.transform='translateY('+(-sy*0.07)+'px)';
+  document.getElementById('pbar').style.width=Math.min(sy/(document.body.scrollHeight-window.innerHeight)*100,100)+'%';
+},{passive:true});
+
+// ── 3D TILT ───────────────────────────────────────────────────────
+document.querySelectorAll('.card-3d').forEach(function(card){
+  card.addEventListener('mousemove',function(e){
+    var r=card.getBoundingClientRect();
+    var dx=(e.clientX-r.left-r.width/2)/(r.width/2);
+    var dy=(e.clientY-r.top-r.height/2)/(r.height/2);
+    card.style.transform='perspective(900px) rotateX('+(-dy*4)+'deg) rotateY('+(dx*4)+'deg) translateZ(6px)';
+    card.style.boxShadow=(-dx*12)+'px '+(-dy*12)+'px 40px rgba(29,29,27,.14)';
+  });
+  card.addEventListener('mouseleave',function(){
+    card.style.transform='perspective(900px) rotateX(0) rotateY(0) translateZ(0)';
+    card.style.boxShadow='';
+  });
+});
+
+// ── SCROLL REVEAL ─────────────────────────────────────────────────
+var io=new IntersectionObserver(function(entries){
+  entries.forEach(function(e){ if(e.isIntersecting) e.target.classList.add('visible'); });
+},{threshold:0.08});
+document.querySelectorAll('.section').forEach(function(s){ io.observe(s); });
+
+// ── COMPLETION RING ───────────────────────────────────────────────
+var ALL_IDS=['v6_u1','v6_u2','v6_u3','v6_gap1','v6_gap2','v6_gap3','v6_gap4','v6_opportunite','v6_format','v6_ton','v6_theme','v6_formule','v6_pourquoi','v6_sig_format','v6_sig_nom','v6_sig_pourquoi'];
+
+function upRing(){
+  var filled=ALL_IDS.filter(function(id){ var e=document.getElementById(id); return e&&e.value.trim(); }).length;
+  var p=Math.round(filled/ALL_IDS.length*100);
+  document.getElementById('ringFill').style.strokeDashoffset=113-(p/100)*113;
+  document.getElementById('ringLabel').textContent=p+'%';
+}
+ALL_IDS.forEach(function(id){ var e=document.getElementById(id); if(e) e.addEventListener('input',upRing); });
+
+// ── TOAST ─────────────────────────────────────────────────────────
+function showToast(m){ var t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); setTimeout(function(){ t.classList.remove('show'); },3000); }
+function getVal(id){ var e=document.getElementById(id); return e?e.value.trim():''; }
+
+// ── PDF ───────────────────────────────────────────────────────────
+function generatePDF(){
+  showToast('Génération en cours...');
+  setTimeout(function(){
+    var jsPDF=window.jspdf.jsPDF;
+    var doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+    var W=210,H=297,M=14,CW=182,HDR=18,YS=HDR+8,YX=H-14;
+
+    var B=[234,228,218],N=[29,29,27],R=[198,63,62],CR=[240,235,227];
+    var WM=[200,194,184],MU=[106,106,104],WH=[255,255,255],AL=[245,240,232];
+    var GOLD=[168,132,90],TEAL=[62,107,106];
+
+    var pn=1,y=YS;
+    function fc(c){ doc.setFillColor(c[0],c[1],c[2]); }
+    function tc(c){ doc.setTextColor(c[0],c[1],c[2]); }
+    function shell(){
+      fc(B);doc.rect(0,0,W,H,'F');
+      fc(N);doc.rect(0,0,W,HDR,'F');
+      fc(R);doc.rect(0,H-4,W,4,'F');
+      doc.setFont('helvetica','bold');doc.setFontSize(8);tc(B);doc.text('AMOUR STUDIOS',M,7);
+      doc.setFont('helvetica','normal');doc.setFontSize(7);doc.text('MODULE 01 — VIDÉO 06 — MA DIFFÉRENCIATION',M,13);
+      doc.setFont('helvetica','bold');doc.setFontSize(7);doc.text('PAGE '+pn,W-M,10,{align:'right'});
+    }
+    function np(){ pn++;doc.addPage();shell();y=YS; }
+    function need(h){ if(y+h>YX) np(); }
+    function lh(n,fs,ld){ return n*fs*0.352778*(ld||1.42); }
+    function wT(t,mw,fs){ doc.setFontSize(fs);return doc.splitTextToSize(t||'—',mw); }
+    function gap(n){ y+=(n||7); }
+
+    function sLab(t,sub){
+      need(14);
+      doc.setFont('helvetica','bold');doc.setFontSize(7);tc(R);doc.text(t,M,y);
+      if(sub){ doc.setFont('helvetica','oblique');doc.setFontSize(6.5);tc(MU);doc.text(sub,M,y+5); y+=11; }
+      else { y+=7; }
+    }
+
+    function contentBlock(label,value,bgColor,accentColor,textColor){
+      var ls=wT(value,CW-10,9);
+      var h=Math.max(lh(ls.length,9)+12,16);
+      need(h+2);
+      fc(bgColor);doc.rect(M,y,CW,h,'F');
+      fc(accentColor);doc.rect(M,y,3,h,'F');
+      doc.setFont('helvetica','bold');doc.setFontSize(6);tc(accentColor);doc.text(label,M+7,y+5);
+      doc.setFont('helvetica','normal');doc.setFontSize(9);tc(textColor);doc.text(ls,M+7,y+11);
+      y+=h+2;
+    }
+
+    shell();
+
+    // Title
+    doc.setFont('helvetica','bold');doc.setFontSize(36);tc(N);doc.text('TON ESPACE',M,y+12);
+    tc(R);doc.text('UNIQUE.',M,y+24);
+    doc.setFont('helvetica','oblique');doc.setFontSize(8.5);tc(MU);
+    doc.text("Personne ne peut faire exactement ce que toi tu fais.",M,y+32);
+    y+=42;
+
+    // ── 01 3 UNICITÉS ────────────────────────────────────────────
+    sLab('01 — 3 CHOSES QUI ME RENDENT UNIQUE','Parcours · Style · Vision');
+    var uniq=[['01 — UNICITÉ',getVal('v6_u1')],['02 — STYLE',getVal('v6_u2')],['03 — VISION',getVal('v6_u3')]];
+    var uw=(CW-4)/3;
+    // Calc max row height
+    var maxUH=14;
+    uniq.forEach(function(u){
+      var ls=wT(u[1],uw-8,8.5);
+      var h=lh(ls.length,8.5)+14;
+      if(h>maxUH) maxUH=h;
+    });
+    maxUH=Math.max(maxUH,18);
+    need(maxUH);
+    uniq.forEach(function(u,i){
+      var ux=M+i*(uw+2);
+      var col=[R,WM,TEAL][i];
+      fc(i===1?N:CR);doc.rect(ux,y,uw,maxUH,'F');
+      fc(col);doc.rect(ux,y,uw,0.8,'F');
+      doc.setFont('helvetica','bold');doc.setFontSize(6.5);tc(col);doc.text(u[0],ux+4,y+5);
+      doc.setFont('helvetica','normal');doc.setFontSize(8.5);tc(i===1?CR:N);
+      doc.text(wT(u[1],uw-8,8.5),ux+4,y+11);
+    });
+    y+=maxUH+2; gap();
+
+    // ── 02 CONCURRENTS ───────────────────────────────────────────
+    sLab('02 — CE QUE MES CONCURRENTS NE FONT PAS','Identifié grâce à ta veille');
+    var gaps=[['GAP 1',getVal('v6_gap1')],['GAP 2',getVal('v6_gap2')],['GAP 3',getVal('v6_gap3')],['GAP 4',getVal('v6_gap4')]];
+    var gw=(CW-2)/2;
+    for(var row=0;row<2;row++){
+      var pair=[gaps[row*2],gaps[row*2+1]];
+      var ch=pair.map(function(g){ var ls=wT(g[1],gw-10,8.5); return Math.max(lh(ls.length,8.5)+12,16); });
+      var adv=Math.max(ch[0],ch[1]);
+      need(adv+2);
+      pair.forEach(function(g,ci){
+        var gx=M+ci*(gw+2);
+        fc(ci===0?CR:AL);doc.rect(gx,y,gw,ch[ci],'F');
+        fc(R);doc.rect(gx,y,2,ch[ci],'F');
+        doc.setFont('helvetica','bold');doc.setFontSize(6);tc(R);doc.text(g[0],gx+6,y+5);
+        doc.setFont('helvetica','normal');doc.setFontSize(8.5);tc(N);doc.text(wT(g[1],gw-10,8.5),gx+6,y+10);
+      });
+      y+=adv+2;
+    }
+    // Opportunité
+    var oppLs=wT(getVal('v6_opportunite'),CW-12,10);
+    var oppH=Math.max(lh(oppLs.length,10)+14,20);
+    need(oppH+2);
+    fc(R);doc.rect(M,y,CW,oppH,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(7);tc(WH);doc.text('MON OPPORTUNITÉ — L\'ANGLE QUE JE VAIS OCCUPER',M+6,y+6);
+    doc.setFont('helvetica','oblique');doc.setFontSize(10);
+    doc.text(oppLs,M+6,y+13);
+    y+=oppH+2; gap();
+
+    // ── 03 ANGLE ─────────────────────────────────────────────────
+    sLab('03 — MON ANGLE PROPRE','Format · Ton · Thème');
+    var angles=[['F — FORMAT',getVal('v6_format'),R],['T — TON',getVal('v6_ton'),GOLD],['T — THÈME',getVal('v6_theme'),TEAL]];
+    var aw=(CW-4)/3;
+    var maxAH=14;
+    angles.forEach(function(a){ var ls=wT(a[1],aw-8,8.5); var h=lh(ls.length,8.5)+14; if(h>maxAH) maxAH=h; });
+    maxAH=Math.max(maxAH,18);
+    need(maxAH);
+    angles.forEach(function(a,i){
+      var ax=M+i*(aw+2);
+      var isDark=i===1;
+      fc(isDark?N:CR);doc.rect(ax,y,aw,maxAH,'F');
+      fc(a[2]);doc.rect(ax,y,aw,0.8,'F');
+      doc.setFont('helvetica','bold');doc.setFontSize(7);tc(a[2]);doc.text(a[0],ax+4,y+6);
+      doc.setFont('helvetica','normal');doc.setFontSize(8.5);tc(isDark?CR:N);doc.text(wT(a[1],aw-8,8.5),ax+4,y+12);
+    });
+    y+=maxAH+2;
+    // Formule
+    var fLs=wT(getVal('v6_formule'),CW-32,11);
+    var fH=Math.max(lh(fLs.length,11)+10,16);
+    need(fH+2);
+    fc(N);doc.rect(M,y,CW,fH,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(6.5);tc(R);doc.text('MA FORMULE',M+6,y+5);
+    doc.setFont('helvetica','oblique');doc.setFontSize(11);tc(CR);doc.text(fLs,M+26,y+fH/2+2);
+    y+=fH+2; gap();
+
+    // ── 04 POURQUOI MOI ──────────────────────────────────────────
+    sLab('04 — POURQUOI ME SUIVRE MOI ?','En une phrase. Concret et précis.');
+    var pqLs=wT(getVal('v6_pourquoi'),CW-24,12);
+    var pqH=Math.max(lh(pqLs.length,12,1.6)+16,22);
+    need(pqH);
+    fc(N);doc.rect(M,y,CW,pqH,'F');
+    fc(R);doc.rect(M,y,3,pqH,'F');
+    doc.setFont('helvetica','oblique');doc.setFontSize(12);tc(CR);
+    doc.text(pqLs,W/2,y+pqH/2-lh(pqLs.length,12,1.6)/2+4,{align:'center'});
+    y+=pqH+2; gap();
+
+    // ── 05 CONTENU SIGNATURE ─────────────────────────────────────
+    sLab('05 — MON CONTENU SIGNATURE','Le format que seul toi peux faire.');
+    var sigs=[['LE FORMAT',getVal('v6_sig_format'),CR,false],['LE NOM',getVal('v6_sig_nom'),AL,false],['POURQUOI SEUL TOI',getVal('v6_sig_pourquoi'),N,true]];
+    var sw=(CW-4)/3;
+    var maxSH=14;
+    sigs.forEach(function(s){ var ls=wT(s[1],sw-8,8.5); var h=lh(ls.length,8.5)+14; if(h>maxSH) maxSH=h; });
+    maxSH=Math.max(maxSH,18);
+    need(maxSH);
+    sigs.forEach(function(s,i){
+      var sx=M+i*(sw+2);
+      fc(s[2]);doc.rect(sx,y,sw,maxSH,'F');
+      fc(R);doc.rect(sx,y,2,maxSH,'F');
+      doc.setFont('helvetica','bold');doc.setFontSize(6.5);tc(R);doc.text(s[0],sx+6,y+5);
+      doc.setFont('helvetica','normal');doc.setFontSize(8.5);tc(s[3]?CR:N);doc.text(wT(s[1],sw-10,8.5),sx+6,y+11);
+    });
+    y+=maxSH+2;
+    // SEUL TOI
+    need(14);fc(R);doc.rect(M,y,CW,14,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(20);tc(WH);doc.text('SEUL TOI.',W/2,y+9.5,{align:'center'});
+    doc.setFont('helvetica','oblique');doc.setFontSize(7.5);tc(CR);
+    doc.text('Ce contenu n\'appartient qu\'à toi. Pas copiable. Pas remplaçable.',W/2,y+13,{align:'center'});
+
+    doc.setFont('helvetica','normal');doc.setFontSize(6);tc(MU);
+    doc.text('AMOUR STUDIOS — MODULE 01 — VIDÉO 06 — MA DIFFÉRENCIATION',W/2,H-8,{align:'center'});
+
+    doc.save('AMOUR_STUDIOS_M01_V06_Differenciation.pdf');
+    showToast('✓ PDF généré !');
+  },200);
+}
+</script>
+<script src="/exos/_bridge.js"></script>
+</body>
+</html>

@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AMOUR STUDIOS — Mon Positionnement</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap');
+:root{
+  --beige:#EAE4DA;--noir:#1D1D1B;--rouge:#C63F3E;
+  --muted:#6A6A68;--warm:#C8C2B8;--cream:#F0EBE3;
+  --gold:#A8845A;--ink:#2C2A28;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+*{cursor:none!important;}
+#cur{position:fixed;width:10px;height:10px;background:var(--rouge);border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);mix-blend-mode:multiply;}
+#curR{position:fixed;width:34px;height:34px;border:1.5px solid var(--rouge);border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);opacity:.4;}
+body{background:var(--beige);color:var(--noir);font-family:'DM Sans',sans-serif;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:1000;opacity:.65;}
+.pbar-c{position:fixed;top:0;left:0;width:100%;height:3px;background:var(--warm);z-index:900;}
+.pbar{height:100%;background:var(--rouge);width:0%;transition:width .2s ease;}
+header{padding:40px 60px 0;display:flex;justify-content:space-between;align-items:flex-start;opacity:0;transform:translateY(-20px);animation:fdDown .8s ease forwards .1s;}
+.logo-tag{font-family:'Bebas Neue',sans-serif;font-size:11px;letter-spacing:3px;color:var(--muted);border:1px solid var(--warm);padding:6px 12px;}
+.mod-tag{font-size:11px;letter-spacing:2px;color:var(--muted);text-align:right;line-height:1.6;}
+.hero{padding:60px 60px 20px;position:relative;opacity:0;transform:translateY(30px);animation:fdUp .9s ease forwards .3s;}
+.hero-label{font-size:11px;letter-spacing:4px;color:var(--rouge);text-transform:uppercase;margin-bottom:16px;display:flex;align-items:center;gap:12px;}
+.hero-label::after{content:'';width:40px;height:1px;background:var(--rouge);}
+h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(60px,9vw,115px);line-height:.88;will-change:transform;}
+h1 .w1{display:block;color:var(--noir);}
+h1 .w2{display:block;color:var(--rouge);}
+h1 .w3{display:block;color:var(--gold);font-size:.72em;}
+.hero-sub{font-family:'Playfair Display',serif;font-style:italic;font-size:15px;color:var(--muted);margin-top:22px;max-width:480px;line-height:1.65;}
+.hero-deco{position:absolute;right:60px;top:50%;transform:translateY(-50%);font-family:'Bebas Neue',sans-serif;font-size:180px;color:var(--warm);opacity:.12;line-height:1;pointer-events:none;user-select:none;will-change:transform;}
+.divider{width:calc(100% - 120px);margin:0 60px;height:1px;background:linear-gradient(to right,var(--noir),transparent);opacity:0;animation:fdIn 1s ease forwards .6s;}
+main{padding:60px 60px 140px;max-width:1000px;margin:0 auto;}
+.section{margin-bottom:80px;opacity:0;transform:translateY(50px);transition:opacity .75s cubic-bezier(.22,.68,0,1.2),transform .75s cubic-bezier(.22,.68,0,1.2);}
+.section.visible{opacity:1;transform:translateY(0);}
+.section-number{font-family:'Bebas Neue',sans-serif;font-size:90px;line-height:1;color:var(--warm);display:block;margin-bottom:-20px;transition:color .4s ease;}
+.section.visible:hover .section-number{color:rgba(198,63,62,.1);}
+.section-title{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:2px;color:var(--noir);position:relative;display:inline-block;}
+.section-title::after{content:'';position:absolute;bottom:-4px;left:0;width:0;height:2px;background:var(--rouge);transition:width .6s cubic-bezier(.22,.68,0,1.2);}
+.section.visible .section-title::after{width:100%;}
+.section-desc{font-family:'Playfair Display',serif;font-style:italic;font-size:14px;color:var(--muted);margin-top:8px;}
+.section-header{margin-bottom:28px;}
+.card-3d{transform-style:preserve-3d;transition:box-shadow .4s ease,transform .15s ease;will-change:transform;}
+
+/* ── IDENTITY GRID ── */
+.identity-grid{display:grid;grid-template-columns:1fr;gap:3px;}
+.id-field{background:var(--cream);padding:20px 24px;position:relative;border-left:3px solid transparent;transition:border-color .3s ease,background .3s ease,box-shadow .4s ease;}
+.id-field:hover{background:#faf8f5;border-left-color:var(--rouge);box-shadow:0 4px 20px rgba(29,29,27,.08);}
+.id-field label{display:block;font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;color:var(--rouge);margin-bottom:6px;}
+.id-field .hint{font-family:'Playfair Display',serif;font-style:italic;font-size:11px;color:var(--warm);margin-bottom:8px;}
+.id-field textarea{width:100%;background:transparent;border:none;border-bottom:1px solid var(--warm);outline:none;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--noir);resize:none;min-height:40px;line-height:1.7;overflow:hidden;padding-bottom:8px;transition:border-color .3s ease,height .25s ease;max-height:300px;overflow-y:auto;}
+.id-field textarea:focus{border-bottom-color:var(--rouge);}
+.id-field textarea::placeholder{color:var(--warm);font-style:italic;font-size:13px;}
+
+/* ── AUDIENCE 2-col ── */
+.audience-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:3px;align-items:start;}
+.aud-card{background:var(--cream);padding:24px;position:relative;box-shadow:0 2px 8px rgba(29,29,27,.07);transition:box-shadow .4s ease;}
+.aud-card::after{content:'';position:absolute;bottom:0;left:0;width:0;height:2px;background:var(--gold);transition:width .5s cubic-bezier(.22,.68,0,1.2);}
+.aud-card:hover::after,.aud-card:focus-within::after{width:100%;}
+.aud-label{font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;color:var(--noir);margin-bottom:4px;}
+.aud-hint{font-size:11px;color:var(--muted);font-style:italic;margin-bottom:12px;}
+.aud-card textarea{width:100%;background:transparent;border:none;outline:none;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--noir);resize:none;min-height:60px;line-height:1.75;overflow:hidden;transition:height .25s ease;max-height:300px;overflow-y:auto;}
+.aud-card textarea::placeholder{color:var(--warm);font-style:italic;font-size:12px;}
+.aud-full{grid-column:1/-1;}
+
+/* ── EMOTION CARDS ── */
+.emotion-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:3px;align-items:start;}
+.emo-card{padding:28px 24px;position:relative;overflow:hidden;transition:box-shadow .4s ease,transform .15s ease;}
+.emo-card.puissance{background:var(--noir);color:var(--cream);}
+.emo-card.melancolie{background:var(--cream);border:1px solid var(--warm);}
+.emo-card.espoir{background:var(--beige);border:1px solid var(--warm);}
+.emo-card.rage{background:var(--rouge);color:var(--cream);}
+.emo-card .emo-name{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:2px;margin-bottom:4px;background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,.25);outline:none;width:100%;padding-bottom:6px;transition:border-color .3s;}
+.emo-card.puissance .emo-name,.emo-card.rage .emo-name{color:white;}
+.emo-card.melancolie .emo-name{color:var(--noir);}
+.emo-card.espoir .emo-name{color:var(--noir);}
+.emo-card.puissance .emo-name::placeholder,.emo-card.rage .emo-name::placeholder{color:rgba(255,255,255,.3);font-style:italic;}
+.emo-card.melancolie .emo-name::placeholder,.emo-card.espoir .emo-name::placeholder{color:var(--warm);font-style:italic;}
+.emo-card .emo-name:focus{border-bottom-color:rgba(255,255,255,.6);}
+.emo-card.melancolie .emo-name:focus,.emo-card.espoir .emo-name:focus{border-bottom-color:var(--rouge);}
+.emo-card .emo-sub{font-family:'Playfair Display',serif;font-style:italic;font-size:11px;margin-bottom:18px;opacity:.7;background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,.15);outline:none;width:100%;padding-bottom:6px;resize:none;min-height:28px;line-height:1.6;transition:border-color .3s;}
+.emo-card .emo-label{font-size:9px;letter-spacing:3px;text-transform:uppercase;margin-bottom:6px;opacity:.6;}
+.emo-card textarea{width:100%;background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,.25);outline:none;font-family:'DM Sans',sans-serif;font-size:13px;resize:none;min-height:48px;line-height:1.7;overflow:hidden;transition:height .25s ease;max-height:300px;overflow-y:auto;}
+.emo-card.melancolie textarea,.emo-card.espoir textarea{border-bottom-color:var(--warm);color:var(--noir);}
+.emo-card.melancolie textarea::placeholder,.emo-card.espoir textarea::placeholder{color:var(--warm);font-style:italic;}
+.emo-card.puissance textarea,.emo-card.rage textarea{color:rgba(255,255,255,.9);}
+.emo-card.puissance textarea::placeholder,.emo-card.rage textarea::placeholder{color:rgba(255,255,255,.3);font-style:italic;}
+.emo-card.puissance textarea:focus{border-bottom-color:rgba(255,255,255,.6);}
+.emo-card.rage textarea:focus{border-bottom-color:rgba(255,255,255,.6);}
+.emo-deco{position:absolute;right:16px;top:16px;font-family:'Bebas Neue',sans-serif;font-size:80px;opacity:.07;line-height:1;pointer-events:none;}
+
+/* ── POSITIONING PHRASE ── */
+.phrase-wrap{background:var(--noir);padding:48px;position:relative;overflow:hidden;box-shadow:0 24px 80px rgba(29,29,27,.22);}
+.phrase-wrap::before{content:'JE SUIS';position:absolute;top:0;right:0;font-family:'Bebas Neue',sans-serif;font-size:120px;color:var(--rouge);opacity:.07;line-height:1;pointer-events:none;}
+.phrase-wrap::after{content:'';position:absolute;bottom:0;left:0;width:0;height:3px;background:var(--rouge);transition:width .8s cubic-bezier(.22,.68,0,1.2);}
+.phrase-wrap:focus-within::after{width:100%;}
+.phrase-template{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:28px;}
+.phrase-block{border-left:2px solid var(--rouge);padding-left:14px;}
+.phrase-block .pb-label{font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--rouge);margin-bottom:4px;}
+.phrase-block input{background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,.15);outline:none;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--cream);width:100%;padding-bottom:6px;transition:border-color .3s;}
+.phrase-block input:focus{border-bottom-color:rgba(255,255,255,.5);}
+.phrase-block input::placeholder{color:rgba(255,255,255,.2);font-style:italic;}
+.phrase-divider{grid-column:1/-1;height:1px;background:rgba(255,255,255,.1);}
+.phrase-final-label{font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--rouge);margin-bottom:12px;}
+.phrase-final textarea{width:100%;background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,.15);outline:none;font-family:'Playfair Display',serif;font-style:italic;font-size:clamp(16px,2.2vw,22px);color:var(--cream);resize:none;min-height:60px;line-height:1.5;overflow:hidden;transition:height .25s ease;max-height:300px;overflow-y:auto;}
+.phrase-final textarea::placeholder{color:rgba(255,255,255,.18);font-style:italic;}
+
+/* ── GENERATE ── */
+.generate-wrap{position:fixed;bottom:40px;right:60px;z-index:500;opacity:0;animation:fdUp .8s ease forwards 1.2s;}
+.gen-btn{background:var(--rouge);color:var(--cream);border:none;font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:3px;padding:16px 32px;cursor:none;display:flex;align-items:center;gap:14px;box-shadow:0 8px 32px rgba(198,63,62,.28);position:relative;overflow:hidden;transition:box-shadow .35s ease,transform .35s ease;}
+.gen-btn::before{content:'';position:absolute;inset:0;background:var(--noir);transform:translateX(-100%);transition:transform .45s cubic-bezier(.22,.68,0,1.2);}
+.gen-btn:hover::before{transform:translateX(0);}
+.gen-btn span,.ring-wrap{position:relative;z-index:1;}
+.gen-btn:hover{box-shadow:0 16px 48px rgba(29,29,27,.32);transform:translateY(-3px);}
+.gen-btn:active{transform:translateY(-1px);}
+.ring-wrap{width:44px;height:44px;position:relative;}
+.ring-wrap svg{transform:rotate(-90deg);}
+.ring-bg{fill:none;stroke:rgba(255,255,255,.15);stroke-width:3;}
+.ring-fill{fill:none;stroke:white;stroke-width:3;stroke-linecap:round;stroke-dasharray:113;stroke-dashoffset:113;transition:stroke-dashoffset .5s ease;}
+.ring-label{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:12px;color:white;}
+.toast{position:fixed;bottom:120px;right:60px;background:var(--noir);color:var(--cream);font-size:13px;padding:14px 24px;opacity:0;transform:translateY(10px);transition:all .4s ease;pointer-events:none;z-index:600;border-left:3px solid var(--rouge);}
+.toast.show{opacity:1;transform:translateY(0);}
+.footer-line{position:fixed;bottom:0;left:0;width:100%;height:4px;background:var(--rouge);}
+@keyframes fdUp{to{opacity:1;transform:translateY(0);}}
+@keyframes fdDown{to{opacity:1;transform:translateY(0);}}
+@keyframes fdIn{to{opacity:1;}}
+::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-track{background:var(--beige);}::-webkit-scrollbar-thumb{background:var(--warm);}::-webkit-scrollbar-thumb:hover{background:var(--rouge);}
+@media(max-width:768px){header,main{padding:24px;}.hero{padding:40px 24px 20px;}.divider{width:calc(100% - 48px);margin:0 24px;}.hero-deco{display:none;}.emotion-grid,.audience-grid{grid-template-columns:1fr;}.generate-wrap{bottom:20px;right:20px;}}
+</style>
+</head>
+<body>
+<div id="cur"></div><div id="curR"></div>
+<div class="pbar-c"><div class="pbar" id="pbar"></div></div>
+<header>
+  <div class="logo-tag">AMOUR STUDIOS</div>
+  <div class="mod-tag">MODULE 01 — VIDÉO 02<br>MON POSITIONNEMENT</div>
+</header>
+<div class="hero">
+  <div class="hero-label">Exercice élève</div>
+  <h1 id="heroT"><span class="w1">MON</span><span class="w2">POSITION</span><span class="w3">NEMENT</span></h1>
+  <p class="hero-sub">Quand tu parles à tout le monde, tu parles à personne.<br>Définis qui tu es, pour qui, et pourquoi.</p>
+  <div class="hero-deco" id="heroD">02</div>
+</div>
+<div class="divider"></div>
+<main>
+
+  <!-- 01 QU'EST-CE QUE JE FAIS -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-number">01</span>
+      <div class="section-title">Qu'est-ce que je fais ?</div>
+      <p class="section-desc">Ton art, ta discipline, ta spécialité. En une phrase, sans tourner autour.</p>
+    </div>
+    <div class="identity-grid">
+      <div class="id-field card-3d">
+        <label>MA DISCIPLINE</label>
+        <div class="hint">Rappeur / Chanteur / Producteur / Beatmaker...</div>
+        <textarea id="v2_discipline" placeholder="Définis ta discipline en une phrase claire..."></textarea>
+      </div>
+      <div class="id-field card-3d">
+        <label>MON STYLE</label>
+        <div class="hint">Le son, l'univers, l'énergie que tu dégages</div>
+        <textarea id="v2_style" placeholder="Décris ton univers sonore et visuel..."></textarea>
+      </div>
+      <div class="id-field card-3d">
+        <label>MON FORMAT DE PRÉDILECTION</label>
+        <div class="hint">Clips, freestyles, albums, lives, sessions studio...</div>
+        <textarea id="v2_format" placeholder="Où est-ce que tu t'exprimes le mieux ?"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- 02 POUR QUI -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-number">02</span>
+      <div class="section-title">Pour qui ?</div>
+      <p class="section-desc">Quand tu parles à tout le monde, tu parles à personne.</p>
+    </div>
+    <div class="audience-grid">
+      <div class="aud-card card-3d">
+        <div class="aud-label">ÂGE & PROFIL</div>
+        <div class="aud-hint">Qui sont-ils concrètement ?</div>
+        <textarea id="v2_age" placeholder="25-35 ans, urbains, passionnés de culture..."></textarea>
+      </div>
+      <div class="aud-card card-3d">
+        <div class="aud-label">CE QUI LES ANIME</div>
+        <div class="aud-hint">Leurs passions, références, influences</div>
+        <textarea id="v2_anime" placeholder="Hip-hop, street art, entrepreneuriat..."></textarea>
+      </div>
+      <div class="aud-card aud-full card-3d">
+        <div class="aud-label">CE QU'ILS RESSENTENT EN T'ÉCOUTANT</div>
+        <div class="aud-hint">L'effet que tu veux provoquer</div>
+        <textarea id="v2_ressenti" placeholder="L'émotion, l'état d'esprit que tu veux laisser..."></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- 03 QUELLE ÉMOTION -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-number">03</span>
+      <div class="section-title">Quelle émotion ?</div>
+      <p class="section-desc">Les gens oublient ce que tu dis. Ils oublient pas ce qu'ils ont ressenti.</p>
+    </div>
+    <div class="emotion-grid">
+      <div class="emo-card puissance card-3d">
+        <div class="emo-deco">⚡</div>
+        <input type="text" class="emo-name" id="v2_emo_puissance_name" placeholder="ex: Puissance">
+        <textarea class="emo-sub" id="v2_emo_puissance_sub" placeholder="ex: Force, confiance, invincibilité"></textarea>
+        <div class="emo-label">LA MIENNE →</div>
+        <textarea id="v2_emo_puissance" placeholder="Comment tu l'incarnes dans ta musique..."></textarea>
+      </div>
+      <div class="emo-card melancolie card-3d">
+        <div class="emo-deco" style="color:var(--muted)">◐</div>
+        <input type="text" class="emo-name" id="v2_emo_melancolie_name" placeholder="ex: Mélancolie">
+        <textarea class="emo-sub" id="v2_emo_melancolie_sub" placeholder="ex: Nostalgie, profondeur, introspection"></textarea>
+        <div class="emo-label" style="color:var(--muted)">LA MIENNE →</div>
+        <textarea id="v2_emo_melancolie" placeholder="Comment tu l'incarnes dans ta musique..."></textarea>
+      </div>
+      <div class="emo-card espoir card-3d">
+        <div class="emo-deco" style="color:var(--gold)">✦</div>
+        <input type="text" class="emo-name" id="v2_emo_espoir_name" placeholder="ex: Espoir">
+        <textarea class="emo-sub" id="v2_emo_espoir_sub" placeholder="ex: Motivation, lumière, reconstruction"></textarea>
+        <div class="emo-label" style="color:var(--muted)">LA MIENNE →</div>
+        <textarea id="v2_emo_espoir" placeholder="Comment tu l'incarnes dans ta musique..."></textarea>
+      </div>
+      <div class="emo-card rage card-3d">
+        <div class="emo-deco">🔥</div>
+        <input type="text" class="emo-name" id="v2_emo_rage_name" placeholder="ex: Rage">
+        <textarea class="emo-sub" id="v2_emo_rage_sub" placeholder="ex: Énergie brute, révolte, intensité"></textarea>
+        <div class="emo-label">LA MIENNE →</div>
+        <textarea id="v2_emo_rage" placeholder="Comment tu l'incarnes dans ta musique..."></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- 04 1 PHRASE -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-number">04</span>
+      <div class="section-title">1 phrase.</div>
+      <p class="section-desc">La formule complète de ton positionnement.</p>
+    </div>
+    <div class="phrase-wrap">
+      <div class="phrase-template">
+        <div class="phrase-block">
+          <div class="pb-label">JE SUIS [QUI]</div>
+          <input type="text" id="v2_qui" placeholder="ex: un rappeur de Lyon...">
+        </div>
+        <div class="phrase-block">
+          <div class="pb-label">QUI FAIT [QUOI]</div>
+          <input type="text" id="v2_quoi" placeholder="ex: du rap conscient...">
+        </div>
+        <div class="phrase-block">
+          <div class="pb-label">POUR [QUI]</div>
+          <input type="text" id="v2_pourqui" placeholder="ex: les 20-30 ans...">
+        </div>
+        <div class="phrase-block">
+          <div class="pb-label">AFIN DE [QUEL EFFET]</div>
+          <input type="text" id="v2_effet" placeholder="ex: leur donner l'énergie d'avancer...">
+        </div>
+        <div class="phrase-divider"></div>
+      </div>
+      <div class="phrase-final-label">MA PHRASE DE POSITIONNEMENT</div>
+      <div class="phrase-final">
+        <textarea id="v2_phrase" placeholder="Je suis [qui] qui fait [quoi] pour [qui] afin de [effet]..."></textarea>
+      </div>
+    </div>
+  </div>
+
+</main>
+<div class="generate-wrap">
+  <button class="gen-btn" onclick="generatePDF()">
+    <div class="ring-wrap">
+      <svg width="44" height="44" viewBox="0 0 40 40">
+        <circle class="ring-bg" cx="20" cy="20" r="18"/>
+        <circle class="ring-fill" id="ringFill" cx="20" cy="20" r="18"/>
+      </svg>
+      <div class="ring-label" id="ringLabel">0%</div>
+    </div>
+    <span>GÉNÉRER MON PDF</span>
+  </button>
+</div>
+<div class="toast" id="toast"></div>
+<div class="footer-line"></div>
+<script>
+const cur=document.getElementById('cur'),curR=document.getElementById('curR');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cur.style.left=mx+'px';cur.style.top=my+'px';});
+(function t(){rx+=(mx-rx)*.12;ry+=(my-ry)*.12;curR.style.left=rx+'px';curR.style.top=ry+'px';requestAnimationFrame(t);})();
+function autoResize(el){el.style.height='auto';el.style.height=el.scrollHeight+'px';}
+document.querySelectorAll('textarea').forEach(ta=>{ta.addEventListener('input',()=>autoResize(ta));autoResize(ta);});
+const heroT=document.getElementById('heroT'),heroD=document.getElementById('heroD');
+window.addEventListener('scroll',()=>{
+  const sy=window.scrollY;
+  if(heroT)heroT.style.transform=`translateY(${sy*.18}px)`;
+  if(heroD)heroD.style.transform=`translateY(${-sy*.07}px)`;
+  document.getElementById('pbar').style.width=Math.min((sy/(document.body.scrollHeight-window.innerHeight))*100,100)+'%';
+},{passive:true});
+document.querySelectorAll('.card-3d').forEach(card=>{
+  card.addEventListener('mousemove',e=>{
+    const r=card.getBoundingClientRect(),dx=(e.clientX-r.left-r.width/2)/(r.width/2),dy=(e.clientY-r.top-r.height/2)/(r.height/2);
+    card.style.transform=`perspective(900px) rotateX(${dy*-5}deg) rotateY(${dx*5}deg) translateZ(8px)`;
+    card.style.boxShadow=`${-dx*14}px ${-dy*14}px 44px rgba(29,29,27,.15)`;
+  });
+  card.addEventListener('mouseleave',()=>{card.style.transform='perspective(900px) rotateX(0) rotateY(0) translateZ(0)';card.style.boxShadow='';});
+});
+const io=new IntersectionObserver(e=>e.forEach(x=>{if(x.isIntersecting)x.target.classList.add('visible');}),{threshold:.08});
+document.querySelectorAll('.section').forEach(s=>io.observe(s));
+const allF=['v2_discipline','v2_style','v2_format','v2_age','v2_anime','v2_ressenti','v2_emo_puissance','v2_emo_melancolie','v2_emo_espoir','v2_emo_rage','v2_phrase','v2_emo_puissance_name','v2_emo_melancolie_name','v2_emo_espoir_name','v2_emo_rage_name'];
+function upRing(){
+  const n=allF.filter(id=>{const e=document.getElementById(id);return e&&e.value.trim();}).length;
+  const p=Math.round(n/allF.length*100);
+  document.getElementById('ringFill').style.strokeDashoffset=113-(p/100)*113;
+  document.getElementById('ringLabel').textContent=p+'%';
+}
+allF.forEach(id=>{const e=document.getElementById(id);if(e)e.addEventListener('input',upRing);});
+['v2_qui','v2_quoi','v2_pourqui','v2_effet'].forEach(id=>{const e=document.getElementById(id);if(e)e.addEventListener('input',upRing);});
+['v2_emo_puissance_sub','v2_emo_melancolie_sub','v2_emo_espoir_sub','v2_emo_rage_sub'].forEach(id=>{const e=document.getElementById(id);if(e){e.addEventListener('input',()=>autoResize(e));autoResize(e);}});
+function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
+function val(id){return(document.getElementById(id)?.value||'').trim();}
+
+async function generatePDF(){
+  showToast('Génération en cours...');
+  await new Promise(r=>setTimeout(r,200));
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const W=210,H=297,M=14,CW=182,HDR=18,YS=HDR+8,YX=H-14;
+  const beige=[234,228,218],noir=[29,29,27],rouge=[198,63,62],cream=[240,235,227],warm=[200,194,184],muted=[106,106,104],gold=[168,132,90];
+  let pn=1,y=YS;
+  function shell(){
+    doc.setFillColor(...beige);doc.rect(0,0,W,H,'F');
+    doc.setFillColor(...noir);doc.rect(0,0,W,HDR,'F');
+    doc.setFillColor(...rouge);doc.rect(0,H-4,W,4,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(...beige);doc.text('AMOUR STUDIOS',M,7);
+    doc.setFont('helvetica','normal');doc.setFontSize(7);doc.text('MODULE 01 — VIDÉO 02 — MON POSITIONNEMENT',M,13);
+    doc.setFont('helvetica','bold');doc.setFontSize(7);doc.text('PAGE '+pn,W-M,10,{align:'right'});
+  }
+  function np(){pn++;doc.addPage();shell();y=YS;}
+  function need(h){if(y+h>YX)np();}
+  function lh(n,fs,ld=1.42){return n*fs*.352778*ld;}
+  function wrap(t,mw,fs){doc.setFontSize(fs);return doc.splitTextToSize(t||'—',mw);}
+  function gap(n=7){y+=n;}
+  function sLab(t,col){
+    need(10);
+    doc.setFont('helvetica','bold');doc.setFontSize(7);doc.setTextColor(...(col||rouge));
+    doc.text(t,M,y);y+=6;
+  }
+  shell();
+  // Title
+  doc.setFont('helvetica','bold');doc.setFontSize(36);doc.setTextColor(...noir);doc.text('MON',M,y+12);
+  doc.setTextColor(...rouge);doc.text('POSITIONNEMENT',M,y+24);
+  doc.setFont('helvetica','oblique');doc.setFontSize(8.5);doc.setTextColor(...muted);
+  doc.text('Quand tu parles à tout le monde, tu parles à personne.',M,y+32);
+  y+=42;
+
+  // 01 QU'EST-CE QUE JE FAIS
+  sLab('01 — QU\'EST-CE QUE JE FAIS ?');
+  const iFlds=[{id:'v2_discipline',lbl:'MA DISCIPLINE',hint:'Rappeur / Chanteur / Producteur...'},{id:'v2_style',lbl:'MON STYLE',hint:'Le son, l\'univers, l\'énergie'},{id:'v2_format',lbl:'MON FORMAT DE PRÉDILECTION',hint:'Clips, freestyles, albums, lives...'}];
+  iFlds.forEach(f=>{
+    const ls=wrap(val(f.id),CW-10,9);
+    const h=Math.max(14+lh(ls.length,9)+6,16);
+    need(h+2);
+    doc.setFillColor(...cream);doc.rect(M,y,CW,h,'F');
+    doc.setFillColor(...rouge);doc.rect(M,y,3,h,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(7);doc.setTextColor(...rouge);doc.text(f.lbl,M+6,y+5);
+    doc.setFont('helvetica','oblique');doc.setFontSize(6);doc.setTextColor(...muted);doc.text(f.hint,M+6,y+9);
+    doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(...noir);doc.text(ls,M+6,y+14);
+    y+=h+2;
+  });
+  gap();
+
+  // 02 POUR QUI
+  sLab('02 — POUR QUI ?');
+  const aFlds=[{id:'v2_age',lbl:'ÂGE & PROFIL',w:CW/2},{id:'v2_anime',lbl:'CE QUI LES ANIME',w:CW/2},{id:'v2_ressenti',lbl:'CE QU\'ILS RESSENTENT EN T\'ÉCOUTANT',w:CW,full:true}];
+  // Row 1 (2 cols)
+  const row1=[aFlds[0],aFlds[1]];
+  const r1H=row1.map(f=>{const ls=wrap(val(f.id),f.w-10,9);return Math.max(14+lh(ls.length,9)+6,18);});
+  const r1Adv=Math.max(...r1H);need(r1Adv+2);
+  row1.forEach((f,i)=>{
+    const ax=M+i*(CW/2);const h=r1H[i];
+    doc.setFillColor(...cream);doc.rect(ax,y,CW/2-2,h,'F');
+    doc.setFillColor(...gold);doc.rect(ax,y+h-2,CW/2-2,2,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(7);doc.setTextColor(...noir);doc.text(f.lbl,ax+4,y+5);
+    doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(...muted);
+    doc.text(wrap(val(f.id),f.w-10,9),ax+4,y+12);
+  });
+  y+=r1Adv+2;
+  // Row 2 (full)
+  const ls3=wrap(val('v2_ressenti'),CW-10,9);const h3=Math.max(14+lh(ls3.length,9)+6,16);need(h3+2);
+  doc.setFillColor(...cream);doc.rect(M,y,CW,h3,'F');
+  doc.setFillColor(...gold);doc.rect(M,y+h3-2,CW,2,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(7);doc.setTextColor(...noir);doc.text('CE QU\'ILS RESSENTENT EN T\'ÉCOUTANT',M+4,y+5);
+  doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(...muted);doc.text(ls3,M+4,y+12);
+  y+=h3+2;gap();
+
+  // 03 ÉMOTIONS
+  sLab('03 — QUELLE ÉMOTION ?');
+  const emos=[
+    {id:'v2_emo_puissance',nameid:'v2_emo_puissance_name',subid:'v2_emo_puissance_sub',dfltname:'PUISSANCE',bg:noir,tc:[240,235,227]},
+    {id:'v2_emo_melancolie',nameid:'v2_emo_melancolie_name',subid:'v2_emo_melancolie_sub',dfltname:'MÉLANCOLIE',bg:cream,tc:noir},
+    {id:'v2_emo_espoir',nameid:'v2_emo_espoir_name',subid:'v2_emo_espoir_sub',dfltname:'ESPOIR',bg:beige,tc:gold},
+    {id:'v2_emo_rage',nameid:'v2_emo_rage_name',subid:'v2_emo_rage_sub',dfltname:'RAGE',bg:rouge,tc:[240,235,227]},
+  ];
+  const ew=CW/2;
+  for(let row=0;row<2;row++){
+    const pair=emos.slice(row*2,row*2+2);
+    const ch=pair.map(e=>{const ename=val(e.nameid)||e.dfltname;const esub=val(e.subid)||'';const combined=ename+' '+esub;const ls=wrap(val(e.id),ew-14,8.5);return Math.max(14+lh(ls.length,8.5)+12,26);});
+    const adv=Math.max(...ch);need(adv+2);
+    pair.forEach((e,ci)=>{
+      const ax=M+ci*ew;const h=ch[ci];
+      const ename=val(e.nameid)||e.dfltname;
+      const esub=val(e.subid)||'';
+      doc.setFillColor(...e.bg);doc.rect(ax,y,ew-2,h,'F');
+      doc.setFont('helvetica','bold');doc.setFontSize(13);doc.setTextColor(...e.tc);doc.text(ename,ax+6,y+8);
+      doc.setFont('helvetica','oblique');doc.setFontSize(7.5);
+      const isDark=(e.bg===noir||e.bg===rouge);
+      doc.setTextColor(...(isDark?[200,194,184]:muted));
+      doc.text(esub,ax+6,y+13);
+      doc.setFont('helvetica','normal');doc.setFontSize(8.5);
+      const ls=wrap(val(e.id),ew-14,8.5);
+      doc.text(ls,ax+6,y+20);
+    });
+    y+=adv+2;
+  }
+  gap();
+
+  // 04 PHRASE
+  sLab('04 — MA PHRASE DE POSITIONNEMENT');
+  const phParts=[{id:'v2_qui',lbl:'JE SUIS'},{id:'v2_quoi',lbl:'QUI FAIT'},{id:'v2_pourqui',lbl:'POUR'},{id:'v2_effet',lbl:'AFIN DE'}];
+  const phW=CW/2;
+  for(let row=0;row<2;row++){
+    const pair=phParts.slice(row*2,row*2+2);
+    const ch=pair.map(p=>{const ls=wrap(val(p.id),phW-10,9);return Math.max(14+lh(ls.length,9)+4,16);});
+    const adv=Math.max(...ch);need(adv+2);
+    pair.forEach((p,ci)=>{
+      const ax=M+ci*phW;const h=ch[ci];
+      doc.setFillColor(...noir);doc.rect(ax,y,phW-2,h,'F');
+      doc.setFillColor(...rouge);doc.rect(ax,y,3,h,'F');
+      doc.setFont('helvetica','bold');doc.setFontSize(6);doc.setTextColor(...rouge);doc.text(p.lbl,ax+6,y+5);
+      doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(...[240,235,227]);
+      doc.text(wrap(val(p.id),phW-10,9),ax+6,y+11);
+    });
+    y+=adv+2;
+  }
+  gap(4);
+  const phLs=wrap(val('v2_phrase'),CW-20,12);
+  const phH=Math.max(lh(phLs.length,12,1.6)+18,24);need(phH);
+  doc.setFillColor(...rouge);doc.rect(M,y,CW,phH,'F');
+  doc.setFont('helvetica','oblique');doc.setFontSize(12);doc.setTextColor(240,235,227);
+  doc.text(phLs,W/2,y+phH/2-lh(phLs.length,12,1.6)/2+4,{align:'center'});
+  y+=phH+4;
+  doc.setFont('helvetica','normal');doc.setFontSize(6);doc.setTextColor(...muted);
+  doc.text('AMOUR STUDIOS — MODULE 01 — VIDÉO 02 — MON POSITIONNEMENT',W/2,H-8,{align:'center'});
+  doc.save('AMOUR_STUDIOS_M01_V02_Positionnement.pdf');
+  showToast('✓ PDF généré !');
+}
+</script>
+<script src="/exos/_bridge.js"></script>
+</body>
+</html>

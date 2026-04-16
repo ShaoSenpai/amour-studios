@@ -1,6 +1,9 @@
 import { internalMutation } from "./_generated/server";
 
-const BASE = "https://amourstudios.fr/EXOS_LANDING";
+// URLs relatives (same-origin) — les HTML sont dans public/exos/ de l'app Next.
+// Depuis la migration hors OVH : postMessage bridge injecté dans chaque HTML
+// (voir public/exos/_bridge.js) permet l'auto-completion côté iframe.
+const BASE = "/exos";
 
 // Mapping : slug de la leçon en prod → URL de l'exo interactif HTML
 const MAPPINGS: Array<{ lessonSlug: string; url: string; title: string }> = [
@@ -37,7 +40,7 @@ const MAPPINGS: Array<{ lessonSlug: string; url: string; title: string }> = [
   {
     lessonSlug: "google-agenda-organiser-son-temps",
     title: "Configuration Google Agenda",
-    url: `${BASE}/MODULE02/VIDEO04/AMOUR_STUDIOS_M02_V04_GOOGLE_AGENDA%20%281%29.html`,
+    url: `${BASE}/MODULE02/VIDEO04/AMOUR_STUDIOS_M02_V04_GOOGLE_AGENDA.html`,
   },
   {
     lessonSlug: "comment-avoir-toujours-des-bonnes-idees",
@@ -47,7 +50,7 @@ const MAPPINGS: Array<{ lessonSlug: string; url: string; title: string }> = [
   {
     lessonSlug: "le-script-video",
     title: "Mon premier script",
-    url: `${BASE}/MODULE02/VIDEO08/AMOUR_STUDIOS_M02_V08_EXERCICE_INTERACTIF%20%281%29.html`,
+    url: `${BASE}/MODULE02/VIDEO08/AMOUR_STUDIOS_M02_V08_EXERCICE_INTERACTIF.html`,
   },
   {
     lessonSlug: "les-croyances-limitantes",

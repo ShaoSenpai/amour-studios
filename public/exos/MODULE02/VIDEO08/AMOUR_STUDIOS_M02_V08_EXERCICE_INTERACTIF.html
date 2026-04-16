@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AMOUR STUDIOS — Le Script Vidéo</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap');
+
+:root {
+  --beige:  #EAE4DA;
+  --noir:   #1D1D1B;
+  --rouge:  #C63F3E;
+  --muted:  #6A6A68;
+  --warm:   #C8C2B8;
+  --cream:  #F0EBE3;
+  --gold:   #A8845A;
+  --teal:   #3E6B6A;
+  --purple: #6A5E8A;
+  --dark2:  #252320;
+}
+
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+* { cursor: none !important; }
+
+#cur  { position:fixed; width:10px; height:10px; background:var(--rouge); border-radius:50%; pointer-events:none; z-index:9999; transform:translate(-50%,-50%); mix-blend-mode:multiply; }
+#curR { position:fixed; width:34px; height:34px; border:1.5px solid var(--rouge); border-radius:50%; pointer-events:none; z-index:9998; transform:translate(-50%,-50%); opacity:.4; }
+
+body { background:var(--beige); color:var(--noir); font-family:'DM Sans',sans-serif; min-height:100vh; overflow-x:hidden; }
+body::before { content:''; position:fixed; inset:0; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"); pointer-events:none; z-index:1000; opacity:.65; }
+
+.pbar-c { position:fixed; top:0; left:0; width:100%; height:3px; background:var(--warm); z-index:900; }
+.pbar   { height:100%; background:var(--rouge); width:0%; transition:width .2s; }
+
+header { padding:40px 60px 0; display:flex; justify-content:space-between; align-items:flex-start; opacity:0; transform:translateY(-20px); animation:fdDown .8s ease forwards .1s; }
+.logo-tag { font-family:'Bebas Neue',sans-serif; font-size:11px; letter-spacing:3px; color:var(--muted); border:1px solid var(--warm); padding:6px 12px; }
+.mod-tag  { font-size:11px; letter-spacing:2px; color:var(--muted); text-align:right; line-height:1.6; }
+
+.hero { padding:60px 60px 20px; position:relative; opacity:0; transform:translateY(30px); animation:fdUp .9s ease forwards .3s; }
+.hero-label { font-size:11px; letter-spacing:4px; color:var(--rouge); text-transform:uppercase; margin-bottom:16px; display:flex; align-items:center; gap:12px; }
+.hero-label::after { content:''; width:40px; height:1px; background:var(--rouge); }
+h1 { font-family:'Bebas Neue',sans-serif; font-size:clamp(60px,9vw,110px); line-height:.88; will-change:transform; }
+h1 .w1 { display:block; color:var(--noir); }
+h1 .w2 { display:block; color:var(--rouge); }
+h1 .w3 { display:block; color:var(--warm); font-size:.6em; }
+.hero-sub { font-family:'Playfair Display',serif; font-style:italic; font-size:15px; color:var(--muted); margin-top:22px; max-width:480px; line-height:1.65; }
+.hero-deco { position:absolute; right:60px; top:50%; transform:translateY(-50%); font-family:'Bebas Neue',sans-serif; font-size:180px; color:var(--warm); opacity:.12; line-height:1; pointer-events:none; user-select:none; }
+
+.divider { width:calc(100% - 120px); margin:0 60px; height:1px; background:linear-gradient(to right,var(--noir),transparent); opacity:0; animation:fdIn 1s ease forwards .6s; }
+
+main { padding:60px 60px 160px; max-width:1000px; margin:0 auto; }
+
+/* ── DURÉE ───────────────────────────────────────────────────── */
+.duree-wrap  { display:flex; align-items:center; gap:12px; margin-bottom:48px; }
+.duree-label { font-family:'Bebas Neue',sans-serif; font-size:13px; letter-spacing:2px; color:var(--muted); }
+.duree-btn   { font-family:'Bebas Neue',sans-serif; font-size:14px; letter-spacing:2px; color:var(--muted); background:var(--cream); border:1px solid var(--warm); padding:8px 20px; cursor:none; transition:all .25s; }
+.duree-btn.active { background:var(--rouge); color:white; border-color:var(--rouge); }
+.duree-btn:hover:not(.active) { border-color:var(--rouge); color:var(--rouge); }
+
+/* ── STEP BASE ───────────────────────────────────────────────── */
+.step { margin-bottom:6px; opacity:0; transform:translateY(40px); transition:opacity .7s cubic-bezier(.22,.68,0,1.2),transform .7s cubic-bezier(.22,.68,0,1.2); }
+.step.visible { opacity:1; transform:translateY(0); }
+.step-inner { display:grid; grid-template-columns:100px 1fr; }
+
+.step-num { display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:24px 0; background:var(--noir); position:relative; }
+.sn-big   { font-family:'Bebas Neue',sans-serif; font-size:60px; line-height:1; }
+.sn-label { font-family:'Bebas Neue',sans-serif; font-size:8px; letter-spacing:2px; color:rgba(255,255,255,.3); margin-top:4px; }
+.sn-time  { font-family:'Bebas Neue',sans-serif; font-size:10px; letter-spacing:1px; margin-top:8px; padding:3px 8px; background:rgba(255,255,255,.08); color:rgba(255,255,255,.5); }
+
+/* Couleurs par classe explicite — no nth-child */
+.step-hook   .sn-big { color:var(--rouge); }
+.step-dev    .sn-big { color:var(--gold); }
+.step-climax .sn-big { color:var(--teal); }
+.step-cta    .sn-big { color:var(--purple); }
+
+/* Cards */
+.step-card { padding:24px 28px; border-left:3px solid transparent; transition:border-color .3s, background .25s; }
+
+.step-hook   .step-card { background:var(--cream); }
+.step-dev    .step-card { background:#F5F1EB; }
+.step-climax .step-card { background:var(--cream); }
+.step-cta    .step-card { background:var(--noir); }
+
+.step-hook   .step-card:focus-within { background:#fff; border-left-color:var(--rouge); }
+.step-dev    .step-card:focus-within { background:#fff; border-left-color:var(--gold); }
+.step-climax .step-card:focus-within { background:#fff; border-left-color:var(--teal); }
+.step-cta    .step-card:focus-within { background:#2A2724; border-left-color:var(--purple); }
+
+.sc-title { font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:2px; margin-bottom:4px; }
+.sc-hint  { font-family:'Playfair Display',serif; font-style:italic; font-size:12px; margin-bottom:18px; line-height:1.5; }
+
+.step-hook   .sc-title,
+.step-dev    .sc-title,
+.step-climax .sc-title { color:var(--noir); }
+.step-cta    .sc-title { color:var(--cream); }
+
+.step-hook   .sc-hint,
+.step-dev    .sc-hint,
+.step-climax .sc-hint { color:var(--muted); }
+.step-cta    .sc-hint { color:var(--warm); }
+
+/* Textareas */
+.step-card textarea {
+  width:100%; background:transparent; border:none; outline:none;
+  font-family:'DM Sans',sans-serif; font-size:14px;
+  resize:none; min-height:64px; line-height:1.75; overflow:hidden;
+  border-bottom:1px solid var(--warm); padding-bottom:12px;
+  transition:border-color .3s;
+}
+.step-card textarea::placeholder { color:var(--warm); font-style:italic; font-size:13px; }
+
+.step-hook   textarea,
+.step-dev    textarea,
+.step-climax textarea { color:var(--noir); }
+
+.step-hook   textarea:focus { border-bottom-color:var(--rouge); }
+.step-dev    textarea:focus { border-bottom-color:var(--gold); }
+.step-climax textarea:focus { border-bottom-color:var(--teal); }
+
+.step-cta textarea {
+  color:rgba(255,255,255,.9);
+  border-bottom:1px solid rgba(255,255,255,.2);
+}
+.step-cta textarea::placeholder { color:rgba(255,255,255,.35); }
+.step-cta textarea:focus { border-bottom-color:var(--purple); }
+
+/* Chips */
+.type-chips { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px; }
+.chip {
+  font-family:'Bebas Neue',sans-serif; font-size:12px; letter-spacing:1.5px;
+  padding:6px 14px; border:1px solid var(--warm); color:var(--muted);
+  background:transparent; cursor:none; transition:all .2s;
+}
+.chip:hover { border-color:var(--rouge); color:var(--rouge); }
+.chip.active-rouge  { background:var(--rouge);  color:white !important; border-color:var(--rouge) !important; }
+.chip.active-purple { background:var(--purple); color:white !important; border-color:var(--purple) !important; }
+
+/* CTA chips — fond sombre */
+.step-cta .chip {
+  border-color:rgba(255,255,255,.2);
+  color:rgba(255,255,255,.6);
+  background:rgba(255,255,255,.05);
+}
+.step-cta .chip:hover { border-color:var(--purple); color:var(--purple); }
+
+/* Tip boxes */
+.tip-box { margin-top:14px; padding:10px 14px; border-left:2px solid; }
+.tip-box p { font-size:11px; font-style:italic; line-height:1.6; }
+.tip-box p strong { font-style:normal; }
+
+.step-hook   .tip-box { background:rgba(198,63,62,.06);  border-left-color:var(--rouge); }
+.step-dev    .tip-box { background:rgba(168,132,90,.07); border-left-color:var(--gold); }
+.step-climax .tip-box { background:rgba(62,107,106,.07); border-left-color:var(--teal); }
+.step-cta    .tip-box { background:rgba(106,94,138,.15); border-left-color:var(--purple); }
+
+.step-hook   .tip-box p { color:var(--muted); }
+.step-dev    .tip-box p { color:var(--muted); }
+.step-climax .tip-box p { color:var(--muted); }
+.step-cta    .tip-box p { color:rgba(255,255,255,.4); }
+
+.step-hook   .tip-box p strong { color:var(--rouge); }
+.step-dev    .tip-box p strong { color:var(--gold); }
+.step-climax .tip-box p strong { color:var(--teal); }
+.step-cta    .tip-box p strong { color:var(--purple); }
+
+/* ── APERÇU ──────────────────────────────────────────────────── */
+.preview-section { margin-top:48px; }
+.preview-label { font-family:'Bebas Neue',sans-serif; font-size:11px; letter-spacing:3px; color:var(--rouge); margin-bottom:16px; display:flex; align-items:center; gap:12px; }
+.preview-label::after { content:''; flex:1; height:1px; background:linear-gradient(to right,var(--rouge),transparent); }
+
+.preview-card { background:var(--noir); padding:36px 40px; position:relative; overflow:hidden; }
+.preview-card::after { content:''; position:absolute; bottom:0; left:0; width:0; height:3px; background:var(--rouge); transition:width .8s cubic-bezier(.22,.68,0,1.2); }
+.preview-card:hover::after { width:100%; }
+
+.preview-meta { display:flex; align-items:center; gap:16px; margin-bottom:24px; }
+.pm-duration  { font-family:'Bebas Neue',sans-serif; font-size:11px; letter-spacing:2px; background:var(--rouge); color:white; padding:4px 12px; flex-shrink:0; }
+.pm-title-input { flex:1; background:transparent; border:none; border-bottom:1px solid rgba(255,255,255,.12); outline:none; font-family:'Bebas Neue',sans-serif; font-size:14px; letter-spacing:2px; color:var(--cream); padding-bottom:4px; }
+.pm-title-input::placeholder { color:rgba(255,255,255,.2); }
+.pm-title-input:focus { border-bottom-color:var(--rouge); }
+
+.preview-empty { font-family:'Playfair Display',serif; font-style:italic; font-size:14px; color:rgba(255,255,255,.2); text-align:center; padding:20px 0; }
+.script-line   { margin-bottom:20px; }
+.sl-tag        { font-family:'Bebas Neue',sans-serif; font-size:9px; letter-spacing:2px; margin-bottom:5px; }
+.sl-content    { font-family:'Georgia',serif; font-size:15px; line-height:1.7; color:var(--cream); }
+.sl-empty      { font-style:italic; color:rgba(255,255,255,.2); font-size:13px; }
+.preview-divider { width:100%; height:1px; background:rgba(255,255,255,.06); margin:16px 0; }
+.sl-tag-hook   { color:var(--rouge); }
+.sl-tag-dev    { color:var(--gold); }
+.sl-tag-climax { color:var(--teal); }
+.sl-tag-cta    { color:var(--purple); }
+
+/* ── GENERATE ────────────────────────────────────────────────── */
+.generate-wrap { position:fixed; bottom:40px; right:60px; z-index:500; opacity:0; animation:fdUp .8s ease forwards 1.2s; }
+.gen-btn { background:var(--rouge); color:var(--cream); border:none; font-family:'Bebas Neue',sans-serif; font-size:15px; letter-spacing:3px; padding:16px 32px; cursor:none; display:flex; align-items:center; gap:14px; box-shadow:0 8px 32px rgba(198,63,62,.28); position:relative; overflow:hidden; transition:box-shadow .35s,transform .35s; }
+.gen-btn::before { content:''; position:absolute; inset:0; background:var(--noir); transform:translateX(-100%); transition:transform .45s cubic-bezier(.22,.68,0,1.2); }
+.gen-btn:hover::before { transform:translateX(0); }
+.gen-btn span, .ring-wrap { position:relative; z-index:1; }
+.gen-btn:hover { box-shadow:0 16px 48px rgba(29,29,27,.32); transform:translateY(-3px); }
+.gen-btn:active { transform:translateY(-1px); }
+.ring-wrap  { width:44px; height:44px; position:relative; }
+.ring-wrap svg { transform:rotate(-90deg); }
+.ring-bg    { fill:none; stroke:rgba(255,255,255,.15); stroke-width:3; }
+.ring-fill  { fill:none; stroke:white; stroke-width:3; stroke-linecap:round; stroke-dasharray:113; stroke-dashoffset:113; transition:stroke-dashoffset .5s; }
+.ring-label { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:'Bebas Neue',sans-serif; font-size:12px; color:white; }
+
+.toast { position:fixed; bottom:120px; right:60px; background:var(--noir); color:var(--cream); font-size:13px; padding:14px 24px; opacity:0; transform:translateY(10px); transition:all .4s; pointer-events:none; z-index:600; border-left:3px solid var(--rouge); }
+.toast.show { opacity:1; transform:translateY(0); }
+.footer-line { position:fixed; bottom:0; left:0; width:100%; height:4px; background:var(--rouge); }
+
+@keyframes fdUp   { to { opacity:1; transform:translateY(0); } }
+@keyframes fdDown { to { opacity:1; transform:translateY(0); } }
+@keyframes fdIn   { to { opacity:1; } }
+
+::-webkit-scrollbar { width:4px; }
+::-webkit-scrollbar-track { background:var(--beige); }
+::-webkit-scrollbar-thumb { background:var(--warm); }
+::-webkit-scrollbar-thumb:hover { background:var(--rouge); }
+
+@media (max-width:768px) {
+  header, main { padding:24px; }
+  .hero { padding:40px 24px 20px; }
+  .hero-deco { display:none; }
+  .divider { width:calc(100% - 48px); margin:0 24px; }
+  .step-inner { grid-template-columns:64px 1fr; }
+  .generate-wrap { bottom:20px; right:20px; }
+}
+</style>
+</head>
+<body>
+
+<div id="cur"></div>
+<div id="curR"></div>
+<div class="pbar-c"><div class="pbar" id="pbar"></div></div>
+
+<header>
+  <div class="logo-tag">AMOUR STUDIOS</div>
+  <div class="mod-tag">MODULE 02 — VIDÉO 08<br>LE SCRIPT VIDÉO</div>
+</header>
+
+<div class="hero">
+  <div class="hero-label">Exercice élève</div>
+  <h1 id="heroT">
+    <span class="w1">MON</span>
+    <span class="w2">SCRIPT</span>
+    <span class="w3">VIDÉO.</span>
+  </h1>
+  <p class="hero-sub">4 parties. 30 à 90 secondes.<br>Chaque mot compte. 0 temps mort.</p>
+  <div class="hero-deco" id="heroD">08</div>
+</div>
+
+<div class="divider"></div>
+
+<main>
+
+  <div class="duree-wrap">
+    <div class="duree-label">DURÉE CIBLE</div>
+    <button class="duree-btn active" onclick="setDuree(this)">30 SEC</button>
+    <button class="duree-btn" onclick="setDuree(this)">60 SEC</button>
+    <button class="duree-btn" onclick="setDuree(this)">90 SEC</button>
+  </div>
+
+  <!-- 01 HOOK -->
+  <div class="step step-hook">
+    <div class="step-inner">
+      <div class="step-num">
+        <div class="sn-big">01</div>
+        <div class="sn-label">HOOK</div>
+        <div class="sn-time">2 SEC</div>
+      </div>
+      <div class="step-card">
+        <div class="sc-title">HOOK</div>
+        <div class="sc-hint">Les 2 premières secondes décident de tout. Choisis ton type de hook.</div>
+        <div class="type-chips" id="hook-chips">
+          <button class="chip" onclick="selectChip(this,'hook-chips','active-rouge')" data-val="QUESTION">QUESTION</button>
+          <button class="chip" onclick="selectChip(this,'hook-chips','active-rouge')" data-val="PROMESSE">PROMESSE</button>
+          <button class="chip" onclick="selectChip(this,'hook-chips','active-rouge')" data-val="CHOC">CHOC</button>
+          <button class="chip" onclick="selectChip(this,'hook-chips','active-rouge')" data-val="CURIOSITÉ">CURIOSITÉ</button>
+          <button class="chip" onclick="selectChip(this,'hook-chips','active-rouge')" data-val="VISUEL">VISUEL</button>
+        </div>
+        <textarea id="v8_hook" placeholder="Écris ton hook mot pour mot, exactement comme tu vas le dire." rows="2" oninput="updatePreview();upRing();"></textarea>
+        <div class="tip-box">
+          <p><strong>Règle :</strong> Teste-le à voix haute. Si tu n'arrêterais pas de scroller, réécris-le.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 02 DÉVELOPPEMENT -->
+  <div class="step step-dev">
+    <div class="step-inner">
+      <div class="step-num">
+        <div class="sn-big">02</div>
+        <div class="sn-label">DÉVEL.</div>
+        <div class="sn-time">CORPS</div>
+      </div>
+      <div class="step-card">
+        <div class="sc-title">DÉVELOPPEMENT</div>
+        <div class="sc-hint">Rythme constant. 0 temps mort. Chaque phrase justifie la suivante.</div>
+        <textarea id="v8_dev" placeholder="Développe ton propos. Dense, direct. Chaque ligne doit avoir une raison d'exister." rows="4" oninput="updatePreview();upRing();"></textarea>
+        <div class="tip-box">
+          <p><strong>Règle :</strong> Relis chaque phrase et demande-toi : <em>"Est-ce que je peux la couper ?"</em> Si oui, coupe-la.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 03 CLIMAX -->
+  <div class="step step-climax">
+    <div class="step-inner">
+      <div class="step-num">
+        <div class="sn-big">03</div>
+        <div class="sn-label">CLIMAX</div>
+        <div class="sn-time">PEAK</div>
+      </div>
+      <div class="step-card">
+        <div class="sc-title">CLIMAX</div>
+        <div class="sc-hint">La révélation. Le résultat. L'émotion peak. C'est pour ça que tout le reste existe.</div>
+        <textarea id="v8_climax" placeholder="Le moment fort. Ce que le viewer va retenir, ressentir, partager." rows="2" oninput="updatePreview();upRing();"></textarea>
+        <div class="tip-box">
+          <p><strong>Règle :</strong> Si ton climax ne crée pas une émotion ou une révélation nette, le contenu ne sera pas partagé.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 04 CTA -->
+  <div class="step step-cta">
+    <div class="step-inner">
+      <div class="step-num">
+        <div class="sn-big">04</div>
+        <div class="sn-label">CTA</div>
+        <div class="sn-time">FINAL</div>
+      </div>
+      <div class="step-card">
+        <div class="sc-title">CALL TO ACTION</div>
+        <div class="sc-hint">Un seul CTA. Clair, naturel, pas forcé. Choisis ce que tu veux que le viewer fasse.</div>
+        <div class="type-chips" id="cta-chips">
+          <button class="chip" onclick="selectChip(this,'cta-chips','active-purple')" data-val="FOLLOW">FOLLOW</button>
+          <button class="chip" onclick="selectChip(this,'cta-chips','active-purple')" data-val="COMMENTE">COMMENTE</button>
+          <button class="chip" onclick="selectChip(this,'cta-chips','active-purple')" data-val="PARTAGE">PARTAGE</button>
+          <button class="chip" onclick="selectChip(this,'cta-chips','active-purple')" data-val="ÉCOUTE">ÉCOUTE</button>
+          <button class="chip" onclick="selectChip(this,'cta-chips','active-purple')" data-val="CLIQUE">CLIQUE</button>
+        </div>
+        <textarea id="v8_cta" placeholder="Formule exacte de ton CTA. Dans ta voix, pas un script marketing." rows="2" oninput="updatePreview();upRing();"></textarea>
+        <div class="tip-box">
+          <p><strong>Règle :</strong> Un seul CTA. Pas deux. Pas "follow ET commente ET partage". Un seul.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- APERÇU -->
+  <div class="preview-section">
+    <div class="preview-label">APERÇU DU SCRIPT</div>
+    <div class="preview-card">
+      <div class="preview-meta">
+        <div class="pm-duration" id="previewDuree">30 SEC</div>
+        <input class="pm-title-input" id="v8_titre" placeholder="TITRE DE TA VIDÉO..." oninput="updatePreview();upRing();">
+      </div>
+      <div id="previewContent">
+        <div class="preview-empty">Commence à écrire — ton script apparaît ici en temps réel.</div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<div class="generate-wrap">
+  <button class="gen-btn" onclick="generatePDF()">
+    <div class="ring-wrap">
+      <svg width="44" height="44" viewBox="0 0 40 40">
+        <circle class="ring-bg"   cx="20" cy="20" r="18"/>
+        <circle class="ring-fill" id="ringFill" cx="20" cy="20" r="18"/>
+      </svg>
+      <div class="ring-label" id="ringLabel">0%</div>
+    </div>
+    <span>GÉNÉRER MON PDF</span>
+  </button>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="footer-line"></div>
+
+<script>
+var cur=document.getElementById('cur'),curR=document.getElementById('curR');
+var mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',function(e){mx=e.clientX;my=e.clientY;cur.style.left=mx+'px';cur.style.top=my+'px';});
+(function tick(){rx+=(mx-rx)*0.12;ry+=(my-ry)*0.12;curR.style.left=rx+'px';curR.style.top=ry+'px';requestAnimationFrame(tick);})();
+
+function autoResize(el){el.style.height='auto';el.style.height=el.scrollHeight+'px';}
+document.querySelectorAll('textarea').forEach(function(ta){ta.addEventListener('input',function(){autoResize(ta);});autoResize(ta);});
+
+var heroT=document.getElementById('heroT'),heroD=document.getElementById('heroD');
+window.addEventListener('scroll',function(){
+  var sy=window.scrollY;
+  if(heroT) heroT.style.transform='translateY('+(sy*0.18)+'px)';
+  if(heroD) heroD.style.transform='translateY('+(-sy*0.07)+'px)';
+  document.getElementById('pbar').style.width=Math.min(sy/(document.body.scrollHeight-window.innerHeight)*100,100)+'%';
+},{passive:true});
+
+var io=new IntersectionObserver(function(entries){entries.forEach(function(e){if(e.isIntersecting)e.target.classList.add('visible');});},{threshold:0.08});
+document.querySelectorAll('.step').forEach(function(s){io.observe(s);});
+
+var currentDuree='30 SEC';
+function setDuree(btn){
+  document.querySelectorAll('.duree-btn').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');
+  currentDuree=btn.textContent;
+  document.getElementById('previewDuree').textContent=currentDuree;
+}
+
+function selectChip(btn,groupId,activeClass){
+  document.getElementById(groupId).querySelectorAll('.chip').forEach(function(c){
+    c.classList.remove('active-rouge','active-purple');
+  });
+  btn.classList.add(activeClass);
+  updatePreview();upRing();
+}
+function getChip(groupId){
+  var a=document.getElementById(groupId).querySelector('.active-rouge, .active-purple');
+  return a?a.getAttribute('data-val'):null;
+}
+
+function gv(id){var e=document.getElementById(id);return e?e.value.trim():'';}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');}
+
+function updatePreview(){
+  var hook=gv('v8_hook'),dev=gv('v8_dev'),climax=gv('v8_climax'),cta=gv('v8_cta');
+  var hookType=getChip('hook-chips'),ctaType=getChip('cta-chips');
+  var pc=document.getElementById('previewContent');
+  if(!hook&&!dev&&!climax&&!cta){
+    pc.innerHTML='<div class="preview-empty">Commence à écrire — ton script apparaît ici en temps réel.</div>';
+    return;
+  }
+  var html='';
+  function line(tagCls,label,content){
+    html+='<div class="script-line"><div class="sl-tag '+tagCls+'">'+label+'</div>';
+    html+=content?'<div class="sl-content">'+esc(content)+'</div>':'<div class="sl-content sl-empty">En attente...</div>';
+    html+='</div>';
+  }
+  line('sl-tag-hook',  '01 — HOOK'+(hookType?' · '+hookType:''),hook);
+  html+='<div class="preview-divider"></div>';
+  line('sl-tag-dev',   '02 — DÉVELOPPEMENT',dev);
+  html+='<div class="preview-divider"></div>';
+  line('sl-tag-climax','03 — CLIMAX',climax);
+  html+='<div class="preview-divider"></div>';
+  line('sl-tag-cta',   '04 — CTA'+(ctaType?' · '+ctaType:''),cta);
+  pc.innerHTML=html;
+}
+
+function upRing(){
+  var chips=(getChip('hook-chips')?1:0)+(getChip('cta-chips')?1:0);
+  var texts=['v8_hook','v8_dev','v8_climax','v8_cta','v8_titre'].filter(function(id){var e=document.getElementById(id);return e&&e.value.trim();}).length;
+  var p=Math.round((texts+chips)/7*100);
+  document.getElementById('ringFill').style.strokeDashoffset=113-(p/100)*113;
+  document.getElementById('ringLabel').textContent=p+'%';
+}
+
+function showToast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},3000);}
+
+function generatePDF(){
+  showToast('Génération en cours...');
+  setTimeout(function(){
+    var jsPDF=window.jspdf.jsPDF;
+    var doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+    var W=210,H=297,M=14,CW=182,HDR=18,YS=HDR+8,YX=H-14;
+    var B=[234,228,218],N=[29,29,27],R=[198,63,62],CR=[240,235,227];
+    var WM=[200,194,184],MU=[106,106,104],GO=[168,132,90],TE=[62,107,106],PU=[106,94,138];
+    var WH=[255,255,255],DA=[37,35,32];
+    var pn=1,y=YS;
+    function fc(c){doc.setFillColor(c[0],c[1],c[2]);}
+    function tc(c){doc.setTextColor(c[0],c[1],c[2]);}
+    function shell(){
+      fc(B);doc.rect(0,0,W,H,'F');fc(N);doc.rect(0,0,W,HDR,'F');fc(R);doc.rect(0,H-4,W,4,'F');
+      doc.setFont('helvetica','bold');doc.setFontSize(8);tc(B);doc.text('AMOUR STUDIOS',M,7);
+      doc.setFont('helvetica','normal');doc.setFontSize(7);doc.text('MODULE 02 — VIDÉO 08 — LE SCRIPT VIDÉO',M,13);
+      doc.setFont('helvetica','bold');doc.setFontSize(7);doc.text('PAGE '+pn,W-M,10,{align:'right'});
+    }
+    function np(){pn++;doc.addPage();shell();y=YS;}
+    function need(h){if(y+h>YX)np();}
+    function lh(n,fs,ld){return n*fs*0.352778*(ld||1.42);}
+    function wT(t,mw,fs){doc.setFontSize(fs);return doc.splitTextToSize(t||'—',mw);}
+    shell();
+
+    var titre=gv('v8_titre');
+    doc.setFont('helvetica','bold');doc.setFontSize(28);tc(N);doc.text(titre?titre.toUpperCase():'MON SCRIPT',M,y+10);
+    doc.setFont('helvetica','bold');doc.setFontSize(9);tc(R);doc.text(currentDuree,M,y+17);
+    doc.setFont('helvetica','oblique');doc.setFontSize(8);tc(MU);doc.text('4 parties · 0 temps mort · '+new Date().toLocaleDateString('fr-FR'),M+22,y+17);
+    y+=26;fc(R);doc.rect(M,y,CW,0.8,'F');y+=5;
+
+    var sections=[
+      {n:'01',label:'HOOK',         chip:getChip('hook-chips'),text:gv('v8_hook'),  col:R, dark:false},
+      {n:'02',label:'DÉVELOPPEMENT',chip:null,                 text:gv('v8_dev'),   col:GO,dark:false},
+      {n:'03',label:'CLIMAX',       chip:null,                 text:gv('v8_climax'),col:TE,dark:false},
+      {n:'04',label:'CTA',          chip:getChip('cta-chips'), text:gv('v8_cta'),   col:PU,dark:true},
+    ];
+    var nw=18,cw=CW-nw-2;
+    sections.forEach(function(s){
+      var ls=wT(s.text,cw-10,10.5);
+      var h=Math.max(lh(ls.length,10.5)+18,24);
+      need(h+3);
+      fc(s.col);doc.rect(M,y,nw,h,'F');
+      doc.setFont('helvetica','bold');doc.setFontSize(18);tc(WH);doc.text(s.n,M+nw/2,y+11,{align:'center'});
+      doc.setFont('helvetica','bold');doc.setFontSize(5.5);tc(WH);doc.text(s.chip?s.label+' · '+s.chip:s.label,M+nw/2,y+h-3,{align:'center',maxWidth:nw-2});
+      fc(s.dark?N:CR);doc.rect(M+nw+2,y,cw,h,'F');
+      fc(s.col);doc.rect(M+nw+2,y,2,h,'F');
+      doc.setFont('helvetica','normal');doc.setFontSize(10.5);tc(s.dark?CR:N);doc.text(ls,M+nw+8,y+12);
+      y+=h+3;
+    });
+
+    y+=4;need(14);fc(DA);doc.rect(M,y,CW,14,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(7);tc(R);doc.text('RAPPEL',M+6,y+5);
+    doc.setFont('helvetica','oblique');doc.setFontSize(9);tc(WM);doc.text('Lis ce script à voix haute. Chronomètre-le. Ajuste.',M+26,y+5);
+    doc.setFont('helvetica','normal');doc.setFontSize(7.5);tc([70,70,68]);doc.text("Si ça sonne pas naturel sur papier, ça sonnera pas naturel à la caméra.",M+6,y+10);
+    doc.setFont('helvetica','normal');doc.setFontSize(6);tc(MU);doc.text('AMOUR STUDIOS — MODULE 02 — VIDÉO 08 — LE SCRIPT VIDÉO',W/2,H-8,{align:'center'});
+
+    doc.save('AMOUR_STUDIOS_Script'+(titre?'_'+titre.substring(0,20).replace(/\s+/g,'_'):'')+'.pdf');
+    showToast('✓ Script exporté !');
+  },200);
+}
+</script>
+<script src="/exos/_bridge.js"></script>
+</body>
+</html>

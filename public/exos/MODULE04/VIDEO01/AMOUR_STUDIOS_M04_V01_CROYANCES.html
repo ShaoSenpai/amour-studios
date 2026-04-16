@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AMOUR STUDIOS — Croyances Limitantes</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap');
+
+:root{
+  --beige:#EAE4DA;--noir:#1D1D1B;--rouge:#C63F3E;
+  --muted:#6A6A68;--warm:#C8C2B8;--cream:#F0EBE3;--dark2:#252320;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+*{cursor:none!important;}
+#cur{position:fixed;width:10px;height:10px;background:var(--rouge);border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);mix-blend-mode:multiply;}
+#curR{position:fixed;width:34px;height:34px;border:1.5px solid var(--rouge);border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);opacity:.4;}
+
+body{background:var(--beige);color:var(--noir);font-family:'DM Sans',sans-serif;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:1000;opacity:.65;}
+
+.pbar-c{position:fixed;top:0;left:0;width:100%;height:3px;background:var(--warm);z-index:900;}
+.pbar{height:100%;background:var(--rouge);width:0%;transition:width .3s;}
+
+header{padding:40px 60px 0;display:flex;justify-content:space-between;align-items:flex-start;opacity:0;animation:fdDown .8s ease forwards .1s;}
+.logo-tag{font-family:'Bebas Neue',sans-serif;font-size:11px;letter-spacing:3px;color:var(--muted);border:1px solid var(--warm);padding:6px 12px;}
+.mod-tag{font-size:11px;letter-spacing:2px;color:var(--muted);text-align:right;line-height:1.6;}
+
+.hero{padding:60px 60px 20px;position:relative;opacity:0;animation:fdUp .9s ease forwards .3s;}
+.hero-label{font-size:11px;letter-spacing:4px;color:var(--rouge);text-transform:uppercase;margin-bottom:16px;display:flex;align-items:center;gap:12px;}
+.hero-label::after{content:'';width:40px;height:1px;background:var(--rouge);}
+h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(60px,9vw,112px);line-height:.88;}
+h1 .w1{display:block;color:var(--noir);}
+h1 .w2{display:block;color:var(--rouge);}
+.hero-sub{font-family:'Playfair Display',serif;font-style:italic;font-size:15px;color:var(--muted);margin-top:22px;max-width:520px;line-height:1.65;}
+.hero-deco{position:absolute;right:60px;top:50%;transform:translateY(-50%);font-family:'Bebas Neue',sans-serif;font-size:180px;color:var(--warm);opacity:.12;line-height:1;pointer-events:none;user-select:none;}
+
+.divider{width:calc(100% - 120px);margin:0 60px;height:1px;background:linear-gradient(to right,var(--noir),transparent);opacity:0;animation:fdIn 1s ease forwards .6s;}
+
+main{padding:60px 60px 180px;max-width:1000px;margin:0 auto;}
+
+/* ── INTRO ─────────────────────────────────────────────────────── */
+.intro-block{background:var(--noir);padding:22px 28px;border-left:3px solid var(--rouge);margin-bottom:52px;opacity:0;animation:fdUp .8s ease forwards .8s;}
+.intro-block p{font-family:'Playfair Display',serif;font-style:italic;font-size:14px;color:var(--warm);line-height:1.7;}
+.intro-block strong{color:var(--rouge);font-style:normal;}
+
+/* ── TABLEAU ───────────────────────────────────────────────────── */
+.table-header{display:grid;grid-template-columns:1fr 40px 1fr;gap:3px;margin-bottom:3px;}
+.th-cell{background:var(--noir);padding:14px 20px;font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;color:var(--cream);}
+.th-cell.rouge{background:var(--rouge);}
+.th-arrow{background:var(--dark2);display:flex;align-items:center;justify-content:center;color:var(--warm);font-size:16px;}
+
+.rows-container{display:flex;flex-direction:column;gap:3px;}
+
+.row{display:grid;grid-template-columns:1fr 40px 1fr;gap:3px;opacity:0;transform:translateY(20px);animation:fdUp .5s ease forwards;}
+.row-num{grid-column:1/-1;font-family:'Bebas Neue',sans-serif;font-size:44px;color:var(--warm);line-height:1;margin-top:18px;margin-bottom:-8px;}
+
+.cell{background:var(--cream);position:relative;transition:background .2s;}
+.cell-left{border-left:3px solid transparent;transition:border-color .25s,background .2s;}
+.cell-left:focus-within{border-left-color:var(--rouge);background:#faf8f5;}
+.cell-right{border-left:3px solid transparent;transition:border-color .25s,background .2s;}
+.cell-right:focus-within{border-left-color:var(--rouge);background:#faf8f5;}
+
+.cell-label{font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--rouge);padding:10px 16px 4px;font-weight:500;}
+.cell textarea{width:100%;background:transparent;border:none;outline:none;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--noir);padding:3px 16px 14px;resize:none;min-height:48px;line-height:1.65;overflow:hidden;}
+.cell textarea::placeholder{color:var(--warm);font-style:italic;font-size:12px;}
+
+.cell-arrow{background:var(--dark2);display:flex;align-items:center;justify-content:center;color:var(--rouge);font-size:18px;font-weight:bold;}
+
+.del-btn{position:absolute;top:8px;right:8px;background:none;border:none;font-size:13px;color:var(--warm);cursor:none;transition:color .2s;padding:3px 6px;opacity:0;}
+.row:hover .del-btn{opacity:1;}
+.del-btn:hover{color:var(--rouge);}
+
+/* ── ADD ROW ───────────────────────────────────────────────────── */
+.add-wrap{margin-top:12px;}
+.add-btn{display:inline-flex;align-items:center;gap:10px;font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;color:var(--muted);background:none;border:1px dashed var(--warm);padding:10px 22px;cursor:none;transition:all .2s;}
+.add-btn:hover{border-color:var(--rouge);color:var(--rouge);}
+
+/* ── BILAN ─────────────────────────────────────────────────────── */
+.bilan-section{margin-top:64px;}
+.section-label{font-family:'Bebas Neue',sans-serif;font-size:11px;letter-spacing:3px;color:var(--rouge);margin-bottom:18px;display:flex;align-items:center;gap:12px;}
+.section-label::after{content:'';flex:1;height:1px;background:linear-gradient(to right,var(--rouge),transparent);}
+
+.bilan-wrap{background:var(--noir);padding:40px;position:relative;overflow:hidden;}
+.bilan-wrap::before{content:'❝';position:absolute;top:10px;left:18px;font-size:90px;color:var(--rouge);opacity:.1;font-family:'Playfair Display',serif;line-height:1;}
+.bilan-wrap::after{content:'';position:absolute;bottom:0;left:0;width:0;height:3px;background:var(--rouge);transition:width .8s cubic-bezier(.22,.68,0,1.2);}
+.bilan-wrap:focus-within::after{width:100%;}
+.bilan-wrap textarea{width:100%;background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,.1);outline:none;font-family:'Playfair Display',serif;font-style:italic;font-size:clamp(16px,2.4vw,24px);color:var(--cream);resize:none;min-height:60px;text-align:center;line-height:1.55;position:relative;z-index:1;padding-bottom:18px;overflow:hidden;}
+.bilan-wrap textarea::placeholder{color:rgba(255,255,255,.15);font-style:italic;}
+.bilan-hint{font-size:10px;letter-spacing:3px;color:var(--muted);text-align:center;margin-top:16px;text-transform:uppercase;}
+
+/* ── GENERATE ─────────────────────────────────────────────────── */
+.gen-wrap{position:fixed;bottom:40px;right:60px;z-index:500;opacity:0;animation:fdUp .8s ease forwards 1.2s;}
+.gen-btn{background:var(--rouge);color:var(--cream);border:none;font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:3px;padding:16px 32px;cursor:none;display:flex;align-items:center;gap:14px;box-shadow:0 8px 32px rgba(198,63,62,.28);position:relative;overflow:hidden;transition:box-shadow .35s,transform .35s;}
+.gen-btn::before{content:'';position:absolute;inset:0;background:var(--noir);transform:translateX(-100%);transition:transform .45s cubic-bezier(.22,.68,0,1.2);}
+.gen-btn:hover::before{transform:translateX(0);}
+.gen-btn span,.ring-wrap{position:relative;z-index:1;}
+.gen-btn:hover{box-shadow:0 16px 48px rgba(29,29,27,.32);transform:translateY(-3px);}
+.ring-wrap{width:44px;height:44px;position:relative;}
+.ring-wrap svg{transform:rotate(-90deg);}
+.ring-bg{fill:none;stroke:rgba(255,255,255,.15);stroke-width:3;}
+.ring-fill{fill:none;stroke:white;stroke-width:3;stroke-linecap:round;stroke-dasharray:113;stroke-dashoffset:113;transition:stroke-dashoffset .5s;}
+.ring-label{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:11px;color:white;}
+
+.toast{position:fixed;bottom:120px;right:60px;background:var(--noir);color:var(--cream);font-size:13px;padding:14px 24px;opacity:0;transform:translateY(10px);transition:all .4s;pointer-events:none;z-index:600;border-left:3px solid var(--rouge);}
+.toast.show{opacity:1;transform:translateY(0);}
+.footer-line{position:fixed;bottom:0;left:0;width:100%;height:4px;background:var(--rouge);}
+
+@keyframes fdUp{to{opacity:1;transform:translateY(0);}}
+@keyframes fdDown{to{opacity:1;transform:translateY(0);}}
+@keyframes fdIn{to{opacity:1;}}
+
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:var(--beige);}
+::-webkit-scrollbar-thumb{background:var(--warm);}
+::-webkit-scrollbar-thumb:hover{background:var(--rouge);}
+
+@media(max-width:768px){
+  header,main{padding:24px;}
+  .hero{padding:40px 24px 20px;}
+  .divider{width:calc(100% - 48px);margin:0 24px;}
+  .hero-deco{display:none;}
+  .table-header,.row{grid-template-columns:1fr;}
+  .th-arrow,.cell-arrow,.del-btn{display:none;}
+  .row-num{margin-top:24px;}
+  .gen-wrap{bottom:20px;right:20px;}
+}
+</style>
+</head>
+<body>
+
+<div id="cur"></div>
+<div id="curR"></div>
+<div class="pbar-c"><div class="pbar" id="pbar"></div></div>
+
+<header>
+  <div class="logo-tag">AMOUR STUDIOS</div>
+  <div class="mod-tag">MODULE 04 — VIDÉO 01<br>EXERCICE ÉLÈVE</div>
+</header>
+
+<div class="hero">
+  <div class="hero-label">Exercice élève</div>
+  <h1><span class="w1">CROYANCES</span><span class="w2">LIMITANTES.</span></h1>
+  <p class="hero-sub">Sois sans filtre. Écris tout ce que tu te racontes.<br>Puis prouve-toi que ça tient pas la route.</p>
+  <div class="hero-deco">01</div>
+</div>
+
+<div class="divider"></div>
+
+<main>
+
+  <div class="intro-block">
+    <p><strong>La règle :</strong> dans la colonne gauche, tu écris une raison pour laquelle tu penses que ça peut pas marcher pour toi. Sans filtre, sans censure. Dans la colonne droite, tu nommes un artiste qui avait exactement la même contrainte — et qui a réussi quand même.<br><br>T'as autant de lignes que t'en as besoin.</p>
+  </div>
+
+  <!-- En-tête tableau -->
+  <div class="table-header">
+    <div class="th-cell">MA CROYANCE LIMITANTE</div>
+    <div class="th-arrow">→</div>
+    <div class="th-cell rouge">L'ARTISTE QUI A RÉUSSI QUAND MÊME</div>
+  </div>
+
+  <!-- Lignes dynamiques -->
+  <div class="rows-container" id="rowsContainer"></div>
+
+  <div class="add-wrap">
+    <button class="add-btn" onclick="addRow()"><span>+</span> AJOUTER UNE CROYANCE</button>
+  </div>
+
+  <!-- Bilan -->
+  <div class="bilan-section">
+    <div class="section-label">CE QUE JE RETIENS</div>
+    <div class="bilan-wrap">
+      <textarea id="bilan" placeholder="Écris ici ta prise de conscience. Une seule phrase si tu veux."></textarea>
+      <div class="bilan-hint">Ta conclusion — ce que tu retiens de cet exercice</div>
+    </div>
+  </div>
+
+</main>
+
+<div class="gen-wrap">
+  <button class="gen-btn" onclick="generatePDF()">
+    <div class="ring-wrap">
+      <svg width="44" height="44" viewBox="0 0 40 40">
+        <circle class="ring-bg" cx="20" cy="20" r="18"/>
+        <circle class="ring-fill" id="ringFill" cx="20" cy="20" r="18"/>
+      </svg>
+      <div class="ring-label" id="ringLabel">0%</div>
+    </div>
+    <span>GÉNÉRER MON PDF</span>
+  </button>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="footer-line"></div>
+
+<script>
+// ── CURSOR ────────────────────────────────────────────────────────
+var cur=document.getElementById('cur'),curR=document.getElementById('curR');
+var mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',function(e){mx=e.clientX;my=e.clientY;cur.style.left=mx+'px';cur.style.top=my+'px';});
+(function tick(){rx+=(mx-rx)*0.12;ry+=(my-ry)*0.12;curR.style.left=rx+'px';curR.style.top=ry+'px';requestAnimationFrame(tick);})();
+window.addEventListener('scroll',function(){document.getElementById('pbar').style.width=Math.min(window.scrollY/(document.body.scrollHeight-window.innerHeight)*100,100)+'%';},{passive:true});
+
+function autoResize(el){el.style.height='auto';el.style.height=el.scrollHeight+'px';}
+document.addEventListener('input',function(e){if(e.target.tagName==='TEXTAREA') autoResize(e.target);});
+
+// ── ROWS ──────────────────────────────────────────────────────────
+var LS_KEY='amour_croyances_v1';
+var rows=[];
+var rowCount=0;
+
+function loadData(){
+  try{
+    var raw=localStorage.getItem(LS_KEY);
+    if(raw){var d=JSON.parse(raw);rows=d.rows||[];document.getElementById('bilan').value=d.bilan||'';}
+  }catch(e){}
+}
+function saveData(){
+  try{
+    var data={rows:rows,bilan:document.getElementById('bilan').value};
+    localStorage.setItem(LS_KEY,JSON.stringify(data));
+  }catch(e){}
+}
+
+function addRow(croyance,artiste,animate){
+  rowCount++;
+  var id=rowCount;
+  rows.push({id:id,croyance:croyance||'',artiste:artiste||''});
+  renderRows();
+  if(animate!==false){
+    setTimeout(function(){
+      var el=document.querySelector('.row[data-id="'+id+'"]');
+      if(el) el.scrollIntoView({behavior:'smooth',block:'nearest'});
+    },100);
+  }
+  updateRing();
+}
+
+function deleteRow(id){
+  if(rows.length<=1) return;
+  rows=rows.filter(function(r){return r.id!==id;});
+  renderRows();
+  updateRing();
+  saveData();
+}
+
+function renderRows(){
+  var c=document.getElementById('rowsContainer');
+  c.innerHTML=rows.map(function(r,i){
+    var n=String(i+1).padStart(2,'0');
+    return '<div class="row" data-id="'+r.id+'" style="animation-delay:'+(i*0.04)+'s">'
+      +'<div class="row-num">'+n+'</div>'
+      +'<div class="cell cell-left">'
+      +'<div class="cell-label">Ce que tu te racontes</div>'
+      +'<textarea placeholder="Ex : Je suis pas assez connu pour percer..." oninput="updateRow('+r.id+',\'croyance\',this.value);autoResize(this)">'+escHtml(r.croyance)+'</textarea>'
+      +'</div>'
+      +'<div class="cell-arrow">→</div>'
+      +'<div class="cell cell-right">'
+      +'<div class="cell-label">L\'artiste qui avait la même contrainte</div>'
+      +'<textarea placeholder="Ex : Rihanna a commencé inconnue à la Barbade..." oninput="updateRow('+r.id+',\'artiste\',this.value);autoResize(this)">'+escHtml(r.artiste)+'</textarea>'
+      +(rows.length>1?'<button class="del-btn" onclick="deleteRow('+r.id+')" title="Supprimer">✕</button>':'')
+      +'</div>'
+      +'</div>';
+  }).join('');
+  document.querySelectorAll('.row textarea').forEach(function(ta){autoResize(ta);});
+}
+
+function escHtml(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function updateRow(id,field,val){
+  var r=rows.find(function(r){return r.id===id;});
+  if(r) r[field]=val;
+  updateRing();
+  saveData();
+}
+
+document.getElementById('bilan').addEventListener('input',function(){autoResize(this);updateRing();saveData();});
+
+function updateRing(){
+  var filled=rows.filter(function(r){return r.croyance.trim()&&r.artiste.trim();}).length;
+  var total=Math.max(rows.length,1);
+  var hasBilan=document.getElementById('bilan').value.trim().length>0;
+  var score=filled/total*0.8+(hasBilan?0.2:0);
+  var p=Math.round(score*100);
+  document.getElementById('ringFill').style.strokeDashoffset=113-(p/100)*113;
+  document.getElementById('ringLabel').textContent=p+'%';
+}
+
+// ── PDF ────────────────────────────────────────────────────────────
+function val(id){return(document.getElementById(id)?.value||'').trim();}
+function showToast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},3500);}
+
+async function generatePDF(){
+  showToast('Génération en cours...');
+  await new Promise(function(r){setTimeout(r,200);});
+
+  var jsPDF=window.jspdf.jsPDF;
+  var doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  var W=210,H=297,M=14,CW=182;
+  var beige=[234,228,218],noir=[29,29,27],rouge=[198,63,62];
+  var cream=[240,235,227],warm=[200,194,184],muted=[106,106,104],dark2=[37,35,32];
+
+  var pn=1,HDR=16,y=HDR+8,YMAX=H-14;
+
+  function shell(){
+    doc.setFillColor(234,228,218); doc.rect(0,0,W,H,'F');
+    doc.setFillColor(29,29,27);   doc.rect(0,0,W,HDR,'F');
+    doc.setFillColor(198,63,62);  doc.rect(0,H-4,W,4,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(240,235,227);
+    doc.text('AMOUR STUDIOS',M,6);
+    doc.setFont('helvetica','normal');doc.setFontSize(7);
+    doc.text('MODULE 04 — VIDÉO 01 — CROYANCES LIMITANTES',M,12);
+    doc.setFont('helvetica','bold');doc.setFontSize(7);
+    doc.text('PAGE '+pn,W-M,10,{align:'right'});
+  }
+  function newPage(){pn++;doc.addPage();shell();y=HDR+8;}
+  function need(h){if(y+h>YMAX) newPage();}
+  function wrap(txt,mw,fs){doc.setFontSize(fs);return doc.splitTextToSize(txt||'—',mw);}
+  function lh(n,fs,lead){lead=lead||1.42;return n*fs*0.352778*lead;}
+
+  shell();
+
+  // Title
+  doc.setFont('helvetica','bold');doc.setFontSize(34);doc.setTextColor(29,29,27);
+  doc.text('CROYANCES',M,y+12);
+  doc.setTextColor(198,63,62);doc.text('LIMITANTES',M,y+23);
+  doc.setFont('helvetica','oblique');doc.setFontSize(9);doc.setTextColor(106,106,104);
+  doc.text('Sois sans filtre. Écris tout ce que tu te racontes.',M,y+30);
+  y+=38;
+
+  // Column headers
+  var hw=12,colW=(CW-hw)/2;
+  doc.setFillColor(29,29,27);doc.rect(M,y,colW,7,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(7);doc.setTextColor(240,235,227);
+  doc.text('MA CROYANCE LIMITANTE',M+3,y+4.8);
+  doc.setFillColor(29,29,27);doc.rect(M+colW+hw,y,colW,7,'F');
+  doc.setFillColor(198,63,62);doc.rect(M+colW+hw,y,colW,7,'F');
+  doc.text("L'ARTISTE QUI A RÉUSSI QUAND MÊME",M+colW+hw+3,y+4.8);
+  y+=9;
+
+  // Rows
+  rows.forEach(function(r,i){
+    var lsC=wrap(r.croyance,colW-8,8.5);
+    var lsA=wrap(r.artiste,colW-8,8.5);
+    var rh=Math.max(lh(lsC.length,8.5)+10,lh(lsA.length,8.5)+10,14);
+    need(rh+3);
+
+    var n=String(i+1).padStart(2,'0');
+    // Number
+    doc.setFont('helvetica','bold');doc.setFontSize(22);doc.setTextColor(200,194,184);
+    doc.text(n,M,y+8);
+    var ry2=y+5;
+
+    // Left cell
+    doc.setFillColor(240,235,227);doc.rect(M+10,ry2,colW,rh,'F');
+    doc.setFillColor(198,63,62);doc.rect(M+10,ry2,2,rh,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(5.5);doc.setTextColor(198,63,62);
+    doc.text('CE QUE TU TE RACONTES',M+14,ry2+4);
+    doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(29,29,27);
+    doc.text(lsC,M+14,ry2+9);
+
+    // Arrow
+    doc.setFont('helvetica','bold');doc.setFontSize(12);doc.setTextColor(198,63,62);
+    doc.text('→',M+10+colW+1,ry2+rh/2+2,{align:'center'});
+
+    // Right cell
+    doc.setFillColor(240,235,227);doc.rect(M+10+colW+hw,ry2,colW,rh,'F');
+    doc.setFillColor(198,63,62);doc.rect(M+10+colW+hw,ry2,2,rh,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(5.5);doc.setTextColor(198,63,62);
+    doc.text("L'ARTISTE",M+10+colW+hw+4,ry2+4);
+    doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(29,29,27);
+    doc.text(lsA,M+10+colW+hw+4,ry2+9);
+
+    y+=rh+5;
+  });
+
+  // Bilan
+  y+=4;
+  var bilanTxt=val('bilan')||'—';
+  var bilanLines=wrap(bilanTxt,CW-20,11);
+  var bh=Math.max(lh(bilanLines.length,11,1.6)+14,22);
+  need(bh+6);
+
+  doc.setFont('helvetica','bold');doc.setFontSize(7);doc.setTextColor(198,63,62);doc.setCharSpace(2);
+  doc.text('CE QUE JE RETIENS',M,y);doc.setCharSpace(0);y+=5;
+  doc.setFillColor(29,29,27);doc.rect(M,y,CW,bh,'F');
+  doc.setFont('helvetica','oblique');doc.setFontSize(11);doc.setTextColor(240,235,227);
+  doc.text(bilanLines,W/2,y+bh/2-lh(bilanLines.length,11,1.6)/2+4,{align:'center'});
+  y+=bh+4;
+
+  doc.setFont('helvetica','normal');doc.setFontSize(6);doc.setTextColor(106,106,104);
+  doc.text('AMOUR STUDIOS — MODULE 04 — VIDÉO 01',W/2,H-8,{align:'center'});
+
+  doc.save('AMOUR_STUDIOS_M04_V01_Croyances.pdf');
+  showToast('✓ PDF généré avec succès !');
+}
+
+// ── INIT ──────────────────────────────────────────────────────────
+(function(){
+  loadData();
+  if(!rows.length){
+    addRow('','',false);
+    addRow('','',false);
+    addRow('','',false);
+  } else {
+    rowCount=Math.max.apply(null,rows.map(function(r){return r.id;}));
+    renderRows();
+  }
+  document.querySelectorAll('textarea').forEach(function(ta){autoResize(ta);});
+  updateRing();
+  var io=new IntersectionObserver(function(entries){
+    entries.forEach(function(e){if(e.isIntersecting) e.target.classList.add('visible');});
+  },{threshold:0.05});
+})();
+</script>
+<script src="/exos/_bridge.js"></script>
+</body>
+</html>

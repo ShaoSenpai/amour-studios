@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AMOUR STUDIOS — Vision Board</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap');
+
+:root {
+  --beige:  #EAE4DA;
+  --noir:   #1D1D1B;
+  --rouge:  #C63F3E;
+  --muted:  #6A6A68;
+  --warm:   #C8C2B8;
+  --cream:  #F0EBE3;
+}
+
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+/* ── CURSOR ─────────────────────────────────────────────────── */
+* { cursor: none !important; }
+#cursor {
+  position:fixed; width:10px; height:10px;
+  background:var(--rouge); border-radius:50%;
+  pointer-events:none; z-index:9999;
+  transform:translate(-50%,-50%);
+  transition:width 0.3s ease, height 0.3s ease, opacity 0.3s ease;
+  mix-blend-mode:multiply;
+}
+#cursor-ring {
+  position:fixed; width:34px; height:34px;
+  border:1.5px solid var(--rouge); border-radius:50%;
+  pointer-events:none; z-index:9998;
+  transform:translate(-50%,-50%);
+  opacity:0.45;
+}
+
+/* ── GRAIN ───────────────────────────────────────────────────── */
+body {
+  background:var(--beige); color:var(--noir);
+  font-family:'DM Sans',sans-serif;
+  min-height:100vh; overflow-x:hidden;
+}
+body::before {
+  content:''; position:fixed; inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.045'/%3E%3C/svg%3E");
+  pointer-events:none; z-index:1000; opacity:0.7;
+}
+
+/* ── PROGRESS ────────────────────────────────────────────────── */
+.progress-container { position:fixed; top:0; left:0; width:100%; height:3px; background:var(--warm); z-index:900; }
+.progress-bar { height:100%; background:var(--rouge); width:0%; transition:width 0.2s ease; }
+
+/* ── HEADER ──────────────────────────────────────────────────── */
+header {
+  padding:40px 60px 0;
+  display:flex; justify-content:space-between; align-items:flex-start;
+  opacity:0; transform:translateY(-20px);
+  animation:fadeDown 0.8s ease forwards 0.1s;
+}
+.logo-tag {
+  font-family:'Bebas Neue',sans-serif; font-size:11px; letter-spacing:3px;
+  color:var(--muted); border:1px solid var(--warm); padding:6px 12px;
+}
+.module-tag { font-size:11px; letter-spacing:2px; color:var(--muted); text-align:right; line-height:1.6; }
+
+/* ── HERO ────────────────────────────────────────────────────── */
+.hero {
+  padding:60px 60px 20px; position:relative;
+  opacity:0; transform:translateY(30px);
+  animation:fadeUp 0.9s ease forwards 0.3s;
+}
+.hero-label {
+  font-size:11px; letter-spacing:4px; color:var(--rouge);
+  text-transform:uppercase; margin-bottom:16px;
+  display:flex; align-items:center; gap:12px;
+}
+.hero-label::after { content:''; width:40px; height:1px; background:var(--rouge); }
+h1 {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(72px,11vw,130px); line-height:0.88;
+  will-change:transform;
+}
+h1 .w1 { display:block; color:var(--noir); }
+h1 .w2 { display:block; color:var(--rouge); }
+.hero-sub {
+  font-family:'Playfair Display',serif; font-style:italic;
+  font-size:16px; color:var(--muted); margin-top:24px;
+  max-width:460px; line-height:1.6;
+}
+.hero-deco {
+  position:absolute; right:60px; top:50%;
+  transform:translateY(-50%);
+  font-family:'Bebas Neue',sans-serif; font-size:200px;
+  color:var(--warm); opacity:0.13; line-height:1;
+  pointer-events:none; user-select:none; will-change:transform;
+}
+
+/* ── DIVIDER ─────────────────────────────────────────────────── */
+.divider {
+  width:calc(100% - 120px); margin:0 60px; height:1px;
+  background:linear-gradient(to right,var(--noir),transparent);
+  opacity:0; animation:fadeIn 1s ease forwards 0.6s;
+}
+
+/* ── MAIN ────────────────────────────────────────────────────── */
+main { padding:60px 60px 140px; max-width:1000px; margin:0 auto; }
+
+/* ── SECTION ─────────────────────────────────────────────────── */
+.section {
+  margin-bottom:80px;
+  opacity:0; transform:translateY(50px);
+  transition:opacity 0.75s cubic-bezier(.22,.68,0,1.2), transform 0.75s cubic-bezier(.22,.68,0,1.2);
+}
+.section.visible { opacity:1; transform:translateY(0); }
+.section-number {
+  font-family:'Bebas Neue',sans-serif; font-size:90px; line-height:1;
+  color:var(--warm); display:block; margin-bottom:-20px;
+  transition:color 0.4s ease;
+}
+.section.visible:hover .section-number { color:rgba(198,63,62,0.12); }
+.section-title {
+  font-family:'Bebas Neue',sans-serif; font-size:28px;
+  letter-spacing:2px; color:var(--noir);
+  position:relative; display:inline-block;
+}
+.section-title::after {
+  content:''; position:absolute; bottom:-4px; left:0;
+  width:0; height:2px; background:var(--rouge);
+  transition:width 0.6s cubic-bezier(.22,.68,0,1.2);
+}
+.section.visible .section-title::after { width:100%; }
+.section-desc { font-family:'Playfair Display',serif; font-style:italic; font-size:14px; color:var(--muted); margin-top:8px; }
+.section-header { margin-bottom:28px; }
+
+/* ── 3D CARD ─────────────────────────────────────────────────── */
+.card-3d {
+  transform-style:preserve-3d;
+  transition:box-shadow 0.4s ease, transform 0.15s ease;
+  will-change:transform;
+}
+
+/* ── TIME GRID ───────────────────────────────────────────────── */
+.time-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:3px; align-items:start; }
+.time-col { background:var(--cream); }
+.time-col-header {
+  background:var(--noir); color:var(--beige);
+  font-family:'Bebas Neue',sans-serif; font-size:20px; letter-spacing:2px;
+  padding:14px 18px; text-align:center;
+  transition:background 0.3s ease;
+}
+.time-col:hover .time-col-header { background:var(--rouge); }
+.time-field { padding:0; border-bottom:1px solid var(--warm); }
+.time-field:last-child { border-bottom:none; }
+.time-field label {
+  display:block; font-size:9px; letter-spacing:2px;
+  text-transform:uppercase; color:var(--rouge); padding:10px 16px 3px; font-weight:500;
+}
+.time-field input {
+  width:100%; background:transparent; border:none; outline:none;
+  font-family:'DM Sans',sans-serif; font-size:14px; color:var(--noir);
+  padding:3px 16px 12px; transition:background 0.3s ease;
+}
+.time-field input:focus { background:rgba(198,63,62,0.04); }
+.time-field input::placeholder { color:var(--warm); font-style:italic; font-size:13px; }
+.time-field:focus-within { box-shadow:inset 3px 0 0 var(--rouge); }
+
+/* ── ARTISTS GRID — INDEPENDENT ──────────────────────────────── */
+.artists-grid {
+  display:grid; grid-template-columns:repeat(2,1fr);
+  gap:3px; align-items:start;
+}
+.artist-card {
+  background:var(--cream); padding:24px; position:relative;
+  box-shadow:0 2px 8px rgba(29,29,27,0.07);
+  transition:box-shadow 0.4s ease, background 0.3s ease;
+}
+.artist-card::before {
+  content:''; position:absolute; top:0; left:0;
+  width:0; height:3px; background:var(--rouge);
+  transition:width 0.5s cubic-bezier(.22,.68,0,1.2);
+}
+.artist-card:hover::before { width:100%; }
+.artist-card:hover { background:#faf8f5; }
+.artist-num {
+  font-family:'Bebas Neue',sans-serif; font-size:52px;
+  color:var(--warm); line-height:1; margin-bottom:2px;
+  transition:color 0.3s ease;
+}
+.artist-card:hover .artist-num { color:rgba(198,63,62,0.15); }
+.artist-card input {
+  width:100%; background:transparent; border:none;
+  border-bottom:1px solid var(--warm); outline:none;
+  font-family:'Bebas Neue',sans-serif; font-size:18px; letter-spacing:1px;
+  color:var(--noir); padding:4px 0 8px; margin-bottom:12px;
+  transition:border-color 0.3s ease;
+}
+.artist-card input:focus { border-bottom-color:var(--rouge); }
+.artist-card input::placeholder { color:var(--warm); }
+.artist-card textarea {
+  width:100%; background:transparent; border:none; outline:none;
+  font-family:'DM Sans',sans-serif; font-size:13px; color:var(--muted);
+  resize:none; min-height:50px; line-height:1.7; overflow:hidden;
+  transition:height 0.25s ease;
+}
+.artist-card textarea::placeholder { color:var(--warm); font-style:italic; font-size:12px; }
+.artist-card textarea { max-height:300px; overflow-y:auto; }
+
+/* ── ARTIST DELETE BTN ───────────────────────────────────────── */
+.artist-delete-btn {
+  position:absolute; top:8px; right:8px;
+  background:transparent; border:none; color:var(--rouge);
+  font-size:16px; cursor:none; padding:4px 8px;
+  opacity:0.4; transition:opacity 0.2s, background 0.2s;
+  z-index:2; font-family:'Bebas Neue',sans-serif;
+}
+.artist-delete-btn:hover { opacity:1; background:rgba(198,63,62,0.08); }
+
+/* ── ADD ARTIST BTN ──────────────────────────────────────────── */
+.add-artist-btn {
+  margin-top:6px; background:transparent;
+  border:1px dashed var(--warm); color:var(--muted);
+  font-family:'Bebas Neue',sans-serif; font-size:11px;
+  letter-spacing:2px; padding:12px 20px; cursor:none;
+  width:100%; transition:all 0.3s;
+}
+.add-artist-btn:hover { border-color:var(--rouge); color:var(--rouge); background:rgba(198,63,62,0.04); }
+.add-artist-btn:disabled { opacity:0.3; pointer-events:none; }
+
+/* ── APPEAR GRID — INDEPENDENT ───────────────────────────────── */
+.appear-grid {
+  display:grid; grid-template-columns:repeat(3,1fr);
+  gap:3px; align-items:start;
+}
+.appear-card {
+  background:var(--cream); padding:24px; position:relative;
+  box-shadow:0 2px 8px rgba(29,29,27,0.07);
+  transition:box-shadow 0.4s ease;
+}
+.appear-card .card-title {
+  font-family:'Bebas Neue',sans-serif; font-size:16px;
+  letter-spacing:2px; color:var(--noir); margin-bottom:4px;
+}
+.appear-card .card-hint { font-size:11px; color:var(--muted); font-style:italic; margin-bottom:14px; }
+.appear-card textarea {
+  width:100%; background:transparent; border:none;
+  border-top:1px solid var(--warm); outline:none;
+  font-family:'DM Sans',sans-serif; font-size:13px; color:var(--noir);
+  resize:none; min-height:80px; padding-top:12px; line-height:1.7;
+  overflow:hidden; transition:height 0.25s ease;
+}
+.appear-card textarea { max-height:300px; overflow-y:auto; }
+.appear-card textarea::placeholder { color:var(--warm); font-style:italic; }
+
+/* ── LIFESTYLE GRID — INDEPENDENT ────────────────────────────── */
+.lifestyle-grid {
+  display:grid; grid-template-columns:repeat(2,1fr);
+  gap:3px; align-items:start;
+}
+.lifestyle-card {
+  background:var(--cream); padding:28px; position:relative; overflow:hidden;
+  box-shadow:0 2px 8px rgba(29,29,27,0.07);
+  transition:box-shadow 0.4s ease;
+}
+.lifestyle-card::before {
+  content:''; position:absolute; left:0; top:0;
+  width:3px; height:0; background:var(--rouge);
+  transition:height 0.45s cubic-bezier(.22,.68,0,1.2);
+}
+.lifestyle-card:hover::before,
+.lifestyle-card:focus-within::before { height:100%; }
+.lifestyle-card .card-title {
+  font-family:'Bebas Neue',sans-serif; font-size:18px;
+  letter-spacing:2px; color:var(--noir); margin-bottom:14px;
+}
+.lifestyle-card textarea {
+  width:100%; background:transparent; border:none; outline:none;
+  font-family:'DM Sans',sans-serif; font-size:14px; color:var(--noir);
+  resize:none; min-height:70px; line-height:1.75; overflow:hidden;
+  transition:height 0.25s ease;
+}
+.lifestyle-card textarea { max-height:300px; overflow-y:auto; }
+.lifestyle-card textarea::placeholder { color:var(--warm); font-style:italic; font-size:13px; }
+
+/* ── BOUSSOLE ────────────────────────────────────────────────── */
+.boussole-wrap {
+  background:var(--noir); padding:56px 48px; position:relative; overflow:hidden;
+  box-shadow:0 24px 80px rgba(29,29,27,0.22);
+  transition:box-shadow 0.4s ease;
+}
+.boussole-wrap:hover { box-shadow:0 32px 100px rgba(29,29,27,0.3); }
+.boussole-wrap::before {
+  content:'❝'; position:absolute; top:16px; left:24px;
+  font-size:110px; color:var(--rouge); opacity:0.12;
+  font-family:'Playfair Display',serif; line-height:1;
+  transition:opacity 0.4s ease;
+}
+.boussole-wrap:hover::before { opacity:0.22; }
+.boussole-wrap::after {
+  content:''; position:absolute; bottom:0; left:0;
+  width:0; height:3px; background:var(--rouge);
+  transition:width 0.8s cubic-bezier(.22,.68,0,1.2);
+}
+.boussole-wrap:focus-within::after { width:100%; }
+.boussole-wrap textarea {
+  width:100%; background:transparent; border:none;
+  border-bottom:1px solid rgba(255,255,255,0.12); outline:none;
+  font-family:'Playfair Display',serif; font-style:italic;
+  font-size:clamp(18px,2.8vw,28px); color:var(--cream);
+  resize:none; min-height:70px; text-align:center;
+  line-height:1.5; position:relative; z-index:1;
+  padding-bottom:20px; overflow:hidden; transition:height 0.25s ease;
+}
+.boussole-wrap textarea { max-height:300px; overflow-y:auto; }
+.boussole-wrap textarea::placeholder { color:rgba(255,255,255,0.16); font-style:italic; }
+.boussole-hint { font-size:10px; letter-spacing:3px; color:var(--muted); text-align:center; margin-top:20px; text-transform:uppercase; }
+
+/* ── GENERATE ────────────────────────────────────────────────── */
+.generate-wrap {
+  position:fixed; bottom:40px; right:60px; z-index:500;
+  opacity:0; animation:fadeUp 0.8s ease forwards 1.2s;
+}
+.generate-btn {
+  background:var(--rouge); color:var(--cream); border:none;
+  font-family:'Bebas Neue',sans-serif; font-size:15px; letter-spacing:3px;
+  padding:16px 32px; cursor:none;
+  display:flex; align-items:center; gap:14px;
+  box-shadow:0 8px 32px rgba(198,63,62,0.28);
+  position:relative; overflow:hidden;
+  transition:box-shadow 0.35s ease, transform 0.35s ease;
+}
+.generate-btn::before {
+  content:''; position:absolute; inset:0; background:var(--noir);
+  transform:translateX(-100%);
+  transition:transform 0.45s cubic-bezier(.22,.68,0,1.2);
+}
+.generate-btn:hover::before { transform:translateX(0); }
+.generate-btn span, .ring-wrap { position:relative; z-index:1; }
+.generate-btn:hover { box-shadow:0 16px 48px rgba(29,29,27,0.32); transform:translateY(-3px); }
+.generate-btn:active { transform:translateY(-1px); }
+.ring-wrap { width:44px; height:44px; position:relative; }
+.ring-wrap svg { transform:rotate(-90deg); }
+.ring-bg  { fill:none; stroke:rgba(255,255,255,0.15); stroke-width:3; }
+.ring-fill{ fill:none; stroke:white; stroke-width:3; stroke-linecap:round; stroke-dasharray:113; stroke-dashoffset:113; transition:stroke-dashoffset 0.5s ease; }
+.ring-label { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:'Bebas Neue',sans-serif; font-size:12px; color:white; }
+
+/* ── TOAST ───────────────────────────────────────────────────── */
+.toast {
+  position:fixed; bottom:120px; right:60px;
+  background:var(--noir); color:var(--cream); font-size:13px;
+  padding:14px 24px; opacity:0; transform:translateY(10px);
+  transition:all 0.4s ease; pointer-events:none; z-index:600;
+  border-left:3px solid var(--rouge);
+}
+.toast.show { opacity:1; transform:translateY(0); }
+
+/* ── FOOTER ──────────────────────────────────────────────────── */
+.footer-line { position:fixed; bottom:0; left:0; width:100%; height:4px; background:var(--rouge); }
+
+/* ── KEYFRAMES ───────────────────────────────────────────────── */
+@keyframes fadeUp   { to { opacity:1; transform:translateY(0); } }
+@keyframes fadeDown { to { opacity:1; transform:translateY(0); } }
+@keyframes fadeIn   { to { opacity:1; } }
+
+/* ── SCROLLBAR ───────────────────────────────────────────────── */
+::-webkit-scrollbar { width:4px; }
+::-webkit-scrollbar-track { background:var(--beige); }
+::-webkit-scrollbar-thumb { background:var(--warm); }
+::-webkit-scrollbar-thumb:hover { background:var(--rouge); }
+
+@media (max-width:768px) {
+  header,main { padding:24px; }
+  .hero { padding:40px 24px 20px; }
+  .divider { width:calc(100% - 48px); margin:0 24px; }
+  .hero-deco { display:none; }
+  .time-grid,.artists-grid,.appear-grid,.lifestyle-grid { grid-template-columns:1fr; }
+  .generate-wrap { bottom:20px; right:20px; }
+}
+</style>
+</head>
+<body>
+
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+<div class="progress-container"><div class="progress-bar" id="progressBar"></div></div>
+
+<header>
+  <div class="logo-tag">AMOUR STUDIOS</div>
+  <div class="module-tag">MODULE 01 — VIDÉO 01<br>VISION BOARD</div>
+</header>
+
+<div class="hero">
+  <div class="hero-label">Exercice élève</div>
+  <h1 id="heroTitle"><span class="w1">VISION</span><span class="w2">BOARD</span></h1>
+  <p class="hero-sub">Sois précis. Des chiffres, des noms, des dates.<br>Pas des vœux pieux.</p>
+  <div class="hero-deco" id="heroDeco">01</div>
+</div>
+
+<div class="divider"></div>
+
+<main>
+
+  <!-- 01 -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-number">01</span>
+      <div class="section-title">Où tu veux être</div>
+      <p class="section-desc">Des objectifs concrets. Des dates. Des chiffres réels.</p>
+    </div>
+    <div class="time-grid">
+      <div class="time-col card-3d">
+        <div class="time-col-header">6 MOIS</div>
+        <div class="time-field"><label>Abonnés</label><input type="text" id="s6_abonnes" placeholder="ex: 5 000"></div>
+        <div class="time-field"><label>Date / Live</label><input type="text" id="s6_live" placeholder="ex: Mars 2025"></div>
+        <div class="time-field"><label>Collaboration</label><input type="text" id="s6_collab" placeholder="ex: Nom de l'artiste"></div>
+        <div class="time-field"><label>Revenus / Mois</label><input type="text" id="s6_revenus" placeholder="ex: 1 500€"></div>
+      </div>
+      <div class="time-col card-3d">
+        <div class="time-col-header">1 AN</div>
+        <div class="time-field"><label>Abonnés</label><input type="text" id="s1_abonnes" placeholder="ex: 20 000"></div>
+        <div class="time-field"><label>Date / Live</label><input type="text" id="s1_live" placeholder="ex: Septembre 2025"></div>
+        <div class="time-field"><label>Collaboration</label><input type="text" id="s1_collab" placeholder="ex: Nom de l'artiste"></div>
+        <div class="time-field"><label>Revenus / Mois</label><input type="text" id="s1_revenus" placeholder="ex: 3 000€"></div>
+      </div>
+      <div class="time-col card-3d">
+        <div class="time-col-header">3 ANS</div>
+        <div class="time-field"><label>Abonnés</label><input type="text" id="s3_abonnes" placeholder="ex: 100 000"></div>
+        <div class="time-field"><label>Date / Live</label><input type="text" id="s3_live" placeholder="ex: 2027"></div>
+        <div class="time-field"><label>Collaboration</label><input type="text" id="s3_collab" placeholder="ex: Nom de l'artiste"></div>
+        <div class="time-field"><label>Revenus / Mois</label><input type="text" id="s3_revenus" placeholder="ex: 8 000€"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 02 -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-number">02</span>
+      <div class="section-title">Tes références</div>
+      <p class="section-desc">T'admires pas juste leur musique. T'admires leur trajectoire.</p>
+    </div>
+    <div class="artists-grid" id="artistsGrid">
+      <!-- Dynamic cards inserted by JS -->
+    </div>
+    <button class="add-artist-btn" id="addArtistBtn" onclick="addArtistCard()">+ AJOUTER UNE RÉFÉRENCE</button>
+  </div>
+
+  <!-- 03 -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-number">03</span>
+      <div class="section-title">Où tu veux apparaître</div>
+      <p class="section-desc">Les scènes, médias et playlists où tu veux être présent.</p>
+    </div>
+    <div class="appear-grid">
+      <div class="appear-card card-3d">
+        <div class="card-title">SCÈNES</div>
+        <div class="card-hint">Boiler Room, Colors, Arte Concert...</div>
+        <textarea id="app_scenes" placeholder="Liste tes scènes cibles..."></textarea>
+      </div>
+      <div class="appear-card card-3d">
+        <div class="card-title">MÉDIAS</div>
+        <div class="card-hint">Booska-P, Spotify Editorial, Tsugi...</div>
+        <textarea id="app_medias" placeholder="Liste tes médias cibles..."></textarea>
+      </div>
+      <div class="appear-card card-3d">
+        <div class="card-title">PLAYLISTS</div>
+        <div class="card-hint">New Music Friday, Rap Français...</div>
+        <textarea id="app_playlists" placeholder="Liste tes playlists cibles..."></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- 04 -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-number">04</span>
+      <div class="section-title">Le mode de vie</div>
+      <p class="section-desc">Pense pas petit. C'est ton cap, pas ton plafond.</p>
+    </div>
+    <div class="lifestyle-grid">
+      <div class="lifestyle-card card-3d">
+        <div class="card-title">REVENUS</div>
+        <textarea id="life_revenus" placeholder="Ce que tu gagnes avec ta musique. Sois précis."></textarea>
+      </div>
+      <div class="lifestyle-card card-3d">
+        <div class="card-title">LIBERTÉ</div>
+        <textarea id="life_liberte" placeholder="Comment et où tu travailles. Ton rythme."></textarea>
+      </div>
+      <div class="lifestyle-card card-3d">
+        <div class="card-title">RECONNAISSANCE</div>
+        <textarea id="life_reco" placeholder="Là où tu veux qu'on te connaisse."></textarea>
+      </div>
+      <div class="lifestyle-card card-3d">
+        <div class="card-title">QUOTIDIEN</div>
+        <textarea id="life_quotidien" placeholder="À quoi ressemble une bonne journée."></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- 05 -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-number">05</span>
+      <div class="section-title">Ta phrase boussole</div>
+      <p class="section-desc">Une seule phrase. Celle qui résume pourquoi tu fais tout ça.</p>
+    </div>
+    <div class="boussole-wrap">
+      <textarea id="boussole" placeholder="Écris ici ta phrase. Une seule."></textarea>
+      <div class="boussole-hint">Ta boussole — reviens-y quand tu doutes</div>
+    </div>
+  </div>
+
+</main>
+
+<div class="generate-wrap">
+  <button class="generate-btn" onclick="generatePDF()">
+    <div class="ring-wrap">
+      <svg width="44" height="44" viewBox="0 0 40 40">
+        <circle class="ring-bg"   cx="20" cy="20" r="18"/>
+        <circle class="ring-fill" id="ringFill" cx="20" cy="20" r="18"/>
+      </svg>
+      <div class="ring-label" id="ringLabel">0%</div>
+    </div>
+    <span>GÉNÉRER MON PDF</span>
+  </button>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="footer-line"></div>
+
+<script>
+// ── CURSOR ───────────────────────────────────────────────────────
+const cur = document.getElementById('cursor');
+const curR = document.getElementById('cursor-ring');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove', e => {
+  mx=e.clientX; my=e.clientY;
+  cur.style.left=mx+'px'; cur.style.top=my+'px';
+});
+(function tick(){ rx+=(mx-rx)*0.12; ry+=(my-ry)*0.12; curR.style.left=rx+'px'; curR.style.top=ry+'px'; requestAnimationFrame(tick); })();
+
+// ── AUTO-RESIZE ──────────────────────────────────────────────────
+function autoResize(el){ el.style.height='auto'; el.style.height=el.scrollHeight+'px'; }
+document.querySelectorAll('textarea').forEach(ta=>{
+  ta.addEventListener('input',()=>autoResize(ta)); autoResize(ta);
+});
+
+// ── PARALLAX ─────────────────────────────────────────────────────
+const heroT = document.getElementById('heroTitle');
+const heroD = document.getElementById('heroDeco');
+window.addEventListener('scroll', ()=>{
+  const sy=window.scrollY;
+  if(heroT) heroT.style.transform=`translateY(${sy*0.18}px)`;
+  if(heroD) heroD.style.transform=`translateY(${-sy*0.07}px)`;
+  const pct=(sy/(document.body.scrollHeight-window.innerHeight))*100;
+  document.getElementById('progressBar').style.width=Math.min(pct,100)+'%';
+}, {passive:true});
+
+// ── 3D TILT ──────────────────────────────────────────────────────
+function init3DTilt(card){
+  card.addEventListener('mousemove', e=>{
+    const r=card.getBoundingClientRect();
+    const dx=(e.clientX-r.left-r.width/2)/(r.width/2);
+    const dy=(e.clientY-r.top-r.height/2)/(r.height/2);
+    card.style.transform=`perspective(900px) rotateX(${dy*-5}deg) rotateY(${dx*5}deg) translateZ(8px)`;
+    card.style.boxShadow=`${-dx*14}px ${-dy*14}px 44px rgba(29,29,27,0.15), ${-dx*4}px ${-dy*4}px 12px rgba(29,29,27,0.08)`;
+  });
+  card.addEventListener('mouseleave', ()=>{
+    card.style.transform='perspective(900px) rotateX(0deg) rotateY(0deg) translateZ(0px)';
+    card.style.boxShadow='0 2px 8px rgba(29,29,27,0.07)';
+  });
+}
+document.querySelectorAll('.card-3d').forEach(init3DTilt);
+
+// ── SCROLL REVEAL ────────────────────────────────────────────────
+const io = new IntersectionObserver(entries=>{
+  entries.forEach(e=>{ if(e.isIntersecting) e.target.classList.add('visible'); });
+},{threshold:0.08});
+document.querySelectorAll('.section').forEach(s=>io.observe(s));
+
+// ── DYNAMIC ARTIST CARDS ─────────────────────────────────────────
+let artistCount = 0;
+const maxArtists = 8;
+const artistData = {}; // store values when re-rendering
+
+function saveArtistData(){
+  for(let i=1;i<=artistCount;i++){
+    const n=document.getElementById(`a${i}_nom`);
+    const a=document.getElementById(`a${i}_admire`);
+    if(n&&a) artistData[i]={nom:n.value, admire:a.value};
+  }
+}
+
+function renderArtistCards(){
+  const grid=document.getElementById('artistsGrid');
+  grid.innerHTML='';
+  for(let i=1;i<=artistCount;i++){
+    const num=String(i).padStart(2,'0');
+    const card=document.createElement('div');
+    card.className='artist-card card-3d';
+    card.dataset.idx=i;
+    card.innerHTML=`
+      <button class="artist-delete-btn" onclick="deleteArtistCard(${i})" title="Supprimer">✕</button>
+      <div class="artist-num">${num}</div>
+      <input type="text" id="a${i}_nom" placeholder="NOM DE L'ARTISTE">
+      <textarea id="a${i}_admire" placeholder="Ce que j'admire dans son parcours..."></textarea>
+    `;
+    grid.appendChild(card);
+    // restore saved data
+    if(artistData[i]){
+      card.querySelector(`#a${i}_nom`).value=artistData[i].nom;
+      card.querySelector(`#a${i}_admire`).value=artistData[i].admire;
+    }
+    // listeners
+    card.querySelector(`#a${i}_nom`).addEventListener('input',updateRing);
+    card.querySelector(`#a${i}_admire`).addEventListener('input',function(){ autoResize(this); updateRing(); });
+    autoResize(card.querySelector(`#a${i}_admire`));
+    init3DTilt(card);
+  }
+  const btn=document.getElementById('addArtistBtn');
+  btn.disabled=artistCount>=maxArtists;
+  btn.style.display=artistCount>=maxArtists?'none':'block';
+  updateRing();
+}
+
+function addArtistCard(){
+  if(artistCount>=maxArtists) return;
+  saveArtistData();
+  artistCount++;
+  renderArtistCards();
+}
+
+function deleteArtistCard(idx){
+  if(artistCount<=1){ showToast('Minimum 1 référence requise'); return; }
+  saveArtistData();
+  // shift data down
+  const newData={};
+  let ni=1;
+  for(let i=1;i<=artistCount;i++){
+    if(i===idx) continue;
+    newData[ni]=artistData[i]||{nom:'',admire:''};
+    ni++;
+  }
+  artistCount--;
+  // replace artistData
+  for(let k in artistData) delete artistData[k];
+  for(let k in newData) artistData[k]=newData[k];
+  renderArtistCards();
+}
+
+// Init with 2 default cards
+artistCount=2;
+renderArtistCards();
+
+// ── COMPLETION ───────────────────────────────────────────────────
+const staticFields=['s6_abonnes','s6_live','s6_collab','s6_revenus','s1_abonnes','s1_live','s1_collab','s1_revenus','s3_abonnes','s3_live','s3_collab','s3_revenus','app_scenes','app_medias','app_playlists','life_revenus','life_liberte','life_reco','life_quotidien','boussole'];
+
+function updateRing(){
+  let filled=0, total=staticFields.length;
+  staticFields.forEach(id=>{const e=document.getElementById(id); if(e&&e.value.trim()) filled++;});
+  // dynamic artist fields
+  for(let i=1;i<=artistCount;i++){
+    total+=2;
+    const n=document.getElementById(`a${i}_nom`);
+    const a=document.getElementById(`a${i}_admire`);
+    if(n&&n.value.trim()) filled++;
+    if(a&&a.value.trim()) filled++;
+  }
+  const p=total>0?Math.round(filled/total*100):0;
+  document.getElementById('ringFill').style.strokeDashoffset=113-(p/100)*113;
+  document.getElementById('ringLabel').textContent=p+'%';
+}
+staticFields.forEach(id=>{const e=document.getElementById(id);if(e)e.addEventListener('input',updateRing);});
+
+// ── TOAST ────────────────────────────────────────────────────────
+function showToast(msg){
+  const t=document.getElementById('toast'); t.textContent=msg;
+  t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),3000);
+}
+function val(id){return(document.getElementById(id)?.value||'').trim();}
+
+// ── PDF DYNAMIQUE — curseur Y, blocs indépendants, sauts de page ─
+async function generatePDF(){
+  showToast('Génération en cours...');
+  await new Promise(r=>setTimeout(r,200));
+
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+
+  const W=210,H=297,M=14,CW=210-28;
+  const HDR=18, YSTART=HDR+8, YMAX=H-14;
+  const beige=[234,228,218],noir=[29,29,27],rouge=[198,63,62];
+  const cream=[240,235,227],warm=[200,194,184],muted=[106,106,104];
+
+  let pn=1, y=YSTART;
+
+  function shell(){
+    doc.setFillColor(...beige); doc.rect(0,0,W,H,'F');
+    doc.setFillColor(...noir);  doc.rect(0,0,W,HDR,'F');
+    doc.setFillColor(...rouge); doc.rect(0,H-4,W,4,'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(...beige);
+    doc.text('AMOUR STUDIOS',M,7);
+    doc.setFont('helvetica','normal'); doc.setFontSize(7);
+    doc.text('MODULE 01 — VIDÉO 01 — VISION BOARD',M,13);
+    doc.setFont('helvetica','bold'); doc.setFontSize(7);
+    doc.text('PAGE '+pn,W-M,10,{align:'right'});
+  }
+  function newPage(){ pn++; doc.addPage(); shell(); y=YSTART; }
+  function need(h){ if(y+h>YMAX) newPage(); }
+  function lh(n,fs,lead=1.42){ return n*fs*0.352778*lead; }
+  function wrap(txt,mw,fs){ doc.setFontSize(fs); return doc.splitTextToSize(txt||'—',mw); }
+  function gap(n=7){ y+=n; }
+  function sLabel(t){
+    need(10);
+    doc.setFont('helvetica','bold'); doc.setFontSize(7); doc.setTextColor(...rouge);
+    doc.text(t,M,y); y+=6;
+  }
+
+  // Title page
+  shell();
+  doc.setFont('helvetica','bold'); doc.setFontSize(38); doc.setTextColor(...noir);
+  doc.text('VISION',M,y+13); doc.setTextColor(...rouge); doc.text('BOARD',M,y+26);
+  doc.setFont('helvetica','oblique'); doc.setFontSize(8.5); doc.setTextColor(...muted);
+  doc.text('Sois précis. Des chiffres, des noms, des dates. Pas des vœux pieux.',M,y+34);
+  y+=43;
+
+  // ── 01 OÙ TU VEUX ÊTRE ─────────────────────────────────────────
+  sLabel('01 — OÙ TU VEUX ÊTRE');
+  const TC=[['6 MOIS','s6'],['1 AN','s1'],['3 ANS','s3']];
+  const TF=['abonnes','live','collab','revenus'];
+  const TL=['ABONNÉS','DATE / LIVE','COLLABORATION','REVENUS / MOIS'];
+  const cw=CW/3, P=3, LBH=5, FSc=8.5;
+
+  // Row heights = max across all 3 cols per field
+  const rowH=TF.map((f,fi)=>{
+    let mx=LBH+P*2+3;
+    TC.forEach(c=>{
+      const ls=wrap(val(`${c[1]}_${f}`),cw-P*2-2,FSc);
+      const h=LBH+lh(ls.length,FSc)+P*2+2;
+      if(h>mx) mx=h;
+    });
+    return Math.max(mx,11);
+  });
+  const cHdr=8, gridH=cHdr+rowH.reduce((a,b)=>a+b,0);
+  need(gridH);
+  TC.forEach((c,ci)=>{
+    const cx=M+ci*cw;
+    doc.setFillColor(...noir); doc.rect(cx,y,cw-2,cHdr,'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(...beige);
+    doc.text(c[0],cx+(cw-2)/2,y+5.5,{align:'center'});
+    let fy=y+cHdr;
+    TF.forEach((f,fi)=>{
+      const h=rowH[fi];
+      doc.setFillColor(...cream); doc.rect(cx,fy,cw-2,h,'F');
+      doc.setFont('helvetica','bold'); doc.setFontSize(5.5); doc.setTextColor(...rouge);
+      doc.text(TL[fi],cx+P,fy+4);
+      doc.setFont('helvetica','normal'); doc.setFontSize(FSc); doc.setTextColor(...noir);
+      const ls=wrap(val(`${c[1]}_${f}`),cw-P*2-2,FSc);
+      doc.text(ls,cx+P,fy+LBH+P+1);
+      fy+=h;
+    });
+  });
+  y+=gridH; gap();
+
+  // ── 02 TES RÉFÉRENCES — blocs INDÉPENDANTS (dynamique) ─────────
+  sLabel('02 — TES RÉFÉRENCES');
+  const aw=CW/2, NW=14, atw=aw-NW-P*2-2;
+  for(let row=0;row<Math.ceil(artistCount/2);row++){
+    const ns=[];
+    if(row*2+1<=artistCount) ns.push(row*2+1);
+    if(row*2+2<=artistCount) ns.push(row*2+2);
+    const ch=ns.map(n=>{
+      const ls=wrap(val(`a${n}_admire`),atw,7.5);
+      return Math.max(8+lh(ls.length,7.5)+P*2+3,18);
+    });
+    const adv=Math.max(...ch);
+    need(adv+2);
+    ns.forEach((n,ci)=>{
+      const ax=M+ci*aw;
+      const h=ch[ci];
+      doc.setFillColor(...cream); doc.rect(ax,y,aw-2,h,'F');
+      doc.setFillColor(...rouge); doc.rect(ax,y,aw-2,2,'F');
+      doc.setFont('helvetica','bold'); doc.setFontSize(20); doc.setTextColor(...warm);
+      doc.text(String(n).padStart(2,'0'),ax+P,y+12);
+      doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(...noir);
+      doc.text((val(`a${n}_nom`)||'—').toUpperCase(),ax+NW,y+7,{maxWidth:atw});
+      const ls=wrap(val(`a${n}_admire`),atw,7.5);
+      doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(...muted);
+      doc.text(ls,ax+NW,y+13);
+    });
+    y+=adv+2;
+  }
+  gap();
+
+  // ── 03 OÙ TU VEUX APPARAÎTRE — blocs INDÉPENDANTS ─────────────
+  sLabel('03 — OÙ TU VEUX APPARAÎTRE');
+  const AC=[{id:'app_scenes',t:'SCÈNES',h:'Boiler Room, Colors...'},{id:'app_medias',t:'MÉDIAS',h:'Booska-P, Spotify...'},{id:'app_playlists',t:'PLAYLISTS',h:'New Music Friday...'}];
+  const apw=CW/3;
+  // Hauteur indépendante par colonne
+  const apH=AC.map(a=>{
+    const ls=wrap(val(a.id),apw-P*2-2,8);
+    return Math.max(16+lh(ls.length,8)+P,24);
+  });
+  const apAdv=Math.max(...apH);
+  need(apAdv);
+  AC.forEach((a,i)=>{
+    const ax=M+i*apw;
+    const h=apH[i]; // ← indépendant
+    doc.setFillColor(...cream); doc.rect(ax,y,apw-2,h,'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(...noir);
+    doc.text(a.t,ax+P,y+6);
+    doc.setFont('helvetica','oblique'); doc.setFontSize(6); doc.setTextColor(...muted);
+    doc.text(a.h,ax+P,y+11);
+    doc.setDrawColor(...warm); doc.line(ax+P,y+13,ax+apw-4,y+13);
+    doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(...noir);
+    const ls=wrap(val(a.id),apw-P*2-2,8);
+    doc.text(ls,ax+P,y+18);
+  });
+  y+=apAdv; gap();
+
+  // ── 04 MODE DE VIE — blocs INDÉPENDANTS ───────────────────────
+  sLabel('04 — LE MODE DE VIE');
+  const LC=[{id:'life_revenus',t:'REVENUS'},{id:'life_liberte',t:'LIBERTÉ'},{id:'life_reco',t:'RECONNAISSANCE'},{id:'life_quotidien',t:'QUOTIDIEN'}];
+  const lw=CW/2;
+  for(let row=0;row<2;row++){
+    const pair=[LC[row*2],LC[row*2+1]];
+    const ch=pair.map(l=>{
+      const ls=wrap(val(l.id),lw-14,8);
+      return Math.max(10+lh(ls.length,8)+P*2,18);
+    });
+    const adv=Math.max(...ch);
+    need(adv+2);
+    pair.forEach((l,ci)=>{
+      const lx=M+ci*lw;
+      const h=ch[ci]; // ← indépendant
+      doc.setFillColor(...cream); doc.rect(lx,y,lw-2,h,'F');
+      doc.setFillColor(...rouge); doc.rect(lx,y,3,h,'F');
+      doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(...noir);
+      doc.text(l.t,lx+7,y+7);
+      doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(...muted);
+      const ls=wrap(val(l.id),lw-14,8);
+      doc.text(ls,lx+7,y+14);
+    });
+    y+=adv+2;
+  }
+  gap();
+
+  // ── 05 PHRASE BOUSSOLE ─────────────────────────────────────────
+  sLabel('05 — TA PHRASE BOUSSOLE');
+  doc.setFont('helvetica','oblique'); doc.setFontSize(12);
+  const bls=wrap(val('boussole')||'Ta phrase boussole...',CW-24,12);
+  const bh=Math.max(lh(bls.length,12,1.6)+18,24);
+  need(bh);
+  doc.setFillColor(...noir); doc.rect(M,y,CW,bh,'F');
+  doc.setTextColor(240,235,227);
+  doc.text(bls,W/2,y+bh/2-lh(bls.length,12,1.6)/2+4,{align:'center'});
+  y+=bh+4;
+
+  doc.setFont('helvetica','normal'); doc.setFontSize(6); doc.setTextColor(...muted);
+  doc.text('AMOUR STUDIOS — MODULE 01 — VIDÉO 01 — VISION BOARD',W/2,H-8,{align:'center'});
+
+  doc.save('AMOUR_STUDIOS_M01_V01_VisionBoard.pdf');
+  showToast('✓ PDF généré avec succès !');
+}
+</script>
+<script src="/exos/_bridge.js"></script>
+</body>
+</html>

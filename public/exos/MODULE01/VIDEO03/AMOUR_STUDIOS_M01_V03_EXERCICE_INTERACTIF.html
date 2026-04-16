@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AMOUR STUDIOS — Veille Concurrentielle</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap');
+
+:root {
+  --beige:#EAE4DA; --noir:#1D1D1B; --rouge:#C63F3E;
+  --muted:#6A6A68; --warm:#C8C2B8; --cream:#F0EBE3; --teal:#3E6B6A;
+}
+
+*,*::before,*::after { margin:0; padding:0; box-sizing:border-box; }
+* { cursor:none !important; }
+
+#cur  { position:fixed; width:10px; height:10px; background:var(--rouge); border-radius:50%; pointer-events:none; z-index:9999; transform:translate(-50%,-50%); mix-blend-mode:multiply; }
+#curR { position:fixed; width:34px; height:34px; border:1.5px solid var(--rouge); border-radius:50%; pointer-events:none; z-index:9998; transform:translate(-50%,-50%); opacity:.4; }
+
+body { background:var(--beige); color:var(--noir); font-family:'DM Sans',sans-serif; min-height:100vh; overflow-x:hidden; }
+body::before { content:''; position:fixed; inset:0; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"); pointer-events:none; z-index:1000; opacity:.65; }
+
+.pbar-c { position:fixed; top:0; left:0; width:100%; height:3px; background:var(--warm); z-index:900; }
+.pbar   { height:100%; background:var(--rouge); width:0%; transition:width .2s ease; }
+
+header { padding:40px 60px 0; display:flex; justify-content:space-between; align-items:flex-start; opacity:0; transform:translateY(-20px); animation:fdDown .8s ease forwards .1s; }
+.logo-tag { font-family:'Bebas Neue',sans-serif; font-size:11px; letter-spacing:3px; color:var(--muted); border:1px solid var(--warm); padding:6px 12px; }
+.mod-tag  { font-size:11px; letter-spacing:2px; color:var(--muted); text-align:right; line-height:1.6; }
+
+.hero { padding:60px 60px 20px; position:relative; opacity:0; transform:translateY(30px); animation:fdUp .9s ease forwards .3s; }
+.hero-label { font-size:11px; letter-spacing:4px; color:var(--rouge); text-transform:uppercase; margin-bottom:16px; display:flex; align-items:center; gap:12px; }
+.hero-label::after { content:''; width:40px; height:1px; background:var(--rouge); }
+h1 { font-family:'Bebas Neue',sans-serif; font-size:clamp(56px,8.5vw,110px); line-height:.88; will-change:transform; }
+h1 .w1 { display:block; color:var(--noir); }
+h1 .w2 { display:block; color:var(--rouge); }
+h1 .w3 { display:block; color:var(--teal); font-size:.65em; }
+.hero-sub  { font-family:'Playfair Display',serif; font-style:italic; font-size:15px; color:var(--muted); margin-top:22px; max-width:500px; line-height:1.65; }
+.hero-deco { position:absolute; right:60px; top:50%; transform:translateY(-50%); font-family:'Bebas Neue',sans-serif; font-size:180px; color:var(--warm); opacity:.12; line-height:1; pointer-events:none; user-select:none; will-change:transform; }
+
+.divider { width:calc(100% - 120px); margin:0 60px; height:1px; background:linear-gradient(to right,var(--noir),transparent); opacity:0; animation:fdIn 1s ease forwards .6s; }
+
+main { padding:60px 60px 140px; max-width:1100px; margin:0 auto; }
+
+.section { margin-bottom:80px; opacity:0; transform:translateY(50px); transition:opacity .75s cubic-bezier(.22,.68,0,1.2),transform .75s cubic-bezier(.22,.68,0,1.2); }
+.section.visible { opacity:1; transform:translateY(0); }
+.section-number { font-family:'Bebas Neue',sans-serif; font-size:90px; line-height:1; color:var(--warm); display:block; margin-bottom:-20px; }
+.section-title  { font-family:'Bebas Neue',sans-serif; font-size:28px; letter-spacing:2px; color:var(--noir); position:relative; display:inline-block; }
+.section-title::after { content:''; position:absolute; bottom:-4px; left:0; width:0; height:2px; background:var(--rouge); transition:width .6s cubic-bezier(.22,.68,0,1.2); }
+.section.visible .section-title::after { width:100%; }
+.section-desc   { font-family:'Playfair Display',serif; font-style:italic; font-size:14px; color:var(--muted); margin-top:8px; }
+.section-header { margin-bottom:28px; }
+.card-3d { transform-style:preserve-3d; transition:box-shadow .4s ease,transform .15s ease; will-change:transform; }
+
+/* ── TABLE COMPTES ───────────────────────────────────────────── */
+.table-wrap { overflow-x:auto; }
+.table-header {
+  display:grid; grid-template-columns:32px 1.8fr 1fr 1fr 0.7fr 0.7fr 1.4fr 30px;
+  gap:2px; margin-bottom:2px; min-width:650px;
+}
+.th { background:var(--noir); color:var(--beige); font-family:'Bebas Neue',sans-serif; font-size:9px; letter-spacing:1.5px; padding:8px 10px; }
+.th-rouge { background:var(--rouge) !important; display:flex; align-items:center; justify-content:center; }
+
+.compte-rows { display:flex; flex-direction:column; gap:2px; min-width:650px; }
+.compte-row  { display:grid; grid-template-columns:32px 1.8fr 1fr 1fr 0.7fr 0.7fr 1.4fr 30px; gap:2px; align-items:start; }
+
+.cr-num { background:var(--rouge); color:white; font-family:'Bebas Neue',sans-serif; font-size:12px; display:flex; align-items:flex-start; justify-content:center; padding-top:10px; min-height:38px; }
+.cr-cell { background:var(--cream); padding:8px 10px; transition:background .25s; }
+.cr-cell.alt { background:#f5f0e8; }
+.cr-cell:focus-within { background:#fff; box-shadow:inset 0 0 0 1px var(--rouge); }
+.cr-cell input, .cr-cell textarea { width:100%; background:transparent; border:none; outline:none; font-family:'DM Sans',sans-serif; font-size:12px; color:var(--noir); resize:none; overflow:hidden; min-height:28px; line-height:1.5; max-height:300px; overflow-y:auto; }
+.cr-cell input::placeholder, .cr-cell textarea::placeholder { color:var(--warm); font-style:italic; font-size:11px; }
+
+.row-count { font-family:'Bebas Neue',sans-serif; font-size:11px; color:var(--muted); letter-spacing:1px; margin-bottom:8px; }
+.row-count span { color:var(--rouge); }
+.add-row-btn { margin-top:6px; background:transparent; border:1px dashed var(--warm); color:var(--muted); font-family:'Bebas Neue',sans-serif; font-size:11px; letter-spacing:2px; padding:10px 20px; cursor:none; width:100%; transition:all .3s; }
+.add-row-btn:hover { border-color:var(--rouge); color:var(--rouge); background:rgba(198,63,62,.04); }
+
+.delete-btn { background:transparent; border:none; color:var(--rouge); font-size:16px; cursor:none; padding:0; display:flex; align-items:center; justify-content:center; width:100%; height:100%; transition:all .2s; }
+.delete-btn:hover { background:rgba(198,63,62,.08); }
+
+/* ── HABITUDES ───────────────────────────────────────────────── */
+.habitudes-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:3px; align-items:start; }
+.hab-card { padding:28px 24px; position:relative; overflow:hidden; transition:box-shadow .4s ease; }
+.hab-dark  { background:var(--noir); }
+.hab-light { background:var(--cream); border:1px solid var(--warm); }
+.hab-num  { font-family:'Bebas Neue',sans-serif; font-size:48px; line-height:1; margin-bottom:4px; }
+.hab-dark  .hab-num  { color:var(--rouge); }
+.hab-light .hab-num  { color:var(--warm); }
+.hab-name { font-family:'Bebas Neue',sans-serif; font-size:18px; letter-spacing:2px; margin-bottom:4px; }
+.hab-dark  .hab-name { color:white; }
+.hab-light .hab-name { color:var(--noir); }
+.hab-sub  { font-family:'Playfair Display',serif; font-style:italic; font-size:11px; margin-bottom:16px; line-height:1.5; }
+.hab-dark  .hab-sub  { color:var(--warm); }
+.hab-light .hab-sub  { color:var(--muted); }
+.hab-card textarea { width:100%; background:transparent; border:none; outline:none; font-family:'DM Sans',sans-serif; font-size:13px; resize:none; min-height:60px; line-height:1.75; overflow:hidden; max-height:300px; overflow-y:auto; }
+.hab-dark  textarea { color:rgba(255,255,255,.9); border-bottom:1px solid rgba(255,255,255,.15); }
+.hab-light textarea { color:var(--noir); border-bottom:1px solid var(--warm); }
+.hab-dark  textarea::placeholder { color:rgba(255,255,255,.25); font-style:italic; }
+.hab-light textarea::placeholder { color:var(--warm); font-style:italic; }
+
+.hab-delete-btn {
+  position: absolute; top: 8px; right: 8px;
+  background: transparent; border: none; font-size: 16px;
+  cursor: none; padding: 4px 8px; opacity: 0.4;
+  transition: opacity 0.2s, background 0.2s; z-index: 2;
+}
+.hab-dark .hab-delete-btn { color: rgba(255,255,255,.6); }
+.hab-light .hab-delete-btn { color: var(--rouge); }
+.hab-delete-btn:hover { opacity: 1; }
+
+.hab-name-input {
+  font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 2px;
+  background: transparent; border: none; border-bottom: 1px solid rgba(255,255,255,.2);
+  outline: none; width: 100%; padding-bottom: 4px; margin-bottom: 4px;
+  transition: border-color 0.3s;
+}
+.hab-dark .hab-name-input { color: white; border-bottom-color: rgba(255,255,255,.2); }
+.hab-light .hab-name-input { color: var(--noir); border-bottom-color: var(--warm); }
+.hab-name-input:focus { border-bottom-color: var(--rouge); }
+
+.hab-sub-input {
+  font-family: 'Playfair Display', serif; font-style: italic; font-size: 11px;
+  background: transparent; border: none; outline: none; width: 100%;
+  resize: none; min-height: 28px; line-height: 1.5; margin-bottom: 16px;
+  overflow: hidden;
+}
+.hab-dark .hab-sub-input { color: var(--warm); }
+.hab-light .hab-sub-input { color: var(--muted); }
+
+.rule-banner { background:var(--rouge); padding:14px 24px; margin-top:3px; }
+.rule-text   { font-family:'Bebas Neue',sans-serif; font-size:12px; letter-spacing:2px; color:white; }
+
+/* ── JOURNAL ─────────────────────────────────────────────────── */
+.journal-controls { margin-bottom:20px; display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+.journal-controls label { font-family:'Bebas Neue',sans-serif; font-size:11px; letter-spacing:1px; color:var(--muted); }
+.journal-controls input[type="date"] { background:var(--cream); border:1px solid var(--warm); padding:6px 10px; font-family:'DM Sans',sans-serif; font-size:12px; color:var(--noir); cursor:none; }
+.journal-controls input[type="date"]:focus { outline:none; border-color:var(--rouge); box-shadow:inset 0 0 0 1px var(--rouge); }
+
+.journal-grid { display:flex; flex-direction:column; gap:2px; }
+.semaine-row  { display:grid; grid-template-columns:110px 1fr 30px; gap:2px; align-items:start; }
+.sem-label { background:var(--noir); color:white; font-family:'Bebas Neue',sans-serif; font-size:10px; letter-spacing:1.5px; padding:12px 8px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; min-height:44px; }
+.sem-num   { font-size:22px; color:var(--rouge); line-height:1; }
+.sem-cell  { background:var(--cream); padding:12px 16px; transition:background .25s; }
+.sem-cell.alt { background:#f5f0e8; }
+.sem-cell:focus-within { background:#fff; box-shadow:inset 3px 0 0 var(--rouge); }
+.sem-cell textarea { width:100%; background:transparent; border:none; outline:none; font-family:'DM Sans',sans-serif; font-size:13px; color:var(--noir); resize:none; min-height:44px; line-height:1.7; overflow:hidden; max-height:300px; overflow-y:auto; }
+.sem-cell textarea::placeholder { color:var(--warm); font-style:italic; font-size:12px; }
+
+.sem-delete { background:var(--rouge); color:white; font-family:'Bebas Neue',sans-serif; font-size:14px; display:flex; align-items:center; justify-content:center; cursor:none; border:none; transition:all .2s; min-height:44px; }
+.sem-delete:hover { background:rgba(198,63,62,.8); }
+
+.sem-date-input {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(255,255,255,.25);
+  color: white;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10px;
+  padding: 2px 0;
+  outline: none;
+  width: 100%;
+  cursor: pointer !important;
+  -webkit-appearance: auto;
+  appearance: auto;
+  color-scheme: dark;
+  margin-top: 4px;
+}
+.sem-date-input:focus { border-bottom-color: var(--rouge); }
+.sem-date-input::-webkit-calendar-picker-indicator { cursor: pointer !important; filter: invert(0.8); font-size: 10px; }
+
+.journal-add-btn { margin-top:8px; background:transparent; border:1px dashed var(--warm); color:var(--muted); font-family:'Bebas Neue',sans-serif; font-size:11px; letter-spacing:2px; padding:10px 20px; cursor:none; width:100%; transition:all .3s; }
+.journal-add-btn:hover { border-color:var(--rouge); color:var(--rouge); background:rgba(198,63,62,.04); }
+
+/* ── GENERATE ────────────────────────────────────────────────── */
+.generate-wrap { position:fixed; bottom:40px; right:60px; z-index:500; opacity:0; animation:fdUp .8s ease forwards 1.2s; }
+.gen-btn { background:var(--rouge); color:var(--cream); border:none; font-family:'Bebas Neue',sans-serif; font-size:15px; letter-spacing:3px; padding:16px 32px; cursor:none; display:flex; align-items:center; gap:14px; box-shadow:0 8px 32px rgba(198,63,62,.28); position:relative; overflow:hidden; transition:box-shadow .35s,transform .35s; }
+.gen-btn::before { content:''; position:absolute; inset:0; background:var(--noir); transform:translateX(-100%); transition:transform .45s cubic-bezier(.22,.68,0,1.2); }
+.gen-btn:hover::before { transform:translateX(0); }
+.gen-btn span, .ring-wrap { position:relative; z-index:1; }
+.gen-btn:hover { box-shadow:0 16px 48px rgba(29,29,27,.32); transform:translateY(-3px); }
+.gen-btn:active { transform:translateY(-1px); }
+.ring-wrap  { width:44px; height:44px; position:relative; }
+.ring-wrap svg { transform:rotate(-90deg); }
+.ring-bg    { fill:none; stroke:rgba(255,255,255,.15); stroke-width:3; }
+.ring-fill  { fill:none; stroke:white; stroke-width:3; stroke-linecap:round; stroke-dasharray:113; stroke-dashoffset:113; transition:stroke-dashoffset .5s; }
+.ring-label { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:'Bebas Neue',sans-serif; font-size:12px; color:white; }
+
+.toast { position:fixed; bottom:120px; right:60px; background:var(--noir); color:var(--cream); font-size:13px; padding:14px 24px; opacity:0; transform:translateY(10px); transition:all .4s; pointer-events:none; z-index:600; border-left:3px solid var(--rouge); }
+.toast.show { opacity:1; transform:translateY(0); }
+.footer-line { position:fixed; bottom:0; left:0; width:100%; height:4px; background:var(--rouge); }
+
+@keyframes fdUp   { to { opacity:1; transform:translateY(0); } }
+@keyframes fdDown { to { opacity:1; transform:translateY(0); } }
+@keyframes fdIn   { to { opacity:1; } }
+
+::-webkit-scrollbar { width:4px; }
+::-webkit-scrollbar-track { background:var(--beige); }
+::-webkit-scrollbar-thumb { background:var(--warm); }
+::-webkit-scrollbar-thumb:hover { background:var(--rouge); }
+
+@media (max-width:900px) {
+  header, main { padding:24px; }
+  .hero { padding:40px 24px 20px; }
+  .hero-deco { display:none; }
+  .divider { width:calc(100% - 48px); margin:0 24px; }
+  .habitudes-grid { grid-template-columns:1fr; }
+  .generate-wrap { bottom:20px; right:20px; }
+}
+</style>
+</head>
+<body>
+
+<div id="cur"></div>
+<div id="curR"></div>
+<div class="pbar-c"><div class="pbar" id="pbar"></div></div>
+
+<header>
+  <div class="logo-tag">AMOUR STUDIOS</div>
+  <div class="mod-tag">MODULE 01 — VIDÉO 03<br>VEILLE CONCURRENTIELLE</div>
+</header>
+
+<div class="hero">
+  <div class="hero-label">Exercice élève</div>
+  <h1 id="heroT">
+    <span class="w1">VEILLE</span>
+    <span class="w2">CONCUR</span>
+    <span class="w3">RENTIELLE</span>
+  </h1>
+  <p class="hero-sub">Chaque scroll est une opportunité d'apprendre.<br>Mais seulement si t'as les bonnes habitudes.</p>
+  <div class="hero-deco" id="heroD">03</div>
+</div>
+
+<div class="divider"></div>
+
+<main>
+
+  <!-- 01 MES 20 COMPTES -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-number">01</span>
+      <div class="section-title">Mes 20 comptes</div>
+      <p class="section-desc">Une fois par mois. Tu décortiques, tu notes, tu gardes.</p>
+    </div>
+    <div class="row-count">Comptes ajoutés : <span id="rowCount">0</span> / 20</div>
+    <div class="table-wrap">
+      <div class="table-header">
+        <div class="th th-rouge">#</div>
+        <div class="th">COMPTE</div>
+        <div class="th">FORMATS</div>
+        <div class="th">HOOKS</div>
+        <div class="th">FRÉQ.</div>
+        <div class="th">ENGAGE.</div>
+        <div class="th">CE QU'IL NE FAIT PAS</div>
+        <div class="th th-rouge"></div>
+      </div>
+      <div class="compte-rows" id="compteRows"></div>
+    </div>
+    <button class="add-row-btn" id="addBtn" onclick="addRow()">+ AJOUTER UN COMPTE</button>
+  </div>
+
+  <!-- 02 HABITUDES QUOTIDIENNES -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-number">02</span>
+      <div class="section-title">Habitudes quotidiennes</div>
+      <p class="section-desc">Chaque scroll est une opportunité d'apprendre.</p>
+    </div>
+    <div class="habitudes-grid" id="habitudesGrid">
+      <!-- Dynamic cards inserted by JS -->
+    </div>
+    <button class="add-row-btn" id="addHabBtn" onclick="addHabitude()">+ AJOUTER UNE HABITUDE</button>
+    <div class="rule-banner">
+      <div class="rule-text">RÈGLE : 15 MIN PAR JOUR — MÊME OBJECTIF — MÊME MÉTHODE — TOUS LES JOURS.</div>
+    </div>
+  </div>
+
+  <!-- 03 JOURNAL DE VEILLE -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-number">03</span>
+      <div class="section-title">Mon journal de veille</div>
+      <p class="section-desc">Note ce que tu observes chaque semaine. Sans exception.</p>
+    </div>
+    <div class="journal-grid" id="journalGrid"></div>
+    <button class="journal-add-btn" id="addWeekBtn" onclick="addWeek()">+ AJOUTER UNE SEMAINE</button>
+  </div>
+
+</main>
+
+<div class="generate-wrap">
+  <button class="gen-btn" onclick="generatePDF()">
+    <div class="ring-wrap">
+      <svg width="44" height="44" viewBox="0 0 40 40">
+        <circle class="ring-bg"   cx="20" cy="20" r="18"/>
+        <circle class="ring-fill" id="ringFill" cx="20" cy="20" r="18"/>
+      </svg>
+      <div class="ring-label" id="ringLabel">0%</div>
+    </div>
+    <span>GÉNÉRER MON PDF</span>
+  </button>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="footer-line"></div>
+
+<script>
+// ── CURSOR ────────────────────────────────────────────────────────
+var cur  = document.getElementById('cur');
+var curR = document.getElementById('curR');
+var mx=0, my=0, rx=0, ry=0;
+document.addEventListener('mousemove', function(e) {
+  mx = e.clientX; my = e.clientY;
+  cur.style.left = mx+'px'; cur.style.top = my+'px';
+});
+(function tick() {
+  rx += (mx-rx)*0.12; ry += (my-ry)*0.12;
+  curR.style.left = rx+'px'; curR.style.top = ry+'px';
+  requestAnimationFrame(tick);
+})();
+
+// ── AUTO-RESIZE ───────────────────────────────────────────────────
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
+}
+document.querySelectorAll('textarea').forEach(function(ta) {
+  ta.addEventListener('input', function() { autoResize(ta); });
+  autoResize(ta);
+});
+
+// ── PARALLAX ──────────────────────────────────────────────────────
+var heroT = document.getElementById('heroT');
+var heroD = document.getElementById('heroD');
+window.addEventListener('scroll', function() {
+  var sy = window.scrollY;
+  if (heroT) heroT.style.transform = 'translateY(' + (sy*0.18) + 'px)';
+  if (heroD) heroD.style.transform = 'translateY(' + (-sy*0.07) + 'px)';
+  var pct = sy / (document.body.scrollHeight - window.innerHeight) * 100;
+  document.getElementById('pbar').style.width = Math.min(pct, 100) + '%';
+}, {passive:true});
+
+// ── 3D TILT ───────────────────────────────────────────────────────
+document.querySelectorAll('.card-3d').forEach(function(card) {
+  card.addEventListener('mousemove', function(e) {
+    var r  = card.getBoundingClientRect();
+    var dx = (e.clientX - r.left - r.width/2)  / (r.width/2);
+    var dy = (e.clientY - r.top  - r.height/2) / (r.height/2);
+    card.style.transform = 'perspective(900px) rotateX('+(-dy*5)+'deg) rotateY('+(dx*5)+'deg) translateZ(8px)';
+    card.style.boxShadow = (-dx*14)+'px '+(-dy*14)+'px 44px rgba(29,29,27,.15)';
+  });
+  card.addEventListener('mouseleave', function() {
+    card.style.transform = 'perspective(900px) rotateX(0) rotateY(0) translateZ(0)';
+    card.style.boxShadow = '';
+  });
+});
+
+// ── SCROLL REVEAL ─────────────────────────────────────────────────
+var io = new IntersectionObserver(function(entries) {
+  entries.forEach(function(e) { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, {threshold: 0.08});
+document.querySelectorAll('.section').forEach(function(s) { io.observe(s); });
+
+// ── COMPLETION RING ───────────────────────────────────────────────
+var weekCount = 0;
+
+function upRing() {
+  var filled = 0;
+  var total = 0;
+
+  // Count habitudes
+  habitudesData.forEach(function(h) {
+    if(h.texte.trim()) filled++;
+    total++;
+  });
+
+  document.querySelectorAll('#compteRows input, #compteRows textarea').forEach(function(el) {
+    if (el.value.trim()) filled++;
+  });
+  document.querySelectorAll('.journal-grid textarea').forEach(function(el) {
+    if (el.value.trim()) filled++;
+  });
+
+  total += rowCount * 3 + weekCount;
+  var p = total > 0 ? Math.min(Math.round(filled / total * 100), 100) : 0;
+  document.getElementById('ringFill').style.strokeDashoffset = 113 - (p/100)*113;
+  document.getElementById('ringLabel').textContent = p + '%';
+}
+
+// ── TABLE COMPTES ─────────────────────────────────────────────────
+var rowCount = 0;
+
+function deleteRow(btn) {
+  if (rowCount <= 1) {
+    showToast('Minimum 1 compte requis');
+    return;
+  }
+  btn.closest('.compte-row').remove();
+  rowCount--;
+  document.getElementById('rowCount').textContent = rowCount;
+
+  // Renumber remaining rows
+  var rows = document.querySelectorAll('.compte-row');
+  rows.forEach(function(r, idx) {
+    r.querySelector('.cr-num').textContent = String(idx + 1).padStart(2,'0');
+  });
+
+  if (rowCount < 20) {
+    document.getElementById('addBtn').style.display = 'block';
+  }
+  upRing();
+}
+
+function addRow() {
+  if (rowCount >= 20) return;
+  rowCount++;
+  document.getElementById('rowCount').textContent = rowCount;
+
+  var isEven = rowCount % 2 === 0;
+  var row = document.createElement('div');
+  row.className = 'compte-row';
+
+  var numDiv = document.createElement('div');
+  numDiv.className = 'cr-num';
+  numDiv.textContent = String(rowCount).padStart(2,'0');
+  row.appendChild(numDiv);
+
+  var cols = [
+    {type:'input',  ph:'@compte'},
+    {type:'textarea', ph:'Reels, Lives...'},
+    {type:'textarea', ph:'Ce qui accroche...'},
+    {type:'input',  ph:'3x/sem'},
+    {type:'input',  ph:'Taux...'},
+    {type:'textarea', ph:"Ce qu'il ne fait pas..."},
+  ];
+
+  cols.forEach(function(col) {
+    var cell = document.createElement('div');
+    cell.className = 'cr-cell' + (isEven ? ' alt' : '');
+    var field;
+    if (col.type === 'textarea') {
+      field = document.createElement('textarea');
+      field.addEventListener('input', function() { autoResize(field); upRing(); });
+    } else {
+      field = document.createElement('input');
+      field.type = 'text';
+      field.addEventListener('input', upRing);
+    }
+    field.placeholder = col.ph;
+    cell.appendChild(field);
+    row.appendChild(cell);
+  });
+
+  // Add delete button
+  var deleteCell = document.createElement('div');
+  deleteCell.className = 'cr-cell' + (isEven ? ' alt' : '');
+  var deleteBtn = document.createElement('button');
+  deleteBtn.className = 'delete-btn';
+  deleteBtn.textContent = '✕';
+  deleteBtn.onclick = function(e) { e.preventDefault(); deleteRow(deleteBtn); };
+  deleteCell.appendChild(deleteBtn);
+  row.appendChild(deleteCell);
+
+  document.getElementById('compteRows').appendChild(row);
+  row.querySelectorAll('textarea').forEach(function(ta) { autoResize(ta); });
+
+  if (rowCount >= 20) {
+    document.getElementById('addBtn').style.display = 'none';
+  }
+  upRing();
+}
+
+// ── HABITUDES QUOTIDIENNES ─────────────────────────────────────────
+var habitudesData = [
+  {nom: 'SAUVEGARDES', sub: "Tu enregistres chaque contenu qui t'arrête de scroller", texte: ''},
+  {nom: 'COLLECTIONS', sub: 'Tu organises par thème : hooks, formats, esthétique, idées', texte: ''},
+  {nom: 'PATTERNS', sub: 'Tu identifies ce qui revient, performe, connecte', texte: ''},
+  {nom: 'OPPORTUNITÉS', sub: 'Ce que personne ne fait encore dans ton style', texte: ''}
+];
+var maxHabitudes = 8;
+
+function renderHabitudes() {
+  var grid = document.getElementById('habitudesGrid');
+  grid.innerHTML = '';
+  habitudesData.forEach(function(h, i) {
+    var isDark = (i % 2 === 0);
+    var num = String(i + 1).padStart(2, '0');
+    var card = document.createElement('div');
+    card.className = 'hab-card ' + (isDark ? 'hab-dark' : 'hab-light') + ' card-3d';
+    card.innerHTML =
+      '<button class="hab-delete-btn" onclick="deleteHabitude(' + i + ')">✕</button>' +
+      '<div class="hab-num">' + num + '</div>' +
+      '<input type="text" class="hab-name-input" value="' + h.nom + '" placeholder="NOM DE L\'HABITUDE" oninput="habitudesData[' + i + '].nom=this.value;upRing()">' +
+      '<textarea class="hab-sub-input" placeholder="Description..." oninput="habitudesData[' + i + '].sub=this.value">' + h.sub + '</textarea>' +
+      '<textarea id="v3_hab_' + i + '" placeholder="Comment tu appliques cette habitude..." oninput="habitudesData[' + i + '].texte=this.value;upRing()">' + h.texte + '</textarea>';
+    grid.appendChild(card);
+    // Auto-resize textareas
+    card.querySelectorAll('textarea').forEach(function(ta) {
+      ta.addEventListener('input', function() { autoResize(ta); });
+      autoResize(ta);
+    });
+    // 3D tilt
+    card.addEventListener('mousemove', function(e) {
+      var r = card.getBoundingClientRect();
+      var dx = (e.clientX - r.left - r.width/2) / (r.width/2);
+      var dy = (e.clientY - r.top - r.height/2) / (r.height/2);
+      card.style.transform = 'perspective(900px) rotateX(' + (-dy*5) + 'deg) rotateY(' + (dx*5) + 'deg) translateZ(8px)';
+      card.style.boxShadow = (-dx*14) + 'px ' + (-dy*14) + 'px 44px rgba(29,29,27,.15)';
+    });
+    card.addEventListener('mouseleave', function() {
+      card.style.transform = 'perspective(900px) rotateX(0) rotateY(0) translateZ(0)';
+      card.style.boxShadow = '';
+    });
+  });
+  var btn = document.getElementById('addHabBtn');
+  btn.style.display = habitudesData.length >= maxHabitudes ? 'none' : 'block';
+  upRing();
+}
+
+function addHabitude() {
+  if (habitudesData.length >= maxHabitudes) return;
+  habitudesData.push({nom: '', sub: '', texte: ''});
+  renderHabitudes();
+}
+
+function deleteHabitude(idx) {
+  if (habitudesData.length <= 1) { showToast('Minimum 1 habitude requise'); return; }
+  habitudesData.splice(idx, 1);
+  renderHabitudes();
+}
+
+// Init 5 rows on load
+for (var i=0; i<5; i++) { addRow(); }
+
+// Render initial habitudes
+renderHabitudes();
+
+// ── JOURNAL SEMAINES ──────────────────────────────────────────────
+function deleteWeek(btn) {
+  if (weekCount <= 1) {
+    showToast('Minimum 1 semaine requise');
+    return;
+  }
+  btn.closest('.semaine-row').remove();
+  weekCount--;
+  renumberWeeks();
+  upRing();
+}
+
+function renumberWeeks() {
+  var weeks = document.querySelectorAll('.journal-grid .semaine-row');
+  weeks.forEach(function(w, idx) {
+    var numDiv = w.querySelector('.sem-num');
+    numDiv.textContent = String(idx + 1).padStart(2,'0');
+  });
+}
+
+function addWeek() {
+  weekCount++;
+
+  var row = document.createElement('div');
+  row.className = 'semaine-row';
+
+  var isEven = (weekCount - 1) % 2 === 0;
+
+  // Label
+  var label = document.createElement('div');
+  label.className = 'sem-label';
+  var numDiv = document.createElement('div');
+  numDiv.className = 'sem-num';
+  numDiv.textContent = String(weekCount).padStart(2,'0');
+  label.appendChild(numDiv);
+  var semText = document.createElement('div');
+  semText.textContent = 'SEM.';
+  semText.style.fontSize = '9px';
+  label.appendChild(semText);
+  // Add date picker
+  var dateInput = document.createElement('input');
+  dateInput.type = 'date';
+  dateInput.className = 'sem-date-input';
+  dateInput.addEventListener('input', upRing);
+  label.appendChild(dateInput);
+  row.appendChild(label);
+
+  // Textarea cell
+  var cell = document.createElement('div');
+  cell.className = 'sem-cell' + (isEven ? '' : ' alt');
+  var ta = document.createElement('textarea');
+  ta.placeholder = "Ce que j'ai observé cette semaine...";
+  ta.addEventListener('input', function() { autoResize(ta); upRing(); });
+  cell.appendChild(ta);
+  row.appendChild(cell);
+
+  // Delete button
+  var deleteCell = document.createElement('div');
+  deleteCell.style.display = 'flex';
+  deleteCell.style.alignItems = 'center';
+  var deleteBtn = document.createElement('button');
+  deleteBtn.className = 'sem-delete';
+  deleteBtn.textContent = '✕';
+  deleteBtn.onclick = function(e) { e.preventDefault(); deleteWeek(deleteBtn); };
+  deleteCell.appendChild(deleteBtn);
+  row.appendChild(deleteCell);
+
+  document.getElementById('journalGrid').appendChild(row);
+  autoResize(ta);
+  upRing();
+}
+
+// Init 4 weeks on load
+for (var i=0; i<4; i++) { addWeek(); }
+
+// ── TOAST ─────────────────────────────────────────────────────────
+function showToast(m) {
+  var t = document.getElementById('toast');
+  t.textContent = m;
+  t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, 3000);
+}
+
+function getVal(id) {
+  var el = document.getElementById(id);
+  return el ? el.value.trim() : '';
+}
+
+// ── PDF GENERATION ────────────────────────────────────────────────
+function generatePDF() {
+  showToast('Génération en cours...');
+
+  setTimeout(function() {
+    var jsPDF = window.jspdf.jsPDF;
+    var doc = new jsPDF({orientation:'portrait', unit:'mm', format:'a4'});
+
+    var W=210, H=297, M=14, CW=182, HDR=18, YS=HDR+8, YX=H-14;
+
+    // All colors as plain variables — no spread operators
+    var B = [234,228,218]; // beige
+    var N = [29,29,27];    // noir
+    var R = [198,63,62];   // rouge
+    var CR= [240,235,227]; // cream
+    var WM= [200,194,184]; // warm
+    var MU= [106,106,104]; // muted
+    var AL= [245,240,232]; // alt
+    var WH= [255,255,255]; // white
+
+    var pn = 1;
+    var y  = YS;
+
+    function fc(c) { doc.setFillColor(c[0], c[1], c[2]); }
+    function tc(c) { doc.setTextColor(c[0], c[1], c[2]); }
+    function dc(c) { doc.setDrawColor(c[0], c[1], c[2]); }
+
+    function shell() {
+      fc(B); doc.rect(0,0,W,H,'F');
+      fc(N); doc.rect(0,0,W,HDR,'F');
+      fc(R); doc.rect(0,H-4,W,4,'F');
+      doc.setFont('helvetica','bold'); doc.setFontSize(8); tc(B);
+      doc.text('AMOUR STUDIOS', M, 7);
+      doc.setFont('helvetica','normal'); doc.setFontSize(7);
+      doc.text('MODULE 01 — VIDÉO 03 — VEILLE CONCURRENTIELLE', M, 13);
+      doc.setFont('helvetica','bold'); doc.setFontSize(7);
+      doc.text('PAGE '+pn, W-M, 10, {align:'right'});
+    }
+
+    function np() { pn++; doc.addPage(); shell(); y=YS; }
+    function need(h) { if (y+h > YX) np(); }
+    function lineH(n, fs, ld) { ld = ld || 1.42; return n*fs*0.352778*ld; }
+    function wrapT(t, mw, fs) { doc.setFontSize(fs); return doc.splitTextToSize(t || '—', mw); }
+    function gap(n) { y += (n || 7); }
+
+    function sLab(t) {
+      need(10);
+      doc.setFont('helvetica','bold'); doc.setFontSize(7); tc(R);
+      doc.text(t, M, y); y+=6;
+    }
+
+    // Title page
+    shell();
+    doc.setFont('helvetica','bold'); doc.setFontSize(36); tc(N);
+    doc.text('VEILLE', M, y+12);
+    tc(R);
+    doc.text('CONCURRENTIELLE', M, y+24);
+    doc.setFont('helvetica','oblique'); doc.setFontSize(8.5); tc(MU);
+    doc.text("Chaque scroll est une opportunité — si t'as les bonnes habitudes.", M, y+32);
+    y += 42;
+
+    // ── 01 TABLE COMPTES ─────────────────────────────────────────
+    sLab('01 — MES 20 COMPTES');
+
+    var colW   = [10, 35, 26, 30, 16, 16, 35];
+    var colHdr = ['#','COMPTE','FORMATS','HOOKS','FRÉQ.','ENG.','NE FAIT PAS'];
+    var hdrH   = 8;
+    need(hdrH);
+
+    var cx = M;
+    for (var i=0; i<colHdr.length; i++) {
+      if (i === 0) { fc(R); } else { fc(N); }
+      doc.rect(cx, y, colW[i], hdrH, 'F');
+      doc.setFont('helvetica','bold'); doc.setFontSize(6.5); tc(CR);
+      doc.text(colHdr[i], cx+2, y+5.5);
+      cx += colW[i];
+    }
+    y += hdrH;
+
+    var domRows = document.querySelectorAll('.compte-row');
+    for (var ri=0; ri<domRows.length; ri++) {
+      var inputs = domRows[ri].querySelectorAll('input, textarea');
+      var data = ['—','—','—','—','—','—','—'];
+      data[0] = String(ri+1).padStart(2,'0');
+      for (var ii=0; ii<inputs.length; ii++) {
+        data[ii+1] = inputs[ii].value.trim() || '—';
+      }
+
+      // calc row height
+      var maxH = 10;
+      for (var di=0; di<data.length; di++) {
+        if (di===0 || di===4 || di===5) continue;
+        var ls2 = wrapT(data[di], colW[di]-4, 7.5);
+        var hh2 = lineH(ls2.length, 7.5) + 5;
+        if (hh2 > maxH) maxH = hh2;
+      }
+      maxH = Math.max(maxH, 10);
+      need(maxH);
+
+      var bgRow = (ri % 2 === 0) ? CR : AL;
+      cx = M;
+      for (var di=0; di<data.length; di++) {
+        if (di === 0) {
+          fc(R); doc.rect(cx, y, colW[di], maxH, 'F');
+          doc.setFont('helvetica','bold'); doc.setFontSize(9); tc(WH);
+          doc.text(data[di], cx + colW[di]/2, y + maxH/2 + 2, {align:'center'});
+        } else {
+          fc(bgRow); doc.rect(cx, y, colW[di], maxH, 'F');
+          doc.setFont('helvetica','normal'); doc.setFontSize(7.5); tc(N);
+          var ls3 = wrapT(data[di], colW[di]-4, 7.5);
+          doc.text(ls3, cx+2, y+4);
+        }
+        cx += colW[di];
+      }
+      y += maxH;
+    }
+    gap();
+
+    // ── 02 HABITUDES ─────────────────────────────────────────────
+    sLab('02 — HABITUDES QUOTIDIENNES');
+
+    var hw = CW/2;
+
+    for (var row=0; row<Math.ceil(habitudesData.length/2); row++) {
+      var pair = [habitudesData[row*2], habitudesData[row*2+1]];
+      var ch = pair.map(function(h) {
+        if (!h) return 0;
+        var ls = wrapT(h.texte, hw-14, 8.5);
+        return Math.max(10 + lineH(ls.length, 8.5) + 12, 22);
+      });
+      var adv = Math.max(ch[0], ch[1]);
+      need(adv+2);
+
+      for (var ci=0; ci<pair.length; ci++) {
+        var h   = pair[ci];
+        if (!h) continue;
+        var idx = row*2+ci;
+        var isDark = (idx % 2 === 0);
+        var ax  = M + ci*hw;
+        var hei = ch[ci];
+        var ls  = wrapT(h.texte, hw-14, 8.5);
+
+        if (isDark) {
+          fc(N);  doc.rect(ax, y, hw-2, hei, 'F');
+          fc(R);  doc.rect(ax, y, hw-2, 2,   'F');
+          doc.setFont('helvetica','bold'); doc.setFontSize(16); tc(R);
+          doc.text(String(idx+1).padStart(2,'0'), ax+5, y+12);
+          doc.setFont('helvetica','bold'); doc.setFontSize(10); tc(CR);
+          doc.text(h.nom, ax+18, y+8);
+          doc.setFont('helvetica','normal'); doc.setFontSize(8.5); tc(WM);
+        } else {
+          fc(CR); doc.rect(ax, y, hw-2, hei, 'F');
+          doc.setFont('helvetica','bold'); doc.setFontSize(16); tc(WM);
+          doc.text(String(idx+1).padStart(2,'0'), ax+5, y+12);
+          doc.setFont('helvetica','bold'); doc.setFontSize(10); tc(N);
+          doc.text(h.nom, ax+18, y+8);
+          doc.setFont('helvetica','normal'); doc.setFontSize(8.5); tc(MU);
+        }
+        doc.text(ls, ax+18, y+14);
+      }
+      y += adv+2;
+    }
+
+    // Rule banner
+    need(10);
+    fc(R); doc.rect(M, y, CW, 10, 'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(7.5); tc(WH);
+    doc.text('RÈGLE : 15 MIN PAR JOUR — MÊME OBJECTIF — MÊME MÉTHODE — TOUS LES JOURS.', M+6, y+6.5);
+    y += 10;
+    gap();
+
+    // ── 03 JOURNAL DE VEILLE ─────────────────────────────────────
+    sLab('03 — MON JOURNAL DE VEILLE');
+
+    var journalRows = document.querySelectorAll('.journal-grid .semaine-row');
+    journalRows.forEach(function(row, s) {
+      var ta = row.querySelector('textarea');
+      var content = ta ? ta.value.trim() : '';
+      var ls = wrapT(content, CW-26, 9);
+      var h  = Math.max(lineH(ls.length, 9) + 8, 14);
+      need(h+2);
+
+      fc(N); doc.rect(M, y, 18, h, 'F');
+      doc.setFont('helvetica','bold'); doc.setFontSize(7); tc(R);
+      doc.text('SEM', M+2, y+5);
+      doc.setFontSize(16);
+      doc.text(String(s+1).padStart(2,'0'), M+1, y+h-3);
+
+      var bgS = (s % 2 === 0) ? AL : CR;
+      fc(bgS); doc.rect(M+18, y, CW-18, h, 'F');
+      doc.setFont('helvetica','normal'); doc.setFontSize(9); tc(N);
+      doc.text(ls, M+22, y+6);
+      y += h+2;
+    });
+
+    // Footer
+    doc.setFont('helvetica','normal'); doc.setFontSize(6); tc(MU);
+    doc.text('AMOUR STUDIOS — MODULE 01 — VIDÉO 03 — VEILLE CONCURRENTIELLE', W/2, H-8, {align:'center'});
+
+    doc.save('AMOUR_STUDIOS_M01_V03_Veille.pdf');
+    showToast('✓ PDF généré !');
+
+  }, 200);
+}
+</script>
+<script src="/exos/_bridge.js"></script>
+</body>
+</html>

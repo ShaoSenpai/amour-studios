@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AMOUR STUDIOS — Mes Valeurs</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap');
+:root{--beige:#EAE4DA;--noir:#1D1D1B;--rouge:#C63F3E;--muted:#6A6A68;--warm:#C8C2B8;--cream:#F0EBE3;--deep:#242220;}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+*{cursor:none!important;}
+#cur{position:fixed;width:10px;height:10px;background:var(--rouge);border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);mix-blend-mode:multiply;}
+#curR{position:fixed;width:34px;height:34px;border:1.5px solid var(--rouge);border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);opacity:.4;}
+body{background:var(--beige);color:var(--noir);font-family:'DM Sans',sans-serif;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:1000;opacity:.65;}
+.pbar-c{position:fixed;top:0;left:0;width:100%;height:3px;background:var(--warm);z-index:900;}
+.pbar{height:100%;background:var(--rouge);width:0%;transition:width .2s ease;}
+header{padding:40px 60px 0;display:flex;justify-content:space-between;align-items:flex-start;opacity:0;transform:translateY(-20px);animation:fdDown .8s ease forwards .1s;}
+.logo-tag{font-family:'Bebas Neue',sans-serif;font-size:11px;letter-spacing:3px;color:var(--muted);border:1px solid var(--warm);padding:6px 12px;}
+.mod-tag{font-size:11px;letter-spacing:2px;color:var(--muted);text-align:right;line-height:1.6;}
+.hero{padding:60px 60px 20px;position:relative;opacity:0;transform:translateY(30px);animation:fdUp .9s ease forwards .3s;}
+.hero-label{font-size:11px;letter-spacing:4px;color:var(--rouge);text-transform:uppercase;margin-bottom:16px;display:flex;align-items:center;gap:12px;}
+.hero-label::after{content:'';width:40px;height:1px;background:var(--rouge);}
+h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(72px,11vw,130px);line-height:.88;will-change:transform;}
+h1 .w1{display:block;color:var(--noir);}
+h1 .w2{display:block;color:var(--rouge);}
+.hero-sub{font-family:'Playfair Display',serif;font-style:italic;font-size:15px;color:var(--muted);margin-top:22px;max-width:500px;line-height:1.65;}
+.hero-deco{position:absolute;right:60px;top:50%;transform:translateY(-50%);font-family:'Bebas Neue',sans-serif;font-size:180px;color:var(--warm);opacity:.12;line-height:1;pointer-events:none;user-select:none;will-change:transform;}
+.divider{width:calc(100% - 120px);margin:0 60px;height:1px;background:linear-gradient(to right,var(--noir),transparent);opacity:0;animation:fdIn 1s ease forwards .6s;}
+main{padding:60px 60px 140px;max-width:1000px;margin:0 auto;}
+.section{margin-bottom:80px;opacity:0;transform:translateY(50px);transition:opacity .75s cubic-bezier(.22,.68,0,1.2),transform .75s cubic-bezier(.22,.68,0,1.2);}
+.section.visible{opacity:1;transform:translateY(0);}
+.section-number{font-family:'Bebas Neue',sans-serif;font-size:90px;line-height:1;color:var(--warm);display:block;margin-bottom:-20px;}
+.section-title{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:2px;color:var(--noir);position:relative;display:inline-block;}
+.section-title::after{content:'';position:absolute;bottom:-4px;left:0;width:0;height:2px;background:var(--rouge);transition:width .6s cubic-bezier(.22,.68,0,1.2);}
+.section.visible .section-title::after{width:100%;}
+.section-desc{font-family:'Playfair Display',serif;font-style:italic;font-size:14px;color:var(--muted);margin-top:8px;}
+.section-header{margin-bottom:28px;}
+.card-3d{transform-style:preserve-3d;transition:box-shadow .4s ease,transform .15s ease;will-change:transform;}
+
+/* ── VALEURS ── */
+:root{
+  --v1:#C63F3E;--v2:#A8845A;--v3:#3E6B6A;--v4:#6A5E8A;--v5:#2C5F4A;
+}
+.valeurs-list{display:flex;flex-direction:column;gap:2px;}
+.valeur-row{display:grid;grid-template-columns:180px 1fr;gap:2px;align-items:start;position:relative;}
+.valeur-tag{padding:20px;display:flex;flex-direction:column;justify-content:center;position:relative;overflow:hidden;}
+.valeur-tag::after{content:'';position:absolute;right:-10px;top:50%;transform:translateY(-50%);width:0;height:0;border-top:10px solid transparent;border-bottom:10px solid transparent;border-left:10px solid currentColor;}
+.valeur-tag .v-num{font-family:'Bebas Neue',sans-serif;font-size:32px;line-height:1;color:rgba(255,255,255,.3);margin-bottom:6px;}
+.valeur-tag .v-delete{position:absolute;top:8px;right:8px;background:rgba(255,255,255,.2);border:none;color:white;font-size:14px;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .2s ease;font-weight:bold;}
+.valeur-tag .v-delete:hover{background:rgba(255,255,255,.4);}
+.valeur-tag .v-name-input{
+  font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;
+  color:white;background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,.3);
+  outline:none;width:100%;padding-bottom:3px;
+  transition:border-color .3s ease;
+}
+.valeur-tag .v-name-input:focus{border-bottom-color:rgba(255,255,255,.7);}
+.valeur-tag .v-name-input::placeholder{color:rgba(255,255,255,.35);font-style:normal;}
+.valeur-row:nth-child(1) .valeur-tag{background:var(--v1);}
+.valeur-row:nth-child(2) .valeur-tag{background:var(--v2);}
+.valeur-row:nth-child(3) .valeur-tag{background:var(--v3);}
+.valeur-row:nth-child(4) .valeur-tag{background:var(--v4);}
+.valeur-row:nth-child(5) .valeur-tag{background:var(--v5);}
+.valeur-row:nth-child(6) .valeur-tag{background:var(--v1);}
+.valeur-row:nth-child(7) .valeur-tag{background:var(--v2);}
+.valeur-row:nth-child(8) .valeur-tag{background:var(--v3);}
+.valeur-row:nth-child(1) .valeur-tag::after{color:var(--v1);}
+.valeur-row:nth-child(2) .valeur-tag::after{color:var(--v2);}
+.valeur-row:nth-child(3) .valeur-tag::after{color:var(--v3);}
+.valeur-row:nth-child(4) .valeur-tag::after{color:var(--v4);}
+.valeur-row:nth-child(5) .valeur-tag::after{color:var(--v5);}
+.valeur-row:nth-child(6) .valeur-tag::after{color:var(--v1);}
+.valeur-row:nth-child(7) .valeur-tag::after{color:var(--v2);}
+.valeur-row:nth-child(8) .valeur-tag::after{color:var(--v3);}
+.valeur-inputs{background:var(--cream);padding:16px 20px;display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.v-field label{display:block;font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--rouge);margin-bottom:4px;}
+.v-field textarea{width:100%;background:transparent;border:none;border-bottom:1px solid var(--warm);outline:none;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--noir);resize:none;min-height:36px;line-height:1.6;overflow:hidden;padding-bottom:6px;transition:border-color .3s ease,height .25s ease;max-height:300px;overflow-y:auto;}
+.v-field textarea:focus{border-bottom-color:var(--rouge);}
+.v-field textarea::placeholder{color:var(--warm);font-style:italic;font-size:12px;}
+.v-field.valeur-desc textarea::placeholder{color:var(--warm);font-style:italic;}
+.valeur-add-btn{align-self:flex-start;background:var(--beige);border:2px dashed var(--warm);color:var(--muted);font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;padding:12px 20px;cursor:pointer;transition:all .3s ease;margin-top:8px;}
+.valeur-add-btn:hover{border-color:var(--rouge);color:var(--rouge);}
+.valeur-add-btn:disabled{opacity:.5;cursor:not-allowed;}
+
+/* ── MONTRE / MONTRE PAS ── */
+.deux-cols{display:grid;grid-template-columns:1fr 1fr;gap:3px;align-items:start;}
+.montrer-card{background:var(--cream);padding:24px;position:relative;box-shadow:0 2px 8px rgba(29,29,27,.07);}
+.montrer-card.dark{background:var(--noir);}
+.montrer-card .mc-title{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;margin-bottom:6px;}
+.montrer-card .mc-title-light{color:var(--noir);}
+.montrer-card.dark .mc-title{color:white;}
+.montrer-card .mc-hint{font-size:11px;font-style:italic;margin-bottom:16px;}
+.montrer-card .mc-hint-light{color:var(--muted);}
+.montrer-card.dark .mc-hint{color:var(--warm);}
+.montrer-card .mc-themes{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;}
+.mc-theme-tag{font-size:10px;letter-spacing:1px;border:1px solid var(--warm);color:var(--muted);padding:3px 8px;}
+.montrer-card textarea{width:100%;background:transparent;border:none;border-bottom:1px solid var(--warm);outline:none;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--noir);resize:none;min-height:36px;line-height:1.7;overflow:hidden;transition:height .25s ease,border-color .3s;max-height:300px;overflow-y:auto;}
+.montrer-card textarea:focus{border-bottom-color:var(--rouge);}
+.montrer-card textarea::placeholder{color:var(--warm);font-style:italic;}
+.montrer-card.dark textarea{color:rgba(255,255,255,.9);border-bottom-color:rgba(255,255,255,.15);}
+.montrer-card.dark textarea::placeholder{color:rgba(255,255,255,.25);font-style:italic;}
+.montrer-card.dark textarea:focus{border-bottom-color:var(--rouge);}
+.montrer-card.dark .mc-theme-tag{border-color:rgba(255,255,255,.2);color:rgba(255,255,255,.4);}
+.mc-entries{display:flex;flex-direction:column;gap:8px;margin-top:8px;}
+.mc-entry{display:flex;align-items:center;gap:6px;}
+.mc-entry-text{flex:1;font-size:13px;color:var(--noir);background:transparent;border:none;border-bottom:1px solid var(--warm);outline:none;padding-bottom:3px;transition:border-color .3s;font-family:'DM Sans',sans-serif;}
+.montrer-card.dark .mc-entry-text{color:rgba(255,255,255,.9);border-bottom-color:rgba(255,255,255,.15);}
+.montrer-card.dark .mc-entry-text:focus{border-bottom-color:var(--rouge);}
+.mc-entry-text:focus{border-bottom-color:var(--rouge);}
+.mc-delete-btn{background:transparent;border:none;color:var(--muted);font-size:14px;cursor:pointer;transition:color .2s;font-weight:bold;padding:0;width:20px;height:20px;display:flex;align-items:center;justify-content:center;}
+.montrer-card.dark .mc-delete-btn{color:rgba(255,255,255,.4);}
+.mc-delete-btn:hover{color:var(--rouge);}
+.montrer-card.dark .mc-delete-btn:hover{color:var(--rouge);}
+.mc-add-btn{background:transparent;border:none;color:var(--muted);font-size:20px;cursor:pointer;transition:color .2s;padding:6px;font-weight:bold;}
+.montrer-card.dark .mc-add-btn{color:rgba(255,255,255,.4);}
+.mc-add-btn:hover{color:var(--rouge);}
+.montrer-card.dark .mc-add-btn:hover{color:var(--rouge);}
+
+/* ── TON SELECTOR ── */
+.ton-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;align-items:start;}
+.ton-card{background:var(--cream);padding:20px;position:relative;border:2px solid transparent;transition:border-color .3s ease,background .3s ease,box-shadow .4s ease;}
+.ton-card.selected{border-color:var(--rouge);background:#fff;box-shadow:0 4px 20px rgba(198,63,62,.12);}
+.ton-card .ton-icon{font-size:28px;margin-bottom:8px;line-height:1;}
+.ton-card .ton-name{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:var(--noir);margin-bottom:4px;}
+.ton-card .ton-desc{font-family:'Playfair Display',serif;font-style:italic;font-size:11px;color:var(--muted);margin-bottom:12px;}
+.ton-card .ton-check{width:18px;height:18px;border:1.5px solid var(--warm);border-radius:50%;position:absolute;top:16px;right:16px;transition:all .3s ease;display:flex;align-items:center;justify-content:center;}
+.ton-card.selected .ton-check{background:var(--rouge);border-color:var(--rouge);}
+.ton-card.selected .ton-check::after{content:'';width:6px;height:6px;background:white;border-radius:50%;}
+.ton-card .ton-custom{width:100%;background:transparent;border:none;border-bottom:1px solid var(--warm);outline:none;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--noir);resize:none;min-height:40px;line-height:1.6;overflow:hidden;transition:height .25s ease;margin-top:4px;max-height:300px;overflow-y:auto;}
+.ton-card .ton-custom::placeholder{color:var(--warm);font-style:italic;font-size:12px;}
+.ton-full{grid-column:1/-1;}
+
+/* ── CONTENU IDÉAL ── */
+.contenu-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:3px;align-items:start;}
+.contenu-card{background:var(--cream);padding:24px;position:relative;transition:box-shadow .4s ease;}
+.contenu-card.highlight{background:var(--noir);}
+.contenu-card .cc-label{font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;color:var(--rouge);margin-bottom:8px;}
+.contenu-card textarea{width:100%;background:transparent;border:none;border-bottom:1px solid var(--warm);outline:none;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--noir);resize:none;min-height:50px;line-height:1.7;overflow:hidden;transition:height .25s ease;max-height:300px;overflow-y:auto;}
+.contenu-card textarea::placeholder{color:var(--warm);font-style:italic;font-size:12px;}
+.contenu-card.highlight .cc-label{color:var(--rouge);}
+.contenu-card.highlight textarea{color:rgba(255,255,255,.9);border-bottom-color:rgba(255,255,255,.15);}
+.contenu-card.highlight textarea::placeholder{color:rgba(255,255,255,.25);}
+.contenu-description{background:var(--noir);padding:36px 40px;margin-top:3px;position:relative;overflow:hidden;}
+.contenu-description::before{content:'DÉCRIS';position:absolute;right:0;top:0;font-family:'Bebas Neue',sans-serif;font-size:100px;color:var(--rouge);opacity:.06;line-height:1;pointer-events:none;}
+.contenu-description::after{content:'';position:absolute;bottom:0;left:0;width:0;height:3px;background:var(--rouge);transition:width .8s cubic-bezier(.22,.68,0,1.2);}
+.contenu-description:focus-within::after{width:100%;}
+.desc-label{font-family:'Bebas Neue',sans-serif;font-size:11px;letter-spacing:3px;color:var(--rouge);margin-bottom:14px;}
+.contenu-description textarea{width:100%;background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,.12);outline:none;font-family:'DM Sans',sans-serif;font-size:14px;color:rgba(255,255,255,.9);resize:none;min-height:80px;line-height:1.8;overflow:hidden;transition:height .25s ease;max-height:300px;overflow-y:auto;}
+.contenu-description textarea::placeholder{color:rgba(255,255,255,.2);font-style:italic;font-size:13px;}
+
+/* ── GENERATE ── */
+.generate-wrap{position:fixed;bottom:40px;right:60px;z-index:500;opacity:0;animation:fdUp .8s ease forwards 1.2s;}
+.gen-btn{background:var(--rouge);color:var(--cream);border:none;font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:3px;padding:16px 32px;cursor:none;display:flex;align-items:center;gap:14px;box-shadow:0 8px 32px rgba(198,63,62,.28);position:relative;overflow:hidden;transition:box-shadow .35s ease,transform .35s ease;}
+.gen-btn::before{content:'';position:absolute;inset:0;background:var(--noir);transform:translateX(-100%);transition:transform .45s cubic-bezier(.22,.68,0,1.2);}
+.gen-btn:hover::before{transform:translateX(0);}
+.gen-btn span,.ring-wrap{position:relative;z-index:1;}
+.gen-btn:hover{box-shadow:0 16px 48px rgba(29,29,27,.32);transform:translateY(-3px);}
+.ring-wrap{width:44px;height:44px;position:relative;}
+.ring-wrap svg{transform:rotate(-90deg);}
+.ring-bg{fill:none;stroke:rgba(255,255,255,.15);stroke-width:3;}
+.ring-fill{fill:none;stroke:white;stroke-width:3;stroke-linecap:round;stroke-dasharray:113;stroke-dashoffset:113;transition:stroke-dashoffset .5s ease;}
+.ring-label{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:12px;color:white;}
+.toast{position:fixed;bottom:120px;right:60px;background:var(--noir);color:var(--cream);font-size:13px;padding:14px 24px;opacity:0;transform:translateY(10px);transition:all .4s ease;pointer-events:none;z-index:600;border-left:3px solid var(--rouge);}
+.toast.show{opacity:1;transform:translateY(0);}
+.footer-line{position:fixed;bottom:0;left:0;width:100%;height:4px;background:var(--rouge);}
+@keyframes fdUp{to{opacity:1;transform:translateY(0);}}
+@keyframes fdDown{to{opacity:1;transform:translateY(0);}}
+@keyframes fdIn{to{opacity:1;}}
+::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-track{background:var(--beige);}::-webkit-scrollbar-thumb{background:var(--warm);}::-webkit-scrollbar-thumb:hover{background:var(--rouge);}
+@media(max-width:768px){header,main{padding:24px;}.hero{padding:40px 24px 20px;}.hero-deco{display:none;}.valeur-row{grid-template-columns:1fr;}.valeur-tag::after{display:none;}.deux-cols,.contenu-grid,.ton-grid{grid-template-columns:1fr;}.generate-wrap{bottom:20px;right:20px;}}
+</style>
+</head>
+<body>
+<div id="cur"></div><div id="curR"></div>
+<div class="pbar-c"><div class="pbar" id="pbar"></div></div>
+<header>
+  <div class="logo-tag">AMOUR STUDIOS</div>
+  <div class="mod-tag">MODULE 01 — VIDÉO 04<br>MES VALEURS</div>
+</header>
+<div class="hero">
+  <div class="hero-label">Exercice élève</div>
+  <h1 id="heroT"><span class="w1">MES</span><span class="w2">VALEURS</span></h1>
+  <p class="hero-sub">Ce sont elles qui guident tout : ton contenu,<br>ton ton, tes limites.</p>
+  <div class="hero-deco" id="heroD">04</div>
+</div>
+<div class="divider"></div>
+<main>
+
+  <!-- 01 MES VALEURS -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-number">01</span>
+      <div class="section-title">Mes valeurs</div>
+      <p class="section-desc">Ce sont elles qui guident tout : ton contenu, ton ton, tes limites.</p>
+    </div>
+    <div class="valeurs-list" id="valeursList">
+      <!-- Dynamically populated -->
+    </div>
+    <button class="valeur-add-btn" id="valeurAddBtn" onclick="addValeur()">+ AJOUTER UNE VALEUR</button>
+  </div>
+
+  <!-- 02 CE QUE JE MONTRE / PAS -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-number">02</span>
+      <div class="section-title">Tes limites</div>
+      <p class="section-desc">Ce que tu montres construit l'image. Ce que tu caches protège l'essentiel.</p>
+    </div>
+    <div class="deux-cols">
+      <div class="montrer-card card-3d" id="montrerCard">
+        <div class="mc-title mc-title-light">CE QUE JE MONTRE</div>
+        <div class="mc-hint mc-hint-light">Choisis tes thèmes — ils construisent ton image.</div>
+        <div class="mc-themes">
+          <div class="mc-theme-tag">Coulisses</div>
+          <div class="mc-theme-tag">Process créatif</div>
+          <div class="mc-theme-tag">Lifestyle</div>
+          <div class="mc-theme-tag">Message / Vision</div>
+          <div class="mc-theme-tag">Galères & victoires</div>
+        </div>
+        <div class="mc-entries" id="montrerEntries"></div>
+        <button class="mc-add-btn" onclick="addMontrerEntry()">+</button>
+      </div>
+      <div class="montrer-card dark card-3d" id="montrerPasCard">
+        <div class="mc-title">CE QUE JE NE MONTRE PAS</div>
+        <div class="mc-hint">Fixer ses limites, c'est aussi important que savoir quoi poster.</div>
+        <div class="mc-themes">
+          <div class="mc-theme-tag">✕ Vie privée totale</div>
+          <div class="mc-theme-tag">✕ Opinions clivantes</div>
+          <div class="mc-theme-tag">✕ Conflits publics</div>
+          <div class="mc-theme-tag">✕ Contenus forcés</div>
+        </div>
+        <div class="mc-entries" id="montrerPasEntries"></div>
+        <button class="mc-add-btn" onclick="addMontrerPasEntry()">+</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 03 MON TON -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-number">03</span>
+      <div class="section-title">Mon ton</div>
+      <p class="section-desc">Le ton, c'est ta voix avant même que tu parles. Sélectionne le(s) tien(s).</p>
+    </div>
+    <div class="ton-grid">
+      <div class="ton-card card-3d" onclick="toggleTon(this,'v4_ton_inspirant')">
+        <div class="ton-check"></div>
+        <div class="ton-icon">✦</div>
+        <div class="ton-name">INSPIRANT</div>
+        <div class="ton-desc">Tu motives, tu élèves, tu donnes de l'énergie</div>
+        <input type="hidden" id="v4_ton_inspirant" value="">
+      </div>
+      <div class="ton-card card-3d" onclick="toggleTon(this,'v4_ton_brut')">
+        <div class="ton-check"></div>
+        <div class="ton-icon">◼</div>
+        <div class="ton-name">BRUT</div>
+        <div class="ton-desc">Tu parles cash, sans filtre, avec authenticité</div>
+        <input type="hidden" id="v4_ton_brut" value="">
+      </div>
+      <div class="ton-card card-3d" onclick="toggleTon(this,'v4_ton_drole')">
+        <div class="ton-check"></div>
+        <div class="ton-icon">◑</div>
+        <div class="ton-name">DRÔLE</div>
+        <div class="ton-desc">Tu détends, tu surprends, tu crées du lien</div>
+        <input type="hidden" id="v4_ton_drole" value="">
+      </div>
+      <div class="ton-card card-3d" onclick="toggleTon(this,'v4_ton_educatif')">
+        <div class="ton-check"></div>
+        <div class="ton-icon">◎</div>
+        <div class="ton-name">ÉDUCATIF</div>
+        <div class="ton-desc">Tu expliques, tu partages, tu apportes de la valeur</div>
+        <input type="hidden" id="v4_ton_educatif" value="">
+      </div>
+      <div class="ton-card card-3d" onclick="toggleTon(this,'v4_ton_intime')">
+        <div class="ton-check"></div>
+        <div class="ton-icon">◐</div>
+        <div class="ton-name">INTIME</div>
+        <div class="ton-desc">Tu touches, tu ouvres, tu crées de la proximité</div>
+        <input type="hidden" id="v4_ton_intime" value="">
+      </div>
+      <div class="ton-card ton-full card-3d" style="background:var(--noir);" onclick="this.classList.add('selected')">
+        <div class="ton-check" style="border-color:rgba(255,255,255,.3)"></div>
+        <div class="ton-icon" style="color:var(--rouge)">→</div>
+        <div class="ton-name" style="color:white">AUTRE</div>
+        <div class="ton-desc" style="color:var(--warm)">Ton ton unique, celui que seul toi définis</div>
+        <textarea id="v4_ton_autre" class="ton-custom" style="color:rgba(255,255,255,.9);border-bottom-color:rgba(255,255,255,.15);" placeholder="Décris ton ton ici..." onclick="event.stopPropagation()"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- 04 CONTENU IDÉAL -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-number">04</span>
+      <div class="section-title">Ton contenu idéal</div>
+      <p class="section-desc">Un contenu qui incarnerait parfaitement toutes tes valeurs. C'est ton point de départ.</p>
+    </div>
+    <div class="contenu-grid">
+      <div class="contenu-card card-3d">
+        <div class="cc-label">FORMAT</div>
+        <textarea id="v4_c_format" placeholder="Reel, clip, story, live, thread..."></textarea>
+      </div>
+      <div class="contenu-card highlight card-3d">
+        <div class="cc-label">SUJET</div>
+        <textarea id="v4_c_sujet" placeholder="De quoi ça parle exactement ?"></textarea>
+      </div>
+      <div class="contenu-card card-3d">
+        <div class="cc-label">TON</div>
+        <textarea id="v4_c_ton" placeholder="L'émotion, l'énergie que tu transmets..."></textarea>
+      </div>
+      <div class="contenu-card highlight card-3d">
+        <div class="cc-label">POURQUOI CE CONTENU INCARNE MES VALEURS</div>
+        <textarea id="v4_c_pourquoi" placeholder="Le lien entre ce contenu et tes valeurs..."></textarea>
+      </div>
+    </div>
+    <div class="contenu-description">
+      <div class="desc-label">DÉCRIS TON CONTENU IDÉAL EN DÉTAIL — C'EST LUI TON POINT DE DÉPART.</div>
+      <textarea id="v4_c_description" placeholder="Décris précisément ce contenu : ce qu'on voit, ce qu'on entend, ce qu'on ressent..."></textarea>
+    </div>
+  </div>
+
+</main>
+<div class="generate-wrap">
+  <button class="gen-btn" onclick="generatePDF()">
+    <div class="ring-wrap">
+      <svg width="44" height="44" viewBox="0 0 40 40">
+        <circle class="ring-bg" cx="20" cy="20" r="18"/>
+        <circle class="ring-fill" id="ringFill" cx="20" cy="20" r="18"/>
+      </svg>
+      <div class="ring-label" id="ringLabel">0%</div>
+    </div>
+    <span>GÉNÉRER MON PDF</span>
+  </button>
+</div>
+<div class="toast" id="toast"></div>
+<div class="footer-line"></div>
+<script>
+const cur=document.getElementById('cur'),curR=document.getElementById('curR');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cur.style.left=mx+'px';cur.style.top=my+'px';});
+(function t(){rx+=(mx-rx)*.12;ry+=(my-ry)*.12;curR.style.left=rx+'px';curR.style.top=ry+'px';requestAnimationFrame(t);})();
+function autoResize(el){el.style.height='auto';el.style.height=el.scrollHeight+'px';}
+
+// ── VALEURS STATE ──
+let valeursData=[
+  {nom:'',signification:'',phrase:''},
+  {nom:'',signification:'',phrase:''},
+  {nom:'',signification:'',phrase:''}
+];
+const colors=['--v1','--v2','--v3','--v4','--v5'];
+
+function getColorForIndex(i){
+  return colors[i%5];
+}
+
+function renderValeurs(){
+  const list=document.getElementById('valeursList');
+  list.innerHTML='';
+  valeursData.forEach((v,i)=>{
+    const row=document.createElement('div');
+    row.className='valeur-row';
+    const num=String(i+1).padStart(2,'0');
+    row.innerHTML=`
+      <div class="valeur-tag">
+        <button class="v-delete" onclick="deleteValeur(${i})">✕</button>
+        <div class="v-num">${num}</div>
+        <input type="text" class="v-name-input" placeholder="MA VALEUR" value="${v.nom}" oninput="updateValeur(${i},'nom',this.value)">
+      </div>
+      <div class="valeur-inputs">
+        <div class="v-field">
+          <label>CE QUE CETTE VALEUR SIGNIFIE</label>
+          <textarea placeholder="Ce que cette valeur représente pour toi..." oninput="updateValeur(${i},'signification',this.value)">${v.signification}</textarea>
+        </div>
+        <div class="v-field">
+          <label>EN UNE PHRASE</label>
+          <textarea placeholder="Une phrase qui incarne cette valeur..." oninput="updateValeur(${i},'phrase',this.value)">${v.phrase}</textarea>
+        </div>
+      </div>
+    `;
+    list.appendChild(row);
+  });
+  attachAutoResize();
+  updateAddBtn();
+  upRing();
+}
+
+function updateValeur(i,field,val){
+  valeursData[i][field]=val;
+  upRing();
+}
+
+function addValeur(){
+  if(valeursData.length<8){
+    valeursData.push({nom:'',signification:'',phrase:''});
+    renderValeurs();
+  }
+}
+
+function deleteValeur(i){
+  if(valeursData.length>1){
+    valeursData.splice(i,1);
+    renderValeurs();
+  }
+}
+
+function updateAddBtn(){
+  const btn=document.getElementById('valeurAddBtn');
+  btn.disabled=valeursData.length>=8;
+}
+
+// ── MONTRE / MONTRE PAS STATE ──
+let montrerData=[];
+let montrerPasData=[];
+
+function renderMontrer(){
+  const container=document.getElementById('montrerEntries');
+  container.innerHTML='';
+  montrerData.forEach((v,i)=>{
+    const entry=document.createElement('div');
+    entry.className='mc-entry';
+    entry.innerHTML=`
+      <input type="text" class="mc-entry-text" value="${v}" oninput="montrerData[${i}]=this.value;upRing()">
+      <button class="mc-delete-btn" onclick="montrerData.splice(${i},1);renderMontrer()">✕</button>
+    `;
+    container.appendChild(entry);
+  });
+  attachAutoResize();
+}
+
+function renderMontrerPas(){
+  const container=document.getElementById('montrerPasEntries');
+  container.innerHTML='';
+  montrerPasData.forEach((v,i)=>{
+    const entry=document.createElement('div');
+    entry.className='mc-entry';
+    entry.innerHTML=`
+      <input type="text" class="mc-entry-text" value="${v}" oninput="montrerPasData[${i}]=this.value;upRing()">
+      <button class="mc-delete-btn" onclick="montrerPasData.splice(${i},1);renderMontrerPas()">✕</button>
+    `;
+    container.appendChild(entry);
+  });
+  attachAutoResize();
+}
+
+function addMontrerEntry(){
+  montrerData.push('');
+  renderMontrer();
+  upRing();
+}
+
+function addMontrerPasEntry(){
+  montrerPasData.push('');
+  renderMontrerPas();
+  upRing();
+}
+
+// ── ATTACH AUTO-RESIZE ──
+function attachAutoResize(){
+  setTimeout(()=>{
+    document.querySelectorAll('textarea').forEach(ta=>{
+      ta.removeEventListener('input',()=>autoResize(ta));
+      ta.addEventListener('input',()=>autoResize(ta));
+      autoResize(ta);
+    });
+  },0);
+}
+
+const heroT=document.getElementById('heroT'),heroD=document.getElementById('heroD');
+window.addEventListener('scroll',()=>{
+  const sy=window.scrollY;
+  if(heroT)heroT.style.transform=`translateY(${sy*.18}px)`;
+  if(heroD)heroD.style.transform=`translateY(${-sy*.07}px)`;
+  document.getElementById('pbar').style.width=Math.min((sy/(document.body.scrollHeight-window.innerHeight))*100,100)+'%';
+},{passive:true});
+document.querySelectorAll('.card-3d').forEach(card=>{
+  card.addEventListener('mousemove',e=>{
+    const r=card.getBoundingClientRect(),dx=(e.clientX-r.left-r.width/2)/(r.width/2),dy=(e.clientY-r.top-r.height/2)/(r.height/2);
+    card.style.transform=`perspective(900px) rotateX(${dy*-5}deg) rotateY(${dx*5}deg) translateZ(8px)`;
+    card.style.boxShadow=`${-dx*14}px ${-dy*14}px 44px rgba(29,29,27,.15)`;
+  });
+  card.addEventListener('mouseleave',()=>{card.style.transform='perspective(900px) rotateX(0) rotateY(0) translateZ(0)';card.style.boxShadow='';});
+});
+const io=new IntersectionObserver(e=>e.forEach(x=>{if(x.isIntersecting)x.target.classList.add('visible');}),{threshold:.08});
+document.querySelectorAll('.section').forEach(s=>io.observe(s));
+
+function toggleTon(card,id){
+  card.classList.toggle('selected');
+  const el=document.getElementById(id);
+  if(el)el.value=card.classList.contains('selected')?card.querySelector('.ton-name').textContent:'';
+  upRing();
+}
+
+function upRing(){
+  let filled=0;
+  // Count valeurs nom
+  valeursData.forEach(v=>{if(v.nom.trim())filled++;});
+  // Count valeurs signification & phrase
+  valeursData.forEach(v=>{if(v.signification.trim())filled++;if(v.phrase.trim())filled++;});
+  // Count montre entries
+  montrerData.forEach(v=>{if(v.trim())filled++;});
+  // Count montre pas entries
+  montrerPasData.forEach(v=>{if(v.trim())filled++;});
+  // Count tons
+  ['inspirant','brut','drole','educatif','intime'].forEach(t=>{const el=document.getElementById(`v4_ton_${t}`);if(el&&el.value)filled++;});
+  if(val('v4_ton_autre'))filled++;
+  // Count contenu fields
+  ['v4_c_format','v4_c_sujet','v4_c_ton','v4_c_pourquoi','v4_c_description'].forEach(id=>{if(val(id))filled++;});
+
+  const max=valeursData.length*3+montrerData.length+montrerPasData.length+6+5;
+  const p=Math.round((filled/max)*100);
+  document.getElementById('ringFill').style.strokeDashoffset=113-(p/100)*113;
+  document.getElementById('ringLabel').textContent=p+'%';
+}
+
+function showToast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
+function val(id){return(document.getElementById(id)?.value||'').trim();}
+
+// Init
+renderValeurs();
+renderMontrer();
+renderMontrerPas();
+
+// ── PDF ──────────────────────────────────────────────────────────
+async function generatePDF(){
+  showToast('Génération en cours...');
+  await new Promise(r=>setTimeout(r,200));
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const W=210,H=297,M=14,CW=182,HDR=18,YS=HDR+8,YX=H-14;
+  const beige=[234,228,218],noir=[29,29,27],rouge=[198,63,62],cream=[240,235,227],warm=[200,194,184],muted=[106,106,104];
+  const valColors=[[198,63,62],[168,132,90],[62,107,106],[106,94,138],[44,95,74]];
+  let pn=1,y=YS;
+  function shell(){
+    doc.setFillColor(...beige);doc.rect(0,0,W,H,'F');
+    doc.setFillColor(...noir);doc.rect(0,0,W,HDR,'F');
+    doc.setFillColor(...rouge);doc.rect(0,H-4,W,4,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(...beige);doc.text('AMOUR STUDIOS',M,7);
+    doc.setFont('helvetica','normal');doc.setFontSize(7);doc.text('MODULE 01 — VIDÉO 04 — MES VALEURS',M,13);
+    doc.setFont('helvetica','bold');doc.setFontSize(7);doc.text('PAGE '+pn,W-M,10,{align:'right'});
+  }
+  function np(){pn++;doc.addPage();shell();y=YS;}
+  function need(h){if(y+h>YX)np();}
+  function lh(n,fs,ld=1.42){return n*fs*.352778*ld;}
+  function wrap(t,mw,fs){doc.setFontSize(fs);return doc.splitTextToSize(t||'—',mw);}
+  function gap(n=7){y+=n;}
+  function sLab(t){need(10);doc.setFont('helvetica','bold');doc.setFontSize(7);doc.setTextColor(...rouge);doc.text(t,M,y);y+=6;}
+  shell();
+  doc.setFont('helvetica','bold');doc.setFontSize(38);doc.setTextColor(...noir);doc.text('MES',M,y+12);
+  doc.setTextColor(...rouge);doc.text('VALEURS',M,y+24);
+  doc.setFont('helvetica','oblique');doc.setFontSize(8.5);doc.setTextColor(...muted);
+  doc.text('Ce sont elles qui guident tout : ton contenu, ton ton, tes limites.',M,y+32);
+  y+=42;
+
+  // 01 VALEURS - Dynamic
+  sLab('01 — MES VALEURS');
+  const tagW=32,contentW=CW-tagW-2;
+  valeursData.forEach((v,i)=>{
+    if(!v.nom.trim())return;
+    const ls1=wrap(v.signification||'—',contentW/2-8,8.5);
+    const ls2=wrap(v.phrase||'—',contentW/2-8,8.5);
+    const h=Math.max(lh(Math.max(ls1.length,ls2.length),8.5)+12,16);
+    need(h+2);
+    doc.setFillColor(...valColors[i%5]);doc.rect(M,y,tagW,h,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(14);doc.setTextColor(255,255,255,0.3);doc.text(String(i+1).padStart(2,'0'),M+3,y+10);
+    doc.setFontSize(8);doc.setTextColor(255,255,255);
+    doc.text(v.nom.toUpperCase(),M+3,y+h-4,{maxWidth:tagW-4});
+    const cx2=M+tagW+2;const hw=contentW/2-1;
+    doc.setFillColor(...cream);doc.rect(cx2,y,hw,h,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(6);doc.setTextColor(...rouge);doc.text('MA VALEUR',cx2+3,y+4.5);
+    doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(...noir);doc.text(ls1,cx2+3,y+10);
+    doc.setFillColor(245,240,232);doc.rect(cx2+hw+2,y,hw,h,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(6);doc.setTextColor(...rouge);doc.text('EN UNE PHRASE',cx2+hw+5,y+4.5);
+    doc.setFont('helvetica','italic');doc.setFontSize(8.5);doc.setTextColor(...muted);doc.text(ls2,cx2+hw+5,y+10);
+    y+=h+2;
+  });
+  gap();
+
+  // 02 MONTRE / PAS - Dynamic
+  sLab('02 — CE QUE JE MONTRE & NE MONTRE PAS');
+  const mw=CW/2;
+  const montrerText=montrerData.filter(e=>e.trim()).join(' • ')||'—';
+  const montrerPasText=montrerPasData.filter(e=>e.trim()).join(' • ')||'—';
+  const mls=wrap(montrerText,mw-10,8.5);
+  const npls=wrap(montrerPasText,mw-10,8.5);
+  const mh=Math.max(lh(mls.length,8.5)+14,20);
+  const nph=Math.max(lh(npls.length,8.5)+14,20);
+  const rowAdv=Math.max(mh,nph);need(rowAdv+2);
+  doc.setFillColor(...cream);doc.rect(M,y,mw-2,mh,'F');
+  doc.setFillColor(...[62,107,106]);doc.rect(M,y,3,mh,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(...noir);doc.text('CE QUE JE MONTRE',M+6,y+6);
+  doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(...muted);doc.text(mls,M+6,y+12);
+  const nx=M+mw;
+  doc.setFillColor(...noir);doc.rect(nx,y,mw-2,nph,'F');
+  doc.setFillColor(...rouge);doc.rect(nx,y,3,nph,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(240,235,227);doc.text('CE QUE JE NE MONTRE PAS',nx+6,y+6);
+  doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(...warm);doc.text(npls,nx+6,y+12);
+  y+=rowAdv+2;gap();
+
+  // 03 TON
+  sLab('03 — MON TON');
+  const tonsSelected=[];
+  ['inspirant','brut','drole','educatif','intime'].forEach(t=>{const el=document.getElementById(`v4_ton_${t}`);if(el&&el.value)tonsSelected.push(el.value);});
+  const autreT=val('v4_ton_autre');if(autreT)tonsSelected.push(autreT);
+  const tonText=tonsSelected.length?tonsSelected.join(' · '):'—';
+  const tonLs=wrap(tonText,CW-10,10);
+  const tonH=Math.max(lh(tonLs.length,10)+12,16);need(tonH);
+  doc.setFillColor(...noir);doc.rect(M,y,CW,tonH,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(6);doc.setTextColor(...rouge);doc.text('TONS SÉLECTIONNÉS',M+6,y+5);
+  doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(240,235,227);doc.text(tonLs,M+6,y+11);
+  y+=tonH;gap();
+
+  // 04 CONTENU IDÉAL
+  sLab('04 — MON CONTENU IDÉAL');
+  const cItems=[{id:'v4_c_format',lbl:'FORMAT',dark:false},{id:'v4_c_sujet',lbl:'SUJET',dark:true},{id:'v4_c_ton',lbl:'TON',dark:false},{id:'v4_c_pourquoi',lbl:'POURQUOI',dark:true}];
+  const cw=CW/2;
+  for(let row=0;row<2;row++){
+    const pair=cItems.slice(row*2,row*2+2);
+    const ch=pair.map(c=>{const ls=wrap(val(c.id),cw-10,8.5);return Math.max(lh(ls.length,8.5)+12,16);});
+    const adv=Math.max(...ch);need(adv+2);
+    pair.forEach((c,ci)=>{
+      const ax=M+ci*cw;const h=ch[ci];
+      doc.setFillColor(...(c.dark?noir:cream));doc.rect(ax,y,cw-2,h,'F');
+      doc.setFont('helvetica','bold');doc.setFontSize(6);doc.setTextColor(...rouge);doc.text(c.lbl,ax+4,y+5);
+      doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(...(c.dark?[240,235,227]:noir));
+      doc.text(wrap(val(c.id),cw-10,8.5),ax+4,y+11);
+    });
+    y+=adv+2;
+  }
+  // Description
+  const dls=wrap(val('v4_c_description'),CW-12,9);
+  const dh=Math.max(lh(dls.length,9,1.6)+14,22);need(dh);
+  doc.setFillColor(...noir);doc.rect(M,y,CW,dh,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(6);doc.setTextColor(...rouge);doc.text('DESCRIPTION DÉTAILLÉE',M+6,y+5);
+  doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(240,235,227);doc.text(dls,M+6,y+12);
+  y+=dh+4;
+  doc.setFont('helvetica','normal');doc.setFontSize(6);doc.setTextColor(...muted);
+  doc.text('AMOUR STUDIOS — MODULE 01 — VIDÉO 04 — MES VALEURS',W/2,H-8,{align:'center'});
+  doc.save('AMOUR_STUDIOS_M01_V04_Valeurs.pdf');
+  showToast('✓ PDF généré !');
+}
+</script>
+<script src="/exos/_bridge.js"></script>
+</body>
+</html>

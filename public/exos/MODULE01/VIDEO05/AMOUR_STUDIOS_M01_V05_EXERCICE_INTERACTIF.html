@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AMOUR STUDIOS — Mon Viewer Idéal</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap');
+
+:root {
+  --beige: #EAE4DA;
+  --noir:  #1D1D1B;
+  --rouge: #C63F3E;
+  --muted: #6A6A68;
+  --warm:  #C8C2B8;
+  --cream: #F0EBE3;
+  --deep:  #141413;
+}
+
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+* { cursor: none !important; }
+
+#cur  { position:fixed; width:10px; height:10px; background:var(--rouge); border-radius:50%; pointer-events:none; z-index:9999; transform:translate(-50%,-50%); mix-blend-mode:multiply; }
+#curR { position:fixed; width:34px; height:34px; border:1.5px solid var(--rouge); border-radius:50%; pointer-events:none; z-index:9998; transform:translate(-50%,-50%); opacity:.4; }
+
+body { background:var(--beige); color:var(--noir); font-family:'DM Sans',sans-serif; min-height:100vh; overflow-x:hidden; }
+body::before { content:''; position:fixed; inset:0; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"); pointer-events:none; z-index:1000; opacity:.65; }
+
+.pbar-c { position:fixed; top:0; left:0; width:100%; height:3px; background:var(--warm); z-index:900; }
+.pbar   { height:100%; background:var(--rouge); width:0%; transition:width .2s ease; }
+
+header { padding:40px 60px 0; display:flex; justify-content:space-between; align-items:flex-start; opacity:0; transform:translateY(-20px); animation:fdDown .8s ease forwards .1s; }
+.logo-tag { font-family:'Bebas Neue',sans-serif; font-size:11px; letter-spacing:3px; color:var(--muted); border:1px solid var(--warm); padding:6px 12px; }
+.mod-tag  { font-size:11px; letter-spacing:2px; color:var(--muted); text-align:right; line-height:1.6; }
+
+.hero { padding:60px 60px 20px; position:relative; opacity:0; transform:translateY(30px); animation:fdUp .9s ease forwards .3s; }
+.hero-label { font-size:11px; letter-spacing:4px; color:var(--rouge); text-transform:uppercase; margin-bottom:16px; display:flex; align-items:center; gap:12px; }
+.hero-label::after { content:''; width:40px; height:1px; background:var(--rouge); }
+h1 { font-family:'Bebas Neue',sans-serif; font-size:clamp(64px,10vw,120px); line-height:.88; will-change:transform; }
+h1 .w1 { display:block; color:var(--noir); }
+h1 .w2 { display:block; color:var(--rouge); }
+h1 .w3 { display:block; color:var(--warm); font-size:.72em; }
+.hero-sub  { font-family:'Playfair Display',serif; font-style:italic; font-size:15px; color:var(--muted); margin-top:22px; max-width:500px; line-height:1.65; }
+.hero-deco { position:absolute; right:60px; top:50%; transform:translateY(-50%); font-family:'Bebas Neue',sans-serif; font-size:180px; color:var(--warm); opacity:.12; line-height:1; pointer-events:none; user-select:none; will-change:transform; }
+
+.divider { width:calc(100% - 120px); margin:0 60px; height:1px; background:linear-gradient(to right,var(--noir),transparent); opacity:0; animation:fdIn 1s ease forwards .6s; }
+
+main { padding:60px 60px 140px; max-width:1000px; margin:0 auto; }
+
+.section { margin-bottom:80px; opacity:0; transform:translateY(50px); transition:opacity .75s cubic-bezier(.22,.68,0,1.2), transform .75s cubic-bezier(.22,.68,0,1.2); }
+.section.visible { opacity:1; transform:translateY(0); }
+.section-number { font-family:'Bebas Neue',sans-serif; font-size:90px; line-height:1; color:var(--warm); display:block; margin-bottom:-20px; transition:color .4s ease; }
+.section.visible:hover .section-number { color:rgba(198,63,62,.1); }
+.section-title  { font-family:'Bebas Neue',sans-serif; font-size:28px; letter-spacing:2px; color:var(--noir); position:relative; display:inline-block; }
+.section-title::after { content:''; position:absolute; bottom:-4px; left:0; width:0; height:2px; background:var(--rouge); transition:width .6s cubic-bezier(.22,.68,0,1.2); }
+.section.visible .section-title::after { width:100%; }
+.section-desc   { font-family:'Playfair Display',serif; font-style:italic; font-size:14px; color:var(--muted); margin-top:8px; }
+.section-header { margin-bottom:28px; }
+.card-3d { transform-style:preserve-3d; transition:box-shadow .4s ease, transform .15s ease; will-change:transform; }
+
+/* ── PERSONA CARD LIVE PREVIEW ───────────────────────────────── */
+.persona-preview {
+  background:var(--noir); padding:32px 36px; margin-bottom:3px;
+  display:flex; align-items:center; gap:32px; position:relative; overflow:hidden;
+}
+.persona-preview::before {
+  content:''; position:absolute; top:0; left:0; width:4px; height:100%;
+  background:var(--rouge);
+}
+.persona-avatar {
+  width:72px; height:72px; border-radius:50%;
+  background:var(--rouge); display:flex; align-items:center; justify-content:center;
+  font-family:'Bebas Neue',sans-serif; font-size:28px; color:white;
+  flex-shrink:0; transition:all .3s ease;
+  border:2px solid rgba(255,255,255,.1);
+}
+.persona-info { flex:1; }
+.persona-name {
+  font-family:'Bebas Neue',sans-serif; font-size:26px; letter-spacing:2px;
+  color:var(--cream); margin-bottom:4px; min-height:32px;
+  transition:all .3s ease;
+}
+.persona-name.empty { color:rgba(255,255,255,.2); font-style:italic; font-size:16px; font-family:'DM Sans',sans-serif; }
+.persona-meta {
+  font-size:12px; color:var(--warm); letter-spacing:1px;
+  font-family:'DM Sans',sans-serif; min-height:18px;
+}
+.persona-meta.empty { color:rgba(255,255,255,.2); font-style:italic; }
+.preview-label {
+  font-size:8px; letter-spacing:3px; text-transform:uppercase;
+  color:var(--rouge); position:absolute; top:12px; right:16px;
+}
+
+/* ── 7 POINTS GRID ───────────────────────────────────────────── */
+.points-grid { display:flex; flex-direction:column; gap:3px; }
+
+.point-row {
+  display:grid; grid-template-columns:90px 1fr;
+  gap:3px; align-items:start;
+}
+
+.point-num {
+  display:flex; flex-direction:column; align-items:center;
+  justify-content:flex-start; padding:20px 0 20px;
+  position:relative;
+}
+.point-num .pn-num {
+  font-family:'Bebas Neue',sans-serif; font-size:52px; line-height:1;
+  transition:color .4s ease;
+}
+.point-num .pn-label {
+  font-family:'Bebas Neue',sans-serif; font-size:9px; letter-spacing:2px;
+  color:var(--muted); margin-top:2px; text-align:center;
+}
+
+/* Color each point differently */
+.point-row:nth-child(1) .pn-num { color:var(--rouge); }
+.point-row:nth-child(2) .pn-num { color:#A8845A; }
+.point-row:nth-child(3) .pn-num { color:#3E6B6A; }
+.point-row:nth-child(4) .pn-num { color:#6A5E8A; }
+.point-row:nth-child(5) .pn-num { color:#2C5F4A; }
+.point-row:nth-child(6) .pn-num { color:#B05A1A; }
+.point-row:nth-child(7) .pn-num { color:var(--rouge); }
+
+.point-row:nth-child(1) .point-card { border-left:3px solid var(--rouge); }
+.point-row:nth-child(2) .point-card { border-left:3px solid #A8845A; }
+.point-row:nth-child(3) .point-card { border-left:3px solid #3E6B6A; }
+.point-row:nth-child(4) .point-card { border-left:3px solid #6A5E8A; }
+.point-row:nth-child(5) .point-card { border-left:3px solid #2C5F4A; }
+.point-row:nth-child(6) .point-card { border-left:3px solid #B05A1A; }
+.point-row:nth-child(7) .point-card { border-left:3px solid var(--rouge); }
+
+.point-card {
+  background:var(--cream); padding:20px 24px;
+  transition:background .25s ease, box-shadow .4s ease;
+}
+.point-card:focus-within { background:#fff; }
+.point-card .pc-title {
+  font-family:'Bebas Neue',sans-serif; font-size:16px; letter-spacing:2px;
+  color:var(--noir); margin-bottom:4px;
+}
+.point-card .pc-hint {
+  font-family:'Playfair Display',serif; font-style:italic;
+  font-size:11px; color:var(--muted); margin-bottom:12px;
+}
+.point-card textarea {
+  width:100%; background:transparent; border:none; outline:none;
+  font-family:'DM Sans',sans-serif; font-size:13px; color:var(--noir);
+  resize:none; min-height:44px; line-height:1.75; overflow:hidden;
+  transition:height .25s ease;
+}
+.point-card textarea::placeholder { color:var(--warm); font-style:italic; font-size:12px; }
+
+/* Point 07 — dark special */
+.point-row:nth-child(7) .point-card {
+  background:var(--noir); border-left:3px solid var(--rouge);
+}
+.point-row:nth-child(7) .point-card .pc-title { color:var(--cream); }
+.point-row:nth-child(7) .point-card .pc-hint  { color:var(--warm); }
+.point-row:nth-child(7) .point-card textarea  { color:rgba(255,255,255,.9); border-bottom:1px solid rgba(255,255,255,.12); }
+.point-row:nth-child(7) .point-card textarea::placeholder { color:rgba(255,255,255,.2); font-style:italic; }
+.point-row:nth-child(7) .point-card:focus-within { background:#252320; }
+
+/* Sub-fields for point 07 (3 contenus) */
+.sub-fields { display:flex; flex-direction:column; gap:10px; margin-top:4px; }
+.sub-field { display:flex; align-items:flex-start; gap:10px; }
+.sub-field .sf-num {
+  font-family:'Bebas Neue',sans-serif; font-size:13px; color:var(--rouge);
+  flex-shrink:0; padding-top:2px; width:18px;
+}
+.sub-field textarea {
+  flex:1; min-height:28px !important; border-bottom:1px solid rgba(255,255,255,.15) !important;
+}
+
+/* ── GENERATE ────────────────────────────────────────────────── */
+.generate-wrap { position:fixed; bottom:40px; right:60px; z-index:500; opacity:0; animation:fdUp .8s ease forwards 1.2s; }
+.gen-btn { background:var(--rouge); color:var(--cream); border:none; font-family:'Bebas Neue',sans-serif; font-size:15px; letter-spacing:3px; padding:16px 32px; cursor:none; display:flex; align-items:center; gap:14px; box-shadow:0 8px 32px rgba(198,63,62,.28); position:relative; overflow:hidden; transition:box-shadow .35s ease, transform .35s ease; }
+.gen-btn::before { content:''; position:absolute; inset:0; background:var(--noir); transform:translateX(-100%); transition:transform .45s cubic-bezier(.22,.68,0,1.2); }
+.gen-btn:hover::before { transform:translateX(0); }
+.gen-btn span, .ring-wrap { position:relative; z-index:1; }
+.gen-btn:hover { box-shadow:0 16px 48px rgba(29,29,27,.32); transform:translateY(-3px); }
+.gen-btn:active { transform:translateY(-1px); }
+.ring-wrap  { width:44px; height:44px; position:relative; }
+.ring-wrap svg { transform:rotate(-90deg); }
+.ring-bg    { fill:none; stroke:rgba(255,255,255,.15); stroke-width:3; }
+.ring-fill  { fill:none; stroke:white; stroke-width:3; stroke-linecap:round; stroke-dasharray:113; stroke-dashoffset:113; transition:stroke-dashoffset .5s ease; }
+.ring-label { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:'Bebas Neue',sans-serif; font-size:12px; color:white; }
+
+.toast { position:fixed; bottom:120px; right:60px; background:var(--noir); color:var(--cream); font-size:13px; padding:14px 24px; opacity:0; transform:translateY(10px); transition:all .4s ease; pointer-events:none; z-index:600; border-left:3px solid var(--rouge); }
+.toast.show { opacity:1; transform:translateY(0); }
+.footer-line { position:fixed; bottom:0; left:0; width:100%; height:4px; background:var(--rouge); }
+
+@keyframes fdUp   { to { opacity:1; transform:translateY(0); } }
+@keyframes fdDown { to { opacity:1; transform:translateY(0); } }
+@keyframes fdIn   { to { opacity:1; } }
+
+::-webkit-scrollbar { width:4px; }
+::-webkit-scrollbar-track { background:var(--beige); }
+::-webkit-scrollbar-thumb { background:var(--warm); }
+::-webkit-scrollbar-thumb:hover { background:var(--rouge); }
+
+@media (max-width:768px) {
+  header, main { padding:24px; }
+  .hero { padding:40px 24px 20px; }
+  .hero-deco { display:none; }
+  .divider { width:calc(100% - 48px); margin:0 24px; }
+  .point-row { grid-template-columns:60px 1fr; }
+  .generate-wrap { bottom:20px; right:20px; }
+}
+</style>
+</head>
+<body>
+
+<div id="cur"></div>
+<div id="curR"></div>
+<div class="pbar-c"><div class="pbar" id="pbar"></div></div>
+
+<header>
+  <div class="logo-tag">AMOUR STUDIOS</div>
+  <div class="mod-tag">MODULE 01 — VIDÉO 05<br>MON VIEWER IDÉAL</div>
+</header>
+
+<div class="hero">
+  <div class="hero-label">Exercice élève</div>
+  <h1 id="heroT">
+    <span class="w1">MON</span>
+    <span class="w2">VIEWER</span>
+    <span class="w3">IDÉAL</span>
+  </h1>
+  <p class="hero-sub">Tu parles à quelqu'un de précis.<br>Donne-lui un prénom. Rends-le réel dans ta tête.</p>
+  <div class="hero-deco" id="heroD">05</div>
+</div>
+
+<div class="divider"></div>
+
+<main>
+  <div class="section">
+    <div class="section-header">
+      <span class="section-number">01</span>
+      <div class="section-title">Ton persona en 7 points</div>
+      <p class="section-desc">1 seule personne. 7 angles. La connaître mieux qu'elle se connaît.</p>
+    </div>
+
+    <!-- LIVE PREVIEW CARD -->
+    <div class="persona-preview">
+      <div class="persona-preview::before"></div>
+      <div class="persona-avatar" id="previewAvatar">?</div>
+      <div class="persona-info">
+        <div class="persona-name empty" id="previewName">Prénom de ton viewer...</div>
+        <div class="persona-meta empty" id="previewMeta">Âge · Sexe · Localisation</div>
+      </div>
+      <div class="preview-label">APERÇU EN DIRECT</div>
+    </div>
+
+    <!-- 7 POINTS -->
+    <div class="points-grid">
+
+      <!-- 01 -->
+      <div class="point-row">
+        <div class="point-num">
+          <div class="pn-num">01</div>
+          <div class="pn-label">IDENTITÉ</div>
+        </div>
+        <div class="point-card card-3d">
+          <div class="pc-title">PRÉNOM FICTIF</div>
+          <div class="pc-hint">Donne-lui un prénom. Rends-le réel dans ta tête.</div>
+          <textarea id="v5_prenom" placeholder="ex: Karim, Sofia, Lucas..." rows="1" oninput="updatePreview()"></textarea>
+        </div>
+      </div>
+
+      <!-- 02 -->
+      <div class="point-row">
+        <div class="point-num">
+          <div class="pn-num">02</div>
+          <div class="pn-label">PROFIL</div>
+        </div>
+        <div class="point-card card-3d">
+          <div class="pc-title">ÂGE, SEXE, LOCALISATION</div>
+          <div class="pc-hint">Qui il est concrètement. Pas une démographie — une personne.</div>
+          <textarea id="v5_profil" placeholder="ex: 24 ans, homme, banlieue parisienne. Étudiant en comm..." oninput="updatePreview()"></textarea>
+        </div>
+      </div>
+
+      <!-- 03 -->
+      <div class="point-row">
+        <div class="point-num">
+          <div class="pn-num">03</div>
+          <div class="pn-label">CULTURE</div>
+        </div>
+        <div class="point-card card-3d">
+          <div class="pc-title">CE QU'IL ÉCOUTE & SUIT</div>
+          <div class="pc-hint">Ses références musicales, les comptes qu'il suit, ses influences.</div>
+          <textarea id="v5_culture" placeholder="ex: PNL, Hamza, JUL. Suit des freestyles, des sessions live, des vlogs de studios..."></textarea>
+        </div>
+      </div>
+
+      <!-- 04 -->
+      <div class="point-row">
+        <div class="point-num">
+          <div class="pn-num">04</div>
+          <div class="pn-label">DOULEUR</div>
+        </div>
+        <div class="point-card card-3d">
+          <div class="pc-title">SES FRUSTRATIONS</div>
+          <div class="pc-hint">Ce qui le bloque, ce qui l'énerve, ce qu'il n'arrive pas à trouver.</div>
+          <textarea id="v5_frustrations" placeholder="ex: Cherche des artistes authentiques. Fatigué du rap commercial. Veut de la vraie profondeur..."></textarea>
+        </div>
+      </div>
+
+      <!-- 05 -->
+      <div class="point-row">
+        <div class="point-num">
+          <div class="pn-num">05</div>
+          <div class="pn-label">DÉSIR</div>
+        </div>
+        <div class="point-card card-3d">
+          <div class="pc-title">SES ASPIRATIONS</div>
+          <div class="pc-hint">Où il veut aller, ce qu'il veut ressentir, ce qu'il cherche.</div>
+          <textarea id="v5_aspirations" placeholder="ex: Se sentir compris. Trouver une voix qui parle de son vécu. Être inspiré à créer à son tour..."></textarea>
+        </div>
+      </div>
+
+      <!-- 06 -->
+      <div class="point-row">
+        <div class="point-num">
+          <div class="pn-num">06</div>
+          <div class="pn-label">UNICITÉ</div>
+        </div>
+        <div class="point-card card-3d">
+          <div class="pc-title">POURQUOI TOI ET PAS UN AUTRE</div>
+          <div class="pc-hint">Ce que toi seul lui apportes que personne d'autre ne peut lui donner.</div>
+          <textarea id="v5_pourquoi" placeholder="ex: Ton vécu ressemble au sien. Ton univers parle à sa réalité. Ta manière de dire ce que personne n'ose..."></textarea>
+        </div>
+      </div>
+
+      <!-- 07 -->
+      <div class="point-row">
+        <div class="point-num">
+          <div class="pn-num">07</div>
+          <div class="pn-label">CONTENU</div>
+        </div>
+        <div class="point-card card-3d">
+          <div class="pc-title">LES 3 CONTENUS QUI L'ARRÊTENT</div>
+          <div class="pc-hint">Les formats, sujets ou émotions qui font stopper son scroll.</div>
+          <div class="sub-fields">
+            <div class="sub-field">
+              <div class="sf-num">01</div>
+              <textarea id="v5_c1" placeholder="Ex : Un freestyle filmé en une seule prise, son brut..."></textarea>
+            </div>
+            <div class="sub-field">
+              <div class="sf-num">02</div>
+              <textarea id="v5_c2" placeholder="Ex : Un vlog où tu montres ton process de création..."></textarea>
+            </div>
+            <div class="sub-field">
+              <div class="sf-num">03</div>
+              <textarea id="v5_c3" placeholder="Ex : Un texte qui parle de sa réalité sans filtre..."></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</main>
+
+<div class="generate-wrap">
+  <button class="gen-btn" onclick="generatePDF()">
+    <div class="ring-wrap">
+      <svg width="44" height="44" viewBox="0 0 40 40">
+        <circle class="ring-bg"   cx="20" cy="20" r="18"/>
+        <circle class="ring-fill" id="ringFill" cx="20" cy="20" r="18"/>
+      </svg>
+      <div class="ring-label" id="ringLabel">0%</div>
+    </div>
+    <span>GÉNÉRER MON PDF</span>
+  </button>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="footer-line"></div>
+
+<script>
+// ── CURSOR ────────────────────────────────────────────────────────
+var cur  = document.getElementById('cur');
+var curR = document.getElementById('curR');
+var mx=0, my=0, rx=0, ry=0;
+document.addEventListener('mousemove', function(e) {
+  mx = e.clientX; my = e.clientY;
+  cur.style.left = mx+'px'; cur.style.top = my+'px';
+});
+(function tick() {
+  rx += (mx-rx)*0.12; ry += (my-ry)*0.12;
+  curR.style.left = rx+'px'; curR.style.top = ry+'px';
+  requestAnimationFrame(tick);
+})();
+
+// ── AUTO-RESIZE ───────────────────────────────────────────────────
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
+}
+document.querySelectorAll('textarea').forEach(function(ta) {
+  ta.addEventListener('input', function() { autoResize(ta); });
+  autoResize(ta);
+});
+
+// ── PARALLAX ──────────────────────────────────────────────────────
+var heroT = document.getElementById('heroT');
+var heroD = document.getElementById('heroD');
+window.addEventListener('scroll', function() {
+  var sy = window.scrollY;
+  if (heroT) heroT.style.transform = 'translateY(' + sy*0.18 + 'px)';
+  if (heroD) heroD.style.transform = 'translateY(' + (-sy*0.07) + 'px)';
+  var pct = sy / (document.body.scrollHeight - window.innerHeight) * 100;
+  document.getElementById('pbar').style.width = Math.min(pct, 100) + '%';
+}, {passive:true});
+
+// ── 3D TILT ───────────────────────────────────────────────────────
+document.querySelectorAll('.card-3d').forEach(function(card) {
+  card.addEventListener('mousemove', function(e) {
+    var r  = card.getBoundingClientRect();
+    var dx = (e.clientX - r.left - r.width/2)  / (r.width/2);
+    var dy = (e.clientY - r.top  - r.height/2) / (r.height/2);
+    card.style.transform = 'perspective(900px) rotateX(' + (-dy*4) + 'deg) rotateY(' + (dx*4) + 'deg) translateZ(6px)';
+    card.style.boxShadow = (-dx*12) + 'px ' + (-dy*12) + 'px 40px rgba(29,29,27,.14)';
+  });
+  card.addEventListener('mouseleave', function() {
+    card.style.transform = 'perspective(900px) rotateX(0) rotateY(0) translateZ(0)';
+    card.style.boxShadow = '';
+  });
+});
+
+// ── SCROLL REVEAL ─────────────────────────────────────────────────
+var io = new IntersectionObserver(function(entries) {
+  entries.forEach(function(e) { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, {threshold: 0.08});
+document.querySelectorAll('.section').forEach(function(s) { io.observe(s); });
+
+// ── LIVE PREVIEW ──────────────────────────────────────────────────
+function updatePreview() {
+  var prenom = (document.getElementById('v5_prenom').value || '').trim();
+  var profil = (document.getElementById('v5_profil').value || '').trim();
+
+  var nameEl   = document.getElementById('previewName');
+  var metaEl   = document.getElementById('previewMeta');
+  var avatarEl = document.getElementById('previewAvatar');
+
+  if (prenom) {
+    nameEl.textContent = prenom.toUpperCase();
+    nameEl.classList.remove('empty');
+    avatarEl.textContent = prenom.charAt(0).toUpperCase();
+  } else {
+    nameEl.textContent = 'Prénom de ton viewer...';
+    nameEl.classList.add('empty');
+    avatarEl.textContent = '?';
+  }
+
+  if (profil) {
+    // Take first line or up to 60 chars
+    var short = profil.split('\n')[0];
+    if (short.length > 60) short = short.substring(0, 60) + '…';
+    metaEl.textContent = short;
+    metaEl.classList.remove('empty');
+  } else {
+    metaEl.textContent = 'Âge · Sexe · Localisation';
+    metaEl.classList.add('empty');
+  }
+  upRing();
+}
+
+// ── COMPLETION RING ───────────────────────────────────────────────
+var ALL_IDS = ['v5_prenom','v5_profil','v5_culture','v5_frustrations','v5_aspirations','v5_pourquoi','v5_c1','v5_c2','v5_c3'];
+
+function upRing() {
+  var filled = ALL_IDS.filter(function(id) {
+    var el = document.getElementById(id);
+    return el && el.value.trim();
+  }).length;
+  var p = Math.round(filled / ALL_IDS.length * 100);
+  document.getElementById('ringFill').style.strokeDashoffset = 113 - (p/100)*113;
+  document.getElementById('ringLabel').textContent = p + '%';
+}
+
+ALL_IDS.forEach(function(id) {
+  var el = document.getElementById(id);
+  if (el) el.addEventListener('input', upRing);
+});
+
+// ── TOAST ─────────────────────────────────────────────────────────
+function showToast(m) {
+  var t = document.getElementById('toast');
+  t.textContent = m; t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, 3000);
+}
+
+function getVal(id) {
+  var el = document.getElementById(id);
+  return el ? el.value.trim() : '';
+}
+
+// ── PDF ───────────────────────────────────────────────────────────
+function generatePDF() {
+  showToast('Génération en cours...');
+  setTimeout(function() {
+    var jsPDF = window.jspdf.jsPDF;
+    var doc = new jsPDF({orientation:'portrait', unit:'mm', format:'a4'});
+
+    var W=210, H=297, M=14, CW=182, HDR=18, YS=HDR+8, YX=H-14;
+
+    var B  = [234,228,218];
+    var N  = [29,29,27];
+    var R  = [198,63,62];
+    var CR = [240,235,227];
+    var WM = [200,194,184];
+    var MU = [106,106,104];
+    var WH = [255,255,255];
+    var AL = [245,240,232];
+
+    var COLORS = [R, [168,132,90], [62,107,106], [106,94,138], [44,95,74], [176,90,26], R];
+
+    var pn=1, y=YS;
+
+    function fc(c) { doc.setFillColor(c[0],c[1],c[2]); }
+    function tc(c) { doc.setTextColor(c[0],c[1],c[2]); }
+
+    function shell() {
+      fc(B); doc.rect(0,0,W,H,'F');
+      fc(N); doc.rect(0,0,W,HDR,'F');
+      fc(R); doc.rect(0,H-4,W,4,'F');
+      doc.setFont('helvetica','bold'); doc.setFontSize(8); tc(B);
+      doc.text('AMOUR STUDIOS', M, 7);
+      doc.setFont('helvetica','normal'); doc.setFontSize(7);
+      doc.text('MODULE 01 — VIDÉO 05 — MON VIEWER IDÉAL', M, 13);
+      doc.setFont('helvetica','bold'); doc.setFontSize(7);
+      doc.text('PAGE '+pn, W-M, 10, {align:'right'});
+    }
+
+    function np() { pn++; doc.addPage(); shell(); y=YS; }
+    function need(h) { if (y+h > YX) np(); }
+    function lineH(n, fs, ld) { ld=ld||1.42; return n*fs*0.352778*ld; }
+    function wrapT(t, mw, fs) { doc.setFontSize(fs); return doc.splitTextToSize(t||'—', mw); }
+    function gap(n) { y += (n||7); }
+
+    shell();
+
+    // ── Title page ─────────────────────────────────────────────
+    doc.setFont('helvetica','bold'); doc.setFontSize(36); tc(N);
+    doc.text('MON', M, y+12);
+    tc(R);
+    doc.text('VIEWER IDÉAL', M, y+24);
+    doc.setFont('helvetica','oblique'); doc.setFontSize(8.5); tc(MU);
+    doc.text("Tu parles à quelqu'un de précis. Donne-lui un prénom.", M, y+32);
+    y += 42;
+
+    // ── PERSONA CARD ────────────────────────────────────────────
+    var prenom = getVal('v5_prenom');
+    var profil = getVal('v5_profil');
+    var cardH = 20;
+    need(cardH);
+
+    fc(N); doc.rect(M, y, CW, cardH, 'F');
+    // Left rouge bar
+    fc(R); doc.rect(M, y, 3, cardH, 'F');
+    // Avatar circle
+    doc.setFillColor(R[0],R[1],R[2]); doc.circle(M+14, y+cardH/2, 7, 'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(13); tc(WH);
+    var initLetter = prenom ? prenom.charAt(0).toUpperCase() : '?';
+    doc.text(initLetter, M+14, y+cardH/2+2, {align:'center'});
+    // Name
+    doc.setFont('helvetica','bold'); doc.setFontSize(15); tc(CR);
+    doc.text((prenom||'PRÉNOM À DÉFINIR').toUpperCase(), M+25, y+9);
+    // Meta
+    doc.setFont('helvetica','normal'); doc.setFontSize(8); tc(WM);
+    var metaTxt = profil ? profil.split('\n')[0].substring(0,80) : 'Profil à définir';
+    doc.text(metaTxt, M+25, y+15);
+    // Label
+    doc.setFont('helvetica','bold'); doc.setFontSize(6.5); tc(R);
+    doc.text('PERSONA', W-M-2, y+5, {align:'right'});
+    y += cardH + 4;
+
+    // ── 7 POINTS ────────────────────────────────────────────────
+    var points = [
+      { n:'01', title:'PRÉNOM FICTIF',             hint:'Identité',   id:'v5_prenom' },
+      { n:'02', title:'ÂGE, SEXE, LOCALISATION',  hint:'Profil',     id:'v5_profil' },
+      { n:'03', title:"CE QU'IL ÉCOUTE & SUIT",   hint:'Culture',    id:'v5_culture' },
+      { n:'04', title:'SES FRUSTRATIONS',          hint:'Douleur',    id:'v5_frustrations' },
+      { n:'05', title:'SES ASPIRATIONS',           hint:'Désir',      id:'v5_aspirations' },
+      { n:'06', title:'POURQUOI TOI ET PAS UN AUTRE', hint:'Unicité', id:'v5_pourquoi' },
+    ];
+
+    var numW = 18;
+    var contentW = CW - numW - 2;
+
+    points.forEach(function(pt, idx) {
+      var content = getVal(pt.id);
+      var ls = wrapT(content, contentW-10, 9);
+      var h = Math.max(lineH(ls.length, 9) + 16, 18);
+      need(h+2);
+
+      var col = COLORS[idx];
+      // Number block
+      fc(col); doc.rect(M, y, numW, h, 'F');
+      doc.setFont('helvetica','bold'); doc.setFontSize(14); tc(WH);
+      doc.text(pt.n, M+numW/2, y+9, {align:'center'});
+      doc.setFont('helvetica','normal'); doc.setFontSize(6); tc(WH);
+      doc.text(pt.hint.toUpperCase(), M+numW/2, y+h-3, {align:'center'});
+
+      // Content block
+      var isDark = idx === 0; // First one slightly different
+      fc(idx % 2 === 0 ? CR : AL);
+      doc.rect(M+numW+2, y, contentW, h, 'F');
+      // Colored left accent
+      fc(col); doc.rect(M+numW+2, y, 2, h, 'F');
+
+      doc.setFont('helvetica','bold'); doc.setFontSize(7); tc(col);
+      doc.text(pt.title, M+numW+8, y+5);
+      doc.setFont('helvetica','normal'); doc.setFontSize(9); tc(N);
+      doc.text(ls, M+numW+8, y+12);
+      y += h+2;
+    });
+
+    // Point 07 — special
+    var c1 = getVal('v5_c1');
+    var c2 = getVal('v5_c2');
+    var c3 = getVal('v5_c3');
+    var ls1 = wrapT(c1, contentW-10, 9);
+    var ls2 = wrapT(c2, contentW-10, 9);
+    var ls3 = wrapT(c3, contentW-10, 9);
+    var allLs = ls1.length + ls2.length + ls3.length;
+    var h07 = Math.max(lineH(allLs, 9, 1.5) + 22, 30);
+    need(h07+2);
+
+    fc(R); doc.rect(M, y, numW, h07, 'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(14); tc(WH);
+    doc.text('07', M+numW/2, y+9, {align:'center'});
+    doc.setFont('helvetica','normal'); doc.setFontSize(6); tc(WH);
+    doc.text('CONTENU', M+numW/2, y+h07-3, {align:'center'});
+
+    fc(N); doc.rect(M+numW+2, y, contentW, h07, 'F');
+    fc(R); doc.rect(M+numW+2, y, 2, h07, 'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(7); tc(R);
+    doc.text("LES 3 CONTENUS QUI L'ARRÊTENT", M+numW+8, y+5);
+
+    var cy = y+12;
+    [[c1,ls1],[c2,ls2],[c3,ls3]].forEach(function(item, i) {
+      doc.setFont('helvetica','bold'); doc.setFontSize(7.5); tc(R);
+      doc.text('0'+(i+1), M+numW+8, cy);
+      doc.setFont('helvetica','normal'); doc.setFontSize(9); tc(CR);
+      doc.text(wrapT(item[0]||'—', contentW-20, 9), M+numW+16, cy);
+      cy += lineH(item[1].length, 9, 1.4) + 3;
+    });
+    y += h07+2;
+
+    doc.setFont('helvetica','normal'); doc.setFontSize(6); tc(MU);
+    doc.text('AMOUR STUDIOS — MODULE 01 — VIDÉO 05 — MON VIEWER IDÉAL', W/2, H-8, {align:'center'});
+
+    doc.save('AMOUR_STUDIOS_M01_V05_ViewerIdeal.pdf');
+    showToast('✓ PDF généré !');
+  }, 200);
+}
+</script>
+<script src="/exos/_bridge.js"></script>
+</body>
+</html>

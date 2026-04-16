@@ -17,21 +17,43 @@ export function ExerciseIframe({
   url: string;
   title: string;
   completed: boolean;
-  onComplete: () => void;
+  onComplete: (rect: DOMRect) => void;
 }) {
   const [loaded, setLoaded] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
-  // Écouter le postMessage de l'exercice
+  // Écouter la completion depuis :
+  //  1) postMessage iframe → parent (same-origin)
+  //  2) BroadcastChannel (couvre le cas "Nouvelle fenêtre" avec rel=noopener
+  //     où window.opener est null)
   useEffect(() => {
+    const fallbackRect = () =>
+      iframeRef.current?.getBoundingClientRect() ??
+      new DOMRect(window.innerWidth / 2 - 40, window.innerHeight / 2 - 20, 80, 40);
+
     const handler = (e: MessageEvent) => {
-      if (e.data?.type === "exercise-complete" && !completed) {
-        onComplete();
-      }
+      if (e.origin !== window.location.origin) return;
+      if (e.data?.type !== "amour:exercise-complete") return;
+      if (completed) return;
+      onComplete(fallbackRect());
     };
     window.addEventListener("message", handler);
-    return () => window.removeEventListener("message", handler);
+
+    let channel: BroadcastChannel | null = null;
+    try {
+      channel = new BroadcastChannel("amour-exo");
+      channel.addEventListener("message", (e) => {
+        if (e.data?.type !== "amour:exercise-complete") return;
+        if (completed) return;
+        onComplete(fallbackRect());
+      });
+    } catch {}
+
+    return () => {
+      window.removeEventListener("message", handler);
+      channel?.close();
+    };
   }, [completed, onComplete]);
 
   if (completed) {
@@ -104,7 +126,7 @@ export function ExerciseIframe({
           size="sm"
           variant="outline"
           className="rounded-full text-xs gap-1.5 shrink-0 active:scale-[0.98]"
-          onClick={onComplete}
+          onClick={(e) => onComplete(e.currentTarget.getBoundingClientRect())}
         >
           <Check size={12} /> Valider manuellement
         </Button>

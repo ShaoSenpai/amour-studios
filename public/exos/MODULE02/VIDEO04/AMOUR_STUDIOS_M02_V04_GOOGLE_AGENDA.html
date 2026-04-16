@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AMOUR STUDIOS — Ma Semaine Créateur</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap');
+
+:root {
+  --beige:  #EAE4DA;
+  --noir:   #1D1D1B;
+  --rouge:  #C63F3E;
+  --muted:  #6A6A68;
+  --warm:   #C8C2B8;
+  --cream:  #F0EBE3;
+  --gold:   #A8845A;
+  --teal:   #3E6B6A;
+  --purple: #6A5E8A;
+  --green:  #2C5F4A;
+  --dark2:  #252320;
+}
+
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+*{cursor:none!important;}
+
+#cur {position:fixed;width:10px;height:10px;background:var(--rouge);border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);mix-blend-mode:multiply;}
+#curR{position:fixed;width:34px;height:34px;border:1.5px solid var(--rouge);border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);opacity:.4;}
+
+body{background:var(--beige);color:var(--noir);font-family:'DM Sans',sans-serif;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:1000;opacity:.65;}
+
+.pbar-c{position:fixed;top:0;left:0;width:100%;height:3px;background:var(--warm);z-index:900;}
+.pbar{height:100%;background:var(--rouge);width:0%;transition:width .3s;}
+
+header{padding:40px 60px 0;display:flex;justify-content:space-between;align-items:flex-start;opacity:0;animation:fdDown .8s ease forwards .1s;}
+.logo-tag{font-family:'Bebas Neue',sans-serif;font-size:11px;letter-spacing:3px;color:var(--muted);border:1px solid var(--warm);padding:6px 12px;}
+.mod-tag{font-size:11px;letter-spacing:2px;color:var(--muted);text-align:right;line-height:1.6;}
+
+.hero{padding:60px 60px 20px;position:relative;opacity:0;animation:fdUp .9s ease forwards .3s;}
+.hero-label{font-size:11px;letter-spacing:4px;color:var(--rouge);text-transform:uppercase;margin-bottom:16px;display:flex;align-items:center;gap:12px;}
+.hero-label::after{content:'';width:40px;height:1px;background:var(--rouge);}
+h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(60px,9vw,110px);line-height:.88;}
+h1 .w1{display:block;color:var(--noir);}
+h1 .w2{display:block;color:var(--rouge);}
+h1 .w3{display:block;color:var(--warm);font-size:.55em;}
+.hero-sub{font-family:'Playfair Display',serif;font-style:italic;font-size:15px;color:var(--muted);margin-top:22px;max-width:520px;line-height:1.65;}
+.hero-deco{position:absolute;right:60px;top:50%;transform:translateY(-50%);font-family:'Bebas Neue',sans-serif;font-size:180px;color:var(--warm);opacity:.12;line-height:1;pointer-events:none;user-select:none;}
+
+.divider{width:calc(100% - 120px);margin:0 60px;height:1px;background:linear-gradient(to right,var(--noir),transparent);opacity:0;animation:fdIn 1s ease forwards .6s;}
+
+main{padding:60px 60px 180px;max-width:1000px;margin:0 auto;}
+
+.intro-tip{background:var(--noir);padding:18px 24px;margin-bottom:48px;display:flex;align-items:flex-start;gap:16px;border-left:3px solid var(--rouge);opacity:0;animation:fdUp .8s ease forwards .8s;}
+.tip-icon{font-size:20px;flex-shrink:0;margin-top:2px;}
+.tip-text{font-size:12px;line-height:1.65;color:var(--warm);}
+.tip-text strong{color:var(--rouge);font-style:normal;}
+
+/* ── DATE PICKER ──────────────────────────────────────────────────── */
+.date-picker-wrap{background:var(--noir);padding:18px 24px;margin-bottom:48px;display:flex;align-items:center;gap:16px;border-left:3px solid var(--gold);opacity:0;animation:fdUp .8s ease forwards .75s;}
+.date-picker-label{font-size:11px;letter-spacing:2px;color:var(--gold);font-family:'Bebas Neue',sans-serif;white-space:nowrap;}
+.date-picker-input{background:rgba(255,255,255,.08);border:1px solid var(--gold);border-radius:4px;color:var(--cream);font-family:'DM Sans',sans-serif;font-size:14px;padding:8px 12px;outline:none;cursor:pointer!important;transition:border-color .3s,background .3s;-webkit-appearance:auto;appearance:auto;min-width:180px;color-scheme:dark;}
+.date-picker-input:focus{border-color:var(--rouge);background:rgba(255,255,255,.12);}
+.date-picker-input::-webkit-calendar-picker-indicator{cursor:pointer!important;filter:invert(0.8);}
+
+/* ── BLOC ─────────────────────────────────────────────────────────── */
+.blocs{display:flex;flex-direction:column;gap:6px;}
+
+.bloc{opacity:0;transform:translateY(30px);transition:opacity .6s cubic-bezier(.22,.68,0,1.2),transform .6s cubic-bezier(.22,.68,0,1.2);}
+.bloc.visible{opacity:1;transform:translateY(0);}
+
+.bloc-inner{display:grid;grid-template-columns:90px 1fr;}
+
+.bloc-num{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:22px 0;background:var(--noir);}
+.bn-big{font-family:'Bebas Neue',sans-serif;font-size:52px;line-height:1;}
+.bn-label{font-family:'Bebas Neue',sans-serif;font-size:7px;letter-spacing:2px;color:rgba(255,255,255,.3);margin-top:2px;text-align:center;padding:0 4px;}
+.bn-icon{font-size:18px;margin-top:8px;}
+
+.bloc-body{padding:22px 26px;border-left:3px solid transparent;transition:border-color .3s,background .25s;overflow:hidden;}
+
+/* Header row */
+.bloc-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px;}
+.bloc-name{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;}
+.bloc-name-input{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;background:transparent;border:none;border-bottom:2px solid currentColor;padding:4px 0;width:100%;outline:none;cursor:text;transition:border-color .3s;}
+.bloc-hint{font-family:'Playfair Display',serif;font-style:italic;font-size:11px;color:var(--muted);margin-bottom:18px;line-height:1.5;}
+.bloc-hint-input{font-family:'Playfair Display',serif;font-style:italic;font-size:11px;background:transparent;border:none;border-bottom:1px solid currentColor;padding:2px 0;width:100%;outline:none;cursor:text;transition:border-color .3s;margin-bottom:18px;}
+
+/* Toggle */
+.bloc-toggle{width:40px;height:22px;flex-shrink:0;cursor:none;margin-top:2px;}
+.bloc-toggle input{display:none;}
+.toggle-track{display:block;width:100%;height:100%;border-radius:11px;background:var(--warm);position:relative;transition:background .25s;cursor:none;}
+.toggle-track::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;background:white;border-radius:50%;transition:transform .25s;}
+.bloc-toggle input:checked + .toggle-track{background:var(--rouge);}
+.bloc-toggle input:checked + .toggle-track::after{transform:translateX(18px);}
+
+/* Custom bloc delete button */
+.bloc-delete-btn{background:none;border:none;font-size:18px;color:var(--warm);cursor:none;transition:color .2s;padding:4px;align-self:flex-start;line-height:1;margin-top:2px;}
+.bloc-delete-btn:hover{color:var(--rouge);}
+
+/* Disabled */
+.bloc.disabled .bloc-body{opacity:.3;pointer-events:none;}
+.bloc.disabled .bloc-num{opacity:.3;}
+.bloc.disabled .bloc-toggle{pointer-events:all!important;opacity:1!important;}
+.bloc.disabled .bloc-header .bloc-toggle{pointer-events:all!important;}
+
+/* ── CRÉNEAUX ─────────────────────────────────────────────────── */
+.creneaux{display:flex;flex-direction:column;gap:8px;margin-bottom:14px;}
+
+.creneau{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:end;padding:12px 14px;background:rgba(0,0,0,.04);border-left:2px solid transparent;transition:border-color .3s,background .2s;}
+.creneau:focus-within{background:rgba(255,255,255,.7);}
+
+.creneau-field{display:flex;flex-direction:column;gap:4px;}
+.creneau-label{font-size:8px;letter-spacing:2px;text-transform:uppercase;font-weight:500;}
+
+.creneau-field select,
+.creneau-field input[type="time"],
+.creneau-field input[type="date"]{
+  background:transparent;border:none;border-bottom:1px solid var(--warm);
+  outline:none;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--noir);
+  padding:5px 0 5px;transition:border-color .3s;cursor:none;
+  -webkit-appearance:none;appearance:auto;width:100%;
+}
+
+.creneau-del{
+  background:none;border:none;font-size:16px;color:var(--warm);
+  cursor:none;transition:color .2s;padding:4px;align-self:flex-end;
+  line-height:1;margin-bottom:4px;
+}
+.creneau-del:hover{color:var(--rouge);}
+
+/* Add slot button */
+.add-creneau{
+  display:inline-flex;align-items:center;gap:8px;
+  font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:2px;
+  color:var(--muted);background:none;border:1px dashed var(--warm);
+  padding:7px 16px;cursor:none;transition:all .2s;
+}
+.add-creneau:hover{border-color:var(--rouge);color:var(--rouge);}
+.add-creneau .plus{font-size:16px;line-height:1;}
+
+/* Add custom task button */
+.add-custom-task-btn{
+  display:inline-flex;align-items:center;gap:8px;
+  font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:2px;
+  color:var(--muted);background:none;border:1px dashed var(--warm);
+  padding:7px 16px;cursor:none;transition:all .2s;margin-top:24px;
+}
+.add-custom-task-btn:hover{border-color:var(--rouge);color:var(--rouge);}
+.add-custom-task-btn.disabled{opacity:.3;pointer-events:none;}
+.add-custom-task-btn .plus{font-size:16px;line-height:1;}
+
+/* ── COULEURS BLOCS ───────────────────────────────────────────── */
+.bloc-veille   .bn-big{color:var(--rouge);}
+.bloc-veille   .bloc-body{background:var(--cream);}
+.bloc-veille   .bloc-body:focus-within{background:#fff;border-left-color:var(--rouge);}
+.bloc-veille   .creneau-label,.bloc-veille   .bloc-name,.bloc-veille .bloc-name-input{color:var(--rouge);}
+.bloc-veille   .creneau:focus-within{border-left-color:var(--rouge);background:rgba(198,63,62,.04);}
+.bloc-veille   .creneau-field select:focus,.bloc-veille .creneau-field input:focus{border-bottom-color:var(--rouge);}
+
+.bloc-planif   .bn-big{color:var(--gold);}
+.bloc-planif   .bloc-body{background:#F5F1EB;}
+.bloc-planif   .bloc-body:focus-within{background:#fff;border-left-color:var(--gold);}
+.bloc-planif   .creneau-label,.bloc-planif   .bloc-name,.bloc-planif .bloc-name-input{color:var(--gold);}
+.bloc-planif   .creneau:focus-within{border-left-color:var(--gold);background:rgba(168,132,90,.04);}
+.bloc-planif   .creneau-field select:focus,.bloc-planif .creneau-field input:focus{border-bottom-color:var(--gold);}
+
+.bloc-prod     .bn-big{color:var(--teal);}
+.bloc-prod     .bloc-body{background:var(--cream);}
+.bloc-prod     .bloc-body:focus-within{background:#fff;border-left-color:var(--teal);}
+.bloc-prod     .creneau-label,.bloc-prod     .bloc-name,.bloc-prod .bloc-name-input{color:var(--teal);}
+.bloc-prod     .creneau:focus-within{border-left-color:var(--teal);background:rgba(62,107,106,.04);}
+.bloc-prod     .creneau-field select:focus,.bloc-prod .creneau-field input:focus{border-bottom-color:var(--teal);}
+
+.bloc-montage  .bn-big{color:var(--purple);}
+.bloc-montage  .bloc-body{background:#F5F1EB;}
+.bloc-montage  .bloc-body:focus-within{background:#fff;border-left-color:var(--purple);}
+.bloc-montage  .creneau-label,.bloc-montage  .bloc-name,.bloc-montage .bloc-name-input{color:var(--purple);}
+.bloc-montage  .creneau:focus-within{border-left-color:var(--purple);background:rgba(106,94,138,.04);}
+.bloc-montage  .creneau-field select:focus,.bloc-montage .creneau-field input:focus{border-bottom-color:var(--purple);}
+
+.bloc-engage   .bn-big{color:var(--green);}
+.bloc-engage   .bloc-body{background:var(--cream);}
+.bloc-engage   .bloc-body:focus-within{background:#fff;border-left-color:var(--green);}
+.bloc-engage   .creneau-label,.bloc-engage   .bloc-name,.bloc-engage .bloc-name-input{color:var(--green);}
+.bloc-engage   .creneau:focus-within{border-left-color:var(--green);background:rgba(44,95,74,.04);}
+.bloc-engage   .creneau-field select:focus,.bloc-engage .creneau-field input:focus{border-bottom-color:var(--green);}
+
+.bloc-analyse  .bn-big{color:var(--warm);}
+.bloc-analyse  .bloc-body{background:#F5F1EB;}
+.bloc-analyse  .bloc-body:focus-within{background:#fff;border-left-color:var(--warm);}
+.bloc-analyse  .creneau-label{color:var(--muted);}
+.bloc-analyse  .bloc-name,.bloc-analyse .bloc-name-input{color:var(--noir);}
+.bloc-analyse  .creneau:focus-within{border-left-color:var(--warm);background:rgba(200,194,184,.1);}
+
+.bloc-custom   .bn-big{color:var(--warm);}
+.bloc-custom   .bloc-body{background:#F5F1EB;}
+.bloc-custom   .bloc-body:focus-within{background:#fff;border-left-color:var(--warm);}
+.bloc-custom   .creneau-label{color:var(--muted);}
+.bloc-custom   .bloc-name,.bloc-custom .bloc-name-input{color:var(--noir);}
+.bloc-custom   .creneau:focus-within{border-left-color:var(--warm);background:rgba(200,194,184,.1);}
+
+/* ── APERÇU ───────────────────────────────────────────────────── */
+.apercu-section{margin-top:56px;}
+.section-label{font-family:'Bebas Neue',sans-serif;font-size:11px;letter-spacing:3px;color:var(--rouge);margin-bottom:16px;display:flex;align-items:center;gap:12px;}
+.section-label::after{content:'';flex:1;height:1px;background:linear-gradient(to right,var(--rouge),transparent);}
+
+.week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
+.day-col{background:var(--cream);min-height:150px;}
+.day-head{background:var(--noir);color:var(--cream);font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1.5px;padding:8px 6px;text-align:center;}
+.day-events{padding:6px 4px;display:flex;flex-direction:column;gap:4px;}
+.day-event{padding:5px 7px;font-size:9px;line-height:1.4;font-family:'DM Sans',sans-serif;font-weight:500;}
+.day-event .ev-time{font-size:8px;opacity:.75;display:block;margin-bottom:1px;}
+.day-empty{font-size:9px;color:var(--warm);font-style:italic;padding:8px 6px;font-family:'Playfair Display',serif;}
+
+/* ── GENERATE ─────────────────────────────────────────────────── */
+.generate-wrap{position:fixed;bottom:40px;right:60px;z-index:500;display:flex;flex-direction:column;align-items:flex-end;gap:10px;opacity:0;animation:fdUp .8s ease forwards 1.2s;}
+.gen-hint{font-size:10px;letter-spacing:1.5px;color:var(--muted);font-family:'Bebas Neue',sans-serif;}
+
+.gen-btn{background:var(--rouge);color:var(--cream);border:none;font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:3px;padding:16px 32px;cursor:none;display:flex;align-items:center;gap:14px;box-shadow:0 8px 32px rgba(198,63,62,.28);position:relative;overflow:hidden;transition:box-shadow .35s,transform .35s;}
+.gen-btn::before{content:'';position:absolute;inset:0;background:var(--noir);transform:translateX(-100%);transition:transform .45s cubic-bezier(.22,.68,0,1.2);}
+.gen-btn:hover::before{transform:translateX(0);}
+.gen-btn span,.ring-wrap{position:relative;z-index:1;}
+.gen-btn:hover{box-shadow:0 16px 48px rgba(29,29,27,.32);transform:translateY(-3px);}
+.gen-btn:active{transform:translateY(-1px);}
+.ring-wrap{width:44px;height:44px;position:relative;}
+.ring-wrap svg{transform:rotate(-90deg);}
+.ring-bg{fill:none;stroke:rgba(255,255,255,.15);stroke-width:3;}
+.ring-fill{fill:none;stroke:white;stroke-width:3;stroke-linecap:round;stroke-dasharray:113;stroke-dashoffset:113;transition:stroke-dashoffset .5s;}
+.ring-label{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:11px;color:white;}
+
+.toast{position:fixed;bottom:120px;right:60px;background:var(--noir);color:var(--cream);font-size:13px;padding:14px 24px;opacity:0;transform:translateY(10px);transition:all .4s;pointer-events:none;z-index:600;border-left:3px solid var(--rouge);max-width:300px;line-height:1.5;}
+.toast.show{opacity:1;transform:translateY(0);}
+.footer-line{position:fixed;bottom:0;left:0;width:100%;height:4px;background:var(--rouge);}
+
+@keyframes fdUp  {to{opacity:1;transform:translateY(0);}}
+@keyframes fdDown{to{opacity:1;transform:translateY(0);}}
+@keyframes fdIn  {to{opacity:1;}}
+
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:var(--beige);}
+::-webkit-scrollbar-thumb{background:var(--warm);}
+::-webkit-scrollbar-thumb:hover{background:var(--rouge);}
+
+@media(max-width:768px){
+  header,main{padding:24px;}
+  .hero{padding:40px 24px 20px;}
+  .divider{width:calc(100% - 48px);margin:0 24px;}
+  .hero-deco{display:none;}
+  .bloc-inner{grid-template-columns:60px 1fr;}
+  .creneau{grid-template-columns:1fr 1fr;grid-template-rows:auto auto;}
+  .creneau-del{grid-column:1/-1;justify-self:end;}
+  .week-grid{grid-template-columns:repeat(4,1fr);}
+  .generate-wrap{bottom:20px;right:20px;}
+}
+</style>
+</head>
+<body>
+
+<div id="cur"></div>
+<div id="curR"></div>
+<div class="pbar-c"><div class="pbar" id="pbar"></div></div>
+
+<header>
+  <div class="logo-tag">AMOUR STUDIOS</div>
+  <div class="mod-tag">MODULE 02 — VIDÉO 04<br>GOOGLE AGENDA</div>
+</header>
+
+<div class="hero">
+  <div class="hero-label">Exercice élève</div>
+  <h1>
+    <span class="w1">MA SEMAINE</span>
+    <span class="w2">CRÉATEUR.</span>
+    <span class="w3">6 BLOCS + TÂCHES CUSTOM.</span>
+  </h1>
+  <p class="hero-sub">Configure chaque bloc selon tes vraies disponibilités.<br>Ajoute autant de créneaux que nécessaire par bloc.</p>
+  <div class="hero-deco">04</div>
+</div>
+
+<div class="divider"></div>
+
+<main>
+
+  <div class="intro-tip">
+    <div class="tip-icon">📌</div>
+    <div class="tip-text">
+      <strong>Ces blocs sont des rendez-vous pro.</strong> Tu les déplaces pas, tu les annules pas. Si t'avais un rendez-vous avec un label tu le raterais pas — c'est pareil. Configure tes horaires réels, pas des horaires idéaux. Chaque bloc peut avoir plusieurs créneaux dans la semaine.
+    </div>
+  </div>
+
+  <div class="date-picker-wrap">
+    <label class="date-picker-label">MA SEMAINE DU</label>
+    <input type="date" class="date-picker-input" id="weekStartDate" onchange="updateWeekStart()">
+  </div>
+
+  <div class="blocs" id="blocs">
+
+    <!-- 01 VEILLE -->
+    <div class="bloc bloc-veille" data-id="veille">
+      <div class="bloc-inner">
+        <div class="bloc-num"><div class="bn-big">01</div><div class="bn-label">VEILLE</div><div class="bn-icon">🔍</div></div>
+        <div class="bloc-body">
+          <div class="bloc-header">
+            <div>
+              <div class="bloc-name">VEILLE CONCURRENTIELLE</div>
+              <div class="bloc-hint">Scroll stratégique · Note tes trouvailles · Analyse ce qui marche</div>
+            </div>
+            <label class="bloc-toggle"><input type="checkbox" checked onchange="toggleBloc(this,'veille')"><span class="toggle-track"></span></label>
+          </div>
+          <div class="creneaux" id="creneaux-veille"></div>
+          <button class="add-creneau" onclick="addCreneau('veille')"><span class="plus">+</span> AJOUTER UN CRÉNEAU</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 02 PLANIFICATION -->
+    <div class="bloc bloc-planif" data-id="planif">
+      <div class="bloc-inner">
+        <div class="bloc-num"><div class="bn-big">02</div><div class="bn-label">PLANIF.</div><div class="bn-icon">📋</div></div>
+        <div class="bloc-body">
+          <div class="bloc-header">
+            <div>
+              <div class="bloc-name">PLANIFICATION SEMAINE</div>
+              <div class="bloc-hint">Sujets + Hooks + Remplissage Notion</div>
+            </div>
+            <label class="bloc-toggle"><input type="checkbox" checked onchange="toggleBloc(this,'planif')"><span class="toggle-track"></span></label>
+          </div>
+          <div class="creneaux" id="creneaux-planif"></div>
+          <button class="add-creneau" onclick="addCreneau('planif')"><span class="plus">+</span> AJOUTER UN CRÉNEAU</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 03 PRODUCTION -->
+    <div class="bloc bloc-prod" data-id="prod">
+      <div class="bloc-inner">
+        <div class="bloc-num"><div class="bn-big">03</div><div class="bn-label">PROD.</div><div class="bn-icon">🎬</div></div>
+        <div class="bloc-body">
+          <div class="bloc-header">
+            <div>
+              <div class="bloc-name">PRODUCTION</div>
+              <div class="bloc-hint">Batch filming · Tous tes contenus en une session</div>
+            </div>
+            <label class="bloc-toggle"><input type="checkbox" checked onchange="toggleBloc(this,'prod')"><span class="toggle-track"></span></label>
+          </div>
+          <div class="creneaux" id="creneaux-prod"></div>
+          <button class="add-creneau" onclick="addCreneau('prod')"><span class="plus">+</span> AJOUTER UN CRÉNEAU</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 04 MONTAGE -->
+    <div class="bloc bloc-montage" data-id="montage">
+      <div class="bloc-inner">
+        <div class="bloc-num"><div class="bn-big">04</div><div class="bn-label">MONTAGE</div><div class="bn-icon">✂️</div></div>
+        <div class="bloc-body">
+          <div class="bloc-header">
+            <div>
+              <div class="bloc-name">MONTAGE CAPCUT</div>
+              <div class="bloc-hint">Batch montage · Sous-titres · Export 9:16</div>
+            </div>
+            <label class="bloc-toggle"><input type="checkbox" checked onchange="toggleBloc(this,'montage')"><span class="toggle-track"></span></label>
+          </div>
+          <div class="creneaux" id="creneaux-montage"></div>
+          <button class="add-creneau" onclick="addCreneau('montage')"><span class="plus">+</span> AJOUTER UN CRÉNEAU</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 05 ENGAGEMENT -->
+    <div class="bloc bloc-engage" data-id="engage">
+      <div class="bloc-inner">
+        <div class="bloc-num"><div class="bn-big">05</div><div class="bn-label">ENGAGE</div><div class="bn-icon">💬</div></div>
+        <div class="bloc-body">
+          <div class="bloc-header">
+            <div>
+              <div class="bloc-name">ENGAGEMENT QUOTIDIEN</div>
+              <div class="bloc-hint">Comments + DM · Timer 15 min · Tous les jours</div>
+            </div>
+            <label class="bloc-toggle"><input type="checkbox" checked onchange="toggleBloc(this,'engage')"><span class="toggle-track"></span></label>
+          </div>
+          <div class="creneaux" id="creneaux-engage"></div>
+          <button class="add-creneau" onclick="addCreneau('engage')"><span class="plus">+</span> AJOUTER UN CRÉNEAU</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 06 ANALYSE -->
+    <div class="bloc bloc-analyse" data-id="analyse">
+      <div class="bloc-inner">
+        <div class="bloc-num"><div class="bn-big">06</div><div class="bn-label">ANALYSE</div><div class="bn-icon">📊</div></div>
+        <div class="bloc-body">
+          <div class="bloc-header">
+            <div>
+              <div class="bloc-name">ANALYSE STATS</div>
+              <div class="bloc-hint">Stats · Notion · Conclusions semaine suivante</div>
+            </div>
+            <label class="bloc-toggle"><input type="checkbox" checked onchange="toggleBloc(this,'analyse')"><span class="toggle-track"></span></label>
+          </div>
+          <div class="creneaux" id="creneaux-analyse"></div>
+          <button class="add-creneau" onclick="addCreneau('analyse')"><span class="plus">+</span> AJOUTER UN CRÉNEAU</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CUSTOM BLOCS CONTAINER -->
+    <div id="custom-blocs-container"></div>
+
+  </div>
+
+  <button class="add-custom-task-btn" id="addCustomTaskBtn" onclick="addCustomBloc()"><span class="plus">+</span> AJOUTER UNE TÂCHE</button>
+
+  <!-- APERÇU -->
+  <div class="apercu-section">
+    <div class="section-label">APERÇU DE TA SEMAINE</div>
+    <div class="week-grid" id="weekGrid"></div>
+  </div>
+
+</main>
+
+<div class="generate-wrap">
+  <div class="gen-hint">IMPORTER DANS GOOGLE AGENDA</div>
+  <button class="gen-btn" onclick="generateICS()">
+    <div class="ring-wrap">
+      <svg width="44" height="44" viewBox="0 0 40 40">
+        <circle class="ring-bg" cx="20" cy="20" r="18"/>
+        <circle class="ring-fill" id="ringFill" cx="20" cy="20" r="18"/>
+      </svg>
+      <div class="ring-label" id="ringLabel">—</div>
+    </div>
+    <span>GÉNÉRER MON .ICS</span>
+  </button>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="footer-line"></div>
+
+<script>
+// ── CURSOR ────────────────────────────────────────────────────────
+var cur=document.getElementById('cur'),curR=document.getElementById('curR');
+var mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',function(e){mx=e.clientX;my=e.clientY;cur.style.left=mx+'px';cur.style.top=my+'px';});
+(function tick(){rx+=(mx-rx)*0.12;ry+=(my-ry)*0.12;curR.style.left=rx+'px';curR.style.top=ry+'px';requestAnimationFrame(tick);})();
+
+window.addEventListener('scroll',function(){
+  document.getElementById('pbar').style.width=Math.min(window.scrollY/(document.body.scrollHeight-window.innerHeight)*100,100)+'%';
+},{passive:true});
+
+var io=new IntersectionObserver(function(entries){entries.forEach(function(e){if(e.isIntersecting)e.target.classList.add('visible');});},{threshold:0.06});
+document.querySelectorAll('.bloc').forEach(function(b){io.observe(b);});
+
+// ── CONSTANTS ─────────────────────────────────────────────────────
+var BLOCS = ['veille','planif','prod','montage','engage','analyse'];
+
+var DEFAULTS = null; // Will be initialized in init() with actual dates
+
+var COLORS = {veille:'C63F3E',planif:'A8845A',prod:'3E6B6A',montage:'6A5E8A',engage:'2C5F4A',analyse:'C8C2B8'};
+var NAMES  = {veille:'🔍 Veille',planif:'📋 Planification',prod:'🎬 Production',montage:'✂️ Montage',engage:'💬 Engagement',analyse:'📊 Analyse'};
+var NAMES_FULL = {veille:'🔍 Veille Concurrentielle',planif:'📋 Planification Semaine',prod:'🎬 Production',montage:'✂️ Montage CapCut',engage:'💬 Engagement',analyse:'📊 Analyse Stats'};
+var DESCS  = {
+  veille:'Scroll stratégique · Note tes trouvailles · Analyse ce qui marche dans ta niche.',
+  planif:'Choisis tes sujets · Écris tes hooks · Remplis ton planning Notion.',
+  prod:'Batch filming · Tous tes contenus de la semaine en une seule session.',
+  montage:'Batch montage CapCut · Sous-titres · Musique · Export 9:16.',
+  engage:'Réponds aux comments + DM · Met un timer · Reste focus.',
+  analyse:'Regarde tes stats · Remplis Notion · Conclusions pour la semaine suivante.'
+};
+var DAYS_FR  = {MO:'Lundi',TU:'Mardi',WE:'Mercredi',TH:'Jeudi',FR:'Vendredi',SA:'Samedi',SU:'Dimanche'};
+var DAY_ORDER = ['MO','TU','WE','TH','FR','SA','SU'];
+var DAY_NUM   = {MO:0,TU:1,WE:2,TH:3,FR:4,SA:5,SU:6};
+var DAY_RRULE = {MO:'MO',TU:'TU',WE:'WE',TH:'TH',FR:'FR',SA:'SA',SU:'SU'};
+
+var CUSTOM_COLORS = ['C63F3E','A8845A','3E6B6A','6A5E8A','2C5F4A','C8C2B8'];
+var CUSTOM_COLOR_IDX = 0;
+
+var enabled = {veille:true,planif:true,prod:true,montage:true,engage:true,analyse:true};
+// State: { blocId: [{jour,debut,duree}, ...] }
+var state = {};
+var customBlocs = {}; // { customId: {name, desc, color, enabled, creneaux: [...]} }
+var customCount = 0;
+
+var DUREES = [
+  {v:'15',l:'15 min'},{v:'30',l:'30 min'},{v:'45',l:'45 min'},
+  {v:'60',l:'1h'},{v:'90',l:'1h30'},{v:'120',l:'2h'},
+  {v:'150',l:'2h30'},{v:'180',l:'3h'},{v:'240',l:'4h'}
+];
+
+// ── DATE PICKER ────────────────────────────────────────────────────
+var selectedWeekStart = null;
+
+function getNextMonday() {
+  var now=new Date(), dow=now.getDay();
+  var daysToMon = dow===0?1:(8-dow)%7||7;
+  var monday=new Date(now);
+  monday.setDate(now.getDate()+daysToMon);
+  monday.setHours(0,0,0,0);
+  return monday;
+}
+
+function dateToString(d) {
+  var year = d.getFullYear();
+  var month = String(d.getMonth() + 1).padStart(2, '0');
+  var day = String(d.getDate()).padStart(2, '0');
+  return year + '-' + month + '-' + day;
+}
+
+function stringToDate(s) {
+  return new Date(s + 'T00:00:00Z');
+}
+
+function defaultDate(dayOffset) {
+  var mon = getNextMonday();
+  var d = new Date(mon);
+  d.setDate(mon.getDate() + dayOffset);
+  return dateToString(d);
+}
+
+function updateWeekStart() {
+  var input = document.getElementById('weekStartDate');
+  if(input.value) {
+    selectedWeekStart = stringToDate(input.value);
+  } else {
+    selectedWeekStart = getNextMonday();
+  }
+  updatePreview();
+  updateRing();
+  save();
+}
+
+// ── CRENEAU DOM ───────────────────────────────────────────────────
+function makeDayOptions(selected) {
+  return DAY_ORDER.map(function(d){
+    return '<option value="'+d+'"'+(d===selected?' selected':'')+'>'+DAYS_FR[d]+'</option>';
+  }).join('');
+}
+function makeDureeOptions(selected) {
+  return DUREES.map(function(d){
+    return '<option value="'+d.v+'"'+(d.v===selected?' selected':'')+'>'+d.l+'</option>';
+  }).join('');
+}
+
+function renderCreneau(blocId, idx) {
+  var s = state[blocId][idx];
+  var canDelete = state[blocId].length > 1;
+  var html = '<div class="creneau" data-bloc="'+blocId+'" data-idx="'+idx+'">';
+  html += '<div class="creneau-field"><span class="creneau-label">Date</span>';
+  html += '<input type="date" class="creneau-date" value="'+s.jour+'" onchange="updateState(\''+blocId+'\','+idx+',\'jour\',this.value)"></div>';
+  html += '<div class="creneau-field"><span class="creneau-label">Heure début</span>';
+  html += '<input type="time" value="'+s.debut+'" onchange="updateState(\''+blocId+'\','+idx+',\'debut\',this.value)"></div>';
+  html += '<div class="creneau-field"><span class="creneau-label">Durée</span>';
+  html += '<select onchange="updateState(\''+blocId+'\','+idx+',\'duree\',this.value)">'+makeDureeOptions(s.duree)+'</select></div>';
+  html += canDelete
+    ? '<button class="creneau-del" onclick="removeCreneau(\''+blocId+'\','+idx+')" title="Supprimer">✕</button>'
+    : '<div></div>';
+  html += '</div>';
+  return html;
+}
+
+function renderCustomCreneau(customId, idx) {
+  var s = customBlocs[customId].creneaux[idx];
+  var canDelete = customBlocs[customId].creneaux.length > 1;
+  var html = '<div class="creneau" data-bloc="'+customId+'" data-idx="'+idx+'">';
+  html += '<div class="creneau-field"><span class="creneau-label">Date</span>';
+  html += '<input type="date" class="creneau-date" value="'+s.jour+'" onchange="updateCustomState(\''+customId+'\','+idx+',\'jour\',this.value)"></div>';
+  html += '<div class="creneau-field"><span class="creneau-label">Heure début</span>';
+  html += '<input type="time" value="'+s.debut+'" onchange="updateCustomState(\''+customId+'\','+idx+',\'debut\',this.value)"></div>';
+  html += '<div class="creneau-field"><span class="creneau-label">Durée</span>';
+  html += '<select onchange="updateCustomState(\''+customId+'\','+idx+',\'duree\',this.value)">'+makeDureeOptions(s.duree)+'</select></div>';
+  html += canDelete
+    ? '<button class="creneau-del" onclick="removeCustomCreneau(\''+customId+'\','+idx+')" title="Supprimer">✕</button>'
+    : '<div></div>';
+  html += '</div>';
+  return html;
+}
+
+function renderBloc(blocId) {
+  var container = document.getElementById('creneaux-'+blocId);
+  container.innerHTML = state[blocId].map(function(_,i){return renderCreneau(blocId,i);}).join('');
+  updatePreview();
+  updateRing();
+  save();
+}
+
+function renderCustomBloc(customId) {
+  var custom = customBlocs[customId];
+  var bloc = document.getElementById('bloc-'+customId);
+  if(!bloc) return;
+
+  var creneauxHtml = custom.creneaux.map(function(_,i){return renderCustomCreneau(customId,i);}).join('');
+  var creneauxContainer = bloc.querySelector('.creneaux');
+  creneauxContainer.innerHTML = creneauxHtml;
+
+  updatePreview();
+  updateRing();
+  save();
+}
+
+// ── ACTIONS ───────────────────────────────────────────────────────
+function addCreneau(blocId) {
+  var last = state[blocId][state[blocId].length-1];
+  var defaultDate = selectedWeekStart ? dateToString(selectedWeekStart) : dateToString(getNextMonday());
+  state[blocId].push({jour:defaultDate, debut:last.debut, duree:last.duree});
+  renderBloc(blocId);
+}
+
+function removeCreneau(blocId, idx) {
+  if(state[blocId].length <= 1) return;
+  state[blocId].splice(idx, 1);
+  renderBloc(blocId);
+}
+
+function updateState(blocId, idx, field, val) {
+  state[blocId][idx][field] = val;
+  updatePreview();
+  updateRing();
+  save();
+}
+
+function addCustomCreneau(customId) {
+  var last = customBlocs[customId].creneaux[customBlocs[customId].creneaux.length-1];
+  var defaultDate = selectedWeekStart ? dateToString(selectedWeekStart) : dateToString(getNextMonday());
+  customBlocs[customId].creneaux.push({jour:defaultDate, debut:last.debut, duree:last.duree});
+  renderCustomBloc(customId);
+}
+
+function removeCustomCreneau(customId, idx) {
+  if(customBlocs[customId].creneaux.length <= 1) return;
+  customBlocs[customId].creneaux.splice(idx, 1);
+  renderCustomBloc(customId);
+}
+
+function updateCustomState(customId, idx, field, val) {
+  customBlocs[customId].creneaux[idx][field] = val;
+  updatePreview();
+  updateRing();
+  save();
+}
+
+function toggleBloc(cb, id) {
+  enabled[id] = cb.checked;
+  var bloc = document.querySelector('.bloc[data-id="'+id+'"]');
+  bloc.classList.toggle('disabled', !cb.checked);
+  updatePreview();
+  updateRing();
+  save();
+}
+
+function toggleCustomBloc(cb, customId) {
+  customBlocs[customId].enabled = cb.checked;
+  var bloc = document.getElementById('bloc-'+customId);
+  bloc.classList.toggle('disabled', !cb.checked);
+  updatePreview();
+  updateRing();
+  save();
+}
+
+function updateCustomName(customId, val) {
+  customBlocs[customId].name = val;
+  updatePreview();
+  updateRing();
+  save();
+}
+
+function updateCustomDesc(customId, val) {
+  customBlocs[customId].desc = val;
+  save();
+}
+
+function deleteCustomBloc(customId) {
+  var container = document.getElementById('custom-blocs-container');
+  var bloc = document.getElementById('bloc-'+customId);
+  bloc.remove();
+  delete customBlocs[customId];
+  updateAddCustomBtnState();
+  updatePreview();
+  updateRing();
+  save();
+}
+
+function addCustomBloc() {
+  if(Object.keys(customBlocs).length >= 4) {
+    showToast('Maximum 4 tâches custom atteint.');
+    return;
+  }
+
+  var customId = 'custom_' + (customCount++);
+  var color = CUSTOM_COLORS[CUSTOM_COLOR_IDX % CUSTOM_COLORS.length];
+  CUSTOM_COLOR_IDX++;
+
+  customBlocs[customId] = {
+    name: 'Ma tâche',
+    desc: 'Description',
+    color: color,
+    enabled: true,
+    creneaux: [{jour:'MO', debut:'10:00', duree:'60'}]
+  };
+
+  renderCustomBlocHTML(customId);
+  updateAddCustomBtnState();
+  updatePreview();
+  updateRing();
+  save();
+}
+
+function renderCustomBlocHTML(customId) {
+  var custom = customBlocs[customId];
+  var containerNum = (Object.keys(customBlocs).length + 6);
+
+  var html = '<div class="bloc bloc-custom" id="bloc-'+customId+'" data-id="'+customId+'">';
+  html += '<div class="bloc-inner">';
+  html += '<div class="bloc-num"><div class="bn-big">'+containerNum+'</div><div class="bn-label">CUSTOM</div></div>';
+  html += '<div class="bloc-body">';
+  html += '<div class="bloc-header">';
+  html += '<div style="flex:1;">';
+  html += '<input type="text" class="bloc-name-input" value="'+custom.name+'" onchange="updateCustomName(\''+customId+'\',this.value)" onblur="updateCustomName(\''+customId+'\',this.value)">';
+  html += '<input type="text" class="bloc-hint-input" value="'+custom.desc+'" onchange="updateCustomDesc(\''+customId+'\',this.value)" onblur="updateCustomDesc(\''+customId+'\',this.value)">';
+  html += '</div>';
+  html += '<div style="display:flex;gap:8px;align-items:flex-start;">';
+  html += '<label class="bloc-toggle"><input type="checkbox" '+(custom.enabled?'checked':'')+' onchange="toggleCustomBloc(this,\''+customId+'\')"><span class="toggle-track"></span></label>';
+  html += '<button class="bloc-delete-btn" onclick="deleteCustomBloc(\''+customId+'\')" title="Supprimer cette tâche">✕</button>';
+  html += '</div>';
+  html += '</div>';
+  html += '<div class="creneaux"></div>';
+  html += '<button class="add-creneau" onclick="addCustomCreneau(\''+customId+'\')"><span class="plus">+</span> AJOUTER UN CRÉNEAU</button>';
+  html += '</div>';
+  html += '</div>';
+  html += '</div>';
+
+  var container = document.getElementById('custom-blocs-container');
+  var newBloc = document.createElement('div');
+  newBloc.innerHTML = html;
+  container.appendChild(newBloc.firstChild);
+
+  // Style custom bloc
+  var blocEl = document.getElementById('bloc-'+customId);
+  blocEl.classList.add('visible');
+  io.observe(blocEl);
+
+  renderCustomBloc(customId);
+}
+
+function updateAddCustomBtnState() {
+  var btn = document.getElementById('addCustomTaskBtn');
+  var isFull = Object.keys(customBlocs).length >= 4;
+  btn.classList.toggle('disabled', isFull);
+}
+
+// ── PREVIEW ───────────────────────────────────────────────────────
+function pad(n){return n<10?'0'+n:''+n;}
+function parseTime(t){var p=t.split(':');return {h:parseInt(p[0]),m:parseInt(p[1])};}
+function addMinutes(t,mins){var p=parseTime(t);var total=p.h*60+p.m+mins;return pad(Math.floor(total/60)%24)+':'+pad(total%60);}
+function fmtTime(t){var p=parseTime(t);return pad(p.h)+'h'+pad(p.m);}
+
+function updatePreview() {
+  var dayMap = {MO:[],TU:[],WE:[],TH:[],FR:[],SA:[],SU:[]};
+
+  function dateToDay(dateStr) {
+    var d = new Date(dateStr + 'T00:00:00Z');
+    var dow = d.getUTCDay();
+    var days = ['SU','MO','TU','WE','TH','FR','SA'];
+    return days[dow];
+  }
+
+  BLOCS.forEach(function(id){
+    if(!enabled[id]) return;
+    state[id].forEach(function(s){
+      var day = dateToDay(s.jour);
+      if(dayMap[day]) dayMap[day].push({
+        id:id, debut:s.debut,
+        fin:addMinutes(s.debut,parseInt(s.duree)),
+        duree:parseInt(s.duree),
+        name:NAMES[id], color:COLORS[id]
+      });
+    });
+  });
+
+  Object.keys(customBlocs).forEach(function(customId){
+    var custom = customBlocs[customId];
+    if(!custom.enabled) return;
+    custom.creneaux.forEach(function(s){
+      var day = dateToDay(s.jour);
+      if(dayMap[day]) dayMap[day].push({
+        id:customId, debut:s.debut,
+        fin:addMinutes(s.debut,parseInt(s.duree)),
+        duree:parseInt(s.duree),
+        name:custom.name, color:custom.color
+      });
+    });
+  });
+
+  DAY_ORDER.forEach(function(d){dayMap[d].sort(function(a,b){return a.debut.localeCompare(b.debut);});});
+
+  var html='';
+  DAY_ORDER.forEach(function(d){
+    html+='<div class="day-col"><div class="day-head">'+DAYS_FR[d].substring(0,3).toUpperCase()+'</div><div class="day-events">';
+    if(!dayMap[d].length){html+='<div class="day-empty">—</div>';}
+    else dayMap[d].forEach(function(ev){
+      var dur=ev.duree<60?ev.duree+'min':(ev.duree%60===0?ev.duree/60+'h':Math.floor(ev.duree/60)+'h'+pad(ev.duree%60));
+      html+='<div class="day-event" style="background:#'+ev.color+'22;border-left:2px solid #'+ev.color+';">';
+      html+='<span class="ev-time">'+fmtTime(ev.debut)+' · '+dur+'</span>'+ev.name+'</div>';
+    });
+    html+='</div></div>';
+  });
+  document.getElementById('weekGrid').innerHTML=html;
+}
+
+// ── RING ──────────────────────────────────────────────────────────
+function updateRing() {
+  var total = 0, filled = 0;
+  BLOCS.forEach(function(id){
+    if(!enabled[id]) return;
+    total++;
+    if(state[id] && state[id].length > 0) filled++;
+  });
+  Object.keys(customBlocs).forEach(function(customId){
+    if(!customBlocs[customId].enabled) return;
+    total++;
+    if(customBlocs[customId].creneaux && customBlocs[customId].creneaux.length > 0) filled++;
+  });
+  var p = total > 0 ? Math.round(filled/total*100) : 0;
+  document.getElementById('ringFill').style.strokeDashoffset = 113-(p/100)*113;
+  document.getElementById('ringLabel').textContent = filled+'/'+total;
+}
+
+// ── SAVE / LOAD ───────────────────────────────────────────────────
+var LS_KEY = 'amour_agenda_v3';
+function save(){
+  try{
+    localStorage.setItem(LS_KEY,JSON.stringify({
+      state:state,
+      enabled:enabled,
+      customBlocs:customBlocs,
+      customCount:customCount,
+      selectedWeekStart:selectedWeekStart?dateToString(selectedWeekStart):null
+    }));
+  }catch(e){}
+}
+function load(){
+  try{
+    var raw=localStorage.getItem(LS_KEY);
+    if(!raw) return false;
+    var d=JSON.parse(raw);
+    if(d.state) state=d.state;
+    if(d.enabled) {
+      BLOCS.forEach(function(id){
+        if(typeof d.enabled[id]==='boolean') enabled[id]=d.enabled[id];
+      });
+    }
+    if(d.customBlocs) customBlocs=d.customBlocs;
+    if(d.customCount) customCount=d.customCount;
+    if(d.selectedWeekStart) selectedWeekStart=stringToDate(d.selectedWeekStart);
+    return true;
+  }catch(e){return false;}
+}
+
+// ── ICS ───────────────────────────────────────────────────────────
+function generateICS() {
+  var hasAny = BLOCS.some(function(id){return enabled[id] && state[id] && state[id].length>0;}) ||
+               Object.keys(customBlocs).some(function(id){return customBlocs[id].enabled && customBlocs[id].creneaux && customBlocs[id].creneaux.length>0;});
+  if(!hasAny){showToast('Active et configure au moins un bloc !');return;}
+
+  function toICS(dateStr, timeStr){
+    var t=parseTime(timeStr);
+    var d=new Date(dateStr + 'T00:00:00Z');
+    d.setUTCHours(t.h,t.m,0,0);
+    return d.getUTCFullYear()+pad(d.getUTCMonth()+1)+pad(d.getUTCDate())+'T'+pad(d.getUTCHours())+pad(d.getUTCMinutes())+'00Z';
+  }
+  function dateToDay(dateStr) {
+    var d = new Date(dateStr + 'T00:00:00Z');
+    var dow = d.getUTCDay();
+    var days = ['SU','MO','TU','WE','TH','FR','SA'];
+    return days[dow];
+  }
+  function uid(){return Date.now()+Math.random().toString(36).substr(2)+'@amourstudios';}
+
+  var lines=[
+    'BEGIN:VCALENDAR','VERSION:2.0',
+    'PRODID:-//AMOUR STUDIOS//Semaine Createur//FR',
+    'CALSCALE:GREGORIAN','METHOD:PUBLISH',
+    'X-WR-CALNAME:📅 Contenu — Amour Studios',
+    'X-WR-TIMEZONE:Europe/Paris',
+  ];
+
+  BLOCS.forEach(function(id){
+    if(!enabled[id]) return;
+    state[id].forEach(function(s){
+      var dtStart = toICS(s.jour, s.debut);
+      var dtEnd   = toICS(s.jour, addMinutes(s.debut, parseInt(s.duree)));
+      var dayOfWeek = dateToDay(s.jour);
+      lines.push('BEGIN:VEVENT');
+      lines.push('UID:'+uid());
+      lines.push('DTSTART:'+dtStart);
+      lines.push('DTEND:'+dtEnd);
+      lines.push('RRULE:FREQ=WEEKLY;BYDAY='+dayOfWeek);
+      lines.push('SUMMARY:'+NAMES_FULL[id]);
+      lines.push('DESCRIPTION:'+DESCS[id]);
+      lines.push('BEGIN:VALARM');
+      lines.push('TRIGGER:-PT15M');
+      lines.push('ACTION:DISPLAY');
+      lines.push('DESCRIPTION:Rappel 15min — '+NAMES_FULL[id]);
+      lines.push('END:VALARM');
+      lines.push('END:VEVENT');
+    });
+  });
+
+  Object.keys(customBlocs).forEach(function(customId){
+    var custom = customBlocs[customId];
+    if(!custom.enabled) return;
+    custom.creneaux.forEach(function(s){
+      var dtStart = toICS(s.jour, s.debut);
+      var dtEnd   = toICS(s.jour, addMinutes(s.debut, parseInt(s.duree)));
+      var dayOfWeek = dateToDay(s.jour);
+      lines.push('BEGIN:VEVENT');
+      lines.push('UID:'+uid());
+      lines.push('DTSTART:'+dtStart);
+      lines.push('DTEND:'+dtEnd);
+      lines.push('RRULE:FREQ=WEEKLY;BYDAY='+dayOfWeek);
+      lines.push('SUMMARY:'+custom.name);
+      lines.push('DESCRIPTION:'+custom.desc);
+      lines.push('BEGIN:VALARM');
+      lines.push('TRIGGER:-PT15M');
+      lines.push('ACTION:DISPLAY');
+      lines.push('DESCRIPTION:Rappel 15min — '+custom.name);
+      lines.push('END:VALARM');
+      lines.push('END:VEVENT');
+    });
+  });
+
+  lines.push('END:VCALENDAR');
+
+  var blob=new Blob([lines.join('\r\n')],{type:'text/calendar;charset=utf-8'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a'); a.href=url; a.download='AMOUR_STUDIOS_Semaine_Createur.ics';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  showToast('✓ Fichier .ics prêt ! Ouvre-le pour importer dans Google Agenda — tous les blocs récurrents avec rappel 15min.');
+}
+
+// ── TOAST ─────────────────────────────────────────────────────────
+function showToast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},4500);}
+
+// ── INIT ──────────────────────────────────────────────────────────
+(function init(){
+  // Initialize DEFAULTS with actual dates
+  if(!DEFAULTS) {
+    DEFAULTS = {
+      veille:  [{jour:defaultDate(0),debut:'09:00',duree:'90'}],
+      planif:  [{jour:defaultDate(0),debut:'14:00',duree:'60'}],
+      prod:    [{jour:defaultDate(1),debut:'14:00',duree:'150'}],
+      montage: [{jour:defaultDate(3),debut:'14:00',duree:'90'}],
+      engage:  [{jour:defaultDate(0),debut:'19:00',duree:'15'},{jour:defaultDate(1),debut:'19:00',duree:'15'},{jour:defaultDate(2),debut:'19:00',duree:'15'},{jour:defaultDate(3),debut:'19:00',duree:'15'},{jour:defaultDate(4),debut:'19:00',duree:'15'},{jour:defaultDate(5),debut:'19:00',duree:'15'},{jour:defaultDate(6),debut:'19:00',duree:'15'}],
+      analyse: [{jour:defaultDate(6),debut:'10:00',duree:'30'}],
+    };
+  }
+
+  // Load saved or use defaults
+  var loaded = load();
+  if(!loaded) {
+    BLOCS.forEach(function(id){ state[id] = JSON.parse(JSON.stringify(DEFAULTS[id])); });
+    selectedWeekStart = getNextMonday();
+  } else {
+    // Ensure all blocs exist in state
+    BLOCS.forEach(function(id){ if(!state[id]||!state[id].length) state[id]=JSON.parse(JSON.stringify(DEFAULTS[id])); });
+    if(!selectedWeekStart) selectedWeekStart = getNextMonday();
+  }
+
+  // Set date picker value
+  var dateInput = document.getElementById('weekStartDate');
+  dateInput.value = dateToString(selectedWeekStart);
+
+  // Render all fixed blocs
+  BLOCS.forEach(function(id){
+    renderBloc(id);
+    // Apply disabled state
+    var cb=document.querySelector('.bloc[data-id="'+id+'"] input[type="checkbox"]');
+    if(cb){ cb.checked=enabled[id]; if(!enabled[id]) document.querySelector('.bloc[data-id="'+id+'"]').classList.add('disabled'); }
+  });
+
+  // Render custom blocs
+  Object.keys(customBlocs).forEach(function(customId){
+    renderCustomBlocHTML(customId);
+    var cb = document.querySelector('#bloc-'+customId+' input[type="checkbox"]');
+    if(cb){ cb.checked=customBlocs[customId].enabled; if(!customBlocs[customId].enabled) document.getElementById('bloc-'+customId).classList.add('disabled'); }
+  });
+
+  updateAddCustomBtnState();
+  updatePreview();
+  updateRing();
+})();
+</script>
+<script src="/exos/_bridge.js"></script>
+</body>
+</html>

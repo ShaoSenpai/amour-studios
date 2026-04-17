@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Lock, Sparkles, ArrowRight } from "lucide-react";
+import { Lock, ArrowRight } from "lucide-react";
 
 export function UpsellBanner({
   onClick,
@@ -12,51 +12,35 @@ export function UpsellBanner({
     <button
       type="button"
       onClick={onClick}
-      className="group relative mb-6 flex w-full items-center justify-between gap-4 overflow-hidden border border-[#FF6B1F]/30 bg-[rgba(255,107,31,0.08)] px-5 py-4 text-left transition-all duration-700 [transition-timing-function:var(--ease-reveal)] hover:bg-[rgba(255,107,31,0.14)] hover:border-[#FF6B1F]/55 md:px-7 md:py-5"
+      className="group relative mb-6 flex w-full items-center gap-3 overflow-hidden border border-[#FF6B1F]/30 bg-[rgba(255,107,31,0.08)] px-4 py-3 text-left transition-all duration-700 [transition-timing-function:var(--ease-reveal)] hover:bg-[rgba(255,107,31,0.14)] hover:border-[#FF6B1F]/55 md:px-6 md:py-4"
       style={{ minHeight: 0 }}
     >
-      <div className="flex items-center gap-4 md:gap-5">
-        <div className="flex size-10 shrink-0 items-center justify-center bg-[#FF6B1F] text-[#0D0B08]">
-          <Sparkles size={18} />
+      <div className="min-w-0 flex-1">
+        <div
+          className="text-base italic leading-tight text-foreground md:text-lg"
+          style={{ fontFamily: "var(--font-serif)" }}
+        >
+          Tu vois <em className="text-[#FF6B1F]">5 %</em> de la formation.
         </div>
-        <div className="min-w-0">
-          <div
-            className="font-mono text-[10px] uppercase tracking-[2px] text-[#FF6B1F]"
-            style={{ fontFamily: "var(--font-body-legacy)" }}
-          >
-            ◦ MODE PREVIEW · ACCÈS PARTIEL
-          </div>
-          <div
-            className="mt-1 text-xl italic leading-tight text-foreground md:text-2xl"
-            style={{ fontFamily: "var(--font-serif)" }}
-          >
-            Tu vois <em className="text-[#FF6B1F]">5 % de la formation.</em>
-          </div>
-          <div
-            className="mt-1 font-mono text-[11px] text-foreground/65 md:text-[12px]"
-            style={{ fontFamily: "var(--font-body-legacy)" }}
-          >
-            Débloque les <strong className="text-foreground">06 modules</strong>,{" "}
-            <strong className="text-foreground">20+ leçons</strong> et la communauté VIP — accès à vie.
-          </div>
+        <div
+          className="mt-0.5 font-mono text-[10px] text-foreground/55 md:text-[11px]"
+          style={{ fontFamily: "var(--font-body-legacy)" }}
+        >
+          06 modules · 20+ leçons · Discord VIP · accès à vie
         </div>
       </div>
 
-      <div className="flex shrink-0 items-center gap-2 md:gap-3">
-        <span
-          className="hidden font-mono text-[11px] uppercase tracking-[1.5px] text-foreground/70 sm:inline"
-          style={{ fontFamily: "var(--font-body-legacy)" }}
-        >
-          DÈS 497 €
-        </span>
-        <div className="flex items-center gap-2 bg-[#FF6B1F] px-4 py-2.5 font-mono text-[11px] uppercase tracking-[2px] text-[#0D0B08] transition-all duration-700 [transition-timing-function:var(--ease-reveal)] group-hover:tracking-[3px] group-hover:pr-5">
-          <Lock size={12} />
-          <span>DÉBLOQUER</span>
-          <ArrowRight
-            size={13}
-            className="transition-transform duration-700 [transition-timing-function:var(--ease-reveal)] group-hover:translate-x-1"
-          />
-        </div>
+      <div
+        className="flex shrink-0 items-center gap-1.5 bg-[#FF6B1F] px-3 py-2 font-mono text-[10px] uppercase tracking-[2px] text-[#0D0B08] transition-all duration-700 [transition-timing-function:var(--ease-reveal)] group-hover:tracking-[3px] group-hover:pr-4 md:px-4 md:py-2.5 md:text-[11px]"
+        style={{ fontFamily: "var(--font-body-legacy)", minHeight: 0 }}
+      >
+        <Lock size={11} />
+        <span className="hidden sm:inline">DÉBLOQUER</span>
+        <span className="sm:hidden">497 €</span>
+        <ArrowRight
+          size={12}
+          className="transition-transform duration-700 [transition-timing-function:var(--ease-reveal)] group-hover:translate-x-1"
+        />
       </div>
     </button>
   );

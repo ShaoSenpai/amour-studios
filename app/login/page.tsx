@@ -38,14 +38,14 @@ function LoginInner() {
     return (
       <main className="ds-grid-bg relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-background px-6 py-16 text-foreground">
         <div className="ds-reveal relative z-10 flex w-full max-w-md flex-col gap-6">
-          <div className="flex size-16 items-center justify-center rounded-full bg-[#E63326]/10">
-            <DiscordIcon className="text-[#E63326]" />
+          <div className="flex size-16 items-center justify-center rounded-full bg-[#E63326]/20">
+            <DiscordIcon size={28} className="text-[#E63326]" />
           </div>
 
           <p className="ds-label text-[#E63326]">◦ Accès refusé</p>
 
           <h1 className="ds-display">
-            Rejoins le <em className="italic text-foreground">Discord</em> d&apos;abord.
+            Rejoins le Discord d&apos;abord.
           </h1>
 
           <p className="ds-body text-foreground/80">
@@ -61,7 +61,7 @@ function LoginInner() {
               className="group ds-label flex flex-1 items-center justify-center gap-3 bg-[#5865F2] px-6 py-4 text-white transition-all duration-700 [transition-timing-function:var(--ease-reveal)] hover:tracking-[3px] hover:bg-[#4752C4]"
               style={{ minHeight: 0 }}
             >
-              <DiscordIcon />
+              <DiscordIcon size={22} />
               Rejoindre le serveur
               <span
                 className="text-xl italic transition-transform duration-700 [transition-timing-function:var(--ease-reveal)] group-hover:translate-x-1"
@@ -162,7 +162,7 @@ function LoginInner() {
               href="https://www.amourstudios.fr"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[#2B7A6F] underline-offset-4 hover:underline"
+              className="inline-flex items-center gap-1 whitespace-nowrap text-[#2B7A6F] underline-offset-4 hover:underline"
             >
               amourstudios.fr ↗
             </Link>

@@ -145,7 +145,7 @@ export function PaymentModal({
       />
       <div
         onClick={(e) => e.stopPropagation()}
-        className="ds-reveal relative w-full max-w-xl max-h-[92vh] overflow-y-auto border border-foreground/15 bg-background"
+        className="ds-reveal relative w-full max-w-xl max-h-[92dvh] overflow-y-auto border border-foreground/15 bg-background"
       >
         {/* Header */}
         <div className="sticky top-0 z-10 bg-[#FFB347] px-6 py-5 text-[#0D0B08] md:px-8">

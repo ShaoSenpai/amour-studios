@@ -1,9 +1,8 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { Id } from "@/convex/_generated/dataModel";
-import { Check, Lock, ArrowRight, ExternalLink, ChevronDown } from "lucide-react";
+import { Check, Lock, ChevronDown, ExternalLink } from "lucide-react";
 import { MODULE_ACCENTS } from "@/lib/module-accents";
 
 type Exo = {
@@ -24,7 +23,23 @@ type Exo = {
 
 type Filter = "all" | "todo" | "done";
 
-export function ExosGrid({ exos }: { exos: Exo[] }) {
+const STATE = {
+  done: "var(--state-done)",
+  doneBg: "var(--state-done-bg)",
+  doneFg: "var(--state-done-fg)",
+  activeBg: "var(--state-active-bg)",
+  activeFg: "var(--state-active-fg)",
+  locked: "var(--state-locked)",
+  lockedBorder: "var(--state-locked-border)",
+} as const;
+
+export function ExosGrid({
+  exos,
+  firstAvailableId,
+}: {
+  exos: Exo[];
+  firstAvailableId: string | null;
+}) {
   const [filter, setFilter] = React.useState<Filter>("all");
   const [moduleFilter, setModuleFilter] = React.useState<string | null>(null);
 
@@ -141,7 +156,7 @@ export function ExosGrid({ exos }: { exos: Exo[] }) {
         </div>
       </div>
 
-      {/* Liste groupée par module */}
+      {/* Liste — cartes modules (style /dashboard) */}
       {filtered.length === 0 ? (
         <div className="flex flex-col items-center gap-4 border border-dashed border-foreground/15 bg-foreground/[0.02] py-16 text-center">
           <p
@@ -162,9 +177,13 @@ export function ExosGrid({ exos }: { exos: Exo[] }) {
           )}
         </div>
       ) : (
-        <div className="flex flex-col gap-10">
+        <div className="ds-cascade flex flex-col gap-3">
           {groupedByModule.map((group) => (
-            <ModuleSection key={group.id} group={group} />
+            <ModuleCard
+              key={group.id}
+              group={group}
+              firstAvailableId={firstAvailableId}
+            />
           ))}
         </div>
       )}
@@ -172,92 +191,146 @@ export function ExosGrid({ exos }: { exos: Exo[] }) {
   );
 }
 
-// ── Module section (collapsible) ─────────────────────────────────────────
+// ── Carte module (style dashboard) ────────────────────────────────────────
 
-function ModuleSection({
+function italicizeLastWord(title: string): React.ReactNode {
+  const words = title.split(" ");
+  if (words.length < 2) return title;
+  const last = words[words.length - 1];
+  const before = title.slice(0, title.lastIndexOf(last));
+  return (
+    <>
+      {before}
+      <em className="italic">{last}</em>
+    </>
+  );
+}
+
+function ModuleCard({
   group,
+  firstAvailableId,
 }: {
   group: { id: string; title: string; order: number; items: Exo[] };
+  firstAvailableId: string | null;
 }) {
   const accent = MODULE_ACCENTS[group.order % MODULE_ACCENTS.length];
   const doneCount = group.items.filter((e) => e.state === "completed").length;
   const total = group.items.length;
-  const pct = total > 0 ? Math.round((doneCount / total) * 100) : 0;
   const allDone = doneCount === total && total > 0;
+  const hasAvailable = group.items.some((e) => e.state === "available");
 
-  // Modules 100% complétés fermés par défaut, les autres ouverts
-  const [open, setOpen] = React.useState(!allDone);
-
-  // Index du premier exo "available" dans ce module (pour le mettre en avant)
-  const firstAvailableIdx = group.items.findIndex((e) => e.state === "available");
+  // Ouvert par défaut si pas terminé, ou s'il contient l'exo global "à reprendre"
+  const containsFirstAvailable = firstAvailableId
+    ? group.items.some((e) => (e._id as string) === firstAvailableId)
+    : false;
+  const [open, setOpen] = React.useState(!allDone || containsFirstAvailable);
 
   return (
-    <section role="region" aria-label={`Module ${group.order + 1} — ${group.title}`}>
-      {/* Module header — clickable toggle */}
+    <div
+      className="group/module relative overflow-hidden rounded-md border border-foreground/20 bg-[color:var(--paper-2,var(--card))] transition-[border-color] duration-300 hover:border-foreground/40"
+      style={{ boxShadow: `inset 4px 0 0 0 ${allDone ? "var(--state-done)" : accent}` }}
+    >
+      {/* Hover fill bottom-up */}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-0 origin-bottom transition-[height] duration-400 ease-[cubic-bezier(.22,1,.36,1)] group-hover/module:h-full"
+        style={{ background: `${accent}28` }}
+      />
+
+      {/* Header click → toggle */}
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="group/hdr flex w-full items-center gap-3 text-left"
+        className="relative z-10 grid w-full cursor-pointer grid-cols-[auto_1fr_auto] items-center gap-5 px-5 py-5 pl-7 text-left md:px-8 md:pl-10"
+        style={{ minHeight: 0 }}
         aria-expanded={open}
       >
-        <span
-          className="font-mono text-[13px] font-bold tabular-nums md:text-[15px]"
-          style={{ fontFamily: "var(--font-body-legacy)", color: accent }}
+        <div
+          className="text-[28px] italic leading-none tracking-tight md:text-[34px]"
+          style={{ fontFamily: "var(--font-serif)", color: accent }}
         >
           {String(group.order + 1).padStart(2, "0")}
-        </span>
-        <div className="min-w-0 flex-1">
+        </div>
+
+        <div className="min-w-0">
           <h3
-            className="text-xl italic leading-tight md:text-2xl"
+            className="text-[clamp(20px,2.8vw,28px)] font-normal leading-[1.1] tracking-[-0.5px] text-foreground"
             style={{ fontFamily: "var(--font-serif)" }}
           >
-            {group.title}
+            {italicizeLastWord(group.title)}
           </h3>
+          <p
+            className="mt-2 font-mono text-[11px] uppercase tracking-[1.5px] text-foreground/45 md:text-[12px]"
+            style={{ fontFamily: "var(--font-body-legacy)" }}
+          >
+            {total} {total > 1 ? "exos" : "exo"}
+            {hasAvailable && !allDone && (
+              <>
+                {" "}
+                ·{" "}
+                <span style={{ color: "var(--state-active)" }}>
+                  {group.items.filter((e) => e.state === "available").length} à faire
+                </span>
+              </>
+            )}
+          </p>
         </div>
-        <span
-          className="font-mono text-[10px] tabular-nums text-foreground/50"
-          style={{ fontFamily: "var(--font-body-legacy)" }}
-        >
-          {doneCount}/{total}
-        </span>
-        <ChevronDown
-          size={16}
-          aria-hidden="true"
-          className={`shrink-0 text-foreground/40 transition-transform duration-200 ${
-            open ? "rotate-0" : "-rotate-90"
-          }`}
-        />
+
+        <div className="flex shrink-0 items-center gap-4">
+          <div
+            className="hidden items-center gap-2 font-mono text-[11px] tracking-[1px] md:flex"
+            style={{ fontFamily: "var(--font-body-legacy)" }}
+          >
+            <span
+              style={{ color: allDone ? STATE.done : "var(--foreground)" }}
+              className="tabular-nums"
+            >
+              {String(doneCount).padStart(2, "0")}
+            </span>
+            <span className="opacity-40">/</span>
+            <span className="opacity-60 tabular-nums">{String(total).padStart(2, "0")}</span>
+            {allDone && <Check size={14} style={{ color: STATE.done }} aria-hidden="true" />}
+          </div>
+
+          <div
+            className="flex size-8 items-center justify-center border transition-transform duration-300"
+            style={{
+              borderColor: "var(--state-locked-border)",
+              color: "var(--foreground)",
+              transform: open ? "rotate(180deg)" : "rotate(0)",
+            }}
+            aria-hidden="true"
+          >
+            <ChevronDown size={14} />
+          </div>
+        </div>
       </button>
 
-      {/* Barre de progression */}
-      <div className="mt-2 mb-3 h-[3px] w-full overflow-hidden rounded-full bg-foreground/10">
-        <div
-          className="h-full rounded-full transition-[width] duration-700"
-          style={{ width: `${pct}%`, background: accent }}
-        />
+      {/* Expandable — liste d'exos (LessonLine style) */}
+      <div className={`ds-collapse-wrap ${open ? "open" : ""}`}>
+        <div className="ds-collapse-inner">
+          <div className="relative z-10 border-t border-foreground/10 px-6 py-2 md:px-10 md:pl-12">
+            <ul role="list" className="flex flex-col divide-y divide-foreground/10">
+              {group.items.map((exo, i) => (
+                <ExoLine
+                  key={exo._id as string}
+                  exo={exo}
+                  index={i}
+                  accent={accent}
+                  isNext={(exo._id as string) === firstAvailableId}
+                />
+              ))}
+            </ul>
+          </div>
+        </div>
       </div>
-
-      {/* Exo rows */}
-      {open && (
-        <ul role="list" className="flex flex-col">
-          {group.items.map((exo, i) => (
-            <ExoRow
-              key={exo._id as string}
-              exo={exo}
-              index={i}
-              accent={accent}
-              isNext={i === firstAvailableIdx}
-            />
-          ))}
-        </ul>
-      )}
-    </section>
+    </div>
   );
 }
 
-// ── Exo row ──────────────────────────────────────────────────────────────
+// ── Ligne d'exo (style LessonLine) ────────────────────────────────────────
 
-function ExoRow({
+function ExoLine({
   exo,
   index,
   accent,
@@ -269,6 +342,8 @@ function ExoRow({
   isNext: boolean;
 }) {
   const state = exo.state;
+  const unlocked = state !== "locked";
+  const completed = state === "completed";
   const href = `/lesson/${exo.lessonId}`;
 
   const directUrl = React.useMemo(() => {
@@ -284,117 +359,164 @@ function ExoRow({
     }
   }, [exo.exerciseUrl]);
 
-  return (
-    <li
-      className={`group flex items-center gap-3 border-b border-foreground/8 py-3 last:border-b-0 ${
-        state === "locked" ? "opacity-50" : ""
-      } ${isNext ? "relative -mx-3 rounded-md border-b-0 bg-foreground/[0.04] px-3 py-3.5" : ""}`}
-      aria-current={isNext ? "step" : undefined}
-      style={isNext ? { borderLeft: `3px solid ${accent}` } : undefined}
+  // Pastille sémantique (mêmes règles que LessonLine du dashboard)
+  const pillBg = completed
+    ? STATE.doneBg
+    : isNext && unlocked
+    ? STATE.activeBg
+    : "transparent";
+  const pillBorder =
+    completed || (isNext && unlocked)
+      ? "transparent"
+      : unlocked
+      ? "var(--fg-faint)"
+      : "var(--fg-line)";
+  const pillColor = completed
+    ? STATE.doneFg
+    : isNext && unlocked
+    ? STATE.activeFg
+    : unlocked
+    ? "var(--foreground)"
+    : STATE.locked;
+
+  const rowContent = (
+    <div
+      className={`group/exo relative flex items-center gap-4 overflow-hidden px-2 py-3 ${
+        unlocked ? "" : "cursor-not-allowed"
+      }`}
     >
-      {/* Numéro / état */}
-      <div
-        className="flex size-8 shrink-0 items-center justify-center rounded-full font-mono text-[11px] font-bold"
-        style={{
-          fontFamily: "var(--font-body-legacy)",
-          background:
-            state === "completed"
-              ? "var(--state-done-bg)"
-              : state === "available"
-              ? `${accent}18`
-              : "transparent",
-          color:
-            state === "completed"
-              ? "var(--state-done-fg)"
-              : state === "available"
-              ? accent
-              : "var(--foreground)",
-          border:
-            state === "locked" ? "1px dashed var(--fg-line, rgba(0,0,0,0.15))" : "none",
-        }}
-      >
-        {state === "completed" ? (
-          <Check size={14} aria-hidden="true" />
-        ) : state === "locked" ? (
-          <Lock size={12} aria-hidden="true" />
-        ) : (
-          String(index + 1).padStart(2, "0")
-        )}
-      </div>
-
-      {/* Titre + sous-titre leçon */}
-      <div className="min-w-0 flex-1">
-        <div
-          className={`truncate text-[15px] leading-snug ${
-            state === "completed"
-              ? "text-foreground/60"
-              : isNext
-              ? "text-foreground font-medium"
-              : "text-foreground"
-          }`}
-          style={{ fontFamily: "var(--font-serif)" }}
-        >
-          {exo.title}
-        </div>
-        <div
-          className="mt-0.5 truncate font-mono text-[9px] uppercase tracking-[1.5px] text-foreground/40"
-          style={{ fontFamily: "var(--font-body-legacy)" }}
-        >
-          Leçon {String(exo.lessonOrder + 1).padStart(2, "0")} · {exo.lessonTitle}
-          {/* Screen reader status */}
-          <span className="sr-only">
-            {state === "completed" ? " — Complété" : state === "locked" ? " — Verrouillé" : " — À faire"}
-          </span>
-        </div>
-      </div>
-
-      {/* Actions — touch targets 44px minimum sur mobile */}
-      {state === "locked" ? (
+      {unlocked && (
         <span
-          className="hidden font-mono text-[9px] uppercase tracking-[1.5px] text-foreground/35 sm:inline"
-          style={{ fontFamily: "var(--font-body-legacy)" }}
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-0 origin-bottom transition-[height] duration-300 ease-[cubic-bezier(.22,1,.36,1)] group-hover/exo:h-full"
+          style={{ background: `${accent}40` }}
+        />
+      )}
+      <div className="relative z-10 flex flex-1 items-center gap-4">
+        {/* Pastille état */}
+        <div
+          className="flex size-6 shrink-0 items-center justify-center rounded-full border font-mono text-[10px] font-bold"
+          style={{
+            background: pillBg,
+            borderColor: pillBorder,
+            color: pillColor,
+            fontFamily: "var(--font-body-legacy)",
+          }}
         >
-          Verrouillé
-        </span>
-      ) : (
-        <div className="flex shrink-0 items-center gap-1.5">
-          {directUrl && (
+          {completed ? (
+            <Check size={11} aria-hidden="true" />
+          ) : !unlocked ? (
+            <Lock size={10} aria-hidden="true" />
+          ) : (
+            String(index + 1).padStart(2, "0")
+          )}
+        </div>
+
+        {/* Titre + sous-titre leçon */}
+        <div className="min-w-0 flex-1">
+          <div
+            className="truncate font-normal leading-snug"
+            style={{
+              fontFamily: "var(--font-serif)",
+              fontSize: "16px",
+              color: completed
+                ? "var(--fg-soft)"
+                : unlocked
+                ? "var(--foreground)"
+                : "var(--state-locked)",
+            }}
+          >
+            {exo.title}
+          </div>
+          <div
+            className="mt-0.5 truncate font-mono text-[10px] uppercase tracking-[1.5px] text-foreground/50"
+            style={{ fontFamily: "var(--font-body-legacy)" }}
+          >
+            Leçon {String(exo.lessonOrder + 1).padStart(2, "0")} · {exo.lessonTitle}
+            <span className="sr-only">
+              {completed
+                ? " — Complété"
+                : !unlocked
+                ? " — Verrouillé"
+                : isNext
+                ? " — À reprendre"
+                : " — À faire"}
+            </span>
+          </div>
+        </div>
+
+        {/* Actions droite : external link (secondaire) + badge état */}
+        <div className="flex shrink-0 items-center gap-2">
+          {directUrl && unlocked && (
             <a
               href={directUrl}
               target="_blank"
               rel="noopener noreferrer"
-              title="Nouvelle fenêtre"
+              title="Ouvrir l'exo en nouvel onglet"
               aria-label={`Ouvrir ${exo.title} dans un nouvel onglet`}
-              className="flex size-9 items-center justify-center rounded-full border border-foreground/12 text-foreground/50 transition-all hover:border-foreground/35 hover:text-foreground md:size-7"
+              className="flex size-7 items-center justify-center rounded-full border border-foreground/12 text-foreground/50 transition-all hover:border-foreground/35 hover:text-foreground"
               onClick={(e) => e.stopPropagation()}
             >
-              <ExternalLink size={12} aria-hidden="true" />
+              <ExternalLink size={11} aria-hidden="true" />
             </a>
           )}
-          <Link
-            href={href}
-            className="flex min-h-[36px] items-center gap-1 rounded-full px-3.5 py-2 font-mono text-[10px] font-bold uppercase tracking-[1.5px] transition-all hover:pr-5 md:min-h-0 md:py-1.5"
-            style={{
-              background:
-                isNext
-                  ? accent
-                  : state === "completed"
-                  ? "var(--state-done-bg)"
-                  : "var(--foreground)",
-              color:
-                isNext
-                  ? "#0D0B08"
-                  : state === "completed"
-                  ? "var(--state-done-fg)"
-                  : "var(--background)",
-              fontFamily: "var(--font-body-legacy)",
-            }}
-          >
-            {isNext ? "Continuer" : state === "completed" ? "Revoir" : "Ouvrir"}
-            <ArrowRight size={10} aria-hidden="true" />
-          </Link>
+
+          {completed ? (
+            <span
+              className="font-mono text-[10px] font-bold uppercase tracking-[1.5px] px-2 py-1"
+              style={{
+                background: STATE.doneBg,
+                color: STATE.doneFg,
+                fontFamily: "var(--font-body-legacy)",
+              }}
+            >
+              ✓ FAIT
+            </span>
+          ) : isNext && unlocked ? (
+            <span
+              className="font-mono text-[10px] font-bold uppercase tracking-[1.5px] px-2 py-1"
+              style={{
+                background: STATE.activeBg,
+                color: STATE.activeFg,
+                fontFamily: "var(--font-body-legacy)",
+              }}
+            >
+              ● CONTINUER
+            </span>
+          ) : !unlocked ? (
+            <span
+              className="flex items-center gap-1 border border-dashed px-2 py-1 font-mono text-[10px] uppercase tracking-[1.5px]"
+              style={{
+                color: STATE.locked,
+                borderColor: STATE.lockedBorder,
+                fontFamily: "var(--font-body-legacy)",
+              }}
+            >
+              <Lock size={10} aria-hidden="true" />
+              BLOQUÉ
+            </span>
+          ) : (
+            <span
+              className="text-lg italic text-foreground/30 transition-colors group-hover/exo:text-foreground/70"
+              style={{ fontFamily: "var(--font-serif)" }}
+              aria-hidden="true"
+            >
+              →
+            </span>
+          )}
         </div>
-      )}
-    </li>
+      </div>
+    </div>
   );
+
+  if (unlocked) {
+    return (
+      <li>
+        <a href={href} className="block">
+          {rowContent}
+        </a>
+      </li>
+    );
+  }
+  return <li>{rowContent}</li>;
 }

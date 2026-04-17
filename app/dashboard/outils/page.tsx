@@ -113,7 +113,10 @@ export default function OutilsPage() {
           </TabsList>
 
           <TabsContent value="exos" className="mt-0">
-            <ExosGrid exos={exos} />
+            <ExosGrid
+              exos={exos}
+              firstAvailableId={firstAvailable ? (firstAvailable._id as string) : null}
+            />
           </TabsContent>
           {showToolsTab && (
             <TabsContent value="tools" className="mt-0">

@@ -29,6 +29,7 @@ const STATE_COLOR = {
 import { ActivityCard } from "@/components/ds/activity-card";
 import { AnnouncementsBanner } from "@/components/ds/announcements-banner";
 import { UnlockOverlay } from "@/components/payment/unlock-overlay";
+import { MODULE_ACCENTS } from "@/lib/module-accents";
 
 export default function DashboardPage() {
   const user = useQuery(api.users.current);
@@ -365,15 +366,6 @@ function PendingGate({
     </main>
   );
 }
-
-const MODULE_ACCENTS = [
-  "#F5B820",
-  "#FF6B1F",
-  "#E63326",
-  "#F2B8A2",
-  "#2B7A6F",
-  "#0D4D35",
-];
 
 function ModulesBento({
   modules,

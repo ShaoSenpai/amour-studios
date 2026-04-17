@@ -3,7 +3,8 @@
 import * as React from "react";
 import Link from "next/link";
 import { Id } from "@/convex/_generated/dataModel";
-import { Check, Lock, ArrowRight, ExternalLink } from "lucide-react";
+import { Check, Lock, ArrowRight, ExternalLink, ChevronDown } from "lucide-react";
+import { MODULE_ACCENTS } from "@/lib/module-accents";
 
 type Exo = {
   _id: Id<"exercises">;
@@ -23,26 +24,32 @@ type Exo = {
 
 type Filter = "all" | "todo" | "done";
 
-const MODULE_ACCENTS = [
-  "#F5B820", "#FF6B1F", "#E63326", "#F2B8A2", "#2B7A6F", "#0D4D35",
-];
-
 export function ExosGrid({ exos }: { exos: Exo[] }) {
   const [filter, setFilter] = React.useState<Filter>("all");
   const [moduleFilter, setModuleFilter] = React.useState<string | null>(null);
 
-  const modulesUsed = Array.from(
-    new Map(exos.map((e) => [e.moduleId as string, e])).values()
-  )
-    .sort((a, b) => a.moduleOrder - b.moduleOrder)
-    .map((e) => ({ id: e.moduleId as string, title: e.moduleTitle, order: e.moduleOrder }));
+  const modulesUsed = React.useMemo(
+    () =>
+      Array.from(new Map(exos.map((e) => [e.moduleId as string, e])).values())
+        .sort((a, b) => a.moduleOrder - b.moduleOrder)
+        .map((e) => ({
+          id: e.moduleId as string,
+          title: e.moduleTitle,
+          order: e.moduleOrder,
+        })),
+    [exos]
+  );
 
-  const filtered = exos.filter((e) => {
-    if (moduleFilter && (e.moduleId as string) !== moduleFilter) return false;
-    if (filter === "todo") return e.state === "available";
-    if (filter === "done") return e.state === "completed";
-    return true;
-  });
+  const filtered = React.useMemo(
+    () =>
+      exos.filter((e) => {
+        if (moduleFilter && (e.moduleId as string) !== moduleFilter) return false;
+        if (filter === "todo") return e.state === "available";
+        if (filter === "done") return e.state === "completed";
+        return true;
+      }),
+    [exos, filter, moduleFilter]
+  );
 
   const groupedByModule = React.useMemo(() => {
     const map = new Map<string, { title: string; order: number; items: Exo[] }>();
@@ -58,124 +65,209 @@ export function ExosGrid({ exos }: { exos: Exo[] }) {
       .sort((a, b) => a.order - b.order);
   }, [filtered]);
 
+  const resetFilters = () => {
+    setFilter("all");
+    setModuleFilter(null);
+  };
+  const hasActiveFilter = filter !== "all" || moduleFilter !== null;
+
   return (
     <>
-      {/* Filtres */}
-      <div className="mb-6 flex flex-wrap items-center gap-2">
-        {([
-          { key: "all" as Filter, label: "Tous" },
-          { key: "todo" as Filter, label: "À faire" },
-          { key: "done" as Filter, label: "Complétés" },
-        ]).map(({ key, label }) => {
-          const isActive = filter === key;
-          return (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setFilter(key)}
-              className={`border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[1.5px] transition-colors ${
-                isActive
-                  ? "border-foreground bg-foreground text-background"
-                  : "border-foreground/20 bg-foreground/[0.03] text-foreground/70 hover:border-foreground/45 hover:text-foreground"
-              }`}
-              style={{ fontFamily: "var(--font-body-legacy)", minHeight: 0 }}
-            >
-              {label}
-            </button>
-          );
-        })}
-        {modulesUsed.length > 1 && (
-          <>
-            <span className="mx-1 h-5 w-px bg-foreground/15" />
-            {modulesUsed.map((m) => {
-              const isActive = moduleFilter === m.id;
-              const accent = MODULE_ACCENTS[m.order % MODULE_ACCENTS.length];
-              return (
-                <button
-                  key={m.id}
-                  type="button"
-                  onClick={() => setModuleFilter(isActive ? null : m.id)}
-                  className={`flex items-center gap-1.5 border px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-[1.5px] transition-colors ${
-                    isActive
-                      ? "border-foreground bg-foreground text-background"
-                      : "border-foreground/20 bg-foreground/[0.03] text-foreground/70 hover:border-foreground/45"
-                  }`}
-                  style={{ fontFamily: "var(--font-body-legacy)", minHeight: 0 }}
-                >
-                  <span className="inline-block size-2 rounded-full" style={{ background: accent }} />
-                  {String(m.order + 1).padStart(2, "0")}
-                </button>
-              );
-            })}
-          </>
-        )}
+      {/* Filtres — sticky sous la topbar, scroll horizontal en mobile */}
+      <div
+        className="sticky z-20 -mx-4 mb-6 border-b border-foreground/8 bg-background/95 backdrop-blur-sm md:-mx-6"
+        style={{ top: "var(--topbar-h, 56px)" }}
+      >
+        <div
+          className="flex flex-nowrap items-center gap-2 overflow-x-auto px-4 py-3 md:flex-wrap md:overflow-visible md:px-6"
+          style={{ scrollbarWidth: "none" }}
+        >
+          {(
+            [
+              { key: "all" as Filter, label: "Tous" },
+              { key: "todo" as Filter, label: "À faire" },
+              { key: "done" as Filter, label: "Complétés" },
+            ]
+          ).map(({ key, label }) => {
+            const isActive = filter === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setFilter(key)}
+                aria-pressed={isActive}
+                className={`shrink-0 border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[1.5px] transition-colors ${
+                  isActive
+                    ? "border-foreground bg-foreground text-background"
+                    : "border-foreground/20 bg-foreground/[0.03] text-foreground/70 hover:border-foreground/45 hover:text-foreground"
+                }`}
+                style={{ fontFamily: "var(--font-body-legacy)", minHeight: 0 }}
+              >
+                {label}
+              </button>
+            );
+          })}
+          {modulesUsed.length > 1 && (
+            <>
+              <span className="mx-1 h-5 w-px shrink-0 bg-foreground/15" />
+              {modulesUsed.map((m) => {
+                const isActive = moduleFilter === m.id;
+                const accent = MODULE_ACCENTS[m.order % MODULE_ACCENTS.length];
+                return (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => setModuleFilter(isActive ? null : m.id)}
+                    aria-pressed={isActive}
+                    aria-label={`Module ${String(m.order + 1).padStart(2, "0")} — ${m.title}`}
+                    className={`flex shrink-0 items-center gap-1.5 border px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-[1.5px] transition-colors ${
+                      isActive
+                        ? "border-foreground bg-foreground text-background"
+                        : "border-foreground/20 bg-foreground/[0.03] text-foreground/70 hover:border-foreground/45"
+                    }`}
+                    style={{ fontFamily: "var(--font-body-legacy)", minHeight: 0 }}
+                  >
+                    <span
+                      className="inline-block size-2 rounded-full"
+                      style={{ background: accent }}
+                      aria-hidden="true"
+                    />
+                    {String(m.order + 1).padStart(2, "0")}
+                  </button>
+                );
+              })}
+            </>
+          )}
+        </div>
       </div>
 
       {/* Liste groupée par module */}
       {filtered.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 border border-dashed border-foreground/15 bg-foreground/[0.02] py-16 text-center">
+        <div className="flex flex-col items-center gap-4 border border-dashed border-foreground/15 bg-foreground/[0.02] py-16 text-center">
           <p
             className="font-mono text-[10px] uppercase tracking-[2px] text-foreground/50"
             style={{ fontFamily: "var(--font-body-legacy)" }}
           >
             ◦ Aucun exo dans cette sélection
           </p>
+          {hasActiveFilter && (
+            <button
+              type="button"
+              onClick={resetFilters}
+              className="border border-foreground/20 bg-foreground/[0.03] px-3 py-1.5 font-mono text-[10px] uppercase tracking-[1.5px] text-foreground/70 transition-colors hover:border-foreground/45 hover:text-foreground"
+              style={{ fontFamily: "var(--font-body-legacy)", minHeight: 0 }}
+            >
+              Réinitialiser les filtres
+            </button>
+          )}
         </div>
       ) : (
-        <div className="flex flex-col gap-8">
-          {groupedByModule.map((group) => {
-            const accent = MODULE_ACCENTS[group.order % MODULE_ACCENTS.length];
-            const doneCount = group.items.filter((e) => e.state === "completed").length;
-            const total = group.items.length;
-            const pct = total > 0 ? Math.round((doneCount / total) * 100) : 0;
-
-            return (
-              <section key={group.id}>
-                {/* Module header — gros, clair, hiérarchique */}
-                <div className="mb-1 flex items-baseline gap-3">
-                  <span
-                    className="font-mono text-[11px] font-bold tabular-nums"
-                    style={{ fontFamily: "var(--font-body-legacy)", color: accent }}
-                  >
-                    {String(group.order + 1).padStart(2, "0")}
-                  </span>
-                  <h3
-                    className="flex-1 text-xl italic leading-tight md:text-2xl"
-                    style={{ fontFamily: "var(--font-serif)" }}
-                  >
-                    {group.title}
-                  </h3>
-                  <span
-                    className="font-mono text-[10px] tabular-nums text-foreground/50"
-                    style={{ fontFamily: "var(--font-body-legacy)" }}
-                  >
-                    {doneCount}/{total}
-                  </span>
-                </div>
-                {/* Barre de progression module */}
-                <div className="mb-4 h-[3px] w-full overflow-hidden rounded-full bg-foreground/10">
-                  <div
-                    className="h-full rounded-full transition-[width] duration-700"
-                    style={{ width: `${pct}%`, background: accent }}
-                  />
-                </div>
-
-                {/* Exo rows — compacts, pas de doublon leçon */}
-                <div className="flex flex-col">
-                  {group.items.map((exo, i) => (
-                    <ExoRow key={exo._id as string} exo={exo} index={i} accent={accent} />
-                  ))}
-                </div>
-              </section>
-            );
-          })}
+        <div className="flex flex-col gap-10">
+          {groupedByModule.map((group) => (
+            <ModuleSection key={group.id} group={group} />
+          ))}
         </div>
       )}
     </>
   );
 }
 
-function ExoRow({ exo, index, accent }: { exo: Exo; index: number; accent: string }) {
+// ── Module section (collapsible) ─────────────────────────────────────────
+
+function ModuleSection({
+  group,
+}: {
+  group: { id: string; title: string; order: number; items: Exo[] };
+}) {
+  const accent = MODULE_ACCENTS[group.order % MODULE_ACCENTS.length];
+  const doneCount = group.items.filter((e) => e.state === "completed").length;
+  const total = group.items.length;
+  const pct = total > 0 ? Math.round((doneCount / total) * 100) : 0;
+  const allDone = doneCount === total && total > 0;
+
+  // Modules 100% complétés fermés par défaut, les autres ouverts
+  const [open, setOpen] = React.useState(!allDone);
+
+  // Index du premier exo "available" dans ce module (pour le mettre en avant)
+  const firstAvailableIdx = group.items.findIndex((e) => e.state === "available");
+
+  return (
+    <section role="region" aria-label={`Module ${group.order + 1} — ${group.title}`}>
+      {/* Module header — clickable toggle */}
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="group/hdr flex w-full items-center gap-3 text-left"
+        aria-expanded={open}
+      >
+        <span
+          className="font-mono text-[13px] font-bold tabular-nums md:text-[15px]"
+          style={{ fontFamily: "var(--font-body-legacy)", color: accent }}
+        >
+          {String(group.order + 1).padStart(2, "0")}
+        </span>
+        <div className="min-w-0 flex-1">
+          <h3
+            className="text-xl italic leading-tight md:text-2xl"
+            style={{ fontFamily: "var(--font-serif)" }}
+          >
+            {group.title}
+          </h3>
+        </div>
+        <span
+          className="font-mono text-[10px] tabular-nums text-foreground/50"
+          style={{ fontFamily: "var(--font-body-legacy)" }}
+        >
+          {doneCount}/{total}
+        </span>
+        <ChevronDown
+          size={16}
+          aria-hidden="true"
+          className={`shrink-0 text-foreground/40 transition-transform duration-200 ${
+            open ? "rotate-0" : "-rotate-90"
+          }`}
+        />
+      </button>
+
+      {/* Barre de progression */}
+      <div className="mt-2 mb-3 h-[3px] w-full overflow-hidden rounded-full bg-foreground/10">
+        <div
+          className="h-full rounded-full transition-[width] duration-700"
+          style={{ width: `${pct}%`, background: accent }}
+        />
+      </div>
+
+      {/* Exo rows */}
+      {open && (
+        <ul role="list" className="flex flex-col">
+          {group.items.map((exo, i) => (
+            <ExoRow
+              key={exo._id as string}
+              exo={exo}
+              index={i}
+              accent={accent}
+              isNext={i === firstAvailableIdx}
+            />
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+// ── Exo row ──────────────────────────────────────────────────────────────
+
+function ExoRow({
+  exo,
+  index,
+  accent,
+  isNext,
+}: {
+  exo: Exo;
+  index: number;
+  accent: string;
+  isNext: boolean;
+}) {
   const state = exo.state;
   const href = `/lesson/${exo.lessonId}`;
 
@@ -193,10 +285,12 @@ function ExoRow({ exo, index, accent }: { exo: Exo; index: number; accent: strin
   }, [exo.exerciseUrl]);
 
   return (
-    <div
+    <li
       className={`group flex items-center gap-3 border-b border-foreground/8 py-3 last:border-b-0 ${
-        state === "locked" ? "opacity-45" : ""
-      }`}
+        state === "locked" ? "opacity-50" : ""
+      } ${isNext ? "relative -mx-3 rounded-md border-b-0 bg-foreground/[0.04] px-3 py-3.5" : ""}`}
+      aria-current={isNext ? "step" : undefined}
+      style={isNext ? { borderLeft: `3px solid ${accent}` } : undefined}
     >
       {/* Numéro / état */}
       <div
@@ -220,27 +314,41 @@ function ExoRow({ exo, index, accent }: { exo: Exo; index: number; accent: strin
         }}
       >
         {state === "completed" ? (
-          <Check size={14} />
+          <Check size={14} aria-hidden="true" />
         ) : state === "locked" ? (
-          <Lock size={12} />
+          <Lock size={12} aria-hidden="true" />
         ) : (
           String(index + 1).padStart(2, "0")
         )}
       </div>
 
-      {/* Titre uniquement — pas de doublon leçon */}
+      {/* Titre + sous-titre leçon */}
       <div className="min-w-0 flex-1">
         <div
           className={`truncate text-[15px] leading-snug ${
-            state === "completed" ? "text-foreground/65" : "text-foreground"
+            state === "completed"
+              ? "text-foreground/60"
+              : isNext
+              ? "text-foreground font-medium"
+              : "text-foreground"
           }`}
           style={{ fontFamily: "var(--font-serif)" }}
         >
           {exo.title}
         </div>
+        <div
+          className="mt-0.5 truncate font-mono text-[9px] uppercase tracking-[1.5px] text-foreground/40"
+          style={{ fontFamily: "var(--font-body-legacy)" }}
+        >
+          Leçon {String(exo.lessonOrder + 1).padStart(2, "0")} · {exo.lessonTitle}
+          {/* Screen reader status */}
+          <span className="sr-only">
+            {state === "completed" ? " — Complété" : state === "locked" ? " — Verrouillé" : " — À faire"}
+          </span>
+        </div>
       </div>
 
-      {/* Actions */}
+      {/* Actions — touch targets 44px minimum sur mobile */}
       {state === "locked" ? (
         <span
           className="hidden font-mono text-[9px] uppercase tracking-[1.5px] text-foreground/35 sm:inline"
@@ -256,27 +364,37 @@ function ExoRow({ exo, index, accent }: { exo: Exo; index: number; accent: strin
               target="_blank"
               rel="noopener noreferrer"
               title="Nouvelle fenêtre"
-              className="flex size-7 items-center justify-center rounded-full border border-foreground/12 text-foreground/50 transition-all hover:border-foreground/35 hover:text-foreground"
+              aria-label={`Ouvrir ${exo.title} dans un nouvel onglet`}
+              className="flex size-9 items-center justify-center rounded-full border border-foreground/12 text-foreground/50 transition-all hover:border-foreground/35 hover:text-foreground md:size-7"
               onClick={(e) => e.stopPropagation()}
             >
-              <ExternalLink size={11} />
+              <ExternalLink size={12} aria-hidden="true" />
             </a>
           )}
           <Link
             href={href}
-            className="flex items-center gap-1 rounded-full px-3 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[1.5px] transition-all hover:pr-4"
+            className="flex min-h-[36px] items-center gap-1 rounded-full px-3.5 py-2 font-mono text-[10px] font-bold uppercase tracking-[1.5px] transition-all hover:pr-5 md:min-h-0 md:py-1.5"
             style={{
-              background: state === "completed" ? "var(--state-done-bg)" : "#0D0B08",
-              color: state === "completed" ? "var(--state-done-fg)" : "#F0E9DB",
+              background:
+                isNext
+                  ? accent
+                  : state === "completed"
+                  ? "var(--state-done-bg)"
+                  : "var(--foreground)",
+              color:
+                isNext
+                  ? "#0D0B08"
+                  : state === "completed"
+                  ? "var(--state-done-fg)"
+                  : "var(--background)",
               fontFamily: "var(--font-body-legacy)",
-              minHeight: 0,
             }}
           >
-            {state === "completed" ? "Revoir" : "Ouvrir"}
-            <ArrowRight size={10} />
+            {isNext ? "Continuer" : state === "completed" ? "Revoir" : "Ouvrir"}
+            <ArrowRight size={10} aria-hidden="true" />
           </Link>
         </div>
       )}
-    </div>
+    </li>
   );
 }

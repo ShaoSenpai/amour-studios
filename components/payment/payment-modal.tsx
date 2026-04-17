@@ -174,23 +174,23 @@ export function PaymentModal({
 
         {/* Body */}
         <div className="px-6 py-6 md:px-8">
-          {/* Bénéfices */}
-          <ul
-            className="mb-6 grid grid-cols-1 gap-2.5 font-mono text-[12px] text-foreground/80 sm:grid-cols-2"
+          {/* Bénéfices — compact sur mobile pour garder le bouton Payer visible */}
+          <div
+            className="mb-5 flex flex-wrap gap-x-4 gap-y-1 font-mono text-[11px] text-foreground/75"
             style={{ fontFamily: "var(--font-body-legacy)" }}
           >
             {[
-              "06 modules · 20+ leçons vidéo",
-              "Communauté Discord VIP",
-              "Vision Board, scripts, templates",
-              "Accès à vie · ton rythme",
+              "06 modules · 20+ leçons",
+              "Discord VIP",
+              "Templates inclus",
+              "Accès à vie",
             ].map((b) => (
-              <li key={b} className="flex items-start gap-2">
-                <Check size={13} className="mt-[2px] shrink-0 text-[color:var(--state-done)]" />
-                <span>{b}</span>
-              </li>
+              <span key={b} className="flex items-center gap-1.5">
+                <Check size={11} className="shrink-0 text-[color:var(--state-done)]" />
+                {b}
+              </span>
             ))}
-          </ul>
+          </div>
 
           {/* Toggle mode 1x / 3x */}
           <div className="mb-5 flex gap-2">

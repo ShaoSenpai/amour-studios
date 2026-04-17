@@ -222,7 +222,7 @@ export function ExosGrid({ exos }: { exos: Exo[] }) {
                       className="font-mono text-[10px] uppercase tracking-[2px]"
                       style={{ fontFamily: "var(--font-body-legacy)", color: accent }}
                     >
-                      {group.badgeLabel}
+                      Module {String(group.order + 1).padStart(2, "0")}
                     </span>
                     <span
                       className="text-base italic leading-none"

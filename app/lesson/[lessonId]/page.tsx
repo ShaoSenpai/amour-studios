@@ -422,12 +422,13 @@ export default function LessonPage({
             )}
           </div>
 
-          {/* Barre d'actions inline : Exos / Notes / Com. / Module */}
-          <div className="mt-3 flex flex-wrap items-center gap-2">
+          {/* Barre d'actions inline : Exos / Notes / Com. / Module
+               overflow-x-auto sur mobile pour éviter le crop des 2 derniers boutons */}
+          <div className="-mx-4 mt-3 flex items-center gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:flex-wrap md:overflow-visible md:px-0 md:pb-0">
             {([
               { key: "exos" as DockKey, label: "Exos", icon: Pencil, count: exercises.length },
               { key: "notes" as DockKey, label: "Notes", icon: FileText, count: notesCount ?? undefined },
-              { key: "comments" as DockKey, label: "Commentaires", icon: MessageCircle, count: commentsCount ?? undefined },
+              { key: "comments" as DockKey, label: "Com.", icon: MessageCircle, count: commentsCount ?? undefined },
               { key: "module" as DockKey, label: "Plan", icon: List, count: undefined },
             ]).map(({ key, label, icon: Icon, count }) => {
               const isActive = activePanel === key;

@@ -17,6 +17,7 @@ type Tab = "exos" | "tools";
 export default function OutilsPage() {
   const user = useQuery(api.users.current);
   const purchase = useQuery(api.purchases.current);
+  const modules = useQuery(api.modules.list);
   const exos = useQuery(api.exercises.listAllWithState);
   const tools = useQuery(api.tools.list);
 
@@ -27,6 +28,7 @@ export default function OutilsPage() {
   if (
     user === undefined ||
     purchase === undefined ||
+    modules === undefined ||
     exos === undefined ||
     tools === undefined
   ) {
@@ -115,6 +117,7 @@ export default function OutilsPage() {
           <TabsContent value="exos" className="mt-0">
             <ExosGrid
               exos={exos}
+              modules={modules}
               firstAvailableId={firstAvailable ? (firstAvailable._id as string) : null}
             />
           </TabsContent>

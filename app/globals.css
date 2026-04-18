@@ -464,6 +464,32 @@ html[data-theme="dark"] {
     text-transform: uppercase;
   }
 
+  /* ══════════════════════════════════════════════════════
+     Nouveau pallier typo — Anton display
+     Aligné avec amourstudios.fr (display condensé fort)
+     ══════════════════════════════════════════════════════ */
+  .text-display-1 {
+    font-family: var(--font-anton), "Arial Narrow", sans-serif;
+    font-size: clamp(56px, 9vw, 136px);
+    font-weight: 400;
+    line-height: 0.9;
+    letter-spacing: -1.5px;
+  }
+  .text-display-2 {
+    font-family: var(--font-anton), "Arial Narrow", sans-serif;
+    font-size: clamp(28px, 4vw, 56px);
+    font-weight: 400;
+    line-height: 0.95;
+    letter-spacing: -0.8px;
+  }
+  .text-label-xs {
+    font-family: var(--font-body-legacy);
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-weight: 400;
+  }
+
   .font-serif-accent {
     font-family: var(--font-serif);
     font-style: italic;

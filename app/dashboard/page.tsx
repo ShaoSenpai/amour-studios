@@ -151,12 +151,7 @@ export default function DashboardPage() {
 
         <section id="modules" className="mb-10">
           <div className="mb-6 flex items-baseline justify-between border-b border-foreground/15 pb-4">
-            <h2
-              className="text-3xl italic"
-              style={{ fontFamily: "var(--font-serif)" }}
-            >
-              Modules
-            </h2>
+            <h2 className="text-display-2">Modules</h2>
             <div
               className="hidden gap-4 font-mono text-[10px] uppercase tracking-[2px] md:flex"
               style={{ fontFamily: "var(--font-body-legacy)" }}
@@ -182,7 +177,7 @@ export default function DashboardPage() {
 
         <section className="mb-10">
           <div className="mb-3 flex items-baseline justify-between border-b border-foreground/15 pb-2">
-            <h2 className="ds-section">Actu Amour Studios</h2>
+            <h2 className="text-display-2">Actu Amour Studios</h2>
             <span className="ds-label text-foreground/50">Feed · 3 items</span>
           </div>
           <div className="border border-foreground/10 bg-foreground/[0.02]">
@@ -594,9 +589,9 @@ function ModuleRowView({
       >
         {/* Numéro module */}
         <div
-          className="text-[28px] italic leading-none tracking-tight md:text-[34px]"
+          className="text-[28px] leading-none tracking-tight md:text-[34px]"
           style={{
-            fontFamily: "var(--font-serif)",
+            fontFamily: "var(--font-anton), sans-serif",
             color: locked ? "var(--state-locked)" : accent,
           }}
         >

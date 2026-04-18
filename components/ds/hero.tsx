@@ -60,7 +60,7 @@ export function Hero({
     titleRender = (
       <>
         {before}
-        <em className="italic text-foreground">{italicWord}</em>
+        <em className="italic text-foreground" style={{ fontFamily: "var(--font-serif)" }}>{italicWord}</em>
         {after}
       </>
     );
@@ -110,8 +110,7 @@ export function Hero({
           — {caption}
         </div>
         <h1
-          className="mb-6 text-[clamp(42px,5.5vw,72px)] font-normal leading-[0.95] tracking-[-2px]"
-          style={{ fontFamily: "var(--font-serif)" }}
+          className="mb-6 text-display-1"
         >
           {titleRender}
         </h1>

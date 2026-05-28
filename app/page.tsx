@@ -1,10 +1,7 @@
 import { redirect } from "next/navigation";
-import { convexAuthNextjsToken, isAuthenticatedNextjs } from "@convex-dev/auth/nextjs/server";
 
-export default async function Home() {
-  const authed = await isAuthenticatedNextjs();
-  if (authed) {
-    redirect("/dashboard");
-  }
-  redirect("/login");
+// Le produit, c'est le dashboard /studio. La racine y mène directement ;
+// le middleware (proxy.ts) renvoie vers /studio/login si non connecté.
+export default function Home() {
+  redirect("/studio");
 }

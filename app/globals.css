@@ -923,3 +923,304 @@ html[data-theme="dark"] {
     min-height: 0;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   DA SWISS — SCOPÉE AU BACK-OFFICE (/admin uniquement)
+   ---------------------------------------------------------------------------
+   Reprise de amourstudios.fr (paiement/index.html) : Schibsted Grotesk +
+   DM Mono · orange #FF5A1F · ink #0A0A0A · paper #F4F2EE · grey #6A6A6A ·
+   lignes #E4E2DC · coins carrés (radius 0) · bordures 1.5px · esprit éditorial.
+
+   Stratégie : on remappe les tokens Tailwind ET les variables de police
+   (--font-serif → Grotesk, --font-body-legacy → DM Mono) que l'admin existant
+   utilise déjà, pour ne pas réécrire chaque page. Le scope [data-skin="swiss"]
+   bat :root par spécificité (attribut > pseudo-classe racine). La plateforme
+   élève (hors /admin) ne porte jamais cet attribut → reste intacte.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+[data-skin="swiss"] {
+  /* — Couleurs (light : ink on paper/white) — */
+  --background: #FFFFFF;
+  --foreground: #0A0A0A;
+  --card: #FFFFFF;
+  --card-foreground: #0A0A0A;
+  --popover: #FFFFFF;
+  --popover-foreground: #0A0A0A;
+
+  --paper: #F4F2EE;
+  --ink: #0A0A0A;
+
+  --orange: #FF5A1F;
+  --primary: #FF5A1F;
+  --primary-foreground: #FFFFFF;
+
+  --secondary: #F4F2EE;
+  --secondary-foreground: #0A0A0A;
+  --muted: #F4F2EE;
+  --muted-foreground: #6A6A6A;
+  --accent: #0A0A0A;
+  --accent-foreground: #FFFFFF;
+
+  --destructive: #E63326;
+  --success: #0A0A0A;
+  --warning: #FF5A1F;
+
+  --border: #E4E2DC;
+  --input: #FFFFFF;
+  --ring: #FF5A1F;
+
+  --brand: #FF5A1F;
+  --brand-hover: #E64A12;
+  --brand-glow: rgba(255, 90, 31, 0.12);
+
+  /* États sémantiques → orange/ink (au lieu du vert/moutarde plateforme) */
+  --state-done-bg: #0A0A0A;
+  --state-done-fg: #FFFFFF;
+  --state-active-bg: #FF5A1F;
+  --state-active-fg: #FFFFFF;
+
+  /* Coins carrés */
+  --radius: 0px;
+
+  /* Sidebar */
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #0A0A0A;
+  --sidebar-primary: #FF5A1F;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #F4F2EE;
+  --sidebar-accent-foreground: #0A0A0A;
+  --sidebar-border: #E4E2DC;
+  --sidebar-ring: #FF5A1F;
+
+  /* Lignes de grille de fond plus discrètes */
+  --grid-line: rgba(10, 10, 8, 0.035);
+
+  /* — Polices : on remappe les variables utilisées par l'admin existant — */
+  /* Display "serif" → Schibsted Grotesk (l'italique est neutralisé plus bas) */
+  --font-serif: var(--font-grotesk), "Arial", sans-serif;
+  /* Mono/labels → DM Mono */
+  --font-body-legacy: var(--font-mono-swiss), ui-monospace, monospace;
+
+  color-scheme: light;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-grotesk), "Arial", sans-serif;
+}
+
+/* — Dark mode Swiss : surfaces sombres, texte clair, orange conservé — */
+[data-theme="dark"] [data-skin="swiss"] {
+  --background: #0A0A0A;
+  --foreground: #F4F2EE;
+  --card: #141414;
+  --card-foreground: #F4F2EE;
+  --popover: #141414;
+  --popover-foreground: #F4F2EE;
+
+  --paper: #141414;
+  --ink: #F4F2EE;
+
+  --orange: #FF5A1F;
+  --primary: #FF5A1F;
+  --primary-foreground: #FFFFFF;
+
+  --secondary: #1C1C1C;
+  --secondary-foreground: #F4F2EE;
+  --muted: #141414;
+  --muted-foreground: #9A9A92;
+  --accent: #F4F2EE;
+  --accent-foreground: #0A0A0A;
+
+  --destructive: #FF6B5E;
+  --success: #F4F2EE;
+  --warning: #FF5A1F;
+
+  --border: rgba(244, 242, 238, 0.16);
+  --input: #141414;
+  --ring: #FF5A1F;
+
+  --brand: #FF5A1F;
+  --brand-hover: #FF6B33;
+  --brand-glow: rgba(255, 90, 31, 0.18);
+
+  /* États : sur fond sombre, "done" devient surface claire / texte sombre */
+  --state-done-bg: #F4F2EE;
+  --state-done-fg: #0A0A0A;
+  --state-active-bg: #FF5A1F;
+  --state-active-fg: #FFFFFF;
+
+  --sidebar: #0A0A0A;
+  --sidebar-foreground: #F4F2EE;
+  --sidebar-primary: #FF5A1F;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #141414;
+  --sidebar-accent-foreground: #F4F2EE;
+  --sidebar-border: rgba(244, 242, 238, 0.16);
+  --sidebar-ring: #FF5A1F;
+
+  --grid-line: rgba(244, 242, 238, 0.03);
+
+  color-scheme: dark;
+}
+
+/* — Ajustements typographiques Swiss : Grotesk droit (jamais italique),
+     headings condensés en majuscules, labels mono espacés — */
+[data-skin="swiss"] h1,
+[data-skin="swiss"] h2,
+[data-skin="swiss"] h3,
+[data-skin="swiss"] .ds-section {
+  font-family: var(--font-grotesk), "Arial", sans-serif;
+  font-style: normal;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+[data-skin="swiss"] h1 {
+  text-transform: uppercase;
+  line-height: 0.92;
+}
+/* Le contenu admin pose souvent <em className="italic">…</em> dans les titres :
+   en Swiss on neutralise l'italique et on bascule l'accent en orange. */
+[data-skin="swiss"] h1 em,
+[data-skin="swiss"] h2 em {
+  font-style: normal;
+  color: var(--orange);
+}
+/* Tout texte qui ré-applique la police "serif" inline → Grotesk droit */
+[data-skin="swiss"] [style*="--font-serif"] {
+  font-style: normal !important;
+}
+[data-skin="swiss"] .font-serif,
+[data-skin="swiss"] .font-display,
+[data-skin="swiss"] .font-serif-accent {
+  font-family: var(--font-grotesk), "Arial", sans-serif;
+  font-style: normal;
+}
+
+/* — Carré partout : annule les rounded-* hérités de la plateforme — */
+[data-skin="swiss"] .rounded-full,
+[data-skin="swiss"] .rounded-xl,
+[data-skin="swiss"] .rounded-lg,
+[data-skin="swiss"] .rounded-md,
+[data-skin="swiss"] .rounded-2xl,
+[data-skin="swiss"] .rounded-4xl,
+[data-skin="swiss"] [class*="rounded"] {
+  border-radius: 0 !important;
+}
+
+/* — Sélection orange (cohérence avec le site) — */
+[data-skin="swiss"] ::selection {
+  background: var(--orange);
+  color: #fff;
+}
+
+/* — Focus ring orange (le site utilise orange, pas vert) — */
+[data-skin="swiss"] :focus-visible {
+  outline-color: var(--orange);
+}
+
+/* — Bordures par défaut 1.5px pour l'esprit print suisse — */
+[data-skin="swiss"] .border,
+[data-skin="swiss"] .border-b,
+[data-skin="swiss"] .border-t,
+[data-skin="swiss"] .border-l,
+[data-skin="swiss"] .border-r,
+[data-skin="swiss"] [class*="border-foreground"] {
+  border-width: 1.5px;
+}
+
+/* — Helpers Swiss réutilisables (fiche élève / calendrier) — */
+[data-skin="swiss"] .swiss-mono {
+  font-family: var(--font-mono-swiss), ui-monospace, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+[data-skin="swiss"] .swiss-num {
+  font-family: var(--font-grotesk), "Arial", sans-serif;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+  line-height: 0.85;
+}
+
+/* — Neutralisation des accents vifs codés en dur dans les composants ds/
+     partagés (Pill "alert" = ancien orange #FF6B1F, boutons verts #2B7A6F…).
+     Dans /admin on les ramène à l'orange/ink Swiss SANS toucher la plateforme
+     élève (qui ne porte pas [data-skin="swiss"]). — */
+[data-skin="swiss"] .bg-\[\#FF6B1F\] {
+  background-color: var(--orange) !important;
+  color: #fff !important;
+}
+[data-skin="swiss"] .border-\[\#FF6B1F\] {
+  border-color: var(--orange) !important;
+}
+[data-skin="swiss"] .text-\[\#FF6B1F\] {
+  color: var(--orange) !important;
+}
+[data-skin="swiss"] .bg-\[\#2B7A6F\] {
+  background-color: var(--foreground) !important;
+  color: var(--background) !important;
+}
+[data-skin="swiss"] .text-\[\#2B7A6F\] {
+  color: var(--orange) !important;
+}
+[data-skin="swiss"] .border-\[\#2B7A6F\]\/30,
+[data-skin="swiss"] .border-\[\#2B7A6F\]\/50 {
+  border-color: var(--orange) !important;
+}
+
+/* ============================================================================
+   Transitions de page « push » du back-office /studio (cf. page-transition).
+   Animations CSS = thread compositeur → fluides même quand le thread principal
+   est occupé (montage de page + queries Convex). Deux couches : la sortante
+   (ancienne page, contenu chargé) glisse de côté, l'entrante arrive.
+   ========================================================================== */
+.studio-layer { position: relative; will-change: transform, opacity; }
+.studio-out {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+}
+
+/* AVANT (plus profond) : entrante depuis la droite (dessus), sortante vers la gauche (dessous) */
+.studio-in-fwd  { animation: studio-in-fwd 460ms cubic-bezier(0.32, 0.72, 0, 1) both; z-index: 2; }
+.studio-out-fwd { animation: studio-out-fwd 460ms cubic-bezier(0.32, 0.72, 0, 1) both; z-index: 1; }
+@keyframes studio-in-fwd {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+@keyframes studio-out-fwd {
+  from { transform: translateX(0); opacity: 1; }
+  to   { transform: translateX(-22%); opacity: 0.5; }
+}
+
+/* RETOUR (moins profond) : entrante depuis la gauche (dessous), sortante vers la droite (dessus) */
+.studio-in-back  { animation: studio-in-back 460ms cubic-bezier(0.32, 0.72, 0, 1) both; z-index: 1; }
+.studio-out-back { animation: studio-out-back 460ms cubic-bezier(0.32, 0.72, 0, 1) both; z-index: 2; }
+@keyframes studio-in-back {
+  from { transform: translateX(-22%); opacity: 0.5; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+@keyframes studio-out-back {
+  from { transform: translateX(0); }
+  to   { transform: translateX(100%); }
+}
+
+/* MÊME NIVEAU (section ↔ section) : fondu */
+.studio-in-fade  { animation: studio-in-fade 300ms ease-out both; z-index: 2; }
+.studio-out-fade { animation: studio-out-fade 240ms ease-out both; z-index: 1; }
+@keyframes studio-in-fade {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes studio-out-fade {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .studio-in-fwd, .studio-out-fwd,
+  .studio-in-back, .studio-out-back,
+  .studio-in-fade, .studio-out-fade { animation: none; }
+}

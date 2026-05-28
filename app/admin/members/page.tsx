@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { useState } from "react";
+import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 
 // ============================================================================
 // Amour Studios — /admin/members
@@ -316,33 +318,45 @@ function MemberCard({ member, currentUserId }: { member: Member; currentUserId: 
     : { label: "Prospect", color: "border-foreground/20 text-foreground/60" };
 
   return (
-    <div className="rounded-xl border-[1.5px] border-border bg-card p-4 flex flex-col gap-3 transition-all hover:border-border/80">
-      {/* Header row */}
+    <div className="border-[1.5px] border-border bg-card p-4 flex flex-col gap-3 transition-all hover:border-foreground/40">
+      {/* Header row — la zone profil est cliquable → fiche élève */}
       <div className="flex items-center gap-3">
-        {member.image ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={member.image}
-            alt={member.name ?? "avatar"}
-            className="size-10 rounded-full border border-border"
+        <Link
+          href={`/admin/members/${member._id}`}
+          className="flex flex-1 min-w-0 items-center gap-3 group"
+        >
+          {member.image ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={member.image}
+              alt={member.name ?? "avatar"}
+              className="size-10 border border-border object-cover"
+            />
+          ) : (
+            <div className="size-10 bg-muted flex items-center justify-center text-sm font-bold">
+              {member.name?.[0] ?? "?"}
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <p className="font-bold truncate group-hover:text-primary transition-colors">
+                {member.name ?? "Sans nom"}
+              </p>
+              {isSelf && <span className="text-xs text-muted-foreground">(toi)</span>}
+            </div>
+            <p className="text-xs text-muted-foreground truncate">
+              {member.discordUsername ? (
+                <span className="font-medium text-foreground/70">@{member.discordUsername}</span>
+              ) : (
+                member.email ?? "—"
+              )}
+            </p>
+          </div>
+          <ChevronRight
+            size={16}
+            className="shrink-0 text-foreground/25 group-hover:text-primary group-hover:translate-x-0.5 transition-all"
           />
-        ) : (
-          <div className="size-10 rounded-full bg-muted flex items-center justify-center text-sm">
-            {member.name?.[0] ?? "?"}
-          </div>
-        )}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <p className="font-medium truncate">{member.name ?? "Sans nom"}</p>
-            {isSelf && <span className="text-xs text-muted-foreground">(toi)</span>}
-          </div>
-          <p className="text-xs text-muted-foreground truncate">
-            {member.email ?? "—"}
-            {member.discordUsername && (
-              <span className="ml-1 opacity-60">@{member.discordUsername}</span>
-            )}
-          </p>
-        </div>
+        </Link>
 
         {/* Status unique par priorité */}
         <div className="shrink-0">

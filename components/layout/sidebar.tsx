@@ -21,6 +21,7 @@ import {
   MessageCircle,
   Gauge,
   Wrench,
+  CalendarDays,
 } from "lucide-react";
 // CSS transitions only — framer-motion removed for Next.js 16 compat
 
@@ -65,8 +66,9 @@ export function Sidebar() {
             )}
             {collapsed && <div className="my-2 mx-2 border-t border-border" />}
             <NavItem href="/admin" icon={Gauge} label="Cockpit" active={pathname === "/admin"} collapsed={collapsed} />
-            <NavItem href="/admin/content" icon={LayoutGrid} label="Contenu" active={pathname.startsWith("/admin/content")} collapsed={collapsed} />
+            <NavItem href="/admin/calendar" icon={CalendarDays} label="Calendrier" active={pathname.startsWith("/admin/calendar")} collapsed={collapsed} />
             <NavItem href="/admin/members" icon={Users} label="Membres" active={pathname.startsWith("/admin/members")} collapsed={collapsed} />
+            <NavItem href="/admin/content" icon={LayoutGrid} label="Contenu" active={pathname.startsWith("/admin/content")} collapsed={collapsed} />
           </>
         )}
 

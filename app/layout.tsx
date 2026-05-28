@@ -1,5 +1,11 @@
 import type { Metadata, Viewport } from "next";
-import { Anton, DM_Sans, Instrument_Serif } from "next/font/google";
+import {
+  Anton,
+  DM_Sans,
+  Instrument_Serif,
+  Schibsted_Grotesk,
+  DM_Mono,
+} from "next/font/google";
 import { ConvexAuthNextjsServerProvider } from "@convex-dev/auth/nextjs/server";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -25,6 +31,21 @@ const anton = Anton({
   weight: "400",
   subsets: ["latin"],
   variable: "--font-anton",
+  display: "swap",
+});
+
+// ── DA Swiss (back-office /admin uniquement) ─────────────────────────────
+const schibstedGrotesk = Schibsted_Grotesk({
+  weight: ["400", "500", "600", "700", "800", "900"],
+  subsets: ["latin"],
+  variable: "--font-grotesk",
+  display: "swap",
+});
+
+const dmMono = DM_Mono({
+  weight: ["400", "500"],
+  subsets: ["latin"],
+  variable: "--font-mono-swiss",
   display: "swap",
 });
 
@@ -54,7 +75,7 @@ export default function RootLayout({
     <ConvexAuthNextjsServerProvider>
       <html
         lang="fr"
-        className={`${dmSans.variable} ${instrumentSerif.variable} ${anton.variable} h-full`}
+        className={`${dmSans.variable} ${instrumentSerif.variable} ${anton.variable} ${schibstedGrotesk.variable} ${dmMono.variable} h-full`}
         suppressHydrationWarning
       >
         <head>

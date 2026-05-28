@@ -2,232 +2,70 @@
 
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
+import {
+  ACCENT,
+  palette,
+  useIsDark,
+  mono,
+  num,
+  Glass,
+  Avatar,
+  Sparkline,
+  Pill,
+  glassBtn,
+  type C,
+} from "./_components/glass";
+import { useTestMode } from "./_components/test-mode";
+import {
+  useTestStore,
+  selectDashboardToday,
+  selectStudentsList,
+} from "./_components/test-store";
+import { RdvDialog } from "./_components/rdv-dialog";
+import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
 
 // ============================================================================
-// Aujourd'hui — écran d'accueil du back-office coach.
-// Direction "Glass Chunky" (validée en design) : verre translucide, orbes
-// orange en fond, Schibsted Grotesk XXL + DM Mono. Light + dark.
+// Aujourd'hui — écran d'accueil du back-office coach (Glass Chunky).
 // Données réelles via api.coaching.dashboardToday.
 // ============================================================================
 
-const ACCENT = "#FF5A1F";
-
-function useIsDark() {
-  const [dark, setDark] = useState(false);
-  useEffect(() => {
-    const read = () =>
-      setDark(document.documentElement.getAttribute("data-theme") === "dark");
-    read();
-    const obs = new MutationObserver(read);
-    obs.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["data-theme"],
-    });
-    return () => obs.disconnect();
-  }, []);
-  return dark;
-}
-
-function palette(dark: boolean, accent: string) {
-  return dark
-    ? {
-        bgGrad: `radial-gradient(ellipse 90% 70% at 12% 8%, ${accent}38, transparent 55%),
-                 radial-gradient(ellipse 70% 60% at 88% 92%, ${accent}22, transparent 65%),
-                 radial-gradient(ellipse 80% 50% at 50% 50%, #4A2E1A2A, transparent 70%),
-                 #08080C`,
-        glass: "rgba(28, 28, 36, 0.28)",
-        glassStrong: "rgba(34, 34, 44, 0.42)",
-        sheen:
-          "linear-gradient(135deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.02) 28%, transparent 50%, transparent 72%, rgba(255,255,255,0.03) 100%)",
-        text: "#F5F2EC",
-        muted: "rgba(245,242,236,0.58)",
-        faint: "rgba(245,242,236,0.32)",
-        line: "rgba(255,255,255,0.07)",
-        hairline: "rgba(255,255,255,0.05)",
-        chip: "rgba(255,255,255,0.06)",
-        inner: "rgba(255,255,255,0.06)",
-        shadow: "0 30px 60px -30px rgba(0,0,0,0.6)",
-      }
-    : {
-        bgGrad: `radial-gradient(ellipse 80% 60% at 10% 6%, ${accent}48, transparent 55%),
-                 radial-gradient(ellipse 60% 50% at 94% 94%, ${accent}36, transparent 65%),
-                 radial-gradient(ellipse 70% 40% at 55% 45%, #FFFFFF70, transparent 65%),
-                 #E8E3D7`,
-        glass: "rgba(255, 252, 246, 0.32)",
-        glassStrong: "rgba(255, 252, 246, 0.50)",
-        sheen:
-          "linear-gradient(135deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.10) 28%, transparent 50%, transparent 72%, rgba(255,255,255,0.18) 100%)",
-        text: "#0B0B0B",
-        muted: "rgba(11,11,11,0.58)",
-        faint: "rgba(11,11,11,0.34)",
-        line: "rgba(11,11,11,0.07)",
-        hairline: "rgba(11,11,11,0.06)",
-        chip: "rgba(11,11,11,0.05)",
-        inner: "rgba(255,255,255,0.55)",
-        shadow: "0 30px 60px -28px rgba(20,16,8,0.16)",
-      };
-}
-
-type C = ReturnType<typeof palette>;
-
-const mono: CSSProperties = {
-  fontFamily: "'DM Mono', ui-monospace, monospace",
-  fontSize: 10.5,
-  letterSpacing: "0.08em",
-  textTransform: "uppercase",
-  fontWeight: 400,
-};
-const num: CSSProperties = {
-  fontFamily: "'Schibsted Grotesk', system-ui, sans-serif",
-  fontVariantNumeric: "tabular-nums",
-  letterSpacing: "-0.025em",
-};
-const R = 22;
-
-function Glass({
+function KPI({
   c,
   dark,
-  children,
-  pad = 22,
-  strong = false,
-  tint,
-  style = {},
+  label,
+  value,
+  delta,
+  note,
+  warn = false,
+  featured = false,
 }: {
   c: C;
   dark: boolean;
-  children: ReactNode;
-  pad?: number;
-  strong?: boolean;
-  tint?: string;
-  style?: CSSProperties;
+  label: string;
+  value: ReactNode;
+  delta: string;
+  note: string;
+  warn?: boolean;
+  featured?: boolean;
 }) {
-  return (
-    <div
-      style={{
-        background: tint || (strong ? c.glassStrong : c.glass),
-        backgroundImage: c.sheen,
-        backgroundBlendMode: dark ? "plus-lighter" : "normal",
-        backdropFilter: "blur(40px) saturate(150%)",
-        WebkitBackdropFilter: "blur(40px) saturate(150%)",
-        borderRadius: R,
-        border: `1px solid ${c.line}`,
-        boxShadow: `inset 0 1px 0 ${c.inner}, ${c.shadow}`,
-        padding: pad,
-        position: "relative",
-        ...style,
-      }}
-    >
-      {children}
-    </div>
-  );
-}
-
-function Avatar({ name, size = 28, dark = false }: { name: string; size?: number; dark?: boolean }) {
-  const initials = name
-    .replace(/[._-]/g, " ")
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((s) => s[0])
-    .join("")
-    .toUpperCase();
-  let h = 0;
-  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) % 360;
-  const bg = dark ? `oklch(0.32 0.04 ${h})` : `oklch(0.86 0.04 ${h})`;
-  const fg = dark ? `oklch(0.92 0.02 ${h})` : `oklch(0.32 0.06 ${h})`;
-  return (
-    <div
-      style={{
-        width: size,
-        height: size,
-        borderRadius: size,
-        background: bg,
-        color: fg,
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontFamily: "'DM Mono', ui-monospace, monospace",
-        fontSize: Math.round(size * 0.36),
-        fontWeight: 500,
-        flexShrink: 0,
-      }}
-    >
-      {initials}
-    </div>
-  );
-}
-
-function Sparkline({ data, color, fill, width = 400, height = 60 }: { data: number[]; color: string; fill: string; width?: number; height?: number }) {
-  if (!data.length) return null;
-  const max = Math.max(...data);
-  const min = Math.min(...data);
-  const range = max - min || 1;
-  const stepX = width / (data.length - 1 || 1);
-  const points = data.map((v, i) => [i * stepX, height - 2 - ((v - min) / range) * (height - 4)]);
-  const d = points.map((p, i) => (i === 0 ? `M${p[0]},${p[1]}` : `L${p[0]},${p[1]}`)).join(" ");
-  const area = `${d} L${width},${height} L0,${height} Z`;
-  const last = points[points.length - 1];
-  return (
-    <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" style={{ display: "block" }}>
-      <path d={area} fill={fill} />
-      <path d={d} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx={last[0]} cy={last[1]} r="2.5" fill={color} />
-    </svg>
-  );
-}
-
-function glassBtn(c: C, kind: "solid" | "ghost"): CSSProperties {
-  const base: CSSProperties = {
-    fontFamily: "'DM Mono', ui-monospace, monospace",
-    fontSize: 11,
-    letterSpacing: "0.06em",
-    textTransform: "uppercase",
-    padding: "12px 16px",
-    borderRadius: 14,
-    border: "none",
-    cursor: "pointer",
-    fontWeight: 500,
+  const deltaStyle: CSSProperties = {
+    ...mono,
+    fontSize: 10,
+    padding: "4px 9px",
+    borderRadius: 999,
+    background: warn ? ACCENT : "transparent",
+    color: warn ? "#0B0B0B" : c.muted,
     whiteSpace: "nowrap",
+    flexShrink: 0,
+    border: warn ? "none" : `1px solid ${c.line}`,
   };
-  if (kind === "solid")
-    return {
-      ...base,
-      background: ACCENT,
-      color: "#0B0B0B",
-      boxShadow: `0 8px 24px -8px ${ACCENT}80, inset 0 1px 0 rgba(255,255,255,0.3)`,
-    };
-  return { ...base, background: c.chip, color: c.text, border: `1px solid ${c.line}`, backdropFilter: "blur(12px)" };
-}
-
-function Pill({ children }: { children: ReactNode }) {
-  return (
-    <span
-      style={{
-        ...mono,
-        fontSize: 10,
-        background: ACCENT,
-        color: "#0B0B0B",
-        padding: "5px 10px",
-        borderRadius: 999,
-        whiteSpace: "nowrap",
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 6,
-      }}
-    >
-      {children}
-    </span>
-  );
-}
-
-function KPI({ c, dark, label, value, delta, note, warn = false, featured = false }: { c: C; dark: boolean; label: string; value: ReactNode; delta: string; note: string; warn?: boolean; featured?: boolean }) {
   return (
     <Glass c={c} dark={dark} strong={featured} pad={22} style={{ display: "flex", flexDirection: "column", gap: 18, minHeight: 168, minWidth: 0 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6 }}>
         <span style={{ ...mono, color: c.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{label}</span>
-        <span style={{ ...mono, fontSize: 10, padding: "4px 9px", borderRadius: 999, background: warn ? ACCENT : "transparent", color: warn ? "#0B0B0B" : c.muted, whiteSpace: "nowrap", flexShrink: 0, border: warn ? "none" : `1px solid ${c.line}` }}>
+        <span style={deltaStyle}>
           {warn ? "▲ " : "↗ "}
           {delta}
         </span>
@@ -239,22 +77,34 @@ function KPI({ c, dark, label, value, delta, note, warn = false, featured = fals
 }
 
 export default function AujourdhuiPage() {
-  const user = useQuery(api.users.current);
   const dark = useIsDark();
-  const d = useQuery(api.coaching.dashboardToday);
+  const router = useRouter();
+  const { testMode } = useTestMode();
+  const live = useQuery(api.coaching.dashboardToday);
+  const liveStudents = useQuery(api.coaching.studentsList);
+  // Abonnement réactif au store sandbox (re-render à chaque mutation en test).
+  useTestStore();
   const c = palette(dark, ACCENT);
 
-  if (user === undefined || d === undefined) {
+  const [rdvOpen, setRdvOpen] = useState(false);
+
+  const d = testMode ? selectDashboardToday() : live;
+  const studentsRaw = testMode ? selectStudentsList() : liveStudents;
+
+  // Options pour le sélecteur d'élève du dialog RDV (pseudo Discord en priorité).
+  const studentOptions = useMemo(
+    () =>
+      (studentsRaw ?? []).map((s) => ({
+        _id: s._id,
+        label: s.discordUsername || s.name || "—",
+      })),
+    [studentsRaw]
+  );
+
+  if (d === undefined) {
     return (
       <main style={{ background: c.bgGrad, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <Loader2 className="animate-spin" style={{ color: c.muted }} />
-      </main>
-    );
-  }
-  if (!user || user.role !== "admin") {
-    return (
-      <main style={{ background: c.bgGrad, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <p style={{ ...mono, color: c.muted }}>◦ Accès refusé</p>
       </main>
     );
   }
@@ -271,7 +121,7 @@ export default function AujourdhuiPage() {
           <div style={{ display: "flex", alignItems: "stretch", flexWrap: "wrap" }}>
             <div style={{ flex: 1, padding: "28px 32px", display: "flex", flexDirection: "column", gap: 14, minWidth: 240 }}>
               <div style={{ ...mono, color: c.muted, textTransform: "capitalize" }}>{dateStr} · {timeStr}</div>
-              <div style={{ ...num, fontSize: 46, fontWeight: 500, lineHeight: 1 }}>{"Bonjour Papi Amour."}</div>
+              <div style={{ ...num, fontSize: 46, fontWeight: 500, lineHeight: 1 }}>Bonjour Papi Amour.</div>
               <div style={{ fontSize: 15, color: c.muted, marginTop: -2 }}>
                 <span style={{ color: c.text, fontWeight: 500 }}>{d.rdvJour.length} rendez-vous</span>,
                 <span style={{ color: ACCENT, fontWeight: 500 }}> {d.alertes.length} alertes</span>,
@@ -279,8 +129,8 @@ export default function AujourdhuiPage() {
               </div>
             </div>
             <div style={{ padding: 22, display: "flex", gap: 8, alignItems: "center" }}>
-              <button style={glassBtn(c, "ghost")}>＋ Note</button>
-              <button style={glassBtn(c, "solid")}>＋ Nouveau RDV</button>
+              <button onClick={() => router.push("/studio/eleves")} style={glassBtn(c, "ghost")}>＋ Note</button>
+              <button onClick={() => setRdvOpen(true)} style={glassBtn(c, "solid")}>＋ Nouveau RDV</button>
             </div>
           </div>
         </Glass>
@@ -301,14 +151,12 @@ export default function AujourdhuiPage() {
             <Glass c={c} dark={dark} pad={0}>
               <div style={{ padding: "20px 24px 14px", display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 12, flexWrap: "wrap" }}>
                 <div>
-                  <div style={{ ...mono, color: c.muted }}>{"Programme · aujourd'hui"}</div>
-                  <div style={{ ...num, fontSize: 30, fontWeight: 500, marginTop: 6, lineHeight: 1 }}>
-                    {d.rdvJour.length} sessions
-                  </div>
+                  <div style={{ ...mono, color: c.muted }}>Programme · aujourd&apos;hui</div>
+                  <div style={{ ...num, fontSize: 30, fontWeight: 500, marginTop: 6, lineHeight: 1 }}>{d.rdvJour.length} sessions</div>
                 </div>
                 <div style={{ display: "flex", gap: 2, background: c.chip, padding: 4, borderRadius: 999, border: `1px solid ${c.line}` }}>
                   {["Jour", "Semaine", "Mois"].map((s, i) => (
-                    <button key={s} style={{ ...mono, fontSize: 10.5, padding: "6px 12px", borderRadius: 999, border: "none", cursor: "pointer", background: i === 0 ? (dark ? "rgba(255,255,255,0.92)" : "#0B0B0B") : "transparent", color: i === 0 ? (dark ? "#0B0B0B" : "#FFF") : c.muted }}>{s}</button>
+                    <span key={s} style={{ ...mono, fontSize: 10.5, padding: "6px 12px", borderRadius: 999, background: i === 0 ? (dark ? "rgba(255,255,255,0.92)" : "#0B0B0B") : "transparent", color: i === 0 ? (dark ? "#0B0B0B" : "#FFF") : c.muted }}>{s}</span>
                   ))}
                 </div>
               </div>
@@ -334,8 +182,13 @@ export default function AujourdhuiPage() {
                           <div style={{ ...mono, marginTop: 3, color: c.muted }}>{r.tag}</div>
                         </div>
                       </div>
-                      <div>{r.flag && <Pill>{r.flag}</Pill>}</div>
-                      <button style={{ ...mono, fontSize: 10.5, padding: "9px 14px", borderRadius: 999, border: `1px solid ${isNext ? "transparent" : c.line}`, background: isNext ? ACCENT : c.chip, color: isNext ? "#0B0B0B" : c.text, cursor: "pointer", whiteSpace: "nowrap" }}>{isNext ? "Démarrer →" : "Ouvrir →"}</button>
+                      <div>{r.flag && <Pill c={c} tone="accent">{r.flag}</Pill>}</div>
+                      <button
+                        onClick={() => router.push(`/studio/eleves/${r.userId}`)}
+                        style={{ ...mono, fontSize: 10.5, padding: "9px 14px", borderRadius: 999, border: `1px solid ${isNext ? "transparent" : c.line}`, background: isNext ? ACCENT : c.chip, color: isNext ? "#0B0B0B" : c.text, whiteSpace: "nowrap", cursor: "pointer", fontFamily: "'DM Mono', ui-monospace, monospace" }}
+                      >
+                        {isNext ? "Démarrer →" : "Ouvrir →"}
+                      </button>
                     </div>
                   );
                 })}
@@ -359,7 +212,15 @@ export default function AujourdhuiPage() {
                           <div style={{ ...mono, color: c.muted, marginTop: 2 }}>{r.etape} · {r.last}</div>
                         </div>
                       </div>
-                      <button style={{ ...mono, fontSize: 10, padding: "6px 10px", borderRadius: 999, background: "transparent", border: `1px solid ${c.line}`, color: c.muted, cursor: "pointer" }}>DM</button>
+                      <button
+                        onClick={() => {
+                          if (r.discordId) window.open(`https://discord.com/users/${r.discordId}`, "_blank", "noopener,noreferrer");
+                          else if (r.userId) router.push(`/studio/eleves/${r.userId}`);
+                        }}
+                        style={{ ...mono, fontSize: 10, padding: "6px 10px", borderRadius: 999, background: "transparent", border: `1px solid ${c.line}`, color: c.muted, cursor: "pointer" }}
+                      >
+                        DM
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -464,6 +325,13 @@ export default function AujourdhuiPage() {
           </div>
         </div>
       </div>
+
+      <RdvDialog
+        open={rdvOpen}
+        onClose={() => setRdvOpen(false)}
+        mode="create"
+        students={studentOptions}
+      />
     </div>
   );
 }

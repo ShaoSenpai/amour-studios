@@ -267,3 +267,36 @@ export const sendBroadcastBatch = internalAction({
     );
   },
 });
+
+// ─── Email 3 — Campagne CRM (Brique E) ─────────────────────────────
+// Email de campagne propre, sans le CTA « Ouvrir la formation ». Le corps
+// est rendu en <br> (saut de ligne) après échappement HTML. Réutilise layout().
+
+export function campaignEmailHtml(body: string): string {
+  const safeBody = escape(body).replace(/\n/g, "<br>");
+  const html = `
+    <div style="color:rgba(240,233,219,0.85);margin:0;font-size:14px;line-height:1.7;">
+      ${safeBody}
+    </div>
+  `;
+  // Le titre du layout = (à défaut d'objet explicite) « Amour Studios ».
+  return layout({ title: "Amour Studios", children: html });
+}
+
+/**
+ * Envoie UN email de campagne (un destinataire). Interne — appelé en boucle
+ * par campaigns.sendCampaign et par campaigns.sendTest. Fail-silent si Resend
+ * n'est pas configuré (sendViaResend retourne { ok:false }).
+ */
+export const sendCampaignEmailOne = internalAction({
+  args: {
+    to: v.string(),
+    subject: v.string(),
+    html: v.string(),
+  },
+  handler: async (_ctx, { to, subject, html }) => {
+    if (!to) return { ok: false as const, reason: "no_email" as const };
+    const res = await sendViaResend({ to, subject, html });
+    return { ok: res.ok };
+  },
+});

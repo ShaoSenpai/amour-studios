@@ -37,6 +37,16 @@ export default defineSchema({
     discordUsername: v.optional(v.string()),
     role: v.optional(v.union(v.literal("admin"), v.literal("member"))),
     onboardingCompletedAt: v.optional(v.number()),
+    // Étape du parcours coaching (suivi back-office coach).
+    coachingStage: v.optional(
+      v.union(
+        v.literal("onboarding"),
+        v.literal("positionnement"),
+        v.literal("contenu"),
+        v.literal("feedback_analyse"),
+        v.literal("termine")
+      )
+    ),
     purchaseId: v.optional(v.id("purchases")),
     xp: v.optional(v.number()),
     streakDays: v.optional(v.number()),
@@ -63,11 +73,27 @@ export default defineSchema({
       v.literal("pending"),
       v.literal("paid"),
       v.literal("refunded"),
-      v.literal("failed")
+      v.literal("failed"),
+      // --- Abonnements (lifecycle Stripe) ---------------------------------
+      v.literal("active"),       // abonnement en cours
+      v.literal("past_due"),     // impayé (relance Phase 3)
+      v.literal("canceled"),     // résilié / engagement 3 mois terminé
+      v.literal("incomplete")    // PaymentIntent initial pas encore confirmé
     ),
     userId: v.optional(v.id("users")),
     createdAt: v.number(),
     paidAt: v.optional(v.number()),
+
+    // --- Abonnement Stripe (tier, palier, lifecycle) ----------------------
+    // tier : palier d'accès → pilote les rôles Discord.
+    tier: v.optional(v.union(v.literal("communaute"), v.literal("coaching"))),
+    // duree : pour le coaching seulement ("1mois" récurrent / "3mois" engagé).
+    duree: v.optional(v.union(v.literal("1mois"), v.literal("3mois"))),
+    stripeSubscriptionId: v.optional(v.string()),
+    stripePriceId: v.optional(v.string()),
+    currentPeriodEnd: v.optional(v.number()),    // fin de la période payée
+    cancelAtPeriodEnd: v.optional(v.boolean()),
+    phone: v.optional(v.string()),               // capturé au checkout
 
     // Audit trail — traçabilité des accès offerts vs payés
     source: v.optional(
@@ -82,6 +108,7 @@ export default defineSchema({
     .index("by_email", ["email"])
     .index("by_stripe_session", ["stripeSessionId"])
     .index("by_payment_intent", ["stripePaymentIntentId"])
+    .index("by_subscription", ["stripeSubscriptionId"])
     .index("by_status", ["status"]),
 
   // Rate limit buckets : key = "endpoint:ip", window glissante 60s.
@@ -105,6 +132,77 @@ export default defineSchema({
   })
     .index("by_token", ["token"])
     .index("by_payment_intent", ["paymentIntentId"]),
+
+  // Journal d'événements / trace CRM — « qui a fait quoi, quand » par profil.
+  // type = identifiant machine (ex. "rdv.completed") ; title = libellé FR ;
+  // meta = JSON stringifié (détails) ; actor = coach|system|stripe|calendly…
+  events: defineTable({
+    userId: v.optional(v.id("users")),
+    type: v.string(),
+    title: v.string(),
+    meta: v.optional(v.string()),
+    actor: v.optional(v.string()),
+    at: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_at", ["at"]),
+
+  // Curriculum coaching (tracklist modules → leçons) — dédié, indépendant de la
+  // plateforme vidéo (modules/lessons). À plat : 1 ligne = 1 leçon.
+  curriculum: defineTable({
+    moduleNo: v.number(),
+    moduleTitle: v.string(),
+    lessonNo: v.number(),
+    lessonTitle: v.string(),
+    order: v.number(),
+  }).index("by_order", ["order"]),
+
+  // Notes libres CRM par élève (hors leçon, hors onboarding) — timeline coach.
+  coachingNotes: defineTable({
+    userId: v.id("users"),
+    coachId: v.optional(v.id("users")),
+    content: v.string(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_user", ["userId"]),
+
+  // Sessions de coaching (RDV) — onboarding + calls hebdo. Source Calendly ou
+  // saisie manuelle. Pilote la fiche élève + le calendrier coach.
+  coachingSessions: defineTable({
+    userId: v.id("users"),
+    coachId: v.optional(v.id("users")),
+    type: v.union(
+      v.literal("onboarding"),
+      v.literal("coaching"),
+      v.literal("other")
+    ),
+    source: v.union(v.literal("calendly"), v.literal("manual")),
+    calendlyEventUri: v.optional(v.string()),
+    calendlyInviteeUri: v.optional(v.string()),
+    googleEventId: v.optional(v.string()),
+    meetUrl: v.optional(v.string()),
+    curriculumItemId: v.optional(v.id("curriculum")),
+    // Fireflies (résumé auto du call).
+    firefliesId: v.optional(v.string()),
+    transcriptUrl: v.optional(v.string()),
+    aiSummary: v.optional(v.string()),
+    scheduledAt: v.number(),
+    endAt: v.optional(v.number()),
+    status: v.union(
+      v.literal("scheduled"),
+      v.literal("completed"),
+      v.literal("canceled"),
+      v.literal("no_show")
+    ),
+    summary: v.optional(v.string()),
+    notes: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_scheduledAt", ["scheduledAt"])
+    .index("by_status", ["status"])
+    .index("by_calendly_event", ["calendlyEventUri"]),
 
   modules: defineTable({
     title: v.string(),
@@ -258,6 +356,17 @@ export default defineSchema({
     deletedAt: v.optional(v.number()),
   })
     .index("by_createdAt", ["createdAt"]),
+
+  // Campagnes CRM (segmentation + envoi groupé) — Brique E.
+  // Une ligne = un envoi (segment + canal). Historique côté admin.
+  campaigns: defineTable({
+    channel: v.union(v.literal("email"), v.literal("whatsapp")),
+    segment: v.string(),
+    subject: v.optional(v.string()),
+    body: v.string(),
+    recipientCount: v.number(),
+    createdAt: v.number(),
+  }).index("by_at", ["createdAt"]),
 
   notifications: defineTable({
     userId: v.id("users"),

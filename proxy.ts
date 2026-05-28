@@ -7,34 +7,51 @@ import {
 // ============================================================================
 // Amour Studios — Next.js 16 Proxy (ex-middleware)
 // ----------------------------------------------------------------------------
-// Next 16 a renommé `middleware.ts` en `proxy.ts`. Les helpers Convex Auth
-// restent compatibles car ils exposent un NextMiddleware standard — on se
-// contente de ré-exporter le handler sous le nom `proxy`.
+// Le produit, c'est le dashboard /studio (back-office coach). La partie
+// formation (/dashboard, /lesson, /onboarding) est mise de côté : on la masque
+// en redirigeant tout vers /studio. Idem l'ancien /admin.
 //
 // Règles :
-//  - /dashboard, /admin, /onboarding : requièrent une session Convex Auth
-//  - /login : redirige vers /dashboard si déjà connecté
-//  - tout le reste est public (landing, /api/auth/*, assets)
+//  - /dashboard, /lesson, /onboarding, /admin → /studio (formation masquée)
+//  - /studio(.*) : requiert une session ; /studio/login reste public
+//  - /login : si déjà connecté → /studio
+//  - tout le reste est public (/api/auth/*, assets)
 // ============================================================================
 
-const isProtectedRoute = createRouteMatcher([
+// Formation mise de côté + ancien back-office → tout vers /studio.
+const isRetiredRoute = createRouteMatcher([
   "/dashboard(.*)",
-  "/admin(.*)",
-  "/onboarding(.*)",
   "/lesson(.*)",
+  "/onboarding(.*)",
+  "/admin(.*)",
 ]);
 
+const isStudioRoute = createRouteMatcher(["/studio(.*)"]);
+const isStudioLoginRoute = createRouteMatcher(["/studio/login"]);
 const isLoginRoute = createRouteMatcher(["/login"]);
 
 export const proxy = convexAuthNextjsMiddleware(async (request, { convexAuth }) => {
   const isAuth = await convexAuth.isAuthenticated();
 
-  if (isProtectedRoute(request) && !isAuth) {
-    return nextjsMiddlewareRedirect(request, "/login");
+  // Formation / ancien admin → /studio (plus rien ne pointe dessus).
+  if (isRetiredRoute(request)) {
+    return nextjsMiddlewareRedirect(request, "/studio");
   }
 
+  // /studio/login : public si non connecté, sinon → /studio.
+  if (isStudioLoginRoute(request)) {
+    if (isAuth) return nextjsMiddlewareRedirect(request, "/studio");
+    return;
+  }
+
+  // /studio (hors login) protégé → page de login du studio si non connecté.
+  if (isStudioRoute(request) && !isAuth) {
+    return nextjsMiddlewareRedirect(request, "/studio/login");
+  }
+
+  // /login : déjà connecté → on file au dashboard /studio.
   if (isLoginRoute(request) && isAuth) {
-    return nextjsMiddlewareRedirect(request, "/dashboard");
+    return nextjsMiddlewareRedirect(request, "/studio");
   }
 });
 

@@ -3,6 +3,17 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
+/** Luminance simple pour choisir un texte lisible sur un fond hex. */
+function isDark(hex: string): boolean {
+  const m = hex.replace("#", "");
+  if (m.length < 6) return false;
+  const r = parseInt(m.slice(0, 2), 16);
+  const g = parseInt(m.slice(2, 4), 16);
+  const b = parseInt(m.slice(4, 6), 16);
+  // luminance perçue
+  return (0.299 * r + 0.587 * g + 0.114 * b) < 140;
+}
+
 export function StatBlock({
   label,
   value,
@@ -21,13 +32,15 @@ export function StatBlock({
   className?: string;
 }) {
   if (variant === "filled") {
+    // Texte lisible : clair si l'accent est foncé (ink), sinon sombre.
+    const fg = isDark(accent) ? "#FFFFFF" : "#0D0B08";
     return (
       <div
         className={cn(
           "relative flex min-h-[140px] flex-col justify-between overflow-hidden p-5 transition-transform duration-700 [transition-timing-function:var(--ease-reveal)] hover:-translate-y-1",
           className
         )}
-        style={{ background: accent, color: "#0D0B08" }}
+        style={{ background: accent, color: fg }}
       >
         <div
           className="font-mono text-[9px] uppercase tracking-[2.5px] opacity-70"

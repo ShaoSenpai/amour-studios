@@ -14,7 +14,7 @@ const TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 jours
 
 /**
  * Interne : crée un claim token pour un PaymentIntent donné.
- * Appelé depuis `stripe.createPaymentIntent` (action).
+ * Appelé depuis `stripe.createSubscription` (action).
  */
 export const create = internalMutation({
   args: {
@@ -99,8 +99,14 @@ export const claimByToken = mutation({
     if (!purchase) {
       throw new Error("Paiement introuvable — le webhook Stripe n'est peut-être pas encore arrivé");
     }
-    if (purchase.status !== "paid") {
-      throw new Error("Ce paiement n'est pas validé");
+    // Abonnements : on accepte "active" et "incomplete" (paiement en cours de
+    // confirmation) en plus de "paid" (legacy). On refuse les statuts terminaux.
+    const linkable =
+      purchase.status === "paid" ||
+      purchase.status === "active" ||
+      purchase.status === "incomplete";
+    if (!linkable) {
+      throw new Error(`Ce paiement n'est pas valide (statut : ${purchase.status})`);
     }
     if (purchase.userId && purchase.userId !== userId) {
       throw new Error("Ce paiement est déjà lié à un autre compte");
@@ -121,11 +127,16 @@ export const claimByToken = mutation({
       claimedByUserId: userId,
     });
 
-    // Schedule Discord role assignment (fail-silent)
-    if (user?.discordId && user?.email) {
+    // Schedule Discord role assignment selon le palier (fail-silent).
+    // Uniquement si l'accès est effectif (paid/active). Si "incomplete", le
+    // webhook invoice.paid attribuera le rôle dès la confirmation du paiement.
+    const accessGranted =
+      purchase.status === "paid" || purchase.status === "active";
+    if (accessGranted && user?.discordId && user?.email) {
       await ctx.scheduler.runAfter(0, internal.stripe.assignDiscordRole, {
         discordId: user.discordId,
         email: user.email,
+        tier: purchase.tier ?? undefined,
       });
     }
 

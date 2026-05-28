@@ -1,0 +1,260 @@
+"use client";
+
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
+import { Loader2 } from "lucide-react";
+import {
+  ACCENT,
+  palette,
+  useIsDark,
+  mono,
+  num,
+  Glass,
+  Avatar,
+  Pill,
+  Segmented,
+  FilterSelect,
+  STAGES,
+  STAGE_LABELS,
+  stageLabel,
+  statusInfo,
+  relativeFromNow,
+  fmtDateShort,
+  fmtTime,
+  type Stage,
+} from "../_components/glass";
+import { useTestMode } from "../_components/test-mode";
+import { useTestStore, selectStudentsList } from "../_components/test-store";
+
+// ============================================================================
+// Élèves — liste filtrable depuis api.coaching.studentsList.
+// Recherche par pseudo Discord, segment Tous/Coaching/Communauté (via tier),
+// filtres Étape (coachingStage) & Paiement (status). Colonne « Prochain RDV »
+// (nextSessionAt) + téléphone. Clic ligne → /studio/eleves/{id}.
+// ============================================================================
+
+type Seg = "tous" | "coaching" | "commu";
+type StatusFilter = "tous" | "ok" | "incident";
+type EtapeFilter = "toutes" | Stage;
+
+/** nextSessionAt → "12 mars · 14:30" ou "—". */
+function fmtNextRdv(ts: number | null): string {
+  if (!ts) return "—";
+  return `${fmtDateShort(ts)} · ${fmtTime(ts)}`;
+}
+
+export default function ElevesPage() {
+  const dark = useIsDark();
+  const router = useRouter();
+  const { testMode } = useTestMode();
+  const liveStudents = useQuery(api.coaching.studentsList);
+  useTestStore();
+  const c = palette(dark, ACCENT);
+
+  const [seg, setSeg] = useState<Seg>("tous");
+  const [etape, setEtape] = useState<EtapeFilter>("toutes");
+  const [status, setStatus] = useState<StatusFilter>("tous");
+  const [query, setQuery] = useState("");
+
+  const students = testMode ? selectStudentsList() : liveStudents;
+
+  const live = useMemo(() => students ?? [], [students]);
+
+  const filtered = useMemo(() => {
+    return live.filter((m) => {
+      const isActive = m.status === "active" || m.status === "paid";
+      if (seg === "coaching" && m.tier !== "coaching") return false;
+      if (seg === "commu" && m.tier !== "communaute") return false;
+      if (etape !== "toutes" && m.coachingStage !== etape) return false;
+      const incident = m.status === "past_due";
+      if (status === "ok" && !isActive) return false;
+      if (status === "incident" && !incident) return false;
+      if (query) {
+        const q = query.toLowerCase();
+        const name = (m.discordUsername || m.name || "").toLowerCase();
+        if (!name.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [live, seg, etape, status, query]);
+
+  const nCoaching = live.filter((m) => m.tier === "coaching").length;
+  const nCommu = live.filter((m) => m.tier === "communaute").length;
+  const nIncident = live.filter((m) => m.status === "past_due").length;
+
+  if (students === undefined) {
+    return (
+      <main style={{ background: c.bgGrad, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <Loader2 className="animate-spin" style={{ color: c.muted }} />
+      </main>
+    );
+  }
+
+  const COLS = "minmax(200px, 1.3fr) 110px 110px 1fr 140px 130px 100px 40px";
+
+  return (
+    <div style={{ background: c.bgGrad, minHeight: "100vh", color: c.text, padding: 26, fontFamily: "'Schibsted Grotesk', system-ui, sans-serif" }}>
+      <div style={{ maxWidth: 1280, margin: "0 auto" }}>
+        {/* Hero */}
+        <Glass c={c} dark={dark} pad={0} strong style={{ overflow: "hidden", marginBottom: 16 }}>
+          <div style={{ display: "flex", alignItems: "stretch", flexWrap: "wrap" }}>
+            <div style={{ flex: 1, padding: "26px 30px", display: "flex", flexDirection: "column", gap: 10, minWidth: 240 }}>
+              <div style={{ ...mono, color: c.muted }}>Pilotage · base élèves</div>
+              <div style={{ ...num, fontSize: 42, fontWeight: 500, lineHeight: 1 }}>
+                Élèves <span style={{ color: c.muted }}>· {live.length}</span>
+              </div>
+              <div style={{ fontSize: 14.5, color: c.muted, marginTop: -2 }}>
+                <span style={{ color: c.text, fontWeight: 500 }}>{nCoaching} coaching</span>
+                {" · "}
+                <span>{nCommu} communauté</span>
+                {" · "}
+                <span style={{ color: ACCENT, fontWeight: 500 }}>{nIncident} incidents paiement</span>
+              </div>
+            </div>
+          </div>
+        </Glass>
+
+        {/* Filter bar */}
+        <Glass c={c} dark={dark} pad={14} style={{ marginBottom: 16, display: "flex", flexWrap: "wrap", gap: 14, alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
+            <Segmented
+              c={c}
+              value={seg}
+              onChange={setSeg}
+              items={[
+                { id: "tous", label: `Tous · ${live.length}` },
+                { id: "coaching", label: "Coaching" },
+                { id: "commu", label: "Communauté" },
+              ]}
+            />
+            <div style={{ width: 1, height: 22, background: c.line }} />
+            <FilterSelect
+              c={c}
+              label="Étape"
+              value={etape}
+              onChange={setEtape}
+              options={[
+                { id: "toutes", label: "Toutes" },
+                ...STAGES.map((s) => ({ id: s, label: STAGE_LABELS[s] })),
+              ]}
+            />
+            <FilterSelect
+              c={c}
+              label="Paiement"
+              value={status}
+              onChange={setStatus}
+              options={[
+                { id: "tous", label: "Tous" },
+                { id: "ok", label: "À jour" },
+                { id: "incident", label: "Incidents" },
+              ]}
+            />
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, background: c.chip, padding: "7px 12px", borderRadius: 999, border: `1px solid ${c.line}`, minWidth: 240 }}>
+            <span style={{ color: c.muted, fontSize: 13 }}>⌕</span>
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Rechercher par pseudo Discord…"
+              style={{ background: "transparent", border: "none", color: c.text, outline: "none", flex: 1, fontFamily: "inherit", fontSize: 13 }}
+            />
+            {query && (
+              <button onClick={() => setQuery("")} style={{ background: "transparent", border: "none", color: c.muted, cursor: "pointer" }}>×</button>
+            )}
+          </div>
+        </Glass>
+
+        {/* Table */}
+        <Glass c={c} dark={dark} pad={0}>
+          <div style={{ display: "grid", gridTemplateColumns: COLS, gap: 14, padding: "14px 22px", borderBottom: `1px solid ${c.line}`, ...mono, color: c.faint }}>
+            <div>Élève</div>
+            <div>Offre</div>
+            <div>Paiement</div>
+            <div>Étape</div>
+            <div>Prochain RDV</div>
+            <div>Téléphone</div>
+            <div>Dernière act.</div>
+            <div />
+          </div>
+
+          {filtered.map((m, i) => {
+            const who = m.discordUsername || m.name || "—";
+            const offre = m.tier === "coaching" ? "Coaching" : m.tier === "communaute" ? "Communauté" : "—";
+            const si = m.status ? statusInfo(m.status) : { label: "—", tone: "outline" as const };
+            const hasRdv = m.nextSessionAt != null;
+            return (
+              <Row key={m._id} cols={COLS} c={c} last={i === filtered.length - 1}>
+                <button
+                  onClick={() => router.push(`/studio/eleves/${m._id}`)}
+                  style={{ display: "contents", background: "transparent", border: "none", cursor: "pointer", textAlign: "left", color: c.text, fontFamily: "inherit" }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+                    <Avatar name={who} size={32} dark={dark} image={m.image} />
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 14, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{who}</div>
+                      <div style={{ ...mono, color: c.muted, marginTop: 2 }}>
+                        {m.name && m.name !== who ? `${m.name} · ` : ""}
+                        {m.createdAt ? `inscrit ${relativeFromNow(m.createdAt)}` : ""}
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <Pill c={c} tone={m.tier === "coaching" ? "ink" : "outline"}>{offre}</Pill>
+                  </div>
+                  <div>
+                    <Pill c={c} tone={si.tone}>
+                      <span style={{ width: 5, height: 5, borderRadius: 5, background: si.tone === "success" ? c.successFg : si.tone === "outline" ? c.faint : "#0B0B0B" }} />
+                      {si.label}
+                    </Pill>
+                  </div>
+                  <div style={{ fontSize: 13.5 }}>{stageLabel(m.coachingStage)}</div>
+                  <div style={{ ...num, fontSize: 13, color: hasRdv ? c.text : c.faint, whiteSpace: "nowrap" }}>{fmtNextRdv(m.nextSessionAt)}</div>
+                  <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11.5, color: m.phone ? c.muted : c.faint, whiteSpace: "nowrap" }}>{m.phone ?? "—"}</div>
+                  <div style={{ ...mono, color: c.muted }}>{m.lastActiveAt ? relativeFromNow(m.lastActiveAt) : "—"}</div>
+                  <div style={{ color: c.muted, fontSize: 16, textAlign: "right" }}>›</div>
+                </button>
+              </Row>
+            );
+          })}
+
+          {filtered.length === 0 && (
+            <div style={{ padding: "40px 22px", textAlign: "center", color: c.muted, fontSize: 14 }}>
+              Aucun élève ne correspond aux filtres.
+            </div>
+          )}
+        </Glass>
+      </div>
+    </div>
+  );
+}
+
+function Row({
+  cols,
+  c,
+  last,
+  children,
+}: {
+  cols: string;
+  c: ReturnType<typeof palette>;
+  last: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: cols,
+        gap: 14,
+        padding: "14px 22px",
+        borderBottom: last ? "none" : `1px solid ${c.hairline}`,
+        alignItems: "center",
+      }}
+      onMouseEnter={(e) => (e.currentTarget.style.background = c.chip)}
+      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+    >
+      {children}
+    </div>
+  );
+}

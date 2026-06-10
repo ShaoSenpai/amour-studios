@@ -19,16 +19,20 @@ import {
 // ============================================================================
 
 // Formation mise de côté + ancien back-office → tout vers /studio.
+// (NB : /onboarding(.*) reste PUBLIC — c'est le nouveau parcours client
+// post-paiement, pas l'ancienne route formation.)
 const isRetiredRoute = createRouteMatcher([
   "/dashboard(.*)",
   "/lesson(.*)",
-  "/onboarding(.*)",
   "/admin(.*)",
 ]);
 
 const isStudioRoute = createRouteMatcher(["/studio(.*)"]);
 const isStudioLoginRoute = createRouteMatcher(["/studio/login"]);
 const isLoginRoute = createRouteMatcher(["/login"]);
+// Espace élève : exercices coaching. Auth requise (n'importe quel membre).
+// Le gating par tier/module est fait côté serveur (lib/access).
+const isStudentRoute = createRouteMatcher(["/exos(.*)"]);
 
 export const proxy = convexAuthNextjsMiddleware(async (request, { convexAuth }) => {
   const isAuth = await convexAuth.isAuthenticated();
@@ -49,9 +53,16 @@ export const proxy = convexAuthNextjsMiddleware(async (request, { convexAuth }) 
     return nextjsMiddlewareRedirect(request, "/studio/login");
   }
 
-  // /login : déjà connecté → on file au dashboard /studio.
+  // /exos (espace élève) : auth requise (membre OK). Redirige vers /login si
+  // non connecté. Le gating tier/module est appliqué côté serveur.
+  if (isStudentRoute(request) && !isAuth) {
+    return nextjsMiddlewareRedirect(request, "/login");
+  }
+
+  // /login : déjà connecté → racine (dispatcher selon le rôle : admin /studio,
+  // membre /exos).
   if (isLoginRoute(request) && isAuth) {
-    return nextjsMiddlewareRedirect(request, "/studio");
+    return nextjsMiddlewareRedirect(request, "/");
   }
 });
 

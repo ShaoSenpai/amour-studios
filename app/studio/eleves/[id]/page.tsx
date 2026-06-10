@@ -57,6 +57,7 @@ import {
   selectMemberDetail,
   selectCurriculum,
   selectEvents,
+  selectExercisesForUser,
 } from "../../_components/test-store";
 import { RdvDialog } from "../../_components/rdv-dialog";
 
@@ -134,6 +135,15 @@ export default function FichePage({
   const deleteNote = useMutation(api.coaching.deleteNote);
   const updateOnboardingNote = useMutation(api.coaching.updateOnboardingNote);
 
+  // Exos de l'élève (gating coaching + modules débloqués).
+  const liveExercises = useQuery(
+    api.exercises.listForUser,
+    testMode ? "skip" : { userId }
+  );
+  const exercisesList = testMode ? (selectExercisesForUser() ?? []) : (liveExercises ?? []);
+  const unlockModuleMut = useMutation(api.users.unlockModule);
+  const lockModuleMut = useMutation(api.users.lockModule);
+
   const [editingId, setEditingId] = useState<Id<"coachingSessions"> | null>(null);
   const [draftSummary, setDraftSummary] = useState("");
   const [draftNotes, setDraftNotes] = useState("");
@@ -157,8 +167,8 @@ export default function FichePage({
   const { orders, collapsed, setOrder, toggle, reset } = useLayoutPrefs(
     "studio:fiche-layout-v1",
     {
-      left: ["parcours", "rdv"],
-      right: ["paiement", "discord", "onboarding", "notes", "activite"],
+      left: ["parcours", "rdv", "exercises"],
+      right: ["paiement", "discord", "onboarding", "unlocks", "notes", "activite"],
     }
   );
 
@@ -685,11 +695,11 @@ export default function FichePage({
       ),
     },
     onboarding: {
-      title: "Note d'onboarding",
+      title: "Onboarding",
       headerRight: !editingOnb ? (
         <IconBtn
           c={c}
-          title="Éditer"
+          title="Éditer la note"
           size={32}
           onClick={() => {
             setDraftOnb(detail.onboarding?.notes ?? "");
@@ -699,24 +709,17 @@ export default function FichePage({
           <Pencil size={14} />
         </IconBtn>
       ) : undefined,
-      body: editingOnb ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <textarea
-            value={draftOnb}
-            onChange={(e) => setDraftOnb(e.target.value)}
-            rows={4}
-            placeholder="Note d'onboarding…"
-            style={{ ...fieldInput(c), resize: "vertical", lineHeight: 1.5 }}
-          />
-          <div style={{ display: "flex", gap: 8 }}>
-            <motion.button {...TAP} onClick={() => void handleSaveOnb()} style={glassBtn(c, "solid")}>Enregistrer</motion.button>
-            <motion.button {...TAP} onClick={() => setEditingOnb(false)} style={glassBtn(c, "ghost")}>Annuler</motion.button>
-          </div>
-        </div>
-      ) : (
-        <div style={{ padding: 16, borderRadius: 14, background: c.chip, border: `1px solid ${c.line}`, fontSize: 14, lineHeight: 1.55, color: detail.onboarding?.notes ? c.text : c.faint, minHeight: 96 }}>
-          {detail.onboarding?.notes || "Aucune note d'onboarding."}
-        </div>
+      body: (
+        <OnboardingBlock
+          c={c}
+          dark={dark}
+          ob={detail.onboarding}
+          editingOnb={editingOnb}
+          draftOnb={draftOnb}
+          setDraftOnb={setDraftOnb}
+          onSave={() => void handleSaveOnb()}
+          onCancel={() => setEditingOnb(false)}
+        />
       ),
     },
     notes: {
@@ -794,6 +797,30 @@ export default function FichePage({
       title: "Activité",
       count: events.length,
       body: <ActivityTimeline c={c} events={events} />,
+    },
+    unlocks: {
+      title: "Modules débloqués",
+      body: (
+        <UnlocksBlock
+          c={c}
+          duree={purchase?.duree ?? null}
+          unlockedModules={user.unlockedModules ?? []}
+          onToggle={(moduleNo, on) => {
+            if (testMode) {
+              testStore.toggleUnlockedModule({ userId: user._id, moduleNo, on });
+              toast.success("✓ Enregistré (mode test)");
+              return;
+            }
+            if (on) void unlockModuleMut({ userId, moduleNo }).then(() => toast.success(`Module ${moduleNo} débloqué.`));
+            else void lockModuleMut({ userId, moduleNo }).then(() => toast.success(`Module ${moduleNo} reverrouillé.`));
+          }}
+        />
+      ),
+    },
+    exercises: {
+      title: "Exercices",
+      count: exercisesList.filter((e) => e.state === "completed").length,
+      body: <ExercisesBlock c={c} exercises={exercisesList} />,
     },
   };
 
@@ -1156,11 +1183,365 @@ function Dot({
   );
 }
 
+// Bloc « Modules débloqués » — 3 toggles M1/M2/M3 sur la fiche élève.
+// M1 toujours coché et désactivé (implicite). M2/M3 = toggle direct → mutation.
+function UnlocksBlock({
+  c,
+  duree,
+  unlockedModules,
+  onToggle,
+}: {
+  c: C;
+  duree: "1mois" | "3mois" | null;
+  unlockedModules: number[];
+  onToggle: (moduleNo: number, on: boolean) => void;
+}) {
+  const isLocked3Mois = duree !== "3mois";
+  const modules = [1, 2, 3] as const;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      {modules.map((n) => {
+        const implicit = n === 1;
+        const checked = implicit || unlockedModules.includes(n);
+        const disabled = implicit || isLocked3Mois;
+        const tone = checked ? ACCENT : c.muted;
+        return (
+          <button
+            key={n}
+            type="button"
+            disabled={disabled}
+            onClick={() => onToggle(n, !checked)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              padding: "12px 14px",
+              borderRadius: 12,
+              background: checked ? `${ACCENT}1A` : c.chip,
+              border: `1px solid ${checked ? `${ACCENT}66` : c.line}`,
+              cursor: disabled ? "default" : "pointer",
+              color: c.text,
+              fontFamily: "inherit",
+              textAlign: "left",
+              opacity: disabled && !implicit ? 0.45 : 1,
+            }}
+          >
+            <span
+              style={{
+                width: 22,
+                height: 22,
+                borderRadius: 7,
+                background: checked ? ACCENT : "transparent",
+                border: `1.5px solid ${checked ? ACCENT : c.line}`,
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#0B0B0B",
+                fontSize: 13,
+                fontWeight: 700,
+                flexShrink: 0,
+              }}
+            >
+              {checked ? "✓" : ""}
+            </span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 14, fontWeight: 500, color: checked ? c.text : tone }}>
+                Module {n}
+              </div>
+              <div style={{ ...mono, fontSize: 9.5, color: c.muted, marginTop: 2 }}>
+                {implicit
+                  ? "Implicite (coaching = M1 d'office)"
+                  : isLocked3Mois
+                  ? "Engagement 3 mois requis"
+                  : checked
+                  ? "Débloqué"
+                  : "Cliquer pour débloquer manuellement"}
+              </div>
+            </div>
+          </button>
+        );
+      })}
+      {!isLocked3Mois && (
+        <div style={{ ...mono, fontSize: 9.5, color: c.faint, lineHeight: 1.5, marginTop: 4 }}>
+          Auto-déblocage : le module suivant s&apos;ouvre dès que tous les exos
+          du module courant sont terminés.
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Bloc « Exercices » — liste lecture seule des exos de l'élève + état + date.
+type FicheExerciseItem = {
+  _id: Id<"exercises"> | string;
+  title: string;
+  state: "available" | "locked" | "locked_module" | "completed";
+  moduleOrder: number;
+  moduleTitle: string;
+  lessonTitle: string;
+  completedAt?: number;
+  responseUpdatedAt?: number;
+  progressPercent?: number;
+};
+function ExercisesBlock({
+  c,
+  exercises,
+}: {
+  c: C;
+  exercises: FicheExerciseItem[];
+}) {
+  if (exercises.length === 0) {
+    return <div style={{ ...mono, color: c.faint }}>Aucun exercice pour cet élève.</div>;
+  }
+  const sorted = [...exercises].sort((a, b) => {
+    if (a.moduleOrder !== b.moduleOrder) return a.moduleOrder - b.moduleOrder;
+    return (a.title || "").localeCompare(b.title || "");
+  });
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      {sorted.map((ex, i) => {
+        const isCompleted = ex.state === "completed";
+        const isLocked = ex.state === "locked" || ex.state === "locked_module";
+        const tone = isCompleted ? "#1FA463" : isLocked ? c.muted : ACCENT;
+        const subLabel =
+          ex.state === "completed"
+            ? ex.completedAt
+              ? `Terminé · ${fmtDateShort(ex.completedAt)}`
+              : "Terminé"
+            : ex.state === "locked_module"
+            ? "Module verrouillé"
+            : ex.state === "locked"
+            ? "À débloquer (séquence)"
+            : ex.responseUpdatedAt
+            ? `En cours · ${Math.round(ex.progressPercent ?? 0)} %`
+            : "À commencer";
+        return (
+          <a
+            key={(ex._id as unknown as string) + i}
+            href={`/exos/${ex._id as unknown as string}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: "grid",
+              gridTemplateColumns: "auto 1fr auto",
+              gap: 12,
+              padding: "10px 12px",
+              borderRadius: 10,
+              background: c.chip,
+              border: `1px solid ${c.hairline}`,
+              textDecoration: "none",
+              color: c.text,
+              fontFamily: "inherit",
+              alignItems: "center",
+              opacity: isLocked ? 0.65 : 1,
+            }}
+          >
+            <span
+              style={{
+                ...mono,
+                fontSize: 9,
+                padding: "3px 7px",
+                borderRadius: 999,
+                background: `${tone}1F`,
+                border: `1px solid ${tone}66`,
+                color: tone,
+                whiteSpace: "nowrap",
+              }}
+            >
+              M{ex.moduleOrder}
+            </span>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ex.title}</div>
+              <div style={{ ...mono, fontSize: 9.5, color: c.muted, marginTop: 2 }}>{subLabel}</div>
+            </div>
+            <span style={{ color: c.muted, fontSize: 14 }}>↗</span>
+          </a>
+        );
+      })}
+    </div>
+  );
+}
+
 function Field({ c, label, value, mono: isMono = false }: { c: C; label: string; value: string; mono?: boolean }) {
   return (
     <div>
       <div style={{ ...mono, color: c.faint, fontSize: 9.5 }}>{label}</div>
       <div style={{ marginTop: 4, fontSize: 14, fontWeight: 500, fontFamily: isMono ? "'DM Mono', monospace" : "inherit" }}>{value}</div>
+    </div>
+  );
+}
+
+// Bloc Onboarding (fiche élève) : statut + coordonnées + dates + réponses
+// + note libre admin éditable.
+const ONB_STEP_LABEL: Record<string, { label: string; color: string }> = {
+  awaiting_presentation: { label: "En attente présentation", color: "#F97316" },
+  link_sent: { label: "Lien envoyé", color: "#3B82F6" },
+  form_done: { label: "Formulaire rempli", color: "#3B82F6" },
+  rdv_booked: { label: "1er RDV réservé", color: "#1FA463" },
+  community_ready: { label: "Communauté prête", color: "#1FA463" },
+};
+
+type OnboardingData = {
+  tier?: "coaching" | "communaute";
+  step?: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  phone?: string | null;
+  answers?: Array<{ key: string; label: string; value: string }> | null;
+  presentedAt?: number | null;
+  linkSentAt?: number | null;
+  formCompletedAt?: number | null;
+  rdvBookedAt?: number | null;
+  notes?: string | null;
+} | null;
+
+function OnboardingBlock({
+  c,
+  dark,
+  ob,
+  editingOnb,
+  draftOnb,
+  setDraftOnb,
+  onSave,
+  onCancel,
+}: {
+  c: C;
+  dark: boolean;
+  ob: OnboardingData;
+  editingOnb: boolean;
+  draftOnb: string;
+  setDraftOnb: (s: string) => void;
+  onSave: () => void;
+  onCancel: () => void;
+}) {
+  const stepMeta = ob?.step ? ONB_STEP_LABEL[ob.step] : null;
+  const fullName =
+    ob?.firstName || ob?.lastName
+      ? `${ob?.firstName ?? ""} ${ob?.lastName ?? ""}`.trim()
+      : null;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      {/* Statut */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+        {stepMeta ? (
+          <span
+            style={{
+              ...mono,
+              fontSize: 10,
+              padding: "5px 10px",
+              borderRadius: 999,
+              background: `${stepMeta.color}1F`,
+              border: `1px solid ${stepMeta.color}66`,
+              color: dark ? "#FFFFFF" : stepMeta.color,
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              whiteSpace: "nowrap",
+            }}
+          >
+            <span style={{ width: 6, height: 6, borderRadius: 6, background: stepMeta.color }} />
+            {stepMeta.label}
+          </span>
+        ) : (
+          <span style={{ ...mono, color: c.faint }}>Pas d&apos;onboarding</span>
+        )}
+        {ob?.tier && (
+          <span style={{ ...mono, fontSize: 9.5, color: c.muted }}>
+            · {ob.tier === "coaching" ? "Coaching 179€" : "Communauté 79€"}
+          </span>
+        )}
+      </div>
+
+      {/* Coordonnées */}
+      {(fullName || ob?.phone) && (
+        <div
+          style={{
+            padding: 14,
+            background: c.chip,
+            border: `1px solid ${c.line}`,
+            borderRadius: 12,
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: 12,
+          }}
+        >
+          <Field c={c} label="Nom complet" value={fullName || "—"} />
+          <Field c={c} label="Téléphone" value={ob?.phone || "—"} mono />
+        </div>
+      )}
+
+      {/* Étapes / dates */}
+      {ob && (ob.presentedAt || ob.linkSentAt || ob.formCompletedAt || ob.rdvBookedAt) && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          {ob.presentedAt && <Field c={c} label="Présenté Discord" value={fmtDateShort(ob.presentedAt)} mono />}
+          {ob.linkSentAt && <Field c={c} label="Lien envoyé" value={fmtDateShort(ob.linkSentAt)} mono />}
+          {ob.formCompletedAt && <Field c={c} label="Formulaire rempli" value={fmtDateShort(ob.formCompletedAt)} mono />}
+          {ob.rdvBookedAt && <Field c={c} label="1er RDV réservé" value={fmtDateShort(ob.rdvBookedAt)} mono />}
+        </div>
+      )}
+
+      {/* Réponses du questionnaire */}
+      {ob?.answers && ob.answers.length > 0 && (
+        <div>
+          <div style={{ ...mono, color: c.muted, fontSize: 9.5, marginBottom: 8 }}>
+            Questionnaire ({ob.answers.length} réponses)
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {ob.answers.map((a) => (
+              <div
+                key={a.key}
+                style={{ padding: "10px 12px", background: c.chip, border: `1px solid ${c.hairline}`, borderRadius: 10 }}
+              >
+                <div style={{ ...mono, fontSize: 9.5, color: c.muted, marginBottom: 4 }}>{a.label}</div>
+                <div style={{ fontSize: 13.5, lineHeight: 1.5, color: c.text, whiteSpace: "pre-wrap" }}>
+                  {a.value || "—"}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Note libre admin */}
+      <div>
+        <div style={{ ...mono, color: c.muted, fontSize: 9.5, marginBottom: 8 }}>Note libre</div>
+        {editingOnb ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <textarea
+              value={draftOnb}
+              onChange={(e) => setDraftOnb(e.target.value)}
+              rows={3}
+              placeholder="Note libre…"
+              style={{ ...fieldInput(c), resize: "vertical", lineHeight: 1.5 }}
+            />
+            <div style={{ display: "flex", gap: 8 }}>
+              <motion.button {...TAP} onClick={onSave} style={glassBtn(c, "solid")}>
+                Enregistrer
+              </motion.button>
+              <motion.button {...TAP} onClick={onCancel} style={glassBtn(c, "ghost")}>
+                Annuler
+              </motion.button>
+            </div>
+          </div>
+        ) : (
+          <div
+            style={{
+              padding: 14,
+              borderRadius: 12,
+              background: c.chip,
+              border: `1px solid ${c.line}`,
+              fontSize: 13.5,
+              lineHeight: 1.55,
+              color: ob?.notes ? c.text : c.faint,
+              minHeight: 60,
+              whiteSpace: "pre-wrap",
+            }}
+          >
+            {ob?.notes || "Aucune note."}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

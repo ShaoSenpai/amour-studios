@@ -1,0 +1,159 @@
+import { GenericQueryCtx, GenericMutationCtx } from "convex/server";
+import type { DataModel, Doc, Id } from "../_generated/dataModel";
+
+// ============================================================================
+// Helpers d'accès aux exercices coaching.
+//
+// Règles :
+//  - Admin → tous les modules existants.
+//  - Pas de purchase coaching actif → aucun accès ([]).
+//  - duree="1mois" → uniquement M1 (le 1er module par `order`).
+//  - duree="3mois" → M1 implicite + tous les modules listés dans
+//    `users.unlockedModules` (débloqués manuellement par admin OU auto par
+//    `exerciseResponses.complete` à la fin du module précédent).
+//
+// Note : les exos sont rattachés à des LEÇONS de FORMATION (`lessons.moduleId`),
+// donc le "moduleNo" utilisé pour le gating = `modules.order` (entier 1+).
+// ============================================================================
+
+type Ctx =
+  | GenericQueryCtx<DataModel>
+  | GenericMutationCtx<DataModel>;
+
+/** Retrouve le purchase actif (coaching/communauté) lié à un user (par
+ *  `purchaseId` ou, à défaut, par email). Renvoie null si rien. */
+export async function getActivePurchase(
+  ctx: Ctx,
+  user: Doc<"users">
+): Promise<Doc<"purchases"> | null> {
+  if (user.purchaseId) {
+    const p = await ctx.db.get(user.purchaseId);
+    if (p && isActiveStatus(p.status)) return p;
+  }
+  if (user.email) {
+    const byEmail = await ctx.db
+      .query("purchases")
+      .withIndex("by_email", (q) => q.eq("email", user.email!.toLowerCase()))
+      .collect();
+    const active = byEmail.find((p) => isActiveStatus(p.status));
+    if (active) return active;
+  }
+  return null;
+}
+
+function isActiveStatus(status: string): boolean {
+  return status === "active" || status === "paid" || status === "past_due";
+}
+
+// Modules in scope pour le catalogue /exos coaching. Les autres modules
+// (Introduction, Mindset, Communauté…) restent en BDD pour la formation
+// legacy mais ne sont JAMAIS exposés côté élève coaching.
+export const COACHING_MODULE_ORDERS = [1, 2, 3] as const;
+
+/** Renvoie la liste TRIÉE des `module.order` accessibles à ce user pour les
+ *  exercices coaching. Vide si pas d'accès. */
+export async function accessibleModules(
+  ctx: Ctx,
+  user: Doc<"users">
+): Promise<number[]> {
+  // Admin : tous les modules in-scope coaching (1, 2, 3) — pas de gating.
+  if (user.role === "admin") {
+    return [...COACHING_MODULE_ORDERS];
+  }
+
+  const purchase = await getActivePurchase(ctx, user);
+  if (!purchase || purchase.tier !== "coaching") return [];
+
+  const set = new Set<number>();
+  // M1 implicite pour tout coaching actif.
+  set.add(1);
+  // duree="3mois" : modules débloqués (manuellement ou auto).
+  if (purchase.duree === "3mois") {
+    for (const n of user.unlockedModules ?? []) {
+      if (typeof n === "number" && (COACHING_MODULE_ORDERS as readonly number[]).includes(n)) {
+        set.add(n);
+      }
+    }
+  }
+  return [...set].sort((a, b) => a - b);
+}
+
+/** Récupère le `module.order` d'un exercice (via son lesson). Renvoie null si
+ *  la chaîne est cassée (exo sans leçon, leçon sans module). */
+export async function moduleOrderOfExercise(
+  ctx: Ctx,
+  exerciseId: Id<"exercises">
+): Promise<number | null> {
+  const ex = await ctx.db.get(exerciseId);
+  if (!ex) return null;
+  const lesson = await ctx.db.get(ex.lessonId);
+  if (!lesson) return null;
+  const m = await ctx.db.get(lesson.moduleId);
+  return m?.order ?? null;
+}
+
+/** Calcule la prochaine valeur de `unlockedModules` si tous les exos d'un
+ *  module sont marqués completed pour ce user. Retourne `null` si pas de
+ *  changement (déjà débloqué, ou tous les exos pas finis). Utilisé par
+ *  `exerciseResponses.complete`. */
+export async function maybeAutoUnlockNextModule(
+  ctx: GenericMutationCtx<DataModel>,
+  userId: Id<"users">,
+  completedExerciseId: Id<"exercises">
+): Promise<{ unlocked: number } | null> {
+  const ex = await ctx.db.get(completedExerciseId);
+  if (!ex) return null;
+  const lesson = await ctx.db.get(ex.lessonId);
+  if (!lesson) return null;
+  const currentModule = await ctx.db.get(lesson.moduleId);
+  if (!currentModule || typeof currentModule.order !== "number") return null;
+  const currentOrder = currentModule.order;
+
+  // Trouve le module suivant (order = currentOrder + 1).
+  const allModules = await ctx.db.query("modules").collect();
+  const next = allModules.find((m) => m.order === currentOrder + 1);
+  if (!next) return null;
+
+  const user = await ctx.db.get(userId);
+  if (!user) return null;
+  const already = new Set(user.unlockedModules ?? []);
+  if (already.has(next.order)) return null;
+
+  // Vérifie que TOUS les exos du module courant sont completed pour ce user.
+  const lessonsOfModule = await ctx.db
+    .query("lessons")
+    .withIndex("by_module", (q) => q.eq("moduleId", currentModule._id))
+    .collect();
+  const exoIds: Id<"exercises">[] = [];
+  for (const l of lessonsOfModule) {
+    const xs = await ctx.db
+      .query("exercises")
+      .withIndex("by_lesson", (q) => q.eq("lessonId", l._id))
+      .collect();
+    // Aligné avec le filtre catalogue (exerciseUrl requis + non caché) :
+    // l'auto-unlock ne compte que les exos réellement exposés à l'élève.
+    for (const x of xs) {
+      if (x.deletedAt) continue;
+      if (x.hiddenFromCoaching === true) continue;
+      if (!x.exerciseUrl) continue;
+      exoIds.push(x._id);
+    }
+  }
+  if (exoIds.length === 0) return null;
+
+  for (const xid of exoIds) {
+    const resp = await ctx.db
+      .query("exerciseResponses")
+      .withIndex("by_user_exercise", (q) =>
+        q.eq("userId", userId).eq("exerciseId", xid)
+      )
+      .first();
+    if (!resp || !resp.completedAt) return null; // pas tout fini → on ne débloque pas
+  }
+
+  // Tous les exos du module courant sont complétés → on débloque le suivant.
+  await ctx.db.patch(userId, {
+    unlockedModules: [...(user.unlockedModules ?? []), next.order],
+  });
+  return { unlocked: next.order };
+}

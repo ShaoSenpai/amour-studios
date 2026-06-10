@@ -258,6 +258,13 @@ http.route({
               });
             }
           }
+          // Onboarding : si l'user existe déjà et n'a pas encore d'onboarding,
+          // on le crée maintenant (ensureForUser est idempotent).
+          if (user?._id && status === "active" && tier) {
+            await ctx.runMutation(internal.onboardings.ensureForUser, {
+              userId: user._id,
+            });
+          }
         }
 
         console.log(`✅ Subscription ${event.type} (${sub.id}) → ${status} [${tier ?? "?"}]`);
@@ -358,6 +365,7 @@ http.route({
               to: targetEmail,
               firstName: "",
               claimToken,
+              tier: purchase?.tier,
             });
           }
         }
@@ -480,6 +488,7 @@ http.route({
         email?: string;
         uri?: string;
         scheduled_event?: { uri?: string; start_time?: string; end_time?: string; name?: string };
+        tracking?: { utm_source?: string };
       };
     };
     try {
@@ -492,6 +501,13 @@ http.route({
     const se = p.scheduled_event ?? {};
     const eventUri = se.uri || p.uri || "";
     const email = (p.email || "").trim().toLowerCase();
+    // Fallback : la page /onboarding/[token] passe `utm_source=onboarding-<token>`
+    // au widget Calendly. Si l'email diffère de celui en BDD (typo, perso/pro),
+    // on récupère quand même le user via ce token.
+    const utm = (p.tracking?.utm_source || "").trim();
+    const fallbackToken = utm.startsWith("onboarding-")
+      ? utm.slice("onboarding-".length)
+      : null;
 
     if (data.event === "invitee.created") {
       const start = se.start_time ? Date.parse(se.start_time) : NaN;
@@ -503,6 +519,7 @@ http.route({
           scheduledAt: start,
           endAt: se.end_time ? Date.parse(se.end_time) : undefined,
           eventName: se.name,
+          fallbackOnboardingToken: fallbackToken ?? undefined,
         });
         await ctx.runMutation(internal.events.recordEventByEmail, {
           email,
@@ -511,6 +528,13 @@ http.route({
           actor: "calendly",
           meta: JSON.stringify({ scheduledAt: start }),
         });
+        // Si c'est un RDV d'onboarding, met l'onboarding row à "rdv_booked".
+        if (res.matched && res.isOnboarding) {
+          await ctx.runMutation(internal.onboardings.markRdvBookedByUser, {
+            userId: res.userId,
+            sessionId: res.sessionId,
+          });
+        }
         console.log(`📅 Calendly invitee.created (${email}) → matched=${res.matched}`);
       }
     } else if (data.event === "invitee.canceled") {
@@ -523,6 +547,43 @@ http.route({
     }
 
     return new Response("OK", { status: 200 });
+  }),
+});
+
+// ── Webhook Discord présentation ────────────────────────────────────────────
+// Le bot écoute le channel #presentations. À chaque post valide d'un membre,
+// il POST ici avec son discordId → on marque l'onboarding "presented" et on
+// envoie le lien (email + DM Discord). Auth : Bearer DISCORD_BOT_ENDPOINT_SECRET
+// (le bot connaît déjà ce secret pour /sync-roles).
+http.route({
+  path: "/webhooks/discord/presentation",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const expected = process.env.DISCORD_BOT_ENDPOINT_SECRET;
+    if (!expected) {
+      return new Response("Not configured", { status: 500 });
+    }
+    const auth = request.headers.get("Authorization") ?? "";
+    if (auth !== `Bearer ${expected}`) {
+      return new Response("Unauthorized", { status: 401 });
+    }
+    let body: { discordId?: string } = {};
+    try {
+      body = (await request.json()) as { discordId?: string };
+    } catch {
+      return new Response("Bad JSON", { status: 400 });
+    }
+    const discordId = (body.discordId ?? "").trim();
+    if (!discordId) return new Response("discordId required", { status: 400 });
+
+    const res = await ctx.runMutation(
+      internal.onboardings.markPresentedByDiscordId,
+      { discordId }
+    );
+    return new Response(JSON.stringify(res), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   }),
 });
 

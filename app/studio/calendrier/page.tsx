@@ -6,6 +6,7 @@ import type { Id } from "@/convex/_generated/dataModel";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { motion, AnimatePresence } from "framer-motion";
 import { Loader2 } from "lucide-react";
 import {
   ACCENT,
@@ -17,7 +18,6 @@ import {
   Avatar,
   Pill,
   glassBtn,
-  stageLabel,
   curriculumLabel,
   type C,
 } from "../_components/glass";
@@ -62,20 +62,98 @@ function startOfWeek(d: Date): Date {
   return x;
 }
 
+function startOfDay(d: Date): Date {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+
+function startOfMonth(d: Date): Date {
+  const x = new Date(d);
+  x.setDate(1);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+
+type CalView = "day" | "week" | "month";
+const VIEW_LABELS: { id: CalView; label: string }[] = [
+  { id: "day", label: "Jour" },
+  { id: "week", label: "Semaine" },
+  { id: "month", label: "Mois" },
+];
+const VIEW_WORD: Record<CalView, string> = { day: "jour", week: "semaine", month: "mois" };
+
+// Filtres du bloc latéral « Rendez-vous » : on choisit le statut affiché.
+const RDV_FILTERS = [
+  { id: "scheduled" as const, label: "À venir", color: "#3B82F6" },
+  { id: "completed" as const, label: "Passés", color: "#1FA463" },
+  { id: "no_show" as const, label: "No-show", color: "#E03131" },
+  { id: "canceled" as const, label: "Annulé", color: "#F97316" },
+];
+type RdvFilter = (typeof RDV_FILTERS)[number]["id"];
+
+/** ms → "12 mars · 14:30". */
+function fmtWhen(ts: number): string {
+  const d = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short" }).format(new Date(ts));
+  const t = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" }).format(new Date(ts));
+  return `${d} · ${t}`;
+}
+
 export default function CalendrierPage() {
   const dark = useIsDark();
   const router = useRouter();
   const { testMode } = useTestMode();
   const c = palette(dark, ACCENT);
 
-  const [weekOffset, setWeekOffset] = useState(0);
-  const weekStart = useMemo(() => {
-    const s = startOfWeek(new Date());
-    s.setDate(s.getDate() + weekOffset * 7);
-    return s;
-  }, [weekOffset]);
-  const from = weekStart.getTime();
-  const to = from + 7 * DAY_MS;
+  const [view, setView] = useState<CalView>("week");
+  const [anchor, setAnchor] = useState<Date>(() => new Date());
+
+  // Plage affichée selon la vue : `cols` = colonnes de la grille horaire
+  // (1 jour / 7 jours), `monthCells` = 42 cases du mois. `from`/`to` couvrent
+  // la période visible (sert à la query sessionsInRange).
+  const range = useMemo(() => {
+    if (view === "day") {
+      const d = startOfDay(anchor);
+      const from = d.getTime();
+      return {
+        from,
+        to: from + DAY_MS,
+        cols: [d],
+        monthCells: [] as Date[],
+        label: new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long" }).format(d),
+      };
+    }
+    if (view === "month") {
+      const first = startOfMonth(anchor);
+      const gridStart = startOfWeek(first);
+      const from = gridStart.getTime();
+      const monthCells = Array.from({ length: 42 }, (_, i) => new Date(from + i * DAY_MS));
+      return {
+        from,
+        to: from + 42 * DAY_MS,
+        cols: [] as Date[],
+        monthCells,
+        label: new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric" }).format(first),
+      };
+    }
+    const ws = startOfWeek(anchor);
+    const from = ws.getTime();
+    const cols = Array.from({ length: 7 }, (_, i) => new Date(from + i * DAY_MS));
+    const fmt = (d: Date) => new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short" }).format(d);
+    return { from, to: from + 7 * DAY_MS, cols, monthCells: [] as Date[], label: `${fmt(ws)} → ${fmt(new Date(from + 6 * DAY_MS))}` };
+  }, [view, anchor]);
+  const { from, to, cols, monthCells, label: rangeLabel } = range;
+  const monthIndex = anchor.getMonth();
+
+  // Navigation : décale l'ancre d'une unité selon la vue.
+  const shift = (dir: number) =>
+    setAnchor((a) => {
+      const d = new Date(a);
+      if (view === "day") d.setDate(d.getDate() + dir);
+      else if (view === "week") d.setDate(d.getDate() + dir * 7);
+      else d.setMonth(d.getMonth() + dir);
+      return d;
+    });
 
   const liveSessions = useQuery(api.coaching.sessionsInRange, { from, to });
   const liveWithout = useQuery(api.coaching.studentsWithoutUpcoming);
@@ -97,6 +175,16 @@ export default function CalendrierPage() {
     void storeState;
     return testMode ? selectStudentsWithoutUpcoming() : liveWithout;
   }, [testMode, liveWithout, storeState]);
+
+  // Bloc latéral « Rendez-vous » : filtre par statut sur la semaine affichée.
+  const [rdvFilter, setRdvFilter] = useState<RdvFilter>("scheduled");
+  const filteredRdv = useMemo(() => {
+    const list = (sessions ?? []).filter((s) => s.status === rdvFilter);
+    list.sort((a, b) =>
+      rdvFilter === "scheduled" ? a.scheduledAt - b.scheduledAt : b.scheduledAt - a.scheduledAt
+    );
+    return list;
+  }, [sessions, rdvFilter]);
   const studentsRaw = useMemo(() => {
     void storeState;
     return testMode ? selectStudentsList() : liveStudents;
@@ -114,13 +202,6 @@ export default function CalendrierPage() {
       })),
     [studentsRaw]
   );
-
-  const days = useMemo(() => {
-    return Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(from + i * DAY_MS);
-      return d;
-    });
-  }, [from]);
 
   const hours = useMemo(() => {
     const arr: number[] = [];
@@ -148,7 +229,7 @@ export default function CalendrierPage() {
     document.addEventListener("mousedown", onDown);
     return () => document.removeEventListener("mousedown", onDown);
   }, [activeEvent]);
-  const isThisWeek = nowTs >= from && nowTs < to;
+  const isTodayInRange = nowTs >= from && nowTs < to;
   const todayStr = new Date(nowTs).toDateString();
 
   const statusColor = (s: string) => {
@@ -162,12 +243,6 @@ export default function CalendrierPage() {
     if (s === "canceled") return { bg: "transparent", border: c.line, color: c.faint };
     return { bg: c.glassStrong, border: c.line, color: c.text };
   };
-
-  const weekLabel = useMemo(() => {
-    const end = new Date(from + 6 * DAY_MS);
-    const fmt = (d: Date) => new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short" }).format(d);
-    return `${fmt(weekStart)} → ${fmt(end)}`;
-  }, [from, weekStart]);
 
   // « + RDV manuel » → dialog create avec sélecteur d'élève.
   const openManual = () => setRdv({ mode: "create" });
@@ -239,28 +314,54 @@ export default function CalendrierPage() {
         <Glass c={c} dark={dark} pad={0} strong style={{ overflow: "hidden", marginBottom: 16 }}>
           <div style={{ display: "flex", alignItems: "stretch", flexWrap: "wrap" }}>
             <div style={{ flex: 1, padding: "26px 30px", display: "flex", flexDirection: "column", gap: 10, minWidth: 240 }}>
-              <div style={{ ...mono, color: c.muted }}>Agenda · vue semaine</div>
+              <div style={{ ...mono, color: c.muted }}>Agenda · vue {VIEW_WORD[view]}</div>
               <div style={{ ...num, fontSize: 42, fontWeight: 500, lineHeight: 1 }}>Calendrier</div>
               <div style={{ fontSize: 14.5, color: c.muted, marginTop: -2 }}>
-                <span style={{ color: c.text, fontWeight: 500 }}>{total} sessions</span> cette semaine ·
-                <span style={{ color: ACCENT, fontWeight: 500 }}> {without?.length ?? 0} élèves sans RDV</span>
+                <span style={{ color: c.text, fontWeight: 500 }}>{total} sessions</span>
+                {" sur la période · "}
+                <span style={{ color: ACCENT, fontWeight: 500 }}>{without?.length ?? 0} élèves sans RDV</span>
               </div>
             </div>
             <div style={{ padding: 22, display: "flex", gap: 8, alignItems: "center" }}>
-              <button onClick={() => setWeekOffset(0)} style={glassBtn(c, "ghost")}>↺ Aujourd&apos;hui</button>
+              <button onClick={() => setAnchor(new Date())} style={glassBtn(c, "ghost")}>↺ Aujourd&apos;hui</button>
               <button onClick={openManual} style={glassBtn(c, "solid")}>＋ RDV manuel</button>
             </div>
           </div>
         </Glass>
 
-        {/* Controls */}
+        {/* Controls : navigation + sélecteur de vue */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, gap: 12, flexWrap: "wrap" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
             <div style={{ display: "flex", gap: 4 }}>
-              <button onClick={() => setWeekOffset((v) => v - 1)} style={navBtn(c)}>‹</button>
-              <button onClick={() => setWeekOffset((v) => v + 1)} style={navBtn(c)}>›</button>
+              <button onClick={() => shift(-1)} style={navBtn(c)}>‹</button>
+              <button onClick={() => shift(1)} style={navBtn(c)}>›</button>
             </div>
-            <div style={{ ...num, fontSize: 20, fontWeight: 500 }}>{weekLabel}</div>
+            <div style={{ ...num, fontSize: 20, fontWeight: 500, textTransform: "capitalize" }}>{rangeLabel}</div>
+          </div>
+          {/* Sélecteur Jour / Semaine / Mois */}
+          <div style={{ display: "flex", gap: 4, padding: 4, background: c.chip, borderRadius: 999, border: `1px solid ${c.line}` }}>
+            {VIEW_LABELS.map((v) => {
+              const active = view === v.id;
+              return (
+                <button
+                  key={v.id}
+                  onClick={() => setView(v.id)}
+                  style={{
+                    ...mono,
+                    fontSize: 10.5,
+                    padding: "7px 14px",
+                    borderRadius: 999,
+                    cursor: "pointer",
+                    border: "none",
+                    background: active ? ACCENT : "transparent",
+                    color: active ? "#0B0B0B" : c.muted,
+                    fontWeight: 500,
+                  }}
+                >
+                  {v.label}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -268,10 +369,26 @@ export default function CalendrierPage() {
         <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 320px", gap: 16 }}>
           {/* Calendar */}
           <Glass c={c} dark={dark} pad={0} style={{ overflow: "hidden" }}>
+            {view === "month" ? (
+              <MonthGrid
+                c={c}
+                dark={dark}
+                cells={monthCells}
+                sessions={sessions ?? []}
+                monthIndex={monthIndex}
+                todayStr={todayStr}
+                statusColor={statusColor}
+                onPickDay={(d) => {
+                  setAnchor(d);
+                  setView("day");
+                }}
+              />
+            ) : (
+            <>
             {/* Day headers */}
-            <div style={{ display: "grid", gridTemplateColumns: "56px repeat(7, 1fr)", borderBottom: `1px solid ${c.line}` }}>
+            <div style={{ display: "grid", gridTemplateColumns: `56px repeat(${cols.length}, 1fr)`, borderBottom: `1px solid ${c.line}` }}>
               <div />
-              {days.map((d, i) => {
+              {cols.map((d, i) => {
                 const isToday = todayStr === d.toDateString();
                 const dayCount = sessions.filter((s) => new Date(s.scheduledAt).toDateString() === d.toDateString()).length;
                 const dow = new Intl.DateTimeFormat("fr-FR", { weekday: "short" }).format(d).toUpperCase().replace(".", "");
@@ -289,7 +406,7 @@ export default function CalendrierPage() {
             </div>
 
             {/* Body */}
-            <div style={{ position: "relative", display: "grid", gridTemplateColumns: "56px repeat(7, 1fr)" }}>
+            <div style={{ position: "relative", display: "grid", gridTemplateColumns: `56px repeat(${cols.length}, 1fr)` }}>
               {/* gutter */}
               <div>
                 {hours.map((h) => (
@@ -301,7 +418,7 @@ export default function CalendrierPage() {
                 ))}
               </div>
 
-              {days.map((d, dayIdx) => {
+              {cols.map((d, dayIdx) => {
                 const isToday = todayStr === d.toDateString();
                 const dayEvents = sessions.filter((s) => new Date(s.scheduledAt).toDateString() === d.toDateString());
                 return (
@@ -328,7 +445,7 @@ export default function CalendrierPage() {
                       />
                     ))}
 
-                    {isToday && isThisWeek && <NowLine nowTs={nowTs} />}
+                    {isToday && isTodayInRange && <NowLine nowTs={nowTs} />}
 
                     {dayEvents.map((ev) => {
                       const dt = new Date(ev.scheduledAt);
@@ -419,36 +536,100 @@ export default function CalendrierPage() {
                 );
               })}
             </div>
+            </>
+            )}
           </Glass>
 
           {/* Sidebar */}
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <Glass c={c} dark={dark}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 14, gap: 8 }}>
-                <div>
-                  <div style={{ ...mono, color: c.muted }}>Sans RDV à venir</div>
-                  <div style={{ ...num, fontSize: 22, fontWeight: 500, marginTop: 6 }}>{without?.length ?? 0} élèves</div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12, gap: 8 }}>
+                <div style={{ ...mono, color: c.muted }}>
+                  Rendez-vous <span style={{ color: c.faint }}>· {VIEW_WORD[view]}</span>
                 </div>
-                <Pill c={c} tone="warn">À planifier</Pill>
+                <span style={{ ...mono, color: c.faint }}>{filteredRdv.length}</span>
               </div>
-              {(without ?? []).length === 0 && <div style={{ ...mono, color: c.faint }}>Tout le monde a un RDV.</div>}
-              {(without ?? []).map((r, i) => {
-                const who = r.discordUsername || r.name || "—";
-                return (
-                  <button
-                    key={r._id}
-                    onClick={() => router.push(`/studio/eleves/${r._id}`)}
-                    style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 0", borderTop: i > 0 ? `1px solid ${c.hairline}` : "none", background: "transparent", border: "none", width: "100%", cursor: "pointer", color: c.text, fontFamily: "inherit", textAlign: "left" }}
-                  >
-                    <Avatar name={who} size={28} dark={dark} image={r.image} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13.5, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{who}</div>
-                      <div style={{ ...mono, color: c.muted, marginTop: 2 }}>{stageLabel(r.coachingStage)}</div>
-                    </div>
-                    <span style={{ color: c.muted, fontSize: 14 }}>›</span>
-                  </button>
-                );
-              })}
+
+              {/* Sélecteur de statut */}
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 6 }}>
+                {RDV_FILTERS.map((f) => {
+                  const active = rdvFilter === f.id;
+                  return (
+                    <button
+                      key={f.id}
+                      onClick={() => setRdvFilter(f.id)}
+                      style={{
+                        ...mono,
+                        fontSize: 9.5,
+                        padding: "6px 10px",
+                        borderRadius: 999,
+                        cursor: "pointer",
+                        whiteSpace: "nowrap",
+                        background: active ? f.color : c.chip,
+                        color: active ? "#FFFFFF" : c.muted,
+                        border: `1px solid ${active ? "transparent" : c.line}`,
+                      }}
+                    >
+                      {f.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Liste scrollable (hauteur plafonnée → n'allonge pas la page) +
+                  animation fluide des items au changement de filtre. */}
+              <div
+                style={{
+                  maxHeight: 340,
+                  overflowY: "auto",
+                  marginRight: -8,
+                  paddingRight: 8,
+                  scrollbarWidth: "thin",
+                  scrollbarColor: `${c.line} transparent`,
+                }}
+              >
+                <motion.div layout transition={{ type: "spring", stiffness: 380, damping: 34 }}>
+                  <AnimatePresence initial={false} mode="popLayout">
+                    {filteredRdv.length === 0 ? (
+                      <motion.div
+                        key={`empty-${rdvFilter}`}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        style={{ ...mono, color: c.faint, padding: "10px 0 2px" }}
+                      >
+                        Aucun RDV {RDV_FILTERS.find((f) => f.id === rdvFilter)?.label.toLowerCase()} cette semaine.
+                      </motion.div>
+                    ) : (
+                      filteredRdv.map((s, i) => {
+                        const who = s.student?.discordUsername || s.student?.name || "—";
+                        return (
+                          <motion.div
+                            key={s._id}
+                            layout
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -8 }}
+                            transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                          >
+                            <button
+                              onClick={() => s.student && router.push(`/studio/eleves/${s.student._id}`)}
+                              style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 0", borderTop: i > 0 ? `1px solid ${c.hairline}` : "none", background: "transparent", border: "none", width: "100%", cursor: "pointer", color: c.text, fontFamily: "inherit", textAlign: "left" }}
+                            >
+                              <Avatar name={who} size={28} dark={dark} image={s.student?.image} />
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontSize: 13.5, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{who}</div>
+                                <div style={{ ...mono, color: c.muted, marginTop: 2 }}>{fmtWhen(s.scheduledAt)}</div>
+                              </div>
+                              <span style={{ color: c.muted, fontSize: 14 }}>›</span>
+                            </button>
+                          </motion.div>
+                        );
+                      })
+                    )}
+                  </AnimatePresence>
+                </motion.div>
+              </div>
             </Glass>
 
             {/* Stats */}
@@ -489,6 +670,103 @@ export default function CalendrierPage() {
             : undefined
         }
       />
+    </div>
+  );
+}
+
+// Vue Mois : grille 6×7. Chaque case = un jour (n° + jusqu'à 3 RDV colorés par
+// statut, « +N » au-delà). Clic sur une case → bascule en vue Jour.
+type MonthSession = {
+  _id: unknown;
+  scheduledAt: number;
+  status: string;
+  student?: { discordUsername?: string | null; name?: string | null } | null;
+};
+function MonthGrid({
+  c,
+  dark,
+  cells,
+  sessions,
+  monthIndex,
+  todayStr,
+  statusColor,
+  onPickDay,
+}: {
+  c: C;
+  dark: boolean;
+  cells: Date[];
+  sessions: MonthSession[];
+  monthIndex: number;
+  todayStr: string;
+  statusColor: (s: string) => { bg: string; border: string; color: string };
+  onPickDay: (d: Date) => void;
+}) {
+  const WEEKDAYS = ["LUN", "MAR", "MER", "JEU", "VEN", "SAM", "DIM"];
+  return (
+    <div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", borderBottom: `1px solid ${c.line}` }}>
+        {WEEKDAYS.map((w, i) => (
+          <div key={w} style={{ ...mono, fontSize: 9.5, color: c.muted, padding: "12px", borderLeft: i ? `1px solid ${c.hairline}` : "none" }}>
+            {w}
+          </div>
+        ))}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)" }}>
+        {cells.map((d, i) => {
+          const inMonth = d.getMonth() === monthIndex;
+          const isToday = todayStr === d.toDateString();
+          const evs = sessions
+            .filter((s) => new Date(s.scheduledAt).toDateString() === d.toDateString())
+            .sort((a, b) => a.scheduledAt - b.scheduledAt);
+          return (
+            <button
+              key={i}
+              onClick={() => onPickDay(d)}
+              onMouseEnter={(e) => { if (!isToday) e.currentTarget.style.background = c.chip; }}
+              onMouseLeave={(e) => { if (!isToday) e.currentTarget.style.background = "transparent"; }}
+              style={{
+                textAlign: "left",
+                border: "none",
+                borderTop: `1px solid ${c.hairline}`,
+                borderLeft: i % 7 ? `1px solid ${c.hairline}` : "none",
+                background: isToday ? (dark ? "rgba(255,90,31,0.06)" : "rgba(255,90,31,0.05)") : "transparent",
+                minHeight: 104,
+                padding: "7px 8px",
+                cursor: "pointer",
+                fontFamily: "inherit",
+                color: c.text,
+                display: "flex",
+                flexDirection: "column",
+                gap: 4,
+                opacity: inMonth ? 1 : 0.4,
+                overflow: "hidden",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span style={{ ...num, fontSize: 14, fontWeight: 500, color: isToday ? ACCENT : c.text }}>{d.getDate()}</span>
+                {evs.length > 0 && <span style={{ ...mono, fontSize: 8.5, color: c.faint }}>{evs.length}</span>}
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
+                {evs.slice(0, 3).map((ev) => {
+                  const tone = statusColor(ev.status);
+                  const who = ev.student?.discordUsername || ev.student?.name || "—";
+                  const t = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" }).format(new Date(ev.scheduledAt));
+                  return (
+                    <div
+                      key={ev._id as string}
+                      style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10, background: tone.bg, border: `1px solid ${tone.border}`, color: tone.color, borderRadius: 6, padding: "2px 5px", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", textDecoration: ev.status === "canceled" ? "line-through" : "none" }}
+                    >
+                      <span style={{ ...mono, fontSize: 8, opacity: 0.8 }}>{t}</span>
+                      <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{who}</span>
+                    </div>
+                  );
+                })}
+                {evs.length > 3 && <span style={{ ...mono, fontSize: 8.5, color: c.muted }}>+{evs.length - 3}</span>}
+              </div>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

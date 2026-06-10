@@ -80,6 +80,10 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
           lastActiveAt: now,
           ...(shouldBeAdmin ? { role: "admin" as const } : {}),
         });
+        // Si l'user a un purchase actif et pas encore d'onboarding → créer.
+        await ctx.scheduler.runAfter(0, internal.onboardings.ensureForUser, {
+          userId: existingUserId,
+        });
         return existingUserId;
       }
 
@@ -124,6 +128,12 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
           });
         }
       }
+
+      // Au cas où le user vient de payer (subscription "active") avec le même
+      // email → on crée la row d'onboarding (no-op si rien à faire).
+      await ctx.scheduler.runAfter(0, internal.onboardings.ensureForUser, {
+        userId,
+      });
 
       return userId;
     },

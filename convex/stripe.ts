@@ -95,8 +95,17 @@ export const createSubscription = action({
       customer: customer.id,
       items: [{ price: priceId }],
       payment_behavior: "default_incomplete",
-      payment_settings: { save_default_payment_method: "on_subscription" },
-      expand: ["latest_invoice.payment_intent"],
+      payment_settings: {
+        save_default_payment_method: "on_subscription",
+        // Limite aux cartes (inclut Apple Pay + Google Pay qui sont des wallets
+        // par-dessus la card). Exclut Klarna, Amazon Pay, Link, virements.
+        payment_method_types: ["card"],
+      },
+      // Depuis l'API 2026-03-25.dahlia, le PaymentIntent n'est plus exposé sur
+      // `latest_invoice.payment_intent`. On expand `confirmation_secret` qui
+      // contient { client_secret, type } — le client_secret a la forme
+      // "pi_xxx_secret_yyy", on en extrait l'ID PI pour le claim token.
+      expand: ["latest_invoice.confirmation_secret"],
       ...(cancelAt ? { cancel_at: cancelAt } : {}),
       metadata: {
         tier,
@@ -107,14 +116,16 @@ export const createSubscription = action({
       },
     });
 
-    // Récupérer le PaymentIntent de la première facture (clientSecret).
+    // Récupère le client_secret depuis confirmation_secret (nouvelle API).
     const invoice = subscription.latest_invoice as unknown as {
-      payment_intent?: { id?: string; client_secret?: string | null } | null;
+      confirmation_secret?: { client_secret?: string | null; type?: string } | null;
     } | null;
-    const pi = invoice?.payment_intent ?? null;
-    if (!pi || !pi.id || !pi.client_secret) {
-      throw new Error("Stripe: PaymentIntent introuvable sur la première facture");
+    const cs = invoice?.confirmation_secret?.client_secret ?? null;
+    if (!cs || !cs.startsWith("pi_") || !cs.includes("_secret_")) {
+      throw new Error("Stripe: confirmation_secret introuvable sur la première facture");
     }
+    const piId = cs.split("_secret_")[0];
+    const pi = { id: piId, client_secret: cs };
 
     // Claim token lié au PaymentIntent (sécurise /claim).
     await ctx.runMutation(internal.claimTokens.create, {

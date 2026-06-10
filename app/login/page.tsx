@@ -25,7 +25,7 @@ function LoginInner() {
   const handleDiscordSignIn = async () => {
     setIsLoading(true);
     try {
-      await signIn("discord", { redirectTo: "/studio" });
+      await signIn("discord", { redirectTo: "/" });
     } catch (error) {
       console.error("Discord sign-in failed:", error);
       toast.error("Impossible de se connecter à Discord. Réessaie.");

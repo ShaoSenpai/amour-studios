@@ -676,4 +676,210 @@ export const _markActive = internalMutation({
     await ctx.db.patch(userId, { lastActiveAt: Date.now() });
   },
 });
+
+// One-off : liste les modules + nb leçons + nb exercices.
+// Diagnostic pour aligner le mapping coaching ↔ formation.
+export const _inspectModules = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const modules = await ctx.db.query("modules").collect();
+    modules.sort((a, b) => a.order - b.order);
+    const out: Array<{
+      order: number;
+      title: string;
+      lessons: number;
+      exercises: number;
+    }> = [];
+    for (const m of modules) {
+      const lessons = await ctx.db
+        .query("lessons")
+        .withIndex("by_module", (q) => q.eq("moduleId", m._id))
+        .filter((q) => q.eq(q.field("deletedAt"), undefined))
+        .collect();
+      let exos = 0;
+      for (const l of lessons) {
+        const xs = await ctx.db
+          .query("exercises")
+          .withIndex("by_lesson", (q) => q.eq("lessonId", l._id))
+          .filter((q) => q.eq(q.field("deletedAt"), undefined))
+          .collect();
+        exos += xs.length;
+      }
+      out.push({
+        order: m.order,
+        title: m.title,
+        lessons: lessons.length,
+        exercises: exos,
+      });
+    }
+    return out;
+  },
+});
+
+// One-off : renomme un module par son `order`. Utilisé pour aligner les titres
+// formation legacy avec le programme coaching head-to-head.
+export const _renameModuleByOrder = internalMutation({
+  args: { order: v.number(), title: v.string() },
+  handler: async (ctx, { order, title }) => {
+    const m = await ctx.db
+      .query("modules")
+      .filter((q) => q.eq(q.field("order"), order))
+      .first();
+    if (!m) return { ok: false as const, reason: "not_found" as const };
+    const old = m.title;
+    await ctx.db.patch(m._id, { title, updatedAt: Date.now() });
+    return { ok: true as const, old, new: title };
+  },
+});
+
+// One-off : dump tous les exercises avec leur contexte (titre, lesson, module,
+// type, config). Sert à proposer un mapping exos legacy → exos coaching.
+export const _inspectExercises = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const modules = await ctx.db.query("modules").collect();
+    const moduleById = new Map(modules.map((m) => [m._id as unknown as string, m]));
+
+    const lessons = await ctx.db
+      .query("lessons")
+      .filter((q) => q.eq(q.field("deletedAt"), undefined))
+      .collect();
+    const lessonById = new Map(lessons.map((l) => [l._id as unknown as string, l]));
+
+    const exos = await ctx.db
+      .query("exercises")
+      .filter((q) => q.eq(q.field("deletedAt"), undefined))
+      .collect();
+
+    const out: Array<{
+      moduleOrder: number;
+      moduleTitle: string;
+      lessonOrder: number;
+      lessonTitle: string;
+      exoTitle: string;
+      exoType: string;
+      configType?: string;
+      exerciseUrl?: string;
+      hiddenFromCoaching?: boolean;
+    }> = [];
+    for (const x of exos) {
+      const l = lessonById.get(x.lessonId as unknown as string);
+      if (!l) continue;
+      const m = moduleById.get(l.moduleId as unknown as string);
+      if (!m) continue;
+      let configType: string | undefined;
+      try {
+        if (x.config) {
+          const c = JSON.parse(x.config) as { type?: string };
+          if (typeof c?.type === "string") configType = c.type;
+        }
+      } catch {
+        // ignore
+      }
+      out.push({
+        moduleOrder: m.order,
+        moduleTitle: m.title,
+        lessonOrder: l.order,
+        lessonTitle: l.title,
+        exoTitle: x.title,
+        exoType: x.type,
+        configType,
+        exerciseUrl: x.exerciseUrl,
+        hiddenFromCoaching: x.hiddenFromCoaching,
+      });
+    }
+    out.sort(
+      (a, b) =>
+        a.moduleOrder - b.moduleOrder ||
+        a.lessonOrder - b.lessonOrder ||
+        a.exoTitle.localeCompare(b.exoTitle)
+    );
+    return out;
+  },
+});
+
+// One-off : inspecte un user par email + son onboarding.
+export const _inspectUser = internalMutation({
+  args: { email: v.string() },
+  handler: async (ctx, { email }) => {
+    const all = await ctx.db.query("users").collect();
+    const u = all.find(
+      (x) => (x.email ?? "").toLowerCase() === email.toLowerCase()
+    );
+    if (!u) return { found: false, scanned: all.length };
+    const ob = await ctx.db
+      .query("onboardings")
+      .withIndex("by_user", (q) => q.eq("userId", u._id))
+      .first();
+    return {
+      found: true,
+      id: u._id,
+      email: u.email,
+      name: u.name,
+      discordId: u.discordId ?? null,
+      discordUsername: u.discordUsername ?? null,
+      purchaseId: u.purchaseId ?? null,
+      role: u.role ?? null,
+      onboarding: ob
+        ? {
+            tier: ob.tier,
+            step: ob.step,
+            token: ob.token,
+            presentedAt: ob.presentedAt,
+            linkSentAt: ob.linkSentAt,
+          }
+        : null,
+    };
+  },
+});
+
+// One-off : dump les N derniers purchases (test webhook Stripe).
+export const _inspectRecentPurchases = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const all = await ctx.db.query("purchases").collect();
+    all.sort((a, b) => (b._creationTime ?? 0) - (a._creationTime ?? 0));
+    return all.slice(0, 10).map((p) => ({
+      id: p._id as unknown as string,
+      email: p.email,
+      tier: p.tier,
+      status: p.status,
+      duree: p.duree,
+      stripeSubscriptionId: p.stripeSubscriptionId,
+      stripePriceId: p.stripePriceId,
+      createdAt: new Date(p._creationTime).toISOString(),
+    }));
+  },
+});
+
+// One-off : marque/démarque des exos comme `hiddenFromCoaching` en se basant
+// sur leur titre exact. Sert à la curation du catalogue /exos coaching :
+// certains exos legacy restent en BDD pour la formation mais n'apparaissent
+// PAS dans le catalogue élève coaching.
+export const _setHiddenFromCoachingByTitles = internalMutation({
+  args: { titles: v.array(v.string()), hidden: v.boolean() },
+  handler: async (ctx, { titles, hidden }) => {
+    const titleSet = new Set(titles);
+    const all = await ctx.db
+      .query("exercises")
+      .filter((q) => q.eq(q.field("deletedAt"), undefined))
+      .collect();
+    const matched: Array<{ title: string; id: string; was: boolean | undefined }> = [];
+    for (const x of all) {
+      if (!titleSet.has(x.title)) continue;
+      matched.push({
+        title: x.title,
+        id: x._id as unknown as string,
+        was: x.hiddenFromCoaching,
+      });
+      await ctx.db.patch(x._id, {
+        hiddenFromCoaching: hidden,
+        updatedAt: Date.now(),
+      });
+    }
+    const found = new Set(matched.map((m) => m.title));
+    const missing = titles.filter((t) => !found.has(t));
+    return { ok: true as const, patched: matched.length, matched, missing };
+  },
+});
 void internal;

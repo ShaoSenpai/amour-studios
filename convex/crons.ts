@@ -18,4 +18,14 @@ crons.interval(
 
 crons.interval("fireflies-sync", { minutes: 15 }, internal.fireflies.sync, {});
 
+// Relances onboarding (Phase C) — 7h UTC = 8h Paris hiver / 9h Paris été.
+// Pour chaque onboarding non finalisé, envoie une relance 24h/48h/7j depuis
+// la dernière activité (createdAt/linkSentAt/formCompletedAt selon l'étape).
+crons.daily(
+  "onboarding-relances",
+  { hourUTC: 7, minuteUTC: 0 },
+  internal.onboardings.runDailyRelances,
+  {}
+);
+
 export default crons;

@@ -1,36 +1,56 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# amour-studios
 
-## Getting Started
+App principale du projet AMOUR STUDIOS (coaching pour artistes musicaux).
+Next.js 16 (App Router, Turbopack) + Convex + Convex Auth (Discord OAuth).
 
-First, run the development server:
+## Espaces
+
+- **`/studio`** — back-office du coach Walid (admin). Dashboard « Aujourd'hui », fiche élève, calendrier RDV, blocs paiement / Discord / onboarding.
+- **`/exos`** — espace élève coaching 179€. Catalogue par module avec gating tier + avancée. Détail d'un exo en iframe externe (outils interactifs).
+- **`/`** — dispatcher : non authed → `/login`, admin → `/studio`, élève → `/exos`.
+
+## Stack
+
+- Next.js 16 (Turbopack)
+- Convex (backend + auth)
+- Convex Auth (Discord OAuth)
+- Framer Motion (transitions Apple-style)
+- Stripe (abonnements coaching / communauté)
+- Resend (email), Mux (vidéos), Calendly (webhook RDV), Twilio (WhatsApp — live)
+- DA **Glass C** (verre + ACCENT `#FF5A1F`, Schibsted Grotesk + DM Mono). Source : `app/studio/_components/glass.tsx`.
+
+## Lancer en local
+
+> ⚠️ **`SITE_URL` Convex dev = `http://localhost:3001`**. Le serveur **doit** tourner sur 3001.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npx convex dev          # backend dev (déploiement flexible-lobster-990)
+PORT=3001 npm run dev   # frontend (port 3001 obligatoire)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Déploiement
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+# Backend Convex (prod = frugal-curlew-831)
+npx convex deploy
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+# Frontend Vercel
+vercel --prod
+vercel promote <url>    # si le domaine public ne bouge pas
+```
 
-## Learn More
+Live sur **amour-studios.vercel.app**.
 
-To learn more about Next.js, take a look at the following resources:
+## Repère
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+app/         routes (studio, exos, login, …)
+convex/      schéma + queries + mutations + auth
+components/  exercises, outils, payment, ds, …
+proxy.ts     middleware (auth gating /exos)
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Brief Claude complet → `CLAUDE.md`. Contexte projet à jour → `docs/CONTEXTE-PROJET.md`.
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Plans / specs avril 2026 (ancienne offre formation 450€) archivés dans `../../2_ARCHIVE/old-docs/skool-app-april-2026/`.

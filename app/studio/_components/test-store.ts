@@ -95,6 +95,21 @@ type NoteEntity = {
 };
 
 type OnboardingEntity = {
+  tier?: "coaching" | "communaute";
+  step?:
+    | "awaiting_presentation"
+    | "link_sent"
+    | "form_done"
+    | "rdv_booked"
+    | "community_ready";
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  answers?: Array<{ key: string; label: string; value: string }>;
+  presentedAt?: number;
+  linkSentAt?: number;
+  formCompletedAt?: number;
+  rdvBookedAt?: number;
   scheduledAt?: number;
   completedAt?: number;
   notes: string;
@@ -130,6 +145,9 @@ type StoreState = {
   onboardingByUser: Record<string, OnboardingEntity>;
   eventsByUser: Record<string, EventEntity[]>;
   campaigns: CampaignEntity[];
+  /** Modules débloqués manuellement (toggle admin) — clé = userId. M1 implicite
+   *  donc jamais stocké. */
+  unlockedModulesByUser: Record<string, number[]>;
 };
 
 // Helpers de casting d'id (les ids démo ne sont jamais envoyés à Convex en test).
@@ -365,13 +383,46 @@ function seedNotes(now: number): Record<string, NoteEntity[]> {
 
 function seedOnboarding(now: number): Record<string, OnboardingEntity> {
   return {
+    // Onboarding complet (riche) pour Maxime — illustre tous les blocs.
     u_mxlo: {
+      tier: "coaching",
+      step: "rdv_booked",
+      firstName: "Maxime",
+      lastName: "Lefèvre",
+      phone: "+33 6 12 34 56 78",
+      presentedAt: now - 118 * DAY,
+      linkSentAt: now - 118 * DAY,
+      formCompletedAt: now - 117 * DAY,
+      rdvBookedAt: now - 116 * DAY,
       completedAt: now - 116 * DAY,
-      notes:
-        "Très impliqué, livre toujours en avance. Sensible aux retours négatifs — emballer doucement. Pousser sur la voix off / présence physique en story.",
+      answers: [
+        { key: "artist_name", label: "Ton nom d'artiste / pseudo ?", value: "mxlo.beats" },
+        { key: "style", label: "Style musical principal + 2-3 artistes de référence", value: "Trap mélodique. Refs : Werenoi, Tiakola, Niska." },
+        { key: "level", label: "Où en es-tu ?", value: "J'ai déjà sorti 4 morceaux sur Spotify, ~3k streams chacun." },
+        { key: "platform", label: "Plateforme principale", value: "Instagram + TikTok" },
+        { key: "links", label: "Tes comptes", value: "https://instagram.com/mxlo.beats — https://tiktok.com/@mxlobeats" },
+        { key: "followers", label: "Combien d'abonnés au total ?", value: "~2.4k toutes plateformes" },
+        { key: "goal_3m", label: "Objectif à 3 mois", value: "Atteindre 10k IG + 1 collab solide." },
+        { key: "goal_1y", label: "Objectif à 1 an", value: "Signer en label indé, sortir un EP de 5 morceaux." },
+        { key: "blocker", label: "Qu'est-ce qui te bloque ?", value: "Manque de régularité sur le contenu + identité visuelle floue." },
+        { key: "expectations", label: "Tes attentes du coaching", value: "Structurer ma stratégie + débloquer mon contenu IG." },
+      ],
+      notes: "Très impliqué, livre toujours en avance. Sensible aux retours négatifs — emballer doucement. Pousser sur la voix off / présence physique en story.",
     },
-    u_yuko: { notes: "Formulaire envoyé. Audit IG à faire au 1er RDV." },
-    u_remi: { notes: "À programmer — premier contact très enthousiaste." },
+    // Yuko — link envoyé, pas encore rempli.
+    u_yuko: {
+      tier: "coaching",
+      step: "link_sent",
+      presentedAt: now - 3 * DAY,
+      linkSentAt: now - 3 * DAY,
+      notes: "Formulaire envoyé. Audit IG à faire au 1er RDV.",
+    },
+    // Remi — en attente de présentation Discord.
+    u_remi: {
+      tier: "coaching",
+      step: "awaiting_presentation",
+      notes: "À programmer — premier contact très enthousiaste.",
+    },
   };
 }
 
@@ -502,6 +553,7 @@ function createInitialState(): StoreState {
     onboardingByUser: seedOnboarding(now),
     eventsByUser: seedEvents(now),
     campaigns: seedCampaigns(now),
+    unlockedModulesByUser: { u_mxlo: [2] }, // Maxime a M1 implicite + M2 débloqué
   };
 }
 
@@ -519,6 +571,7 @@ function emit() {
     onboardingByUser: state.onboardingByUser,
     eventsByUser: state.eventsByUser,
     campaigns: state.campaigns,
+    unlockedModulesByUser: state.unlockedModulesByUser,
   };
   listeners.forEach((cb) => cb());
 }
@@ -790,6 +843,25 @@ export const testStore = {
     emit();
   },
 
+  /** Toggle d'un module débloqué pour un élève (M1 implicite, jamais stocké). */
+  toggleUnlockedModule(input: {
+    userId: Id<"users">;
+    moduleNo: number;
+    on: boolean;
+  }): void {
+    if (input.moduleNo === 1) return;
+    const key = input.userId as unknown as string;
+    const cur = state.unlockedModulesByUser[key] ?? [];
+    const set = new Set(cur);
+    if (input.on) set.add(input.moduleNo);
+    else set.delete(input.moduleNo);
+    state.unlockedModulesByUser = {
+      ...state.unlockedModulesByUser,
+      [key]: [...set].sort((a, b) => a - b),
+    };
+    emit();
+  },
+
   /**
    * Simule l'envoi d'une campagne (mode test) : ajoute une entrée à
    * l'historique + pousse un event GLOBAL `campaign.sent` (sans userId, comme
@@ -882,6 +954,25 @@ function resolveCurriculum(
 /** Curriculum démo, même forme (et tri) que api.curriculum.listCurriculum. */
 export function selectCurriculum(): Curriculum {
   return [...state.curriculum].sort((a, b) => a.order - b.order);
+}
+
+// Démo d'exos par user — VOLONTAIREMENT VIDE en mode test. Le mode test ne
+// connaît pas la BDD prod ; la vraie liste d'exos (créée via /admin/content)
+// remontera côté prod via `api.exercises.listForUser`. Retourner une liste
+// fictive ici donnerait l'illusion de voir des exos qui n'existent pas.
+type DemoExercise = {
+  _id: string;
+  title: string;
+  state: "available" | "completed" | "locked" | "locked_module";
+  moduleOrder: number;
+  moduleTitle: string;
+  lessonTitle: string;
+  completedAt?: number;
+  responseUpdatedAt?: number;
+  progressPercent?: number;
+};
+export function selectExercisesForUser(): DemoExercise[] {
+  return [];
 }
 
 /**
@@ -1120,12 +1211,23 @@ export function selectMemberDetail(id: string): MemberDetail {
   const onb = state.onboardingByUser[key];
   const onboarding: MemberDetail["onboarding"] = onb
     ? {
-        _id: `n_${key}` as unknown as Id<"onboardingNotes">,
+        _id: `n_${key}` as unknown as Id<"onboardings">,
         _creationTime: student.createdAt,
         userId: student._id,
+        tier: onb.tier ?? "coaching",
+        step: onb.step ?? "awaiting_presentation",
+        token: `tk_demo_${key}`,
+        firstName: onb.firstName,
+        lastName: onb.lastName,
+        phone: onb.phone,
+        answers: onb.answers,
+        presentedAt: onb.presentedAt,
+        linkSentAt: onb.linkSentAt,
+        formCompletedAt: onb.formCompletedAt,
+        rdvBookedAt: onb.rdvBookedAt,
         notes: onb.notes,
-        scheduledAt: onb.scheduledAt,
-        completedAt: onb.completedAt,
+        createdAt: student.createdAt,
+        updatedAt: student.createdAt,
       }
     : null;
 
@@ -1163,6 +1265,7 @@ export function selectMemberDetail(id: string): MemberDetail {
     lastActiveAt: student.lastActiveAt,
     xp: 1240,
     streakDays: 9,
+    unlockedModules: state.unlockedModulesByUser[key],
   };
 
   return {

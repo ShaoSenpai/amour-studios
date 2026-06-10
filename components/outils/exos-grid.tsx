@@ -17,7 +17,9 @@ type Exo = {
   moduleTitle: string;
   moduleOrder: number;
   moduleBadgeLabel: string;
-  state: "locked" | "available" | "completed";
+  // `locked_module` ajouté pour le gating coaching (nouveau /exos) — la page
+  // legacy /dashboard/outils le traite comme un simple `locked`.
+  state: "locked" | "locked_module" | "available" | "completed";
   completedAt?: number;
 };
 

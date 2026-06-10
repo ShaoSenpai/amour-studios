@@ -67,7 +67,7 @@ function stripHtml(html: string): string {
     .trim();
 }
 
-// ─── Shared email layout (DS match) ────────────────────────────────
+// ─── Shared email layout (DA actuelle — accent FF5A1F, Schibsted Grotesk) ─
 
 function layout({
   title,
@@ -83,18 +83,18 @@ function layout({
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>${escape(title)}</title>
 </head>
-<body style="margin:0;padding:0;background:#0D0B08;color:#F0E9DB;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:14px;line-height:1.55;">
+<body style="margin:0;padding:0;background:#E8E3D7;color:#0B0B0B;font-family:'Schibsted Grotesk',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:15px;line-height:1.55;">
   <div style="max-width:560px;margin:0 auto;padding:40px 24px;">
-    <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:36px;">
-      <span style="display:inline-block;width:8px;height:8px;background:#00FF85;border-radius:50%;"></span>
-      <span style="font-family:'Instrument Serif',Georgia,serif;font-style:italic;font-size:22px;letter-spacing:-0.5px;">Amour Studios</span>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:36px;">
+      <span style="display:inline-block;width:30px;height:30px;background:#FF5A1F;color:#0B0B0B;border-radius:8px;font-weight:600;font-size:17px;line-height:30px;text-align:center;letter-spacing:-0.02em;">A</span>
+      <span style="font-weight:500;font-size:18px;letter-spacing:-0.01em;">AMOUR STUDIOS</span>
     </div>
     ${children}
-    <div style="margin-top:48px;padding-top:24px;border-top:1px solid rgba(240,233,219,0.15);font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;color:rgba(240,233,219,0.5);letter-spacing:1px;text-transform:uppercase;">
-      ◦ Amour Studios · Formation pour artistes musique<br>
-      <a href="https://www.amourstudios.fr" style="color:rgba(240,233,219,0.6);text-decoration:underline;text-underline-offset:3px;">amourstudios.fr</a>
-      &nbsp;&middot;&nbsp;
-      <a href="mailto:contact@amourstudios.fr" style="color:rgba(240,233,219,0.6);text-decoration:underline;text-underline-offset:3px;">contact@amourstudios.fr</a>
+    <div style="margin-top:48px;padding-top:24px;border-top:1px solid rgba(11,11,11,0.10);font-size:12px;color:rgba(11,11,11,0.55);">
+      <span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:0.06em;text-transform:uppercase;">Coaching artistes musique</span><br>
+      <a href="https://amourstudios.fr" style="color:rgba(11,11,11,0.55);text-decoration:underline;text-underline-offset:3px;">amourstudios.fr</a>
+      &nbsp;·&nbsp;
+      <a href="mailto:contact@amourstudios.fr" style="color:rgba(11,11,11,0.55);text-decoration:underline;text-underline-offset:3px;">contact@amourstudios.fr</a>
     </div>
   </div>
 </body>
@@ -110,49 +110,84 @@ function escape(s: string): string {
     .replace(/'/g, "&#39;");
 }
 
-// ─── Email 1 — Confirmation paiement (lien /claim) ────────────────
+// ─── Email 1 — Confirmation paiement (lien /claim → /onboarding) ──────
 
 const APP_URL = "https://amour-studios.vercel.app";
 
 function claimEmailHtml({
   firstName,
   claimToken,
+  tier,
 }: {
   firstName: string;
   claimToken: string;
+  tier: "coaching" | "communaute";
 }) {
   const claimUrl = `${APP_URL}/claim?t=${encodeURIComponent(claimToken)}`;
+  const tierLabel = tier === "coaching" ? "Coaching" : "Communauté";
+  const tierPrice = tier === "coaching" ? "179€/mois" : "79€/mois";
+  const tierNeedsRdv = tier === "coaching";
+
   const body = `
-    <p style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:rgba(240,233,219,0.55);margin:0 0 16px;">— Paiement validé · 497 €</p>
-    <h1 style="font-family:'Instrument Serif',Georgia,serif;font-size:44px;line-height:0.95;font-weight:400;letter-spacing:-1.5px;margin:0 0 24px;color:#F0E9DB;">
-      Bienvenue${firstName ? `, ${escape(firstName)}` : ""}.<br>
-      <em style="font-style:italic;color:#FF6B1F;">Dernière étape.</em>
+    <p style="font-family:ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:0.10em;text-transform:uppercase;color:rgba(11,11,11,0.55);margin:0 0 14px;">
+      ◦ Paiement validé · ${tierLabel} ${tierPrice}
+    </p>
+    <h1 style="font-size:38px;line-height:1.05;font-weight:500;letter-spacing:-0.025em;margin:0 0 18px;color:#0B0B0B;">
+      Bienvenue${firstName ? `, ${escape(firstName)}` : ""} 👋
     </h1>
-    <p style="color:rgba(240,233,219,0.8);margin:0 0 28px;">
-      Ton paiement est confirmé côté Stripe. Il te reste <strong style="color:#F0E9DB;">un clic</strong> pour activer ton accès et rejoindre la communauté Discord.
+    <p style="color:#0B0B0B;margin:0 0 28px;font-size:16px;">
+      Ton accès <strong>${tierLabel}</strong> est confirmé. Pour qu'on
+      t'ouvre la porte du Discord, il te reste <strong>3 étapes</strong> simples.
     </p>
 
-    <a href="${claimUrl}" style="display:inline-block;background:#00FF85;color:#0D0B08;padding:16px 28px;font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:2px;text-transform:uppercase;font-weight:600;text-decoration:none;margin:0 0 28px;">
+    <!-- CTA principal -->
+    <a href="${claimUrl}" style="display:inline-block;background:#FF5A1F;color:#FFFFFF;padding:15px 28px;border-radius:999px;font-size:14px;font-weight:500;text-decoration:none;letter-spacing:-0.005em;margin:0 0 32px;">
       Activer mon accès →
     </a>
 
-    <div style="margin:32px 0;padding:20px;background:rgba(240,233,219,0.04);border-left:3px solid #FF6B1F;">
-      <p style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:rgba(240,233,219,0.5);margin:0 0 12px;">◦ Les 3 étapes</p>
-      <div style="margin-bottom:10px;"><span style="color:#FF6B1F;font-family:'Instrument Serif',Georgia,serif;font-style:italic;">01.</span> &nbsp;Clique le bouton vert ci-dessus.</div>
-      <div style="margin-bottom:10px;"><span style="color:#FF6B1F;font-family:'Instrument Serif',Georgia,serif;font-style:italic;">02.</span> &nbsp;Connecte-toi avec ton compte Discord (ou crée-en un, c'est gratuit — on t'accompagne).</div>
-      <div><span style="color:#FF6B1F;font-family:'Instrument Serif',Georgia,serif;font-style:italic;">03.</span> &nbsp;Ton rôle VIP est attribué automatiquement, tu accèdes à la formation et à la communauté.</div>
+    <!-- Les 3 étapes -->
+    <div style="margin:0 0 28px;padding:22px 24px;background:rgba(255,255,255,0.55);border-left:3px solid #FF5A1F;border-radius:0 12px 12px 0;">
+      <p style="font-family:ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:rgba(11,11,11,0.55);margin:0 0 14px;">◦ Ta route</p>
+
+      <div style="margin-bottom:14px;display:flex;gap:10px;align-items:baseline;">
+        <span style="color:#FF5A1F;font-weight:500;font-size:13px;font-family:ui-monospace,Menlo,monospace;">01</span>
+        <span><strong>Active</strong> en cliquant le bouton ci-dessus + connecte-toi avec ton compte Discord.</span>
+      </div>
+
+      <div style="margin-bottom:14px;display:flex;gap:10px;align-items:baseline;">
+        <span style="color:#FF5A1F;font-weight:500;font-size:13px;font-family:ui-monospace,Menlo,monospace;">02</span>
+        <span>
+          <strong>Présente-toi</strong> dans le channel <strong>#🎤・présente-toi</strong> du Discord.<br>
+          <span style="color:rgba(11,11,11,0.65);font-size:13.5px;">
+            C'est obligatoire — c'est ce qui débloque la suite (et anime le serveur 🔥).
+          </span>
+        </span>
+      </div>
+
+      <div style="display:flex;gap:10px;align-items:baseline;">
+        <span style="color:#FF5A1F;font-weight:500;font-size:13px;font-family:ui-monospace,Menlo,monospace;">03</span>
+        <span>
+          Tu reçois un <strong>DM Discord + email</strong> avec ton lien d'onboarding<br>
+          <span style="color:rgba(11,11,11,0.65);font-size:13.5px;">
+            Questionnaire rapide${tierNeedsRdv ? " + réservation de ton 1er RDV avec Walid" : ""} → accès complet débloqué.
+          </span>
+        </span>
+      </div>
     </div>
 
-    <p style="color:rgba(240,233,219,0.6);font-size:12px;margin:24px 0 0;">
-      <strong style="color:#F0E9DB;">Peu importe l'email utilisé</strong> pour ton compte Discord — on te lie automatiquement à ton paiement via ce lien unique.
+    <p style="color:rgba(11,11,11,0.65);font-size:13.5px;margin:0 0 14px;">
+      💡 <strong>Avant ta présentation</strong>, tu vois déjà tous les channels mais tu ne peux
+      pas écrire dedans — c'est volontaire, ça force chacun à faire connaissance.
     </p>
 
-    <p style="color:rgba(240,233,219,0.4);font-size:11px;margin:24px 0 0;font-family:'JetBrains Mono',monospace;">
-      Lien direct si le bouton ne marche pas : <br>
-      <a href="${claimUrl}" style="color:rgba(240,233,219,0.6);word-break:break-all;">${claimUrl}</a>
+    <p style="color:rgba(11,11,11,0.55);font-size:12.5px;margin:28px 0 0;font-family:ui-monospace,Menlo,monospace;">
+      Lien direct : <a href="${claimUrl}" style="color:rgba(11,11,11,0.65);word-break:break-all;">${claimUrl}</a>
     </p>
   `;
-  return layout({ title: "Active ton accès Amour Studios", children: body });
+  return layout({
+    title: `Bienvenue chez AMOUR STUDIOS — ${tierLabel}`,
+    children: body,
+  });
 }
 
 export const sendClaimEmail = internalAction({
@@ -160,15 +195,22 @@ export const sendClaimEmail = internalAction({
     to: v.string(),
     firstName: v.optional(v.string()),
     claimToken: v.string(),
+    tier: v.optional(
+      v.union(v.literal("coaching"), v.literal("communaute"))
+    ),
   },
-  handler: async (_ctx, { to, firstName, claimToken }) => {
+  handler: async (_ctx, { to, firstName, claimToken, tier }) => {
     if (!to) return { ok: false, reason: "no_email" };
+    const resolvedTier = tier ?? "communaute";
+    const tierLabel =
+      resolvedTier === "coaching" ? "Coaching" : "Communauté";
     await sendViaResend({
       to,
-      subject: "Ton accès Amour Studios — dernière étape",
+      subject: `Bienvenue chez AMOUR STUDIOS — active ton accès ${tierLabel}`,
       html: claimEmailHtml({
         firstName: firstName ?? "",
         claimToken,
+        tier: resolvedTier,
       }),
     });
     return { ok: true };
@@ -297,6 +339,384 @@ export const sendCampaignEmailOne = internalAction({
   handler: async (_ctx, { to, subject, html }) => {
     if (!to) return { ok: false as const, reason: "no_email" as const };
     const res = await sendViaResend({ to, subject, html });
+    return { ok: res.ok };
+  },
+});
+
+// ─── Email — Lien d'onboarding (envoyé après présentation Discord) ──────────
+
+function onboardingLinkEmailHtml({
+  firstName,
+  link,
+  tier,
+}: {
+  firstName: string | null;
+  link: string;
+  tier: "coaching" | "communaute";
+}): string {
+  const hello = firstName ? `Salut ${escape(firstName)}` : "Salut";
+  const intro =
+    tier === "coaching"
+      ? "On a vu ta présentation sur le Discord 🙌 Prochaine étape : 3 étapes pour débloquer ton accès complet — questionnaire (~5 min) puis réservation de ton 1er appel avec Walid."
+      : "On a vu ta présentation sur le Discord 🙌 Dernière étape pour débloquer ton accès complet : 2-3 petites questions (~2 min).";
+  const cta = tier === "coaching" ? "Commencer l'onboarding →" : "Compléter mon profil →";
+  const unlockLabel =
+    tier === "coaching"
+      ? "⚠ Tant que le RDV n'est pas réservé, ton accès AMOUR CLUB reste verrouillé."
+      : "⚠ Tant que le questionnaire n'est pas complété, ton accès communauté reste verrouillé.";
+  const body = `
+    <p style="font-family:ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:0.10em;text-transform:uppercase;color:rgba(11,11,11,0.55);margin:0 0 14px;">
+      ◦ Ton lien d'onboarding · obligatoire
+    </p>
+    <h1 style="font-size:36px;line-height:1.05;font-weight:500;letter-spacing:-0.025em;margin:0 0 18px;color:#0B0B0B;">
+      ${hello} 👋
+    </h1>
+    <p style="color:#0B0B0B;margin:0 0 22px;font-size:16px;">${intro}</p>
+
+    <a href="${link}" style="display:inline-block;background:#FF5A1F;color:#FFFFFF;padding:15px 28px;border-radius:999px;font-size:14px;font-weight:500;text-decoration:none;letter-spacing:-0.005em;margin:0 0 22px;">
+      ${cta}
+    </a>
+
+    <div style="margin:0 0 20px;padding:14px 18px;background:rgba(255,90,31,0.10);border-left:3px solid #FF5A1F;border-radius:0 10px 10px 0;">
+      <p style="color:#0B0B0B;font-size:14px;margin:0;line-height:1.5;">${unlockLabel}</p>
+    </div>
+
+    <p style="color:rgba(11,11,11,0.55);font-size:12.5px;margin:24px 0 0;font-family:ui-monospace,Menlo,monospace;">
+      Lien direct : <a href="${link}" style="color:rgba(11,11,11,0.65);word-break:break-all;">${link}</a>
+    </p>
+  `;
+  return layout({ title: "Ton onboarding · AMOUR STUDIOS", children: body });
+}
+
+export const sendOnboardingLinkEmail = internalAction({
+  args: {
+    to: v.string(),
+    firstName: v.union(v.string(), v.null()),
+    link: v.string(),
+    tier: v.union(v.literal("coaching"), v.literal("communaute")),
+  },
+  handler: async (_ctx, { to, firstName, link, tier }) => {
+    if (!to) return { ok: false as const, reason: "no_email" as const };
+    const subject =
+      tier === "coaching"
+        ? "Ton onboarding coaching · Amour Studios"
+        : "Complète ton profil · Amour Studios";
+    const res = await sendViaResend({
+      to,
+      subject,
+      html: onboardingLinkEmailHtml({ firstName, link, tier }),
+    });
+    return { ok: res.ok };
+  },
+});
+
+// ─── Emails — Relances onboarding (Phase C, cron quotidien) ─────────────────
+// 3 niveaux d'urgence × 3 scénarios (étape bloquée). Tutoiement, voix
+// "Papi Amour", direct, pas d'em dash, pas de vocabulaire AI.
+
+const SCENARIO = v.union(
+  v.literal("presentation"),   // step = awaiting_presentation
+  v.literal("questionnaire"),  // step = link_sent
+  v.literal("rdv")             // step = form_done (coaching seulement)
+);
+const RELANCE_TIER = v.union(v.literal("coaching"), v.literal("communaute"));
+type Scenario = "presentation" | "questionnaire" | "rdv";
+type RelanceTier = "coaching" | "communaute";
+
+const DISCORD_INVITE_URL =
+  process.env.NEXT_PUBLIC_DISCORD_INVITE_URL ??
+  process.env.DISCORD_INVITE_URL ??
+  "";
+
+function helloLine(firstName: string | null): string {
+  return firstName ? `Salut ${escape(firstName)}` : "Salut";
+}
+
+function copyForScenario(
+  scenario: Scenario,
+  tier: RelanceTier,
+  link: string
+): {
+  ctaLabel: string;
+  ctaHref: string;
+  hookLine: string;
+  bodyLine: string;
+  warningLine: string;
+  optionalDiscord: string;
+} {
+  // CTA + corps adaptés au step bloqué. Le ton monte selon le level (gérée
+  // côté wrappers 24h/48h/7d).
+  if (scenario === "presentation") {
+    return {
+      ctaLabel: DISCORD_INVITE_URL ? "Rejoindre Discord et me présenter →" : "Aller sur Discord →",
+      ctaHref: DISCORD_INVITE_URL || link,
+      hookLine: "Ta présentation Discord n'est toujours pas faite.",
+      bodyLine:
+        tier === "coaching"
+          ? "C'est la 1ère étape obligatoire pour ouvrir ton onboarding coaching. Un message dans <strong>#🎤・présente-toi</strong> et on t'envoie ton lien dans la foulée."
+          : "C'est la 1ère étape obligatoire pour ouvrir ton accès communauté. Un message dans <strong>#🎤・présente-toi</strong> et on t'envoie ton lien dans la foulée.",
+      warningLine: "Tant que tu n'as pas posté ta présentation, tu vois les channels mais tu ne peux pas écrire.",
+      optionalDiscord: DISCORD_INVITE_URL
+        ? `<p style="color:rgba(11,11,11,0.55);font-size:12.5px;margin:18px 0 0;">Lien Discord : <a href="${DISCORD_INVITE_URL}" style="color:rgba(11,11,11,0.65);">${DISCORD_INVITE_URL}</a></p>`
+        : "",
+    };
+  }
+  if (scenario === "questionnaire") {
+    return {
+      ctaLabel: "Terminer mon questionnaire →",
+      ctaHref: link,
+      hookLine: "Ton questionnaire d'onboarding n'est pas fini.",
+      bodyLine:
+        tier === "coaching"
+          ? "Il reste 5 min pour le compléter. C'est ce qui permet à Walid de préparer ton 1er appel et de te débloquer la suite."
+          : "Il reste 2 min pour le finir. C'est la dernière étape avant de débloquer ton accès complet communauté.",
+      warningLine:
+        tier === "coaching"
+          ? "Tant que le questionnaire n'est pas rempli, tu ne peux pas réserver ton 1er RDV ni ouvrir AMOUR CLUB."
+          : "Tant que le questionnaire n'est pas rempli, ton accès communauté reste limité.",
+      optionalDiscord: "",
+    };
+  }
+  // rdv (coaching only)
+  return {
+    ctaLabel: "Réserver mon 1er RDV →",
+    ctaHref: link,
+    hookLine: "Tu n'as pas encore réservé ton 1er appel avec Walid.",
+    bodyLine:
+      "Ton questionnaire est OK, il manque juste le RDV. Choisis un créneau et c'est bon, AMOUR CLUB s'ouvre derrière.",
+    warningLine:
+      "Tant que le 1er RDV n'est pas réservé, ton accès AMOUR CLUB (lives, feedback, tickets coaching) reste verrouillé.",
+    optionalDiscord: "",
+  };
+}
+
+function relanceTone(
+  level: 24 | 48 | 7,
+  firstName: string | null
+): { tag: string; heading: string; sign: string } {
+  if (level === 24) {
+    return {
+      tag: "◦ Petit rappel · 24h",
+      heading: `${helloLine(firstName)} 👋`,
+      sign: "À tout de suite,<br>L'équipe AMOUR STUDIOS",
+    };
+  }
+  if (level === 48) {
+    return {
+      tag: "◦ Relance · 48h",
+      heading: `${helloLine(firstName)},`,
+      sign: "On t'attend,<br>L'équipe AMOUR STUDIOS",
+    };
+  }
+  return {
+    tag: "◦ Dernier rappel · 7 jours",
+    heading: `${helloLine(firstName)},`,
+    sign: "Walid · AMOUR STUDIOS",
+  };
+}
+
+function relanceEmailHtml({
+  level,
+  firstName,
+  link,
+  tier,
+  scenario,
+}: {
+  level: 24 | 48 | 7;
+  firstName: string | null;
+  link: string;
+  tier: RelanceTier;
+  scenario: Scenario;
+}): string {
+  const tone = relanceTone(level, firstName);
+  const copy = copyForScenario(scenario, tier, link);
+
+  // Intensité visuelle : 24h doux (cream highlight), 48h ferme, 7j stricte
+  // (avertissement plus appuyé).
+  const closingByLevel =
+    level === 24
+      ? "Rien de grave, on te relance juste avant que ça file."
+      : level === 48
+      ? "Ça fait 2 jours qu'on n'a pas de nouvelles. Si tu as une question, réponds simplement à cet email."
+      : "Ça fait 7 jours. Si tu n'avances pas, on devra fermer ton onboarding et libérer ta place. Préviens-nous si tu as un blocage.";
+
+  const body = `
+    <p style="font-family:ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:0.10em;text-transform:uppercase;color:rgba(11,11,11,0.55);margin:0 0 14px;">
+      ${tone.tag}
+    </p>
+    <h1 style="font-size:34px;line-height:1.05;font-weight:500;letter-spacing:-0.025em;margin:0 0 18px;color:#0B0B0B;">
+      ${tone.heading}
+    </h1>
+    <p style="color:#0B0B0B;margin:0 0 18px;font-size:16px;">
+      <strong>${copy.hookLine}</strong>
+    </p>
+    <p style="color:#0B0B0B;margin:0 0 24px;font-size:15px;">
+      ${copy.bodyLine}
+    </p>
+
+    <a href="${copy.ctaHref}" style="display:inline-block;background:#FF5A1F;color:#FFFFFF;padding:15px 28px;border-radius:999px;font-size:14px;font-weight:500;text-decoration:none;letter-spacing:-0.005em;margin:0 0 24px;">
+      ${copy.ctaLabel}
+    </a>
+
+    <div style="margin:0 0 20px;padding:14px 18px;background:rgba(255,90,31,0.10);border-left:3px solid #FF5A1F;border-radius:0 10px 10px 0;">
+      <p style="color:#0B0B0B;font-size:14px;margin:0;line-height:1.5;">${copy.warningLine}</p>
+    </div>
+
+    <p style="color:rgba(11,11,11,0.7);font-size:14px;margin:0 0 12px;">
+      ${closingByLevel}
+    </p>
+
+    ${copy.optionalDiscord}
+
+    <p style="color:rgba(11,11,11,0.55);font-size:12.5px;margin:24px 0 0;font-family:ui-monospace,Menlo,monospace;">
+      Lien direct : <a href="${link}" style="color:rgba(11,11,11,0.65);word-break:break-all;">${link}</a>
+    </p>
+
+    <p style="color:rgba(11,11,11,0.55);font-size:13.5px;margin:26px 0 0;">
+      ${tone.sign}
+    </p>
+  `;
+  return layout({ title: "Onboarding · AMOUR STUDIOS", children: body });
+}
+
+function relanceSubject(level: 24 | 48 | 7, scenario: Scenario): string {
+  if (scenario === "presentation") {
+    if (level === 24) return "Tu as oublié ? Présente-toi sur Discord pour débloquer ton accès";
+    if (level === 48) return "Relance · ta présentation Discord est toujours en attente";
+    return "Dernier rappel · ton accès reste fermé tant que tu ne t'es pas présenté";
+  }
+  if (scenario === "questionnaire") {
+    if (level === 24) return "2 min pour finir ton onboarding · AMOUR STUDIOS";
+    if (level === 48) return "Plus que 2 min pour débloquer ton accès AMOUR CLUB";
+    return "Dernier rappel · ton questionnaire d'onboarding bloque ton accès";
+  }
+  // rdv
+  if (level === 24) return "Réserve ton 1er RDV pour ouvrir AMOUR CLUB";
+  if (level === 48) return "Ton 1er RDV n'est toujours pas réservé · accès AMOUR CLUB en attente";
+  return "Dernier rappel · ton accès reste limité tant que tu n'as pas réservé";
+}
+
+export const sendRelanceOnboarding24h = internalAction({
+  args: {
+    to: v.string(),
+    firstName: v.union(v.string(), v.null()),
+    link: v.string(),
+    tier: RELANCE_TIER,
+    scenario: SCENARIO,
+  },
+  handler: async (_ctx, { to, firstName, link, tier, scenario }) => {
+    if (!to) return { ok: false as const, reason: "no_email" as const };
+    const res = await sendViaResend({
+      to,
+      subject: relanceSubject(24, scenario),
+      html: relanceEmailHtml({ level: 24, firstName, link, tier, scenario }),
+    });
+    return { ok: res.ok };
+  },
+});
+
+export const sendRelanceOnboarding48h = internalAction({
+  args: {
+    to: v.string(),
+    firstName: v.union(v.string(), v.null()),
+    link: v.string(),
+    tier: RELANCE_TIER,
+    scenario: SCENARIO,
+  },
+  handler: async (_ctx, { to, firstName, link, tier, scenario }) => {
+    if (!to) return { ok: false as const, reason: "no_email" as const };
+    const res = await sendViaResend({
+      to,
+      subject: relanceSubject(48, scenario),
+      html: relanceEmailHtml({ level: 48, firstName, link, tier, scenario }),
+    });
+    return { ok: res.ok };
+  },
+});
+
+export const sendRelanceOnboarding7d = internalAction({
+  args: {
+    to: v.string(),
+    firstName: v.union(v.string(), v.null()),
+    link: v.string(),
+    tier: RELANCE_TIER,
+    scenario: SCENARIO,
+  },
+  handler: async (_ctx, { to, firstName, link, tier, scenario }) => {
+    if (!to) return { ok: false as const, reason: "no_email" as const };
+    const res = await sendViaResend({
+      to,
+      subject: relanceSubject(7, scenario),
+      html: relanceEmailHtml({ level: 7, firstName, link, tier, scenario }),
+    });
+    return { ok: res.ok };
+  },
+});
+
+// ─── Email — Alerte Walid (élève bloqué 7j) ─────────────────────────────────
+
+function walidAlertHtml({
+  studentName,
+  tier,
+  scenario,
+  studentEmail,
+  daysBlocked,
+}: {
+  studentName: string;
+  tier: RelanceTier;
+  scenario: Scenario;
+  studentEmail: string | null;
+  daysBlocked: number;
+}): string {
+  const scenarioLabel =
+    scenario === "presentation"
+      ? "Bloqué à : présentation Discord (étape 1)"
+      : scenario === "questionnaire"
+      ? "Bloqué à : questionnaire onboarding (étape 2)"
+      : "Bloqué à : réservation 1er RDV (étape 3)";
+  const tierLabel = tier === "coaching" ? "Coaching 179€" : "Communauté 79€";
+  const body = `
+    <p style="font-family:ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:0.10em;text-transform:uppercase;color:rgba(11,11,11,0.55);margin:0 0 14px;">
+      ◦ Élève bloqué · intervention manuelle
+    </p>
+    <h1 style="font-size:30px;line-height:1.1;font-weight:500;letter-spacing:-0.02em;margin:0 0 18px;color:#0B0B0B;">
+      ${escape(studentName)} stagne depuis ${daysBlocked}j
+    </h1>
+    <p style="color:#0B0B0B;margin:0 0 14px;font-size:15px;">
+      Les 3 relances auto sont envoyées. Si tu veux le récupérer, prends 5 min pour lui passer un WhatsApp ou un DM Discord direct.
+    </p>
+    <div style="margin:0 0 20px;padding:14px 18px;background:rgba(255,255,255,0.55);border-left:3px solid #FF5A1F;border-radius:0 10px 10px 0;">
+      <p style="color:#0B0B0B;font-size:14px;margin:0 0 6px;line-height:1.5;"><strong>Tier :</strong> ${tierLabel}</p>
+      <p style="color:#0B0B0B;font-size:14px;margin:0 0 6px;line-height:1.5;">${scenarioLabel}</p>
+      ${studentEmail ? `<p style="color:#0B0B0B;font-size:14px;margin:0;line-height:1.5;"><strong>Email :</strong> ${escape(studentEmail)}</p>` : ""}
+    </div>
+    <p style="color:rgba(11,11,11,0.6);font-size:13.5px;margin:0;">
+      Tu peux aussi le retrouver dans /studio &gt; Onboardings en attente.
+    </p>
+  `;
+  return layout({ title: "Élève bloqué — AMOUR STUDIOS", children: body });
+}
+
+export const sendWalidStuckStudentAlert = internalAction({
+  args: {
+    to: v.string(),
+    studentName: v.string(),
+    tier: RELANCE_TIER,
+    scenario: SCENARIO,
+    studentEmail: v.union(v.string(), v.null()),
+    daysBlocked: v.number(),
+  },
+  handler: async (
+    _ctx,
+    { to, studentName, tier, scenario, studentEmail, daysBlocked }
+  ) => {
+    if (!to) return { ok: false as const, reason: "no_email" as const };
+    const subject = `[Onboarding bloqué ${daysBlocked}j] ${studentName}`;
+    const res = await sendViaResend({
+      to,
+      subject,
+      html: walidAlertHtml({ studentName, tier, scenario, studentEmail, daysBlocked }),
+    });
     return { ok: res.ok };
   },
 });

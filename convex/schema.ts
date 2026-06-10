@@ -56,6 +56,13 @@ export default defineSchema({
 
     // IDs d'announcements masquées par le user (via bouton "dismiss")
     dismissedAnnouncements: v.optional(v.array(v.id("announcements"))),
+
+    // Modules de coaching (curriculum) explicitement débloqués pour cet élève.
+    // M1 est implicite pour tout coaching actif (jamais stocké). M2/M3 sont
+    // ajoutés ici par l'admin (toggle dans la fiche élève) OU automatiquement
+    // par exerciseResponses.complete quand tous les exos du module précédent
+    // sont terminés. duree="1mois" ignore ce champ (limité à M1).
+    unlockedModules: v.optional(v.array(v.number())),
   })
     .index("email", ["email"])
     .index("phone", ["phone"])
@@ -258,6 +265,9 @@ export default defineSchema({
         })
       )
     ),
+    // Exo conservé en BDD pour la formation legacy mais retiré du catalogue
+    // /exos (espace élève coaching). Default = false (apparaît dans /exos).
+    hiddenFromCoaching: v.optional(v.boolean()),
     createdAt: v.number(),
     updatedAt: v.number(),
     deletedAt: v.optional(v.number()),
@@ -329,6 +339,60 @@ export default defineSchema({
     completedAt: v.optional(v.number()),
     notes: v.string(),
   }).index("by_user", ["userId"]),
+
+  // Onboarding client post-paiement — pilote le parcours
+  //   awaiting_presentation → link_sent → form_done → rdv_booked
+  //   (79€ s'arrête à community_ready après form_done).
+  // Une row par user, créée par le webhook Stripe à l'abonnement actif.
+  onboardings: defineTable({
+    userId: v.id("users"),
+    tier: v.union(v.literal("coaching"), v.literal("communaute")),
+    step: v.union(
+      v.literal("awaiting_presentation"),
+      v.literal("link_sent"),
+      v.literal("form_done"),
+      v.literal("rdv_booked"),
+      v.literal("community_ready")
+    ),
+    // Token public pour la page /onboarding/[token] (UUID v4).
+    token: v.string(),
+    // Contact (rempli par le client à l'étape 1).
+    firstName: v.optional(v.string()),
+    lastName: v.optional(v.string()),
+    phone: v.optional(v.string()),
+    // Questionnaire (étape 2) — [{ key, label, value }].
+    answers: v.optional(
+      v.array(
+        v.object({
+          key: v.string(),
+          label: v.string(),
+          value: v.string(),
+        })
+      )
+    ),
+    // Tracking des étapes.
+    presentedAt: v.optional(v.number()),
+    linkSentAt: v.optional(v.number()),
+    formCompletedAt: v.optional(v.number()),
+    rdvBookedAt: v.optional(v.number()),
+    rdvSessionId: v.optional(v.id("coachingSessions")),
+    // Note libre admin (remplace l'ancienne onboardingNotes).
+    notes: v.optional(v.string()),
+    // Relances automatiques (Phase C — cron quotidien runDailyRelances).
+    // Anchor temporel selon l'étape bloquée :
+    //   - awaiting_presentation → mesuré depuis createdAt
+    //   - link_sent             → mesuré depuis linkSentAt
+    //   - form_done             → mesuré depuis formCompletedAt
+    // Une fois remplis, garantissent l'idempotence (pas de double envoi).
+    relance24hAt: v.optional(v.number()),
+    relance48hAt: v.optional(v.number()),
+    relance7dAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_token", ["token"])
+    .index("by_step", ["step"]),
 
   notes: defineTable({
     userId: v.id("users"),

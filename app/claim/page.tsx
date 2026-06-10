@@ -135,8 +135,8 @@ function ClaimInner() {
       if (currentUser.purchaseId) {
         clearClaimCookie();
         setClaimState("done");
-        toast.success("Bienvenue ! Tu es déjà VIP");
-        setTimeout(() => router.push("/dashboard"), 800);
+        toast.success("Bienvenue ! Étape suivante : présente-toi sur Discord");
+        setTimeout(() => router.push("/onboarding/welcome"), 800);
         return;
       }
       setClaimState("claiming");
@@ -150,8 +150,8 @@ function ClaimInner() {
         .then(() => {
           clearClaimCookie();
           setClaimState("done");
-          toast.success("Accès VIP débloqué 🎉");
-          setTimeout(() => router.push("/dashboard"), 1200);
+          toast.success("Compte activé 🎉 Étape suivante : présente-toi sur Discord");
+          setTimeout(() => router.push("/onboarding/welcome"), 1200);
         })
         .catch((err) => {
           setClaimState("error");
@@ -364,7 +364,7 @@ function ClaimInner() {
           </a>{" "}
           avec ta référence de paiement, on débloque à la main en moins de 24h.
         </p>
-        <Button onClick={() => router.push("/dashboard")}>
+        <Button onClick={() => router.push("/onboarding/welcome")}>
           Aller sur le dashboard
           <ArrowRight size={14} />
         </Button>

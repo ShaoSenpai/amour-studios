@@ -53,7 +53,7 @@ export const getMemberDetail = query({
     const purchase = user.purchaseId ? await ctx.db.get(user.purchaseId) : null;
 
     const onboarding = await ctx.db
-      .query("onboardingNotes")
+      .query("onboardings")
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .first();
 
@@ -444,17 +444,31 @@ export const listNotes = query({
   },
 });
 
-/** Note d'onboarding éditable. */
+/** Note d'onboarding éditable. Upsert sur la table `onboardings` (nouvelle).
+ *  Si l'user n'a pas encore de row d'onboarding (cas legacy), on en crée une
+ *  minimale pour porter la note. */
 export const updateOnboardingNote = mutation({
   args: { userId: v.id("users"), notes: v.string() },
   handler: async (ctx, { userId, notes }) => {
     await requireAdmin(ctx);
     const existing = await ctx.db
-      .query("onboardingNotes")
+      .query("onboardings")
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .first();
-    if (existing) await ctx.db.patch(existing._id, { notes });
-    else await ctx.db.insert("onboardingNotes", { userId, notes });
+    if (existing) {
+      await ctx.db.patch(existing._id, { notes, updatedAt: Date.now() });
+      return;
+    }
+    const now = Date.now();
+    await ctx.db.insert("onboardings", {
+      userId,
+      tier: "communaute",
+      step: "community_ready",
+      token: crypto.randomUUID(),
+      notes,
+      createdAt: now,
+      updatedAt: now,
+    });
   },
 });
 
@@ -988,12 +1002,28 @@ export const upsertCalendlySession = internalMutation({
     scheduledAt: v.number(),
     endAt: v.optional(v.number()),
     eventName: v.optional(v.string()),
+    // Fallback : token onboarding passé via utm_source côté widget Calendly.
+    // Si l'email Calendly ne match aucun user, on retrouve le user via ce token.
+    fallbackOnboardingToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db
+    let user = await ctx.db
       .query("users")
       .withIndex("email", (q) => q.eq("email", args.email.trim().toLowerCase()))
       .first();
+    // Fallback par token onboarding si pas matché par email.
+    if (!user && args.fallbackOnboardingToken) {
+      const ob = await ctx.db
+        .query("onboardings")
+        .withIndex("by_token", (q) => q.eq("token", args.fallbackOnboardingToken!))
+        .first();
+      if (ob) {
+        user = await ctx.db.get(ob.userId);
+        console.warn(
+          `Calendly: email ${args.email} pas matché, fallback token onboarding OK pour user ${ob.userId}`
+        );
+      }
+    }
     if (!user) return { matched: false as const };
 
     const now = Date.now();
@@ -1014,7 +1044,12 @@ export const upsertCalendlySession = internalMutation({
         status: "scheduled",
         updatedAt: now,
       });
-      return { matched: true as const, sessionId: existing._id };
+      return {
+        matched: true as const,
+        sessionId: existing._id,
+        userId: user._id,
+        isOnboarding,
+      };
     }
 
     const sessionId = await ctx.db.insert("coachingSessions", {
@@ -1030,7 +1065,12 @@ export const upsertCalendlySession = internalMutation({
       createdAt: now,
       updatedAt: now,
     });
-    return { matched: true as const, sessionId };
+    return {
+      matched: true as const,
+      sessionId,
+      userId: user._id,
+      isOnboarding,
+    };
   },
 });
 

@@ -288,3 +288,39 @@ export const claimPurchaseByEmail = mutation({
     return { ok: true };
   },
 });
+
+// ─── Modules débloqués (admin) ──────────────────────────────────────────────
+// Toggle d'un moduleNo (= module.order) sur `users.unlockedModules`.
+// Utilisé par les boutons « Modules débloqués » de la fiche élève (/studio).
+// M1 (order = 1) est implicite pour tout coaching → on refuse explicitement.
+
+async function requireAdminUser(ctx: import("./_generated/server").MutationCtx) {
+  const callerId = await getAuthUserId(ctx);
+  if (!callerId) throw new Error("Non authentifié");
+  const caller = await ctx.db.get(callerId);
+  if (!caller || caller.role !== "admin") throw new Error("Admin uniquement");
+}
+
+export const unlockModule = mutation({
+  args: { userId: v.id("users"), moduleNo: v.number() },
+  handler: async (ctx, { userId, moduleNo }) => {
+    await requireAdminUser(ctx);
+    if (moduleNo === 1) return; // implicite, jamais stocké
+    const user = await ctx.db.get(userId);
+    if (!user) throw new Error("User introuvable");
+    const set = new Set([...(user.unlockedModules ?? []), moduleNo]);
+    await ctx.db.patch(userId, { unlockedModules: [...set].sort((a, b) => a - b) });
+  },
+});
+
+export const lockModule = mutation({
+  args: { userId: v.id("users"), moduleNo: v.number() },
+  handler: async (ctx, { userId, moduleNo }) => {
+    await requireAdminUser(ctx);
+    if (moduleNo === 1) return; // implicite, on n'autorise pas à retirer M1
+    const user = await ctx.db.get(userId);
+    if (!user) throw new Error("User introuvable");
+    const next = (user.unlockedModules ?? []).filter((n) => n !== moduleNo);
+    await ctx.db.patch(userId, { unlockedModules: next });
+  },
+});

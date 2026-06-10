@@ -1,7 +1,31 @@
-import { redirect } from "next/navigation";
+"use client";
 
-// Le produit, c'est le dashboard /studio. La racine y mène directement ;
-// le middleware (proxy.ts) renvoie vers /studio/login si non connecté.
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+
+// Racine du site — dispatcher selon le rôle :
+//   - non authentifié → /login
+//   - admin           → /studio (back-office)
+//   - membre coaching → /exos   (espace exercices)
+//   - autre membre    → /exos   (qui affichera l'écran « active ton coaching »)
 export default function Home() {
-  redirect("/studio");
+  const me = useQuery(api.users.current);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (me === undefined) return;
+    if (me === null) {
+      router.replace("/login");
+      return;
+    }
+    if (me.role === "admin") {
+      router.replace("/studio");
+    } else {
+      router.replace("/exos");
+    }
+  }, [me, router]);
+
+  return null;
 }

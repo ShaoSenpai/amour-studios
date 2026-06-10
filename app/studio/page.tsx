@@ -24,6 +24,7 @@ import {
   selectStudentsList,
 } from "./_components/test-store";
 import { RdvDialog } from "./_components/rdv-dialog";
+import { OnboardingsPendingBlock } from "./_components/onboardings-pending";
 import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
 
 // ============================================================================
@@ -244,6 +245,9 @@ export default function AujourdhuiPage() {
                 </div>
               </Glass>
             </div>
+
+            {/* Onboardings en attente (Phase E) */}
+            <OnboardingsPendingBlock />
           </div>
 
           {/* RIGHT */}

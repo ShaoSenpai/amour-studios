@@ -320,9 +320,12 @@ function PaymentForm({
     setError(null);
     setSubmitting(true);
 
+    // Post-paiement : onboarding (/onboarding/welcome) au lieu de l'ancien
+    // /claim (formation mise de côté). Le claimToken est conservé en query
+    // pour le futur (audit / debug) mais la page welcome ne s'en sert pas.
     const returnUrl =
       typeof window !== "undefined"
-        ? `${window.location.origin}/claim${claimToken ? `?t=${encodeURIComponent(claimToken)}` : ""}`
+        ? `${window.location.origin}/onboarding/welcome${claimToken ? `?t=${encodeURIComponent(claimToken)}` : ""}`
         : undefined;
 
     const { error: stripeErr, paymentIntent } = await stripe.confirmPayment({
@@ -347,7 +350,7 @@ function PaymentForm({
       // jouer 3s avant de fermer + rediriger vers dashboard
       setTimeout(() => {
         onSuccess();
-        router.push("/dashboard?justPaid=1");
+        router.push("/onboarding/welcome?paid=1");
       }, 3400);
       return;
     }

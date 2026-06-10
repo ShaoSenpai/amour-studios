@@ -1,6 +1,6 @@
 # AMOUR STUDIOS — Contexte projet & outil interne (source de vérité)
 
-_Maj : 2026-05-26_
+_Maj : 2026-06-09_
 
 ## 1. Business
 Accompagnement pour **artistes musique** : percer via le **contenu sur les réseaux**. Mentor public **Papi Amour** (interne : Walid). Équipe : Kevin, Younes, Shao, Florent (bot).
@@ -21,17 +21,22 @@ Accompagnement pour **artistes musique** : percer via le **contenu sur les rése
 ## 4. Infra (où vit quoi)
 | Brique | Emplacement | Rôle / état |
 |---|---|---|
-| Site marketing | `SITE/AMOURstudios_SITE` → OVH → **amourstudios.fr** | Landing + `/paiement` (Stripe Elements) + `/merci`. DA Swiss. |
-| Backend + app | `SKOOL/amour-studios` (Next.js 16 + Convex) | Auth Discord, Stripe, Resend, Mux, plateforme élève (pause), **`/admin`**, `/claim`. Convex dev=`flexible-lobster-990`, prod=`frugal-curlew-831`. |
-| Bot Discord | `SKOOL/amour-discord-bot` | Rôles par palier (`/sync-roles`, `/remove-role`). À déployer (Fly.io). |
-| Bot WhatsApp | `00_PROJET_.../BOT_BACKEND` | Tâches Notion équipe — séparé. |
+| Site marketing | `SITE/AMOURstudios_SITE` → OVH → **amourstudios.fr** | Landing + `/paiement` + `/merci`. DA Swiss. **Live**. |
+| Backend + app | `SKOOL/amour-studios` (Next.js 16 + Convex) | Auth Discord, Stripe, Resend, Mux, `/studio` (back-office), `/exos`, `/onboarding`, `/claim`. Convex dev=`flexible-lobster-990`, prod=`frugal-curlew-831`. **Live** sur amour-studios.vercel.app. |
+| Bot Discord | `SKOOL/amour-discord-bot` | Rôles par palier + listener #🎤・présente-toi + DM/grant-onboarded. **Live** sur amour-discord-bot.fly.dev (Fly.io cdg). |
+| Bot WhatsApp | `1_DOCS/projet/BOT_BACKEND` | Tâches Notion équipe — séparé. **Live**. |
+| Stripe | API + dashboard | **TEST mode configuré** (compte Kevin créé 06/09). Prix 79€/179€ + webhook → Convex. À basculer en live quand prêt à vendre. |
+| Calendly | À configurer | Event « 1er RDV » créé par Walid. Webhook à connecter (`CALENDLY_WEBHOOK_SIGNING_KEY`). |
 | Outils | — | Stripe, Calendly, Resend, Notion, Fireflies, Mux, Higgsfield. |
 
 Accès admin (dev) : `ADMIN_DISCORD_IDS` (CSV d'IDs Discord) → promotion auto au login. `SITE_URL` (dev) doit pointer vers le localhost utilisé pour que le login marche en local.
 
-## 5. État du code (sur le dev `flexible-lobster-990`, pas en prod)
-- **Phase 1 — Paiement** : `createSubscription` (79/179, 1/3 mois, cancel_at), webhooks lifecycle, rôles Discord auto, capture téléphone, page paiement adaptée. _Reste : prix Stripe + déploiement prod._
-- **Phase 2 — Back-office** : table `coachingSessions`, fiche élève `/admin/members/[id]`, calendrier `/admin/calendar` + RDV manuel, webhook Calendly. _Design à refaire ("pas fou")._
+## 5. État du code (live en prod)
+- **Phase 1 — Paiement Stripe** : prix créés (Communauté `price_1TgXRaEPVgDbT6ZuTpUYkYsw`, Coaching `price_1TgXRbEPVgDbT6ZucHZ5WJPz`), webhook configuré, env Convex set. **E2E validé en test** (sub created → record purchases active; cancel → status canceled).
+- **Phase 2 — Back-office /studio** : dashboard « Aujourd'hui » Glass C, fiche élève, calendrier RDV jour/semaine/mois, blocs paiement/Discord/onboarding/activité. **Live**.
+- **Phase 3 — /exos** : catalogue élève coaching avec gating tier+avancée. 9 exos externes visibles (filtrés sur `exerciseUrl`). **Live**.
+- **Phase 4 — Bot Discord custom** : 3 rôles gérés (Membre/Coaching/Onboardé). Listener #🎤・présente-toi avec animation 👋 + reply public. Endpoints sync-roles, dm, grant-onboarded. **Live sur Fly**.
+- **Phase 5 — Flow onboarding E2E** : paiement → présentation obligatoire → DM Discord + email avec lien `/onboarding/[token]` → questionnaire → grant Onboardé. **Validé E2E 2026-06-09**.
 
 ## 6. Architecture de l'outil interne (validée)
 Navigation : sidebar gauche (repliable) + barre du bas mobile.
@@ -43,13 +48,21 @@ Navigation : sidebar gauche (repliable) + barre du bas mobile.
 
 **Périmètre v1** : Aujourd'hui · Élèves + Fiche · Calendrier · Paiements.
 
-## 7. Roadmap
-1. Paiement → accès Discord (codé, à mettre en prod)
-2. Back-office coach v1 (4 écrans ci-dessus) + **refonte design**
-3. CRM marketing (capture contacts, segmentation, campagnes Resend)
-4. Fireflies (résumés de call auto) + réactivation plateforme vidéo
+## 7. Roadmap restante (au 2026-06-09)
 
-## 8. En attente (actions Kevin, hors code)
-- Stripe : créer 2 prix récurrents (79/179) + webhook → déployer Phase 1 en prod.
-- Calendly : connecter (webhook + `CALENDLY_WEBHOOK_SIGNING_KEY`).
-- Déployer le bot Discord (Fly.io) + sécuriser `BOT_SECRET`.
+### Court terme (en cours)
+- **Phase B onboarding** : permissions channels Discord (matrice vue/écriture par rôle dans `SPEC_ONBOARDING_FLOW.md`)
+- **Phase C onboarding** : cron relances (DM + email + alerte Walid à 24h/48h/7j)
+- **Phase D onboarding** : upsell 79€→179€ en fin de questionnaire
+- **Phase E onboarding** : bloc /studio « Onboardings en attente »
+- **Phase F onboarding** : fix bug webhook Stripe (auto-attribution rôle pas fiable)
+- **Calendly** : intégration URL + webhook subscription
+
+### Moyen terme
+- Stripe live (basculer en mode live quand prêt à vendre)
+- Témoignages + CTA final site marketing
+- Brique C SAV : Stripe customer portal (change plan, refund)
+- Tour de contrôle : briques B (CRM), D (Fireflies), E (campagnes)
+
+### Long terme
+- Réactivation plateforme vidéo

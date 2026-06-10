@@ -282,15 +282,14 @@ export default function OnboardingTokenPage({
             {tier === "coaching" ? "À très vite avec Walid." : "Bienvenue dans la communauté."}
           </h1>
           <p style={{ fontSize: 14.5, color: c.text, marginTop: 14, lineHeight: 1.55 }}>
-            <strong>Ton accès Discord complet est maintenant débloqué.</strong>
-            {tier === "coaching"
-              ? " Tu peux écrire dans tous les channels AMOUR CLUB et participer aux lives exclusifs."
-              : " Tu peux écrire dans tous les channels communauté."}
+            <strong>Ton accès Discord complet est maintenant débloqué.</strong>{" "}
+            Tu peux écrire dans tous les channels, partager ta musique, demander
+            du feedback et participer aux lives.
           </p>
           <p style={{ fontSize: 13.5, color: c.muted, marginTop: 10, lineHeight: 1.55 }}>
             {tier === "coaching"
-              ? "Ton 1er appel est noté dans le calendrier de Walid. Tu recevras une confirmation par email avec le lien du Meet."
-              : "Tu reçois bientôt les infos de la communauté par email + Discord. À très vite."}
+              ? "Ton 1er appel avec Walid est noté dans son calendrier. Tu recevras une confirmation par email avec le lien du Meet."
+              : "On t'attend sur le Discord. À très vite."}
           </p>
 
           <a
@@ -324,7 +323,7 @@ export default function OnboardingTokenPage({
             }}
           >
             Direction <strong style={{ color: c.muted }}>#💬・général</strong>
-            {tier === "coaching" ? " ou #💌・bienvenue-amour-club" : ""}
+            {tier === "coaching" ? " ou présente-toi à Walid" : ""}
           </p>
         </div>
       </Shell>
@@ -493,7 +492,7 @@ export default function OnboardingTokenPage({
               {[
                 "1 RDV par semaine avec Walid (1h)",
                 "Méthode perso pour ton projet",
-                "Accès complet AMOUR CLUB (lives, feedback, coaching tickets)",
+                "Feedback détaillé sur ton contenu chaque semaine",
               ].map((line) => (
                 <li
                   key={line}
@@ -560,8 +559,8 @@ export default function OnboardingTokenPage({
             </h1>
             <p style={{ fontSize: 14, color: c.text, marginTop: 10, lineHeight: 1.55 }}>
               <strong>Ce RDV est obligatoire</strong> pour débloquer ton accès complet
-              (AMOUR CLUB, lives exclusifs, coaching tickets). Tant qu&apos;il n&apos;est pas réservé,
-              ces channels restent verrouillés sur Discord.
+              au Discord (écriture dans tous les channels). Tant qu&apos;il n&apos;est pas réservé,
+              tu ne peux pas écrire dans les channels.
             </p>
             <p style={{ fontSize: 13.5, color: c.muted, marginTop: 8 }}>
               Choisis un créneau qui te va. Tu recevras le lien Meet par email + Discord.
@@ -631,8 +630,8 @@ function UnlockBanner({
 }) {
   const label =
     tier === "coaching"
-      ? "Complète les 3 étapes pour débloquer ton accès AMOUR CLUB sur Discord"
-      : "Complète les 2 étapes pour débloquer ton accès communauté sur Discord";
+      ? "Complète les 3 étapes pour débloquer ton accès Discord complet"
+      : "Complète les 2 étapes pour débloquer ton accès Discord complet";
   return (
     <div
       style={{

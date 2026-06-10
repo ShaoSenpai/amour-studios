@@ -369,7 +369,7 @@ export const sendLink = internalAction({
         const greet = name ? `Salut ${name} 👋\n\n` : "Salut 👋\n\n";
         const intro =
           tier === "coaching"
-            ? "Merci pour ta présentation ✨\n\n**Pour débloquer ton accès complet AMOUR CLUB** (lives exclusifs, feedback contenu, coaching tickets), il te reste 3 étapes obligatoires :\n\n1️⃣ Tes coordonnées (~30s)\n2️⃣ Questionnaire (~5 min) — pour que Walid prépare ton 1er appel\n3️⃣ **Réserver ton 1er appel avec Walid** ← c'est ce qui débloque ton accès\n\nTant que le RDV n'est pas réservé, l'accès AMOUR CLUB reste verrouillé."
+            ? "Merci pour ta présentation ✨\n\n**Pour débloquer ton accès Discord complet** (écriture dans tous les channels, lives, feedback), il te reste 3 étapes obligatoires :\n\n1️⃣ Tes coordonnées (~30s)\n2️⃣ Questionnaire (~5 min) pour que Walid prépare ton 1er appel\n3️⃣ **Réserver ton 1er appel avec Walid** ← c'est ce qui débloque ton accès\n\nTant que le RDV n'est pas réservé, ton accès Discord reste limité."
             : "Merci pour ta présentation ✨\n\n**Pour débloquer ton accès complet communauté**, il te reste 2 petites étapes (~2 min) :\n\n1️⃣ Tes coordonnées\n2️⃣ 3 questions rapides\n\nTant que ce n'est pas complété, ton accès reste limité.";
         await ctx.runAction(internal.onboardings.discordDm, {
           discordId: u.discordId,
@@ -733,19 +733,19 @@ function relanceDiscordContent({
       return `${hello}\n\nTu as bien ton lien d'onboarding, mais ton questionnaire n'est pas terminé.\n\n${tier === "coaching" ? "Il reste 5 min pour le boucler. C'est ce qui permet à Walid de préparer ton 1er appel." : "Il reste 2 min pour le finir. Dernière étape avant ton accès complet."}\n\n👉 ${link}`;
     }
     if (level === 48) {
-      return `${hello}\n\n48h que ton questionnaire est en pause. ${tier === "coaching" ? "Sans ce questionnaire, tu ne peux pas réserver ton 1er RDV ni ouvrir AMOUR CLUB." : "Sans ce questionnaire, ton accès communauté reste limité."}\n\n👉 ${link}`;
+      return `${hello}\n\n48h que ton questionnaire est en pause. ${tier === "coaching" ? "Sans ce questionnaire, tu ne peux pas réserver ton 1er RDV ni écrire sur le Discord." : "Sans ce questionnaire, ton accès Discord reste limité."}\n\n👉 ${link}`;
     }
     return `${hello}\n\n**Dernier rappel.** 7 jours que ton questionnaire est ouvert.\n\nSi tu ne le termines pas, on suspend ton onboarding. Un blocage ? Dis-le moi en réponse.\n\n👉 ${link}`;
   }
 
   // rdv (coaching only)
   if (level === 24) {
-    return `${hello}\n\nQuestionnaire OK 🙌 Il reste juste ton 1er RDV avec Walid à réserver.\n\nC'est ce qui ouvre AMOUR CLUB (lives, feedback contenu, tickets coaching).\n\n👉 ${link}`;
+    return `${hello}\n\nQuestionnaire OK 🙌 Il reste juste ton 1er RDV avec Walid à réserver.\n\nC'est ce qui débloque ton accès Discord complet (écriture, lives, feedback).\n\n👉 ${link}`;
   }
   if (level === 48) {
-    return `${hello}\n\n48h que ton questionnaire est validé mais que le RDV n'est pas posé.\n\nTon accès AMOUR CLUB reste bloqué tant que le créneau n'est pas réservé. Choisis ce qui t'arrange.\n\n👉 ${link}`;
+    return `${hello}\n\n48h que ton questionnaire est validé mais que le RDV n'est pas posé.\n\nTon accès Discord reste limité tant que le créneau n'est pas réservé. Choisis ce qui t'arrange.\n\n👉 ${link}`;
   }
-  return `${hello}\n\n**Dernier rappel.** 7 jours sans RDV.\n\nTon accès AMOUR CLUB reste verrouillé. Si tu n'arrives pas à trouver un créneau, réponds-moi, on cale ça à la main.\n\n👉 ${link}`;
+  return `${hello}\n\n**Dernier rappel.** 7 jours sans RDV.\n\nTon accès Discord reste limité. Si tu n'arrives pas à trouver un créneau, réponds-moi, on cale ça à la main.\n\n👉 ${link}`;
 }
 
 /** Détermine le scénario en fonction de l'étape actuelle. */

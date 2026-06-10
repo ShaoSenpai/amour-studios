@@ -362,7 +362,7 @@ function onboardingLinkEmailHtml({
   const cta = tier === "coaching" ? "Commencer l'onboarding →" : "Compléter mon profil →";
   const unlockLabel =
     tier === "coaching"
-      ? "⚠ Tant que le RDV n'est pas réservé, ton accès AMOUR CLUB reste verrouillé."
+      ? "⚠ Tant que le RDV n'est pas réservé, ton accès Discord reste limité (lecture seule)."
       : "⚠ Tant que le questionnaire n'est pas complété, ton accès communauté reste verrouillé.";
   const body = `
     <p style="font-family:ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:0.10em;text-transform:uppercase;color:rgba(11,11,11,0.55);margin:0 0 14px;">
@@ -472,7 +472,7 @@ function copyForScenario(
           : "Il reste 2 min pour le finir. C'est la dernière étape avant de débloquer ton accès complet communauté.",
       warningLine:
         tier === "coaching"
-          ? "Tant que le questionnaire n'est pas rempli, tu ne peux pas réserver ton 1er RDV ni ouvrir AMOUR CLUB."
+          ? "Tant que le questionnaire n'est pas rempli, tu ne peux pas réserver ton 1er RDV ni écrire sur le Discord."
           : "Tant que le questionnaire n'est pas rempli, ton accès communauté reste limité.",
       optionalDiscord: "",
     };
@@ -483,9 +483,9 @@ function copyForScenario(
     ctaHref: link,
     hookLine: "Tu n'as pas encore réservé ton 1er appel avec Walid.",
     bodyLine:
-      "Ton questionnaire est OK, il manque juste le RDV. Choisis un créneau et c'est bon, AMOUR CLUB s'ouvre derrière.",
+      "Ton questionnaire est OK, il manque juste le RDV. Choisis un créneau et ton accès Discord s'ouvre complètement derrière.",
     warningLine:
-      "Tant que le 1er RDV n'est pas réservé, ton accès AMOUR CLUB (lives, feedback, tickets coaching) reste verrouillé.",
+      "Tant que le 1er RDV n'est pas réservé, ton accès Discord (écriture, lives, feedback) reste limité.",
     optionalDiscord: "",
   };
 }
@@ -587,12 +587,12 @@ function relanceSubject(level: 24 | 48 | 7, scenario: Scenario): string {
   }
   if (scenario === "questionnaire") {
     if (level === 24) return "2 min pour finir ton onboarding · AMOUR STUDIOS";
-    if (level === 48) return "Plus que 2 min pour débloquer ton accès AMOUR CLUB";
+    if (level === 48) return "Plus que 2 min pour débloquer ton accès Discord";
     return "Dernier rappel · ton questionnaire d'onboarding bloque ton accès";
   }
   // rdv
-  if (level === 24) return "Réserve ton 1er RDV pour ouvrir AMOUR CLUB";
-  if (level === 48) return "Ton 1er RDV n'est toujours pas réservé · accès AMOUR CLUB en attente";
+  if (level === 24) return "Réserve ton 1er RDV pour débloquer ton accès Discord";
+  if (level === 48) return "Ton 1er RDV n'est toujours pas réservé · accès Discord limité";
   return "Dernier rappel · ton accès reste limité tant que tu n'as pas réservé";
 }
 

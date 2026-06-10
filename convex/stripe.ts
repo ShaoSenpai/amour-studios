@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { action, internalAction, internalMutation, internalQuery } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { requireAdmin } from "./lib/auth";
 
 // Génère un token aléatoire cryptographiquement sûr (32 octets = 64 chars hex).
 function generateClaimToken(): string {
@@ -450,5 +451,502 @@ export const announceToDiscord = internalAction({
     } catch (err) {
       console.warn("⚠️ Discord bot unreachable (announce):", err);
     }
+  },
+});
+
+// ============================================================================
+// SAV admin — actions Stripe pour la fiche élève /studio
+// ----------------------------------------------------------------------------
+// cancelSubscription / refundLastInvoice / createCustomerPortalLink /
+// changeTier / forceSyncFromStripe.
+// Toutes admin-only (requireAdmin sur la mutation interne d'autorisation, le
+// gating est fait en début d'action via requireAdminPing).
+// ============================================================================
+
+/** Query interne : ping admin-only (gating d'autorisation des actions SAV). */
+export const requireAdminPing = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    await requireAdmin(ctx);
+    return true;
+  },
+});
+
+/** Query interne : retrouve un purchase par son Id Convex. */
+export const findPurchaseById = internalQuery({
+  args: { purchaseId: v.id("purchases") },
+  handler: async (ctx, { purchaseId }) => {
+    return await ctx.db.get(purchaseId);
+  },
+});
+
+/** Query interne : retrouve l'éventuel user lié à un purchase (via email). */
+export const findUserByPurchase = internalQuery({
+  args: { purchaseId: v.id("purchases") },
+  handler: async (ctx, { purchaseId }) => {
+    const purchase = await ctx.db.get(purchaseId);
+    if (!purchase) return null;
+    const email = (purchase.email ?? "").trim().toLowerCase();
+    if (!email) return null;
+    const user = await ctx.db
+      .query("users")
+      .withIndex("email", (q) => q.eq("email", email))
+      .first();
+    return user ?? null;
+  },
+});
+
+/**
+ * Mutation interne : patch optimiste d'un purchase (status / tier / duree /
+ * cancelAtPeriodEnd / currentPeriodEnd / stripePriceId). Le webhook Stripe
+ * écrasera/confirmera ces valeurs à l'arrivée — on les pose tôt pour UX.
+ */
+export const patchPurchase = internalMutation({
+  args: {
+    purchaseId: v.id("purchases"),
+    status: v.optional(
+      v.union(
+        v.literal("pending"),
+        v.literal("paid"),
+        v.literal("refunded"),
+        v.literal("failed"),
+        v.literal("active"),
+        v.literal("past_due"),
+        v.literal("canceled"),
+        v.literal("incomplete")
+      )
+    ),
+    tier: v.optional(v.union(v.literal("communaute"), v.literal("coaching"))),
+    duree: v.optional(v.union(v.literal("1mois"), v.literal("3mois"))),
+    cancelAtPeriodEnd: v.optional(v.boolean()),
+    currentPeriodEnd: v.optional(v.number()),
+    stripePriceId: v.optional(v.string()),
+    amount: v.optional(v.number()),
+  },
+  handler: async (ctx, { purchaseId, ...rest }) => {
+    const patch: Record<string, unknown> = {};
+    for (const [k, val] of Object.entries(rest)) {
+      if (val !== undefined) patch[k] = val;
+    }
+    if (Object.keys(patch).length === 0) return;
+    await ctx.db.patch(purchaseId, patch);
+  },
+});
+
+// --- Helpers internes (factorisation des actions SAV) -----------------------
+
+type PurchaseDoc = {
+  _id: string;
+  email: string;
+  status: string;
+  tier?: "communaute" | "coaching";
+  duree?: "1mois" | "3mois";
+  stripeSubscriptionId?: string;
+  stripeCustomerId?: string;
+  stripePaymentIntentId?: string;
+  stripePriceId?: string;
+  cancelAtPeriodEnd?: boolean;
+  currentPeriodEnd?: number;
+};
+
+async function stripeClient() {
+  const Stripe = (await import("stripe")).default;
+  return new Stripe(process.env.STRIPE_SECRET_KEY!, {
+    apiVersion: "2026-03-25.dahlia",
+  });
+}
+
+/**
+ * Action admin : annule un abonnement Stripe (immédiatement ou à la fin de la
+ * période). Si immédiat + coaching → retire les rôles Discord.
+ */
+export const cancelSubscription = action({
+  args: {
+    purchaseId: v.id("purchases"),
+    immediate: v.boolean(),
+    reason: v.optional(v.string()),
+  },
+  handler: async (ctx, { purchaseId, immediate, reason }): Promise<{ ok: true }> => {
+    await ctx.runQuery(internal.stripe.requireAdminPing, {});
+    const purchase = (await ctx.runQuery(internal.stripe.findPurchaseById, {
+      purchaseId,
+    })) as PurchaseDoc | null;
+    if (!purchase) throw new Error("Achat introuvable");
+    const subId = purchase.stripeSubscriptionId;
+    if (!subId) throw new Error("Aucun abonnement Stripe lié à cet achat");
+
+    const stripe = await stripeClient();
+    if (immediate) {
+      await stripe.subscriptions.cancel(subId);
+      await ctx.runMutation(internal.stripe.patchPurchase, {
+        purchaseId,
+        status: "canceled",
+        cancelAtPeriodEnd: false,
+      });
+    } else {
+      await stripe.subscriptions.update(subId, { cancel_at_period_end: true });
+      await ctx.runMutation(internal.stripe.patchPurchase, {
+        purchaseId,
+        cancelAtPeriodEnd: true,
+      });
+    }
+
+    // Si annulation immédiate ET coaching → on retire les rôles Discord.
+    // (Pour fin de période, on laisse l'accès jusqu'à expiration ; le webhook
+    // customer.subscription.deleted fera le ménage à l'échéance.)
+    if (immediate) {
+      const user = await ctx.runQuery(internal.stripe.findUserByPurchase, {
+        purchaseId,
+      });
+      if (user?.discordId) {
+        await ctx.runAction(internal.stripe.removeDiscordRoles, {
+          discordId: user.discordId,
+          email: purchase.email,
+        });
+      }
+    }
+
+    await ctx.runMutation(internal.events.recordEventByEmail, {
+      email: purchase.email,
+      type: "subscription.canceled",
+      title: immediate
+        ? "Abonnement annulé (immédiat)"
+        : "Abonnement annulé (fin de période)",
+      meta: JSON.stringify({
+        immediate,
+        reason: reason ?? null,
+        subscriptionId: subId,
+      }),
+      actor: "admin",
+    });
+
+    return { ok: true };
+  },
+});
+
+/**
+ * Action admin : rembourse la dernière facture (ou un montant partiel) d'un
+ * abonnement. Cherche le PaymentIntent en priorité via le purchase, sinon via
+ * la dernière facture Stripe du customer.
+ */
+export const refundLastInvoice = action({
+  args: {
+    purchaseId: v.id("purchases"),
+    amount: v.optional(v.number()),
+    reason: v.optional(
+      v.union(
+        v.literal("duplicate"),
+        v.literal("fraudulent"),
+        v.literal("requested_by_customer")
+      )
+    ),
+  },
+  handler: async (
+    ctx,
+    { purchaseId, amount, reason }
+  ): Promise<{ ok: true; refundId: string; amount: number }> => {
+    await ctx.runQuery(internal.stripe.requireAdminPing, {});
+    const purchase = (await ctx.runQuery(internal.stripe.findPurchaseById, {
+      purchaseId,
+    })) as PurchaseDoc | null;
+    if (!purchase) throw new Error("Achat introuvable");
+
+    const stripe = await stripeClient();
+
+    // Stratégie : 1) PI déjà connu sur le purchase ; 2) sinon, dernière invoice
+    // payée du customer Stripe.
+    let paymentIntentId: string | undefined = purchase.stripePaymentIntentId;
+    if (paymentIntentId && !paymentIntentId.startsWith("pi_")) {
+      // Sentinelle : recordSubscription stocke parfois le subId à la place.
+      paymentIntentId = undefined;
+    }
+    if (!paymentIntentId) {
+      const customerId = purchase.stripeCustomerId;
+      if (!customerId) {
+        throw new Error("Pas de PaymentIntent ni de customer Stripe pour cet achat");
+      }
+      // Depuis l'API 2026-03-25.dahlia, le PI n'est plus directement sur
+      // `invoice.payment_intent` : il faut passer par `invoice.payments`
+      // (expand requis) → `payment.payment_intent`.
+      const invoices = await stripe.invoices.list({
+        customer: customerId,
+        limit: 5,
+        status: "paid",
+        expand: ["data.payments"],
+      });
+      for (const inv of invoices.data) {
+        const payments =
+          (inv as unknown as {
+            payments?: {
+              data?: Array<{
+                payment?: { payment_intent?: string | { id: string } };
+              }>;
+            };
+          }).payments?.data ?? [];
+        for (const p of payments) {
+          const pi = p?.payment?.payment_intent;
+          if (typeof pi === "string") {
+            paymentIntentId = pi;
+            break;
+          } else if (pi && typeof pi === "object" && "id" in pi) {
+            paymentIntentId = pi.id;
+            break;
+          }
+        }
+        if (paymentIntentId) break;
+      }
+      if (!paymentIntentId) {
+        throw new Error("Aucune facture payée trouvée pour le remboursement");
+      }
+    }
+
+    const refund = await stripe.refunds.create({
+      payment_intent: paymentIntentId,
+      ...(typeof amount === "number" ? { amount } : {}),
+      ...(reason ? { reason } : {}),
+    });
+
+    await ctx.runMutation(internal.events.recordEventByEmail, {
+      email: purchase.email,
+      type: "subscription.refunded",
+      title:
+        typeof amount === "number"
+          ? `Remboursement partiel (${(amount / 100).toFixed(2)}€)`
+          : "Remboursement intégral",
+      meta: JSON.stringify({
+        refundId: refund.id,
+        amount: refund.amount ?? amount ?? null,
+        reason: reason ?? null,
+        paymentIntentId,
+      }),
+      actor: "admin",
+    });
+
+    return {
+      ok: true,
+      refundId: refund.id,
+      amount: refund.amount ?? amount ?? 0,
+    };
+  },
+});
+
+/**
+ * Action admin : ouvre une session du Customer Portal Stripe (auto-gestion par
+ * le client : moyens de paiement, factures, annulation). Retourne l'URL à
+ * ouvrir dans un nouvel onglet.
+ */
+export const createCustomerPortalLink = action({
+  args: { purchaseId: v.id("purchases") },
+  handler: async (ctx, { purchaseId }): Promise<{ url: string }> => {
+    await ctx.runQuery(internal.stripe.requireAdminPing, {});
+    const purchase = (await ctx.runQuery(internal.stripe.findPurchaseById, {
+      purchaseId,
+    })) as PurchaseDoc | null;
+    if (!purchase) throw new Error("Achat introuvable");
+    if (!purchase.stripeCustomerId) {
+      throw new Error("Pas de customer Stripe associé à cet achat");
+    }
+
+    const stripe = await stripeClient();
+    const session = await stripe.billingPortal.sessions.create({
+      customer: purchase.stripeCustomerId,
+      return_url: "https://amour-studios.vercel.app/studio",
+    });
+
+    await ctx.runMutation(internal.events.recordEventByEmail, {
+      email: purchase.email,
+      type: "stripe.portal_opened",
+      title: "Customer Portal Stripe ouvert (admin)",
+      actor: "admin",
+    });
+
+    return { url: session.url };
+  },
+});
+
+/**
+ * Action admin : change le palier d'un abonnement (communauté ↔ coaching) en
+ * modifiant l'item de la subscription Stripe. Re-syncs les rôles Discord pour
+ * matcher le nouveau tier.
+ */
+export const changeTier = action({
+  args: {
+    purchaseId: v.id("purchases"),
+    newTier: v.union(v.literal("communaute"), v.literal("coaching")),
+    prorate: v.optional(v.boolean()),
+  },
+  handler: async (
+    ctx,
+    { purchaseId, newTier, prorate }
+  ): Promise<{ ok: true; from: string | null; to: string }> => {
+    await ctx.runQuery(internal.stripe.requireAdminPing, {});
+    const purchase = (await ctx.runQuery(internal.stripe.findPurchaseById, {
+      purchaseId,
+    })) as PurchaseDoc | null;
+    if (!purchase) throw new Error("Achat introuvable");
+    if (!purchase.stripeSubscriptionId) {
+      throw new Error("Aucun abonnement Stripe lié à cet achat");
+    }
+
+    const from = purchase.tier ?? null;
+    if (from === newTier) {
+      throw new Error(`L'abonnement est déjà sur le palier "${newTier}"`);
+    }
+
+    const newPriceId = priceForTier(newTier);
+    const stripe = await stripeClient();
+    const sub = await stripe.subscriptions.retrieve(purchase.stripeSubscriptionId);
+    const itemId = sub.items?.data?.[0]?.id;
+    if (!itemId) throw new Error("Subscription Stripe sans item");
+
+    await stripe.subscriptions.update(purchase.stripeSubscriptionId, {
+      items: [{ id: itemId, price: newPriceId }],
+      proration_behavior: prorate === false ? "none" : "create_prorations",
+      metadata: {
+        ...(sub.metadata ?? {}),
+        tier: newTier,
+      },
+    });
+
+    const newAmount = newTier === "coaching" ? 17900 : 7900;
+    await ctx.runMutation(internal.stripe.patchPurchase, {
+      purchaseId,
+      tier: newTier,
+      stripePriceId: newPriceId,
+      amount: newAmount,
+    });
+
+    // Re-sync rôles Discord pour matcher le nouveau palier.
+    const user = await ctx.runQuery(internal.stripe.findUserByPurchase, {
+      purchaseId,
+    });
+    if (user?.discordId) {
+      await ctx.runAction(internal.stripe.assignDiscordRole, {
+        discordId: user.discordId,
+        email: purchase.email,
+        tier: newTier,
+      });
+    }
+
+    await ctx.runMutation(internal.events.recordEventByEmail, {
+      email: purchase.email,
+      type: "subscription.tier_changed",
+      title: `Palier changé : ${from ?? "—"} → ${newTier}`,
+      meta: JSON.stringify({
+        from,
+        to: newTier,
+        prorate: prorate !== false,
+      }),
+      actor: "admin",
+    });
+
+    return { ok: true, from, to: newTier };
+  },
+});
+
+/**
+ * Action admin : force la re-synchro d'un purchase depuis l'état actuel côté
+ * Stripe (recovery si webhook raté). Re-sync aussi les rôles Discord.
+ */
+export const forceSyncFromStripe = action({
+  args: { purchaseId: v.id("purchases") },
+  handler: async (
+    ctx,
+    { purchaseId }
+  ): Promise<{ ok: true; oldStatus: string; newStatus: string }> => {
+    await ctx.runQuery(internal.stripe.requireAdminPing, {});
+    const purchase = (await ctx.runQuery(internal.stripe.findPurchaseById, {
+      purchaseId,
+    })) as PurchaseDoc | null;
+    if (!purchase) throw new Error("Achat introuvable");
+    if (!purchase.stripeSubscriptionId) {
+      throw new Error("Aucun abonnement Stripe lié à cet achat");
+    }
+
+    const stripe = await stripeClient();
+    // Cast pour accéder à current_period_end (déplacé sur les items depuis
+    // l'API 2026-03-25.dahlia ; on garde un fallback root pour compat).
+    const sub = (await stripe.subscriptions.retrieve(
+      purchase.stripeSubscriptionId
+    )) as unknown as {
+      status: string;
+      cancel_at_period_end?: boolean;
+      current_period_end?: number;
+      items?: {
+        data?: Array<{
+          current_period_end?: number;
+          price?: { id?: string };
+        }>;
+      };
+    };
+
+    const mapStatus = (
+      s: string
+    ): "active" | "past_due" | "canceled" | "incomplete" => {
+      switch (s) {
+        case "active":
+        case "trialing":
+          return "active";
+        case "past_due":
+        case "unpaid":
+          return "past_due";
+        case "canceled":
+          return "canceled";
+        default:
+          return "incomplete";
+      }
+    };
+
+    const newStatus = mapStatus(sub.status);
+    const periodEndSec =
+      sub.current_period_end ?? sub.items?.data?.[0]?.current_period_end;
+    const priceId = sub.items?.data?.[0]?.price?.id as string | undefined;
+
+    let newTier: "communaute" | "coaching" | undefined;
+    if (priceId === process.env.STRIPE_PRICE_COACHING) newTier = "coaching";
+    else if (priceId === process.env.STRIPE_PRICE_COMMUNITY) newTier = "communaute";
+
+    await ctx.runMutation(internal.stripe.patchPurchase, {
+      purchaseId,
+      status: newStatus,
+      tier: newTier,
+      stripePriceId: priceId,
+      cancelAtPeriodEnd: sub.cancel_at_period_end,
+      currentPeriodEnd:
+        typeof periodEndSec === "number" ? periodEndSec * 1000 : undefined,
+    });
+
+    // Re-sync rôles Discord.
+    const user = await ctx.runQuery(internal.stripe.findUserByPurchase, {
+      purchaseId,
+    });
+    if (user?.discordId) {
+      if (newStatus === "active" && newTier) {
+        await ctx.runAction(internal.stripe.assignDiscordRole, {
+          discordId: user.discordId,
+          email: purchase.email,
+          tier: newTier,
+        });
+      } else if (newStatus === "canceled") {
+        await ctx.runAction(internal.stripe.removeDiscordRoles, {
+          discordId: user.discordId,
+          email: purchase.email,
+        });
+      }
+    }
+
+    await ctx.runMutation(internal.events.recordEventByEmail, {
+      email: purchase.email,
+      type: "stripe.force_synced",
+      title: `Sync Stripe forcée (${purchase.status} → ${newStatus})`,
+      meta: JSON.stringify({
+        oldStatus: purchase.status,
+        newStatus,
+        tier: newTier ?? null,
+      }),
+      actor: "admin",
+    });
+
+    return { ok: true, oldStatus: purchase.status, newStatus };
   },
 });

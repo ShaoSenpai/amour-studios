@@ -18,6 +18,7 @@ import type * as coaching from "../coaching.js";
 import type * as comments from "../comments.js";
 import type * as crons from "../crons.js";
 import type * as curriculum from "../curriculum.js";
+import type * as discord from "../discord.js";
 import type * as emails from "../emails.js";
 import type * as events from "../events.js";
 import type * as exerciseResponses from "../exerciseResponses.js";
@@ -62,6 +63,7 @@ declare const fullApi: ApiFromModules<{
   comments: typeof comments;
   crons: typeof crons;
   curriculum: typeof curriculum;
+  discord: typeof discord;
   emails: typeof emails;
   events: typeof events;
   exerciseResponses: typeof exerciseResponses;

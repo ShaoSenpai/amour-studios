@@ -311,7 +311,76 @@ http.route({
           });
         }
 
+        // Alerte Walid dans #⚠️・alertes-inactivité
+        await ctx.runAction(internal.discord.postAlertToStaff, {
+          content: `🚪 **Abonnement résilié** — ${email || "email inconnu"}\nLes rôles Discord ont été retirés automatiquement.${
+            meta.tier === "coaching" && meta.duree === "3mois"
+              ? "\n\n📅 Coaching 3 mois terminé → proposer un renouvellement."
+              : ""
+          }`,
+        });
+
         console.log(`✅ Subscription deleted (${sub.id}) for ${email}`);
+        break;
+      }
+
+      // ── Remboursement (manuel ou via bot SAV Stripe) ──
+      // Retire les rôles Discord, prévient l'élève (DM + email), alerte Walid.
+      case "charge.refunded": {
+        const charge = event.data.object as unknown as {
+          id: string;
+          customer?: string | null;
+          amount_refunded: number;
+          currency: string;
+          payment_intent?: string | null;
+          billing_details?: { email?: string | null } | null;
+        };
+        const email = (charge.billing_details?.email ?? "").trim().toLowerCase();
+        const amountEur = (charge.amount_refunded / 100).toFixed(2);
+        const cur = charge.currency.toUpperCase();
+
+        if (email) {
+          const user = await ctx.runQuery(internal.stripe.findUserByEmail, { email });
+          if (user?.discordId) {
+            // Retire les rôles (idempotent côté bot : no_role si déjà parti).
+            await ctx.runAction(internal.stripe.removeDiscordRoles, {
+              discordId: user.discordId,
+              email,
+            });
+            // DM élève — voix Papi Amour, tutoiement
+            await ctx.runAction(internal.onboardings.discordDm, {
+              discordId: user.discordId,
+              content:
+                `Salut 👋\n\nOn vient d'effectuer un **remboursement de ${amountEur} ${cur}** sur ton compte.\n\n` +
+                `Ton accès Discord a été retiré. Si c'est une erreur ou si tu veux reprendre, écris-nous : contact@amourstudios.fr`,
+            });
+          }
+          // Email Resend (filet de sécurité si DM bloqué)
+          await ctx.runAction(internal.emails.sendRefundNotice, {
+            to: email,
+            amount: charge.amount_refunded,
+            currency: charge.currency,
+          });
+          // Audit trail
+          await ctx.runMutation(internal.events.recordEventByEmail, {
+            email,
+            type: "charge.refunded",
+            title: `Remboursé ${amountEur} ${cur}`,
+            actor: "stripe",
+            meta: JSON.stringify({
+              chargeId: charge.id,
+              paymentIntent: charge.payment_intent ?? null,
+              amount: charge.amount_refunded,
+            }),
+          });
+        }
+        // Alerte Walid
+        await ctx.runAction(internal.discord.postAlertToStaff, {
+          content:
+            `💸 **Refund effectué** — ${email || "email inconnu"} · ${amountEur} ${cur}\n` +
+            `Rôles Discord retirés automatiquement.`,
+        });
+        console.log(`💸 Charge refunded for ${email || "(no email)"} — ${amountEur} ${cur}`);
         break;
       }
 
@@ -427,7 +496,35 @@ http.route({
               title: "Paiement échoué",
               actor: "stripe",
             });
+
+            // DM élève (s'il a lié son Discord) — voix Papi Amour
+            const user = await ctx.runQuery(internal.stripe.findUserByEmail, {
+              email: femail,
+            });
+            if (user?.discordId) {
+              await ctx.runAction(internal.onboardings.discordDm, {
+                discordId: user.discordId,
+                content:
+                  `Salut 👋\n\n**Ta carte bancaire vient d'échouer** pour ton abonnement AMOUR STUDIOS.\n\n` +
+                  `Pas de panique, Stripe va réessayer automatiquement plusieurs fois. ` +
+                  `Mais le mieux est de mettre à jour ta CB :\n\n` +
+                  `👉 Réponds à ce DM avec ton email et on t'envoie le lien pour mettre à jour\n\n` +
+                  `Ou contacte-nous direct : contact@amourstudios.fr`,
+              });
+            }
+            // Email Resend (filet de sécurité)
+            await ctx.runAction(internal.emails.sendPaymentFailedNotice, {
+              to: femail,
+            });
           }
+          // Alerte Walid dans #⚠️・alertes-inactivité
+          await ctx.runAction(internal.discord.postAlertToStaff, {
+            content:
+              `⚠ **Paiement échoué** — ${femail || "email inconnu"}\n` +
+              `Statut : past_due. Stripe va retry automatiquement. ` +
+              `Si ça échoue 3-4 fois, l'abonnement sera annulé.\n\n` +
+              `→ Pense à le contacter via /studio si la situation traîne.`,
+          });
           console.log(`⚠️ Invoice payment failed for sub ${subId} → past_due`);
         }
         break;

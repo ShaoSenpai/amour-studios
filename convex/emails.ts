@@ -217,6 +217,88 @@ export const sendClaimEmail = internalAction({
   },
 });
 
+// ─── Email — Refund effectué (charge.refunded) ────────────────────────
+
+export const sendRefundNotice = internalAction({
+  args: { to: v.string(), amount: v.number(), currency: v.string() },
+  handler: async (_ctx, { to, amount, currency }) => {
+    if (!to) return { ok: false as const, reason: "no_email" as const };
+    const eur = (amount / 100).toFixed(2);
+    const cur = currency.toUpperCase();
+    const html = layout({
+      title: "Remboursement effectué",
+      children: `
+        <p style="font-family:ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:0.10em;text-transform:uppercase;color:rgba(11,11,11,0.55);margin:0 0 14px;">
+          ◦ Remboursement · ${eur} ${cur}
+        </p>
+        <h1 style="font-size:32px;line-height:1.05;font-weight:500;letter-spacing:-0.02em;margin:0 0 18px;color:#0B0B0B;">
+          Remboursement effectué
+        </h1>
+        <p style="color:#0B0B0B;margin:0 0 14px;font-size:16px;">
+          On vient de te rembourser <strong>${eur} ${cur}</strong> sur la carte utilisée pour ton abonnement AMOUR STUDIOS.
+        </p>
+        <p style="color:#0B0B0B;margin:0 0 14px;font-size:15px;">
+          Ton accès Discord a été retiré automatiquement.
+        </p>
+        <p style="color:#0B0B0B;margin:0 0 14px;font-size:15px;">
+          Si c'est une erreur ou si tu veux reprendre, réponds à ce mail ou écris à
+          <a href="mailto:contact@amourstudios.fr" style="color:#FF5A1F;">contact@amourstudios.fr</a>.
+        </p>
+      `,
+    });
+    const res = await sendViaResend({
+      to,
+      subject: `Remboursement effectué · ${eur} ${cur}`,
+      html,
+    });
+    return { ok: res.ok };
+  },
+});
+
+// ─── Email — Paiement échoué (invoice.payment_failed) ──────────────────
+
+export const sendPaymentFailedNotice = internalAction({
+  args: { to: v.string() },
+  handler: async (_ctx, { to }) => {
+    if (!to) return { ok: false as const, reason: "no_email" as const };
+    const html = layout({
+      title: "Ton paiement a échoué",
+      children: `
+        <p style="font-family:ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:0.10em;text-transform:uppercase;color:rgba(11,11,11,0.55);margin:0 0 14px;">
+          ◦ Paiement échoué · action recommandée
+        </p>
+        <h1 style="font-size:32px;line-height:1.05;font-weight:500;letter-spacing:-0.02em;margin:0 0 18px;color:#0B0B0B;">
+          Petit souci avec ta CB
+        </h1>
+        <p style="color:#0B0B0B;margin:0 0 14px;font-size:16px;">
+          Ton dernier paiement AMOUR STUDIOS vient d'échouer. Ça peut être :
+        </p>
+        <ul style="color:#0B0B0B;margin:0 0 18px;padding-left:20px;font-size:15px;">
+          <li>une carte expirée</li>
+          <li>un plafond atteint</li>
+          <li>une CB bloquée temporairement</li>
+        </ul>
+        <p style="color:#0B0B0B;margin:0 0 14px;font-size:15px;">
+          Stripe va automatiquement réessayer <strong>plusieurs fois dans les prochains jours</strong>. Mais le plus simple est de mettre ta CB à jour.
+        </p>
+        <p style="color:#0B0B0B;margin:0 0 14px;font-size:15px;">
+          Réponds à ce mail si tu veux qu'on t'aide. Ou écris à
+          <a href="mailto:contact@amourstudios.fr" style="color:#FF5A1F;">contact@amourstudios.fr</a>.
+        </p>
+        <p style="color:rgba(11,11,11,0.55);font-size:12.5px;margin:24px 0 0;">
+          Si plusieurs tentatives échouent, ton abonnement sera automatiquement annulé.
+        </p>
+      `,
+    });
+    const res = await sendViaResend({
+      to,
+      subject: "Ton paiement AMOUR STUDIOS a échoué",
+      html,
+    });
+    return { ok: res.ok };
+  },
+});
+
 // ─── Email 2 — Broadcast admin ─────────────────────────────────────
 
 function broadcastEmailHtml({

@@ -398,7 +398,8 @@ function HasDiscordScreen({
   signIn: ReturnType<typeof useAuthActions>["signIn"];
 }) {
   const [choice, setChoice] = useState<"yes" | "no" | null>(null);
-  const discordInvite = process.env.NEXT_PUBLIC_DISCORD_INVITE_URL;
+  const discordInvite =
+    process.env.NEXT_PUBLIC_DISCORD_INVITE_URL ?? "https://discord.gg/78v8PSgjxx";
   const dark = useIsDark();
   const c = palette(dark, ACCENT);
 

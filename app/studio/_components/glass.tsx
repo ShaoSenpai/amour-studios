@@ -139,6 +139,7 @@ export function Glass({
   tint,
   radius = R,
   style = {},
+  onClick,
 }: {
   c: C;
   dark: boolean;
@@ -148,9 +149,11 @@ export function Glass({
   tint?: string;
   radius?: number;
   style?: CSSProperties;
+  onClick?: () => void;
 }) {
   return (
     <div
+      onClick={onClick}
       style={{
         background: tint || (strong ? c.glassStrong : c.glass),
         backgroundImage: c.sheen,

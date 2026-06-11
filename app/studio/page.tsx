@@ -41,6 +41,7 @@ function KPI({
   note,
   warn = false,
   featured = false,
+  onClick,
 }: {
   c: C;
   dark: boolean;
@@ -50,6 +51,7 @@ function KPI({
   note: string;
   warn?: boolean;
   featured?: boolean;
+  onClick?: () => void;
 }) {
   const deltaStyle: CSSProperties = {
     ...mono,
@@ -63,7 +65,7 @@ function KPI({
     border: warn ? "none" : `1px solid ${c.line}`,
   };
   return (
-    <Glass c={c} dark={dark} strong={featured} pad={22} style={{ display: "flex", flexDirection: "column", gap: 18, minHeight: 168, minWidth: 0 }}>
+    <Glass c={c} dark={dark} strong={featured} pad={22} onClick={onClick} style={{ display: "flex", flexDirection: "column", gap: 18, minHeight: 168, minWidth: 0, cursor: onClick ? "pointer" : "default" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6 }}>
         <span style={{ ...mono, color: c.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{label}</span>
         <span style={deltaStyle}>
@@ -113,6 +115,9 @@ export default function AujourdhuiPage() {
   const now = new Date();
   const dateStr = now.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "short" });
   const timeStr = now.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  // Helpers deep-link : YYYY-MM-DD pour ouvrir l'agenda sur un jour précis.
+  const toISODate = (ts: number) => new Date(ts).toISOString().slice(0, 10);
+  const todayISO = toISODate(Date.now());
 
   return (
     <div style={{ background: c.bgGrad, color: c.text, minHeight: "100vh", fontFamily: "'Schibsted Grotesk', system-ui, sans-serif", padding: 26, position: "relative", overflow: "hidden" }}>
@@ -124,9 +129,9 @@ export default function AujourdhuiPage() {
               <div style={{ ...mono, color: c.muted, textTransform: "capitalize" }}>{dateStr} · {timeStr}</div>
               <div style={{ ...num, fontSize: 46, fontWeight: 500, lineHeight: 1 }}>Bonjour Papi Amour.</div>
               <div style={{ fontSize: 15, color: c.muted, marginTop: -2 }}>
-                <span style={{ color: c.text, fontWeight: 500 }}>{d.rdvJour.length} rendez-vous</span>,
-                <span style={{ color: ACCENT, fontWeight: 500 }}> {d.alertes.length} alertes</span>,
-                <span style={{ color: c.text }}> {d.relances.length} élèves à relancer</span>.
+                <span onClick={() => router.push(`/studio/calendrier?date=${todayISO}&view=day`)} style={{ color: c.text, fontWeight: 500, cursor: "pointer" }}>{d.rdvJour.length} rendez-vous</span>,
+                <span onClick={() => router.push("/studio/paiements?status=echec")} style={{ color: ACCENT, fontWeight: 500, cursor: "pointer" }}> {d.alertes.length} alertes</span>,
+                <span onClick={() => router.push("/studio/eleves?status=incident")} style={{ color: c.text, cursor: "pointer" }}> {d.relances.length} élèves à relancer</span>.
               </div>
             </div>
             <div style={{ padding: 22, display: "flex", gap: 8, alignItems: "center" }}>
@@ -138,10 +143,10 @@ export default function AujourdhuiPage() {
 
         {/* KPI row */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0,1fr))", gap: 16 }}>
-          <KPI c={c} dark={dark} label="Coaching actifs" value={d.kpis.coachingActifs.value} delta={d.kpis.coachingActifs.delta} note={d.kpis.coachingActifs.note} />
-          <KPI c={c} dark={dark} label="Communauté" value={d.kpis.communaute.value} delta={d.kpis.communaute.delta} note={d.kpis.communaute.note} />
-          <KPI c={c} dark={dark} label="Impayés" value={d.kpis.impayes.value} delta={d.kpis.impayes.delta} note={d.kpis.impayes.note} warn featured />
-          <KPI c={c} dark={dark} label="MRR" value={d.kpis.mrr.value} delta={d.kpis.mrr.delta} note={d.kpis.mrr.note} />
+          <KPI c={c} dark={dark} label="Coaching actifs" value={d.kpis.coachingActifs.value} delta={d.kpis.coachingActifs.delta} note={d.kpis.coachingActifs.note} onClick={() => router.push("/studio/eleves?tier=coaching")} />
+          <KPI c={c} dark={dark} label="Communauté" value={d.kpis.communaute.value} delta={d.kpis.communaute.delta} note={d.kpis.communaute.note} onClick={() => router.push("/studio/eleves?tier=commu")} />
+          <KPI c={c} dark={dark} label="Impayés" value={d.kpis.impayes.value} delta={d.kpis.impayes.delta} note={d.kpis.impayes.note} warn featured onClick={() => router.push("/studio/paiements?status=echec")} />
+          <KPI c={c} dark={dark} label="MRR" value={d.kpis.mrr.value} delta={d.kpis.mrr.delta} note={d.kpis.mrr.note} onClick={() => router.push("/studio/paiements")} />
         </div>
 
         {/* Main grid */}
@@ -157,7 +162,7 @@ export default function AujourdhuiPage() {
                 </div>
                 <div style={{ display: "flex", gap: 2, background: c.chip, padding: 4, borderRadius: 999, border: `1px solid ${c.line}` }}>
                   {["Jour", "Semaine", "Mois"].map((s, i) => (
-                    <span key={s} style={{ ...mono, fontSize: 10.5, padding: "6px 12px", borderRadius: 999, background: i === 0 ? (dark ? "rgba(255,255,255,0.92)" : "#0B0B0B") : "transparent", color: i === 0 ? (dark ? "#0B0B0B" : "#FFF") : c.muted }}>{s}</span>
+                    <span key={s} onClick={() => router.push(`/studio/calendrier?view=${s === "Jour" ? "jour" : s === "Semaine" ? "semaine" : "mois"}`)} style={{ ...mono, fontSize: 10.5, padding: "6px 12px", borderRadius: 999, cursor: "pointer", background: i === 0 ? (dark ? "rgba(255,255,255,0.92)" : "#0B0B0B") : "transparent", color: i === 0 ? (dark ? "#0B0B0B" : "#FFF") : c.muted }}>{s}</span>
                   ))}
                 </div>
               </div>
@@ -234,7 +239,14 @@ export default function AujourdhuiPage() {
                 </div>
                 <div style={{ padding: "4px 14px 16px" }}>
                   {d.alertes.map((a, i) => (
-                    <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 10, alignItems: "center", padding: "10px 6px", borderTop: i > 0 ? `1px solid ${c.hairline}` : "none" }}>
+                    <div
+                      key={i}
+                      onClick={() => {
+                        if (a.userId) router.push(`/studio/eleves/${a.userId}`);
+                        else router.push(`/studio/paiements?highlight=${a.purchaseId}`);
+                      }}
+                      style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 10, alignItems: "center", padding: "10px 6px", borderTop: i > 0 ? `1px solid ${c.hairline}` : "none", cursor: "pointer", borderRadius: 10 }}
+                    >
                       <div style={{ minWidth: 0 }}>
                         <div style={{ fontSize: 13.5, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.who}</div>
                         <div style={{ ...mono, color: c.muted, marginTop: 2 }}>{a.type}</div>
@@ -279,7 +291,7 @@ export default function AujourdhuiPage() {
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 8 }}>
                 {d.rdvSemaine.map((day, i) => (
-                  <div key={i} style={{ background: i === 0 ? ACCENT : c.chip, color: i === 0 ? "#0B0B0B" : c.text, borderRadius: 14, padding: "12px 6px", display: "flex", flexDirection: "column", alignItems: "center", gap: 6, border: `1px solid ${i === 0 ? "transparent" : c.line}`, boxShadow: `inset 0 1px 0 ${i === 0 ? "rgba(255,255,255,0.2)" : c.inner}` }}>
+                  <div key={i} onClick={() => router.push(`/studio/calendrier?date=${toISODate(day.date)}&view=day`)} style={{ background: i === 0 ? ACCENT : c.chip, color: i === 0 ? "#0B0B0B" : c.text, borderRadius: 14, padding: "12px 6px", display: "flex", flexDirection: "column", alignItems: "center", gap: 6, border: `1px solid ${i === 0 ? "transparent" : c.line}`, boxShadow: `inset 0 1px 0 ${i === 0 ? "rgba(255,255,255,0.2)" : c.inner}`, cursor: "pointer" }}>
                     <div style={{ ...mono, fontSize: 9.5, opacity: 0.7 }}>{day.jour}</div>
                     <div style={{ ...num, fontSize: 22, fontWeight: 500 }}>{day.n}</div>
                   </div>
@@ -296,7 +308,7 @@ export default function AujourdhuiPage() {
               <div style={{ padding: "4px 14px 14px" }}>
                 {d.onboarding.length === 0 && <div style={{ ...mono, color: c.faint, padding: "8px 6px" }}>Rien en attente.</div>}
                 {d.onboarding.map((o, i) => (
-                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 6px", borderTop: i > 0 ? `1px solid ${c.hairline}` : "none" }}>
+                  <div key={i} onClick={() => { if (o.userId) router.push(`/studio/eleves/${o.userId}`); }} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 6px", borderTop: i > 0 ? `1px solid ${c.hairline}` : "none", cursor: o.userId ? "pointer" : "default", borderRadius: 10 }}>
                     <Avatar name={o.who} size={28} dark={dark} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 13.5, fontWeight: 500 }}>{o.who}</div>
@@ -319,7 +331,7 @@ export default function AujourdhuiPage() {
               </div>
               <div style={{ padding: "4px 18px 14px" }}>
                 {d.activite.map((a, i) => (
-                  <div key={i} style={{ display: "flex", gap: 12, alignItems: "baseline", padding: "9px 0", borderTop: i > 0 ? `1px solid ${c.hairline}` : "none" }}>
+                  <div key={i} onClick={() => { if (a.userId) router.push(`/studio/eleves/${a.userId}`); }} style={{ display: "flex", gap: 12, alignItems: "baseline", padding: "9px 0", borderTop: i > 0 ? `1px solid ${c.hairline}` : "none", cursor: a.userId ? "pointer" : "default" }}>
                     <div style={{ ...mono, color: c.faint, width: 84, flexShrink: 0, fontSize: 9.5 }}>{a.t}</div>
                     <div style={{ fontSize: 13, lineHeight: 1.4 }}>{a.txt}</div>
                   </div>

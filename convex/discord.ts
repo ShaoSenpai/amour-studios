@@ -82,11 +82,22 @@ export const userNameById = internalQuery({
  * n'est pas configuré. Le nom de l'élève est ajouté si `userId` est fourni.
  */
 export const postFeedToStaff = internalAction({
-  args: { content: v.string(), userId: v.optional(v.id("users")) },
-  handler: async (ctx, { content, userId }) => {
+  args: {
+    content: v.string(),
+    userId: v.optional(v.id("users")),
+    category: v.optional(v.union(v.literal("payments"), v.literal("students"))),
+  },
+  handler: async (ctx, { content, userId, category }) => {
     const endpoint = process.env.DISCORD_BOT_ENDPOINT;
     const secret = process.env.DISCORD_BOT_ENDPOINT_SECRET;
-    const channelId = process.env.DISCORD_FEED_CHANNEL_ID;
+    // Routage : channel dédié par catégorie s'il existe, sinon le channel feed
+    // unique. → 1 seul channel (DISCORD_FEED_CHANNEL_ID) OU 2 séparés
+    // (DISCORD_FEED_PAYMENTS_CHANNEL_ID / DISCORD_FEED_STUDENTS_CHANNEL_ID),
+    // au choix, juste en réglant les variables d'env. Aucun changement de code.
+    const channelId =
+      (category === "payments" && process.env.DISCORD_FEED_PAYMENTS_CHANNEL_ID) ||
+      (category === "students" && process.env.DISCORD_FEED_STUDENTS_CHANNEL_ID) ||
+      process.env.DISCORD_FEED_CHANNEL_ID;
     if (!endpoint || !secret || !channelId) {
       // Feed non configuré → on ne poste rien (pas d'erreur).
       return { ok: false, reason: "missing_env" as const };

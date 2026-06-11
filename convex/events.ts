@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { internalMutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { requireAdmin } from "./lib/auth";
-import { feedLine } from "./lib/events";
+import { feedEntry } from "./lib/events";
 
 // ============================================================================
 // Journal d'événements (trace CRM).
@@ -21,11 +21,12 @@ export const recordEvent = internalMutation({
   },
   handler: async (ctx, args) => {
     await ctx.db.insert("events", { ...args, at: Date.now() });
-    const line = feedLine(args.type, args.title);
-    if (line) {
+    const entry = feedEntry(args.type, args.title);
+    if (entry) {
       await ctx.scheduler.runAfter(0, internal.discord.postFeedToStaff, {
-        content: line,
+        content: entry.line,
         userId: args.userId,
+        category: entry.category,
       });
     }
   },
@@ -46,11 +47,12 @@ export const recordEventByEmail = internalMutation({
       .withIndex("email", (q) => q.eq("email", email.trim().toLowerCase()))
       .first();
     await ctx.db.insert("events", { ...rest, userId: u?._id, at: Date.now() });
-    const line = feedLine(rest.type, rest.title);
-    if (line) {
+    const entry = feedEntry(rest.type, rest.title);
+    if (entry) {
       await ctx.scheduler.runAfter(0, internal.discord.postFeedToStaff, {
-        content: line,
+        content: entry.line,
         userId: u?._id,
+        category: entry.category,
       });
     }
   },

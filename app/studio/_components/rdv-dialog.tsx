@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -290,7 +291,11 @@ function RdvForm({ onClose, mode, userId, students, initial }: RdvDialogProps) {
   const title = mode === "create" ? "Nouveau rendez-vous" : "Reprogrammer";
   const kicker = mode === "create" ? "Planifier · RDV" : "Agenda · reprogrammer";
 
-  return (
+  // Rendu via portail sur document.body : sinon le `position: fixed` de
+  // l'overlay est capturé par un ancêtre transformé (transitions framer-motion
+  // de la page) et le modal se centre sur la page entière → il tombe « en bas »
+  // au lieu d'être au milieu de l'écran. Le portail le rattache au body.
+  const overlay = (
     <motion.div
       role="presentation"
       onMouseDown={(e) => {
@@ -560,6 +565,9 @@ function RdvForm({ onClose, mode, userId, students, initial }: RdvDialogProps) {
       </motion.div>
     </motion.div>
   );
+
+  if (typeof document === "undefined") return null;
+  return createPortal(overlay, document.body);
 }
 
 function Field({

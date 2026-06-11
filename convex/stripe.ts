@@ -350,8 +350,12 @@ export const latestTierForEmail = internalQuery({
       .query("purchases")
       .withIndex("by_email", (q) => q.eq("email", email))
       .collect();
+    // past_due inclus : cohérent avec isActiveStatus (lib/access) — un impayé
+    // en cours de retry Stripe garde son palier (sinon le fallback retombait
+    // sur "communaute" pour un coaching past_due sans tier explicite).
     const live = purchases.filter(
-      (p) => p.status === "active" || p.status === "paid"
+      (p) =>
+        p.status === "active" || p.status === "paid" || p.status === "past_due"
     );
     if (live.some((p) => p.tier === "coaching")) return "coaching" as const;
     if (live.some((p) => p.tier === "communaute")) return "communaute" as const;

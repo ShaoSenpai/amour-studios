@@ -88,13 +88,14 @@ proxy.ts                  middleware auth (/exos protégé)
 
 À jour : `docs/CONTEXTE-PROJET.md`.
 
-**Live** : Studio + /exos + auth Discord + dispatcher.
+**Live (2026-06-11)** : Studio + /exos + auth Discord + dispatcher + paiements/SAV Stripe + bot Discord (Fly, durci, 1 machine) + onboarding E2E (présentation #présente-toi câblée) + Calendly 1er RDV + Fireflies (transcripts + écran orphelins /studio/transcripts) + Google Meet + feed & alertes Discord (channels paiements/suivi-élèves/alertes) + dashboard « Aujourd'hui » 100% cliquable.
 
 **Reste à faire** :
-- Stripe SAV (brique C — change plan, refund, customer portal). Prix 79/179€ à finaliser en live.
-- Bot Discord déploiement prod (Fly.io/Railway). Codé dans `../amour-discord-bot/`.
-- Channel `#presentations` Discord + `DISCORD_PRESENTATIONS_CHANNEL_ID` env.
-- Activer `GOOGLE_*`, `FIREFLIES_API_KEY`, `TWILIO_*` en prod.
-- Tour de contrôle — briques B (CRM), D (Fireflies auto-summary), E (campagnes).
+- **Backups Convex** : à activer dans le dashboard Convex (Settings → Backups). Seul vrai filet de sécurité manquant.
+- Bascule Stripe TEST → LIVE (sk_live + price IDs + whsec) si pas encore fait.
+- `TWILIO_*` (campagnes WhatsApp) — volontairement en pause (canal masqué dans /studio/campagnes).
+- Tour de contrôle brique B (CRM avancé) — partiel.
+
+Note : `GOOGLE_*` + `FIREFLIES_API_KEY` sont sur prod depuis le 2026-06-11 (avaient été posés sur dev par erreur — cf. piège `convex env` SANS `--prod` = dev).
 
 Anciens plans/specs (avril 2026) archivés dans `../../2_ARCHIVE/old-docs/skool-app-april-2026/` — ne pas les utiliser comme référence, ils décrivent l'ancienne offre formation 450€ + DA magazine.

@@ -22,17 +22,25 @@ export const ACCENT = "#FF5A1F";
 export const R = 22;
 
 /** Suit l'attribut data-theme du <html> (cf. components/layout/theme-toggle). */
+// Cache module-level : après le 1er mount, on mémorise le thème pour éviter le
+// flash clair→sombre à chaque navigation, SANS réintroduire le mismatch.
+let _cachedDark: boolean | null = null;
+
 export function useIsDark() {
-  // Init lazy : on lit data-theme dès le 1er render (le script inline de
-  // app/layout.tsx le pose avant le paint) → pas de flash crème en dark mode.
-  const [dark, setDark] = useState(
-    () =>
-      typeof document !== "undefined" &&
-      document.documentElement.getAttribute("data-theme") === "dark"
-  );
+  // ⚠️ Le 1er render (SSR + hydratation client) DOIT valoir `false` — c'est ce
+  // que rend le serveur (où `document` est absent). Lire data-theme dès le 1er
+  // render client crée un MISMATCH d'hydratation : React garde alors le fond en
+  // clair (valeur SSR) mais passe le texte en couleurs sombres (clair) → TEXTE
+  // BLANC SUR FOND CLAIR = INVISIBLE. On corrige immédiatement au mount via le
+  // useEffect. Le cache module évite le flash sur les nav suivantes.
+  const [dark, setDark] = useState<boolean>(() => _cachedDark ?? false);
   useEffect(() => {
-    const read = () =>
-      setDark(document.documentElement.getAttribute("data-theme") === "dark");
+    const read = () => {
+      const d =
+        document.documentElement.getAttribute("data-theme") === "dark";
+      _cachedDark = d;
+      setDark(d);
+    };
     read();
     const obs = new MutationObserver(read);
     obs.observe(document.documentElement, {

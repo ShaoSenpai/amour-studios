@@ -48,7 +48,7 @@ export const sendWhatsAppOne = internalAction({
     body: v.string(),
   },
   handler: async (
-    _ctx,
+    ctx,
     { to, body }
   ): Promise<{ ok: boolean; reason?: string; status?: number }> => {
     const sid = process.env.TWILIO_ACCOUNT_SID;
@@ -78,11 +78,26 @@ export const sendWhatsAppOne = internalAction({
       if (!res.ok) {
         const errText = await res.text().catch(() => "");
         console.warn("[campaigns] Twilio API error:", res.status, errText.slice(0, 300));
+        await ctx
+          .runMutation(internal.health.recordFailure, {
+            service: "twilio",
+            reason: `HTTP ${res.status} ${errText.slice(0, 150)}`,
+          })
+          .catch(() => {});
         return { ok: false as const, reason: "api_error" as const, status: res.status };
       }
+      await ctx
+        .runMutation(internal.health.recordSuccess, { service: "twilio" })
+        .catch(() => {});
       return { ok: true as const };
     } catch (err) {
       console.warn("[campaigns] Twilio unreachable:", err);
+      await ctx
+        .runMutation(internal.health.recordFailure, {
+          service: "twilio",
+          reason: err instanceof Error ? err.message : "network",
+        })
+        .catch(() => {});
       return { ok: false as const, reason: "network" as const };
     }
   },

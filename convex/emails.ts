@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { internalAction, mutation } from "./_generated/server";
+import { internalAction, mutation, type ActionCtx } from "./_generated/server";
 import { requireAdmin } from "./lib/auth";
 import { internal } from "./_generated/api";
 
@@ -9,17 +9,22 @@ import { internal } from "./_generated/api";
 
 const RESEND_ENDPOINT = "https://api.resend.com/emails";
 
-async function sendViaResend({
-  to,
-  subject,
-  html,
-  text,
-}: {
-  to: string | string[];
-  subject: string;
-  html: string;
-  text?: string;
-}) {
+// ctx optionnel : si fourni, on enregistre la santé Resend (alerte Discord si
+// l'API échoue en boucle — cf. health.ts).
+async function sendViaResend(
+  {
+    to,
+    subject,
+    html,
+    text,
+  }: {
+    to: string | string[];
+    subject: string;
+    html: string;
+    text?: string;
+  },
+  ctx?: ActionCtx
+) {
   const apiKey = process.env.RESEND_API_KEY;
   const fromEmail = process.env.RESEND_FROM_EMAIL;
 
@@ -47,14 +52,35 @@ async function sendViaResend({
     if (!res.ok) {
       const body = await res.text().catch(() => "");
       console.warn("[emails] Resend API error:", res.status, body);
+      if (ctx) {
+        await ctx
+          .runMutation(internal.health.recordFailure, {
+            service: "resend",
+            reason: `HTTP ${res.status} ${body.slice(0, 150)}`,
+          })
+          .catch(() => {});
+      }
       return { ok: false, reason: "api_error", status: res.status };
     }
 
     const data = await res.json();
     console.log("[emails] sent:", data.id ?? "ok", "→", to);
+    if (ctx) {
+      await ctx
+        .runMutation(internal.health.recordSuccess, { service: "resend" })
+        .catch(() => {});
+    }
     return { ok: true, id: data.id as string | undefined };
   } catch (err) {
     console.warn("[emails] Resend unreachable:", err);
+    if (ctx) {
+      await ctx
+        .runMutation(internal.health.recordFailure, {
+          service: "resend",
+          reason: err instanceof Error ? err.message : "network",
+        })
+        .catch(() => {});
+    }
     return { ok: false, reason: "network" };
   }
 }
@@ -199,7 +225,7 @@ export const sendClaimEmail = internalAction({
       v.union(v.literal("coaching"), v.literal("communaute"))
     ),
   },
-  handler: async (_ctx, { to, firstName, claimToken, tier }) => {
+  handler: async (ctx, { to, firstName, claimToken, tier }) => {
     if (!to) return { ok: false, reason: "no_email" };
     const resolvedTier = tier ?? "communaute";
     const tierLabel =
@@ -212,7 +238,7 @@ export const sendClaimEmail = internalAction({
         claimToken,
         tier: resolvedTier,
       }),
-    });
+    }, ctx);
     return { ok: true };
   },
 });
@@ -259,7 +285,7 @@ export const sendRefundNotice = internalAction({
 
 export const sendPaymentFailedNotice = internalAction({
   args: { to: v.string() },
-  handler: async (_ctx, { to }) => {
+  handler: async (ctx, { to }) => {
     if (!to) return { ok: false as const, reason: "no_email" as const };
     const html = layout({
       title: "Ton paiement a échoué",
@@ -294,7 +320,7 @@ export const sendPaymentFailedNotice = internalAction({
       to,
       subject: "Ton paiement AMOUR STUDIOS a échoué",
       html,
-    });
+    }, ctx);
     return { ok: res.ok };
   },
 });
@@ -686,13 +712,13 @@ export const sendRelanceOnboarding24h = internalAction({
     tier: RELANCE_TIER,
     scenario: SCENARIO,
   },
-  handler: async (_ctx, { to, firstName, link, tier, scenario }) => {
+  handler: async (ctx, { to, firstName, link, tier, scenario }) => {
     if (!to) return { ok: false as const, reason: "no_email" as const };
     const res = await sendViaResend({
       to,
       subject: relanceSubject(24, scenario),
       html: relanceEmailHtml({ level: 24, firstName, link, tier, scenario }),
-    });
+    }, ctx);
     return { ok: res.ok };
   },
 });
@@ -705,13 +731,13 @@ export const sendRelanceOnboarding48h = internalAction({
     tier: RELANCE_TIER,
     scenario: SCENARIO,
   },
-  handler: async (_ctx, { to, firstName, link, tier, scenario }) => {
+  handler: async (ctx, { to, firstName, link, tier, scenario }) => {
     if (!to) return { ok: false as const, reason: "no_email" as const };
     const res = await sendViaResend({
       to,
       subject: relanceSubject(48, scenario),
       html: relanceEmailHtml({ level: 48, firstName, link, tier, scenario }),
-    });
+    }, ctx);
     return { ok: res.ok };
   },
 });
@@ -724,13 +750,13 @@ export const sendRelanceOnboarding7d = internalAction({
     tier: RELANCE_TIER,
     scenario: SCENARIO,
   },
-  handler: async (_ctx, { to, firstName, link, tier, scenario }) => {
+  handler: async (ctx, { to, firstName, link, tier, scenario }) => {
     if (!to) return { ok: false as const, reason: "no_email" as const };
     const res = await sendViaResend({
       to,
       subject: relanceSubject(7, scenario),
       html: relanceEmailHtml({ level: 7, firstName, link, tier, scenario }),
-    });
+    }, ctx);
     return { ok: res.ok };
   },
 });

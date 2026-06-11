@@ -10,8 +10,14 @@ import { internalAction } from "./_generated/server";
 // ============================================================================
 
 export const postAlertToStaff = internalAction({
-  args: { content: v.string() },
-  handler: async (_ctx, { content }) => {
+  args: {
+    content: v.string(),
+    // Par défaut on mentionne les admins (toi, Younes, Walid) en tête du
+    // message pour qu'ils reçoivent une vraie notification. Passer false pour
+    // une alerte discrète (sans ping).
+    mentionAdmins: v.optional(v.boolean()),
+  },
+  handler: async (_ctx, { content, mentionAdmins }) => {
     const endpoint = process.env.DISCORD_BOT_ENDPOINT;
     const secret = process.env.DISCORD_BOT_ENDPOINT_SECRET;
     const channelId = process.env.DISCORD_ALERTS_CHANNEL_ID;
@@ -21,6 +27,16 @@ export const postAlertToStaff = internalAction({
       );
       return { ok: false, reason: "missing_env" as const };
     }
+    // Mentions admins (CSV ADMIN_DISCORD_IDS) → ping Discord en tête de message.
+    const adminIds = (process.env.ADMIN_DISCORD_IDS ?? "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const mentions =
+      mentionAdmins !== false && adminIds.length > 0
+        ? adminIds.map((id) => `<@${id}>`).join(" ") + "\n"
+        : "";
+    const finalContent = mentions + content;
     try {
       const res = await fetch(
         `${endpoint.replace(/\/$/, "")}/channel-message`,
@@ -30,7 +46,7 @@ export const postAlertToStaff = internalAction({
             "Content-Type": "application/json",
             Authorization: `Bearer ${secret}`,
           },
-          body: JSON.stringify({ channelId, content }),
+          body: JSON.stringify({ channelId, content: finalContent }),
         }
       );
       if (!res.ok) {

@@ -36,6 +36,7 @@ const NAV = [
   { href: "/studio/calendrier", label: "Calendrier", icon: "◫", exact: false },
   { href: "/studio/paiements", label: "Paiements", icon: "◇", exact: false },
   { href: "/studio/campagnes", label: "Campagnes", icon: "◗", exact: false },
+  { href: "/studio/transcripts", label: "Transcripts", icon: "◍", exact: false },
 ];
 
 export default function StudioLayout({ children }: { children: ReactNode }) {
@@ -61,6 +62,9 @@ function StudioShell({
   children: ReactNode;
 }) {
   const me = useQuery(api.users.current);
+  // Badge nav : nombre de transcripts Fireflies en attente de rattachement.
+  // Query légère (orphelins non résolus), admin-gated côté serveur.
+  const orphanCount = useQuery(api.fireflies.listOrphans, {})?.length ?? 0;
   const router = useRouter();
   const dark = useIsDark();
   const { signOut } = useAuthActions();
@@ -225,6 +229,8 @@ function StudioShell({
           )}
           {NAV.map((it) => {
             const active = isActive(it);
+            // Badge orange sur « Transcripts » = nb d'orphelins à rattacher.
+            const badge = it.href === "/studio/transcripts" ? orphanCount : 0;
             return (
               <Link
                 key={it.href}
@@ -241,6 +247,7 @@ function StudioShell({
                   textDecoration: "none",
                   fontSize: 13.5,
                   fontWeight: active ? 500 : 400,
+                  position: "relative",
                 }}
               >
                 <span
@@ -255,6 +262,30 @@ function StudioShell({
                   {it.icon}
                 </span>
                 {!collapsed && <span style={{ flex: 1 }}>{it.label}</span>}
+                {badge > 0 && (
+                  <span
+                    style={{
+                      ...mono,
+                      fontSize: 9.5,
+                      minWidth: 18,
+                      height: 18,
+                      padding: "0 5px",
+                      borderRadius: 999,
+                      background: ACCENT,
+                      color: "#0B0B0B",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontWeight: 600,
+                      // Collapsed : pastille flottante en haut-droite de l'icône.
+                      position: collapsed ? "absolute" : "static",
+                      top: collapsed ? 4 : undefined,
+                      right: collapsed ? 10 : undefined,
+                    }}
+                  >
+                    {badge}
+                  </span>
+                )}
               </Link>
             );
           })}

@@ -1,8 +1,15 @@
 import { v } from "convex/values";
-import { internalAction, internalQuery, internalMutation } from "./_generated/server";
+import {
+  internalAction,
+  internalQuery,
+  internalMutation,
+  query,
+  mutation,
+} from "./_generated/server";
 import { internal } from "./_generated/api";
 import { logEvent } from "./lib/events";
 import { maybeAutoUnlockLesson } from "./lib/access";
+import { requireAdmin } from "./lib/auth";
 import type { Id } from "./_generated/dataModel";
 
 // ============================================================================
@@ -237,5 +244,116 @@ export const recordOrphan = internalMutation({
         `Participants : ${args.participants.join(", ") || "?"}\n` +
         `→ Aucun RDV ne matche par email. À rattacher manuellement dans /studio.`,
     });
+  },
+});
+
+// ── Rattachement manuel des orphelins (écran /studio, admin) ────────────────
+
+/** Liste les transcripts orphelins non résolus (plus récent d'abord). */
+export const listOrphans = query({
+  args: {},
+  handler: async (ctx) => {
+    await requireAdmin(ctx);
+    const rows = await ctx.db
+      .query("firefliesOrphans")
+      .withIndex("by_resolved", (q) => q.eq("resolvedAt", undefined))
+      .collect();
+    return rows.sort((a, b) => b.meetingDate - a.meetingDate);
+  },
+});
+
+/** Sessions de coaching candidates au rattachement d'un orphelin : sans
+ *  transcript, non annulées, dans une fenêtre ±2 jours autour de la réunion.
+ *  Renvoie le nom de l'élève pour que Walid choisisse la bonne. */
+export const attachableSessionsForOrphan = query({
+  args: { orphanId: v.id("firefliesOrphans") },
+  handler: async (ctx, { orphanId }) => {
+    await requireAdmin(ctx);
+    const orphan = await ctx.db.get(orphanId);
+    if (!orphan) return [];
+    const W = 2 * 24 * 60 * 60 * 1000; // ±2 jours
+    const cands = await ctx.db
+      .query("coachingSessions")
+      .withIndex("by_scheduledAt", (q) =>
+        q
+          .gte("scheduledAt", orphan.meetingDate - W)
+          .lte("scheduledAt", orphan.meetingDate + W)
+      )
+      .collect();
+    const open = cands.filter((s) => !s.firefliesId && s.status !== "canceled");
+    const withNames = await Promise.all(
+      open.map(async (s) => {
+        const u = await ctx.db.get(s.userId);
+        return {
+          _id: s._id,
+          scheduledAt: s.scheduledAt,
+          type: s.type,
+          status: s.status,
+          studentName: u?.name ?? u?.discordUsername ?? u?.email ?? "Élève",
+          studentEmail: u?.email ?? null,
+        };
+      })
+    );
+    return withNames.sort((a, b) => b.scheduledAt - a.scheduledAt);
+  },
+});
+
+/** Rattache un orphelin à une session : copie transcript/résumé sur la session
+ *  (sans écraser un résumé manuel), complète le RDV, auto-unlock la leçon liée,
+ *  et marque l'orphelin résolu. */
+export const resolveOrphan = mutation({
+  args: {
+    orphanId: v.id("firefliesOrphans"),
+    sessionId: v.id("coachingSessions"),
+  },
+  handler: async (ctx, { orphanId, sessionId }) => {
+    await requireAdmin(ctx);
+    const orphan = await ctx.db.get(orphanId);
+    if (!orphan) throw new Error("Orphelin introuvable");
+    if (orphan.resolvedAt) throw new Error("Orphelin déjà rattaché");
+    const s = await ctx.db.get(sessionId);
+    if (!s) throw new Error("Session introuvable");
+
+    const willComplete = s.status === "scheduled";
+    const patch: Record<string, unknown> = {
+      firefliesId: orphan.firefliesId,
+      status: willComplete ? "completed" : s.status,
+      updatedAt: Date.now(),
+    };
+    if (orphan.transcriptUrl !== undefined) patch.transcriptUrl = orphan.transcriptUrl;
+    // N'écrase pas un résumé déjà saisi (notes manuelles de Walid).
+    if (!s.aiSummary && orphan.aiSummary) patch.aiSummary = orphan.aiSummary;
+    await ctx.db.patch(sessionId, patch);
+
+    // Auto-unlock leçon si le RDV pointe une leçon (guards via le helper SSoT).
+    if (willComplete && s.curriculumItemId) {
+      await maybeAutoUnlockLesson(ctx, s.userId, s.curriculumItemId);
+    }
+
+    await ctx.db.patch(orphanId, {
+      resolvedAt: Date.now(),
+      resolvedSessionId: sessionId,
+    });
+
+    await logEvent(ctx, {
+      userId: s.userId,
+      type: "call.summary",
+      title: "Résumé du call rattaché (Fireflies, manuel)",
+      actor: "coach",
+      meta: { sessionId, firefliesId: orphan.firefliesId },
+    });
+    return { ok: true };
+  },
+});
+
+/** Ignore un orphelin (réunion hors coaching, doublon…) sans le rattacher. */
+export const dismissOrphan = mutation({
+  args: { orphanId: v.id("firefliesOrphans") },
+  handler: async (ctx, { orphanId }) => {
+    await requireAdmin(ctx);
+    const orphan = await ctx.db.get(orphanId);
+    if (!orphan) return { ok: true };
+    await ctx.db.patch(orphanId, { resolvedAt: Date.now() });
+    return { ok: true };
   },
 });

@@ -3,7 +3,7 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -107,8 +107,28 @@ export default function CalendrierPage() {
   const { testMode } = useTestMode();
   const c = palette(dark, ACCENT);
 
-  const [view, setView] = useState<CalView>("week");
-  const [anchor, setAnchor] = useState<Date>(() => new Date());
+  // Deep-link : ?date=YYYY-MM-DD ouvre ce jour, ?view= force la vue (depuis le
+  // dashboard « Aujourd'hui » : cases « Semaine à venir », toggle Jour/Sem/Mois).
+  const searchParams = useSearchParams();
+  const initView: CalView = (() => {
+    const v = searchParams.get("view");
+    if (v === "jour" || v === "day") return "day";
+    if (v === "semaine" || v === "week") return "week";
+    if (v === "mois" || v === "month") return "month";
+    if (searchParams.get("date")) return "day"; // date précise sans vue → jour
+    return "week";
+  })();
+  const initAnchor: Date = (() => {
+    const d = searchParams.get("date");
+    if (d && /^\d{4}-\d{2}-\d{2}$/.test(d)) {
+      const parsed = new Date(d + "T12:00:00"); // midi : évite les bascules TZ
+      if (!isNaN(parsed.getTime())) return parsed;
+    }
+    return new Date();
+  })();
+
+  const [view, setView] = useState<CalView>(initView);
+  const [anchor, setAnchor] = useState<Date>(() => initAnchor);
 
   // Plage affichée selon la vue : `cols` = colonnes de la grille horaire
   // (1 jour / 7 jours), `monthCells` = 42 cases du mois. `from`/`to` couvrent

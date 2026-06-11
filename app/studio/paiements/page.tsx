@@ -2,7 +2,8 @@
 
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import {
   ACCENT,
@@ -52,7 +53,24 @@ export default function PaiementsPage() {
   const c = palette(dark, ACCENT);
   const live = useQuery(api.coaching.paymentsOverview);
   useTestStore();
-  const [filter, setFilter] = useState<Filter>("tous");
+  // Deep-link : ?status= pré-règle le filtre, ?highlight=<purchaseId> surligne
+  // et scrolle la ligne concernée (depuis le dashboard « Aujourd'hui »).
+  const searchParams = useSearchParams();
+  const initFilter = ((): Filter => {
+    const s = searchParams.get("status");
+    if (s === "echec" || s === "past_due") return "echec";
+    if (s === "actifs" || s === "active") return "actifs";
+    if (s === "annule" || s === "canceled") return "annule";
+    return "tous";
+  })();
+  const highlightId = searchParams.get("highlight");
+  const highlightRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (highlightId && highlightRef.current) {
+      highlightRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [highlightId]);
+  const [filter, setFilter] = useState<Filter>(initFilter);
 
   const data = testMode ? selectPaymentsOverview() : live;
 
@@ -190,8 +208,9 @@ export default function PaiementsPage() {
 
           {filtered.map((s, i) => {
             const si = statusInfo(s.statut);
+            const isHighlighted = highlightId != null && s.id === highlightId;
             return (
-              <div key={s.id} style={{ display: "grid", gridTemplateColumns: COLS, gap: 14, padding: "14px 24px", borderBottom: i < filtered.length - 1 ? `1px solid ${c.hairline}` : "none", alignItems: "center" }}>
+              <div key={s.id} ref={isHighlighted ? highlightRef : undefined} style={{ display: "grid", gridTemplateColumns: COLS, gap: 14, padding: "14px 24px", borderBottom: i < filtered.length - 1 ? `1px solid ${c.hairline}` : "none", alignItems: "center", background: isHighlighted ? `${ACCENT}1A` : "transparent", boxShadow: isHighlighted ? `inset 0 0 0 1px ${ACCENT}` : "none", borderRadius: isHighlighted ? 12 : 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
                   <Avatar name={s.who} size={30} dark={dark} />
                   <div style={{ minWidth: 0 }}>

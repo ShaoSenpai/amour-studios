@@ -2,7 +2,7 @@
 
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
 import {
@@ -53,10 +53,31 @@ export default function ElevesPage() {
   useTestStore();
   const c = palette(dark, ACCENT);
 
-  const [seg, setSeg] = useState<Seg>("tous");
-  const [etape, setEtape] = useState<EtapeFilter>("toutes");
-  const [status, setStatus] = useState<StatusFilter>("tous");
-  const [query, setQuery] = useState("");
+  // Deep-link : ?tier=&stage=&status=&q= pré-règlent les filtres (depuis le
+  // dashboard « Aujourd'hui » : KPI Coaching/Communauté, raccourci impayés…).
+  const searchParams = useSearchParams();
+  const initSeg: Seg = (() => {
+    const t = searchParams.get("tier");
+    if (t === "coaching") return "coaching";
+    if (t === "commu" || t === "communaute") return "commu";
+    return "tous";
+  })();
+  const initStatus: StatusFilter = (() => {
+    const s = searchParams.get("status");
+    if (s === "incident" || s === "past_due") return "incident";
+    if (s === "ok" || s === "active") return "ok";
+    return "tous";
+  })();
+  const initEtape: EtapeFilter = (() => {
+    const st = searchParams.get("stage");
+    const valid: Stage[] = ["positionnement", "contenu", "feedback_analyse", "termine"];
+    return st && (valid as string[]).includes(st) ? (st as Stage) : "toutes";
+  })();
+
+  const [seg, setSeg] = useState<Seg>(initSeg);
+  const [etape, setEtape] = useState<EtapeFilter>(initEtape);
+  const [status, setStatus] = useState<StatusFilter>(initStatus);
+  const [query, setQuery] = useState(searchParams.get("q") ?? "");
 
   const students = testMode ? selectStudentsList() : liveStudents;
 

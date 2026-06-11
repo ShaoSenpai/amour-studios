@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { getAuthUserId } from "@convex-dev/auth/server";
 import { requireAdmin } from "./lib/auth";
 
 // ============================================================================
@@ -11,6 +12,7 @@ import { requireAdmin } from "./lib/auth";
 export const list = query({
   args: {},
   handler: async (ctx) => {
+    if (!(await getAuthUserId(ctx))) return []; // ressources = connectés
     return await ctx.db
       .query("tools")
       .withIndex("by_order")

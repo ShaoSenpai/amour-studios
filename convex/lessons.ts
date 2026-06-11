@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { getAuthUserId } from "@convex-dev/auth/server";
 import { requireAdmin } from "./lib/auth";
 import { internal } from "./_generated/api";
 
@@ -10,6 +11,8 @@ import { internal } from "./_generated/api";
 export const listByModule = query({
   args: { moduleId: v.id("modules") },
   handler: async (ctx, { moduleId }) => {
+    // Garde d'accès (formation legacy) : contenu réservé aux connectés.
+    if (!(await getAuthUserId(ctx))) return [];
     return await ctx.db
       .query("lessons")
       .withIndex("by_module_order", (q) => q.eq("moduleId", moduleId))
@@ -21,7 +24,16 @@ export const listByModule = query({
 export const get = query({
   args: { lessonId: v.id("lessons") },
   handler: async (ctx, { lessonId }) => {
-    return await ctx.db.get(lessonId);
+    const lesson = await ctx.db.get(lessonId);
+    if (!lesson) return null;
+    // Garde d'accès : on n'expose l'ID de lecture vidéo (muxPlaybackId) qu'aux
+    // utilisateurs authentifiés. Les leçons previewAccess restent ouvertes (hook
+    // marketing). Empêche un anonyme de récupérer la vidéo payante.
+    const userId = await getAuthUserId(ctx);
+    if (!userId && !lesson.previewAccess) {
+      return { ...lesson, muxAssetId: "", muxPlaybackId: "" };
+    }
+    return lesson;
   },
 });
 
@@ -65,6 +77,7 @@ export const firstPreview = query({
 export const search = query({
   args: { query: v.string() },
   handler: async (ctx, { query: searchQuery }) => {
+    if (!(await getAuthUserId(ctx))) return [];
     const term = searchQuery.toLowerCase().trim();
     if (!term) return [];
 
@@ -222,6 +235,7 @@ export const reorder = mutation({
 export const getNavigation = query({
   args: { lessonId: v.id("lessons") },
   handler: async (ctx, { lessonId }) => {
+    if (!(await getAuthUserId(ctx))) return { prev: null, next: null };
     const lesson = await ctx.db.get(lessonId);
     if (!lesson) return { prev: null, next: null };
 

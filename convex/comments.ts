@@ -16,6 +16,7 @@ const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1h
 export const listByLesson = query({
   args: { lessonId: v.id("lessons") },
   handler: async (ctx, { lessonId }) => {
+    if (!(await getAuthUserId(ctx))) return []; // commentaires = connectés
     const comments = await ctx.db
       .query("comments")
       .withIndex("by_lesson", (q) => q.eq("lessonId", lessonId))
@@ -56,6 +57,7 @@ export const listByLesson = query({
 export const countByLesson = query({
   args: { lessonId: v.id("lessons") },
   handler: async (ctx, { lessonId }) => {
+    if (!(await getAuthUserId(ctx))) return 0;
     const comments = await ctx.db
       .query("comments")
       .withIndex("by_lesson", (q) => q.eq("lessonId", lessonId))

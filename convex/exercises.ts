@@ -30,6 +30,7 @@ import type { QueryCtx } from "./_generated/server";
 export const listByLesson = query({
   args: { lessonId: v.id("lessons") },
   handler: async (ctx, { lessonId }) => {
+    if (!(await getAuthUserId(ctx))) return []; // contenu formation = connectés
     return await ctx.db
       .query("exercises")
       .withIndex("by_lesson", (q) => q.eq("lessonId", lessonId))

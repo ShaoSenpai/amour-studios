@@ -10,6 +10,7 @@ import { requireAdmin } from "./lib/auth";
 export const list = query({
   args: {},
   handler: async (ctx) => {
+    if (!(await getAuthUserId(ctx))) return []; // contenu formation = connectés
     return await ctx.db
       .query("modules")
       .withIndex("by_order")
@@ -26,6 +27,7 @@ export const list = query({
 export const listWithLessons = query({
   args: {},
   handler: async (ctx) => {
+    if (!(await getAuthUserId(ctx))) return [];
     const modules = await ctx.db
       .query("modules")
       .withIndex("by_order")
@@ -48,6 +50,7 @@ export const listWithLessons = query({
 export const get = query({
   args: { moduleId: v.id("modules") },
   handler: async (ctx, { moduleId }) => {
+    if (!(await getAuthUserId(ctx))) return null;
     return await ctx.db.get(moduleId);
   },
 });

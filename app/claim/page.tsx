@@ -138,7 +138,12 @@ function ClaimInner() {
     if (
       currentUser &&
       purchase &&
-      purchase.status === "paid" &&
+      // Abonnements Stripe = "active" (pas "paid"). On accepte les mêmes statuts
+      // que claimByToken côté backend, sinon la page reste blanche (return null
+      // plus bas) pour un abonné connecté. "paid" = legacy one-shot.
+      (purchase.status === "paid" ||
+        purchase.status === "active" ||
+        purchase.status === "incomplete") &&
       claimRef &&
       claimState === "idle"
     ) {
@@ -385,7 +390,17 @@ function ClaimInner() {
     );
   }
 
-  return null;
+  // Filet anti-page-blanche : aucun état imprévu ne doit jamais rendre du vide.
+  return (
+    <Screen c={c} dark={dark}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <Loader2 className="animate-spin" style={{ color: ACCENT }} />
+        <span style={{ ...mono, fontSize: 11, color: c.muted }}>
+          Finalisation de ton accès…
+        </span>
+      </div>
+    </Screen>
+  );
 }
 
 // ─── Sub-screens ──────────────────────────────────────

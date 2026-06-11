@@ -116,7 +116,15 @@ export default function AujourdhuiPage() {
   const dateStr = now.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "short" });
   const timeStr = now.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
   // Helpers deep-link : YYYY-MM-DD pour ouvrir l'agenda sur un jour précis.
-  const toISODate = (ts: number) => new Date(ts).toISOString().slice(0, 10);
+  // ⚠️ Format en date LOCALE (pas toISOString, qui passe en UTC et recule d'un
+  // jour en été à Paris UTC+2 : minuit local 11 juin → "10 juin" en UTC).
+  const toISODate = (ts: number) => {
+    const dt = new Date(ts);
+    const y = dt.getFullYear();
+    const m = String(dt.getMonth() + 1).padStart(2, "0");
+    const day = String(dt.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  };
   const todayISO = toISODate(Date.now());
 
   return (

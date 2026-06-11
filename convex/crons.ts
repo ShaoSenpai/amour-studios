@@ -16,7 +16,9 @@ crons.interval(
   {}
 );
 
-crons.interval("fireflies-sync", { minutes: 15 }, internal.fireflies.sync, {});
+// 30 min (pas 15) : limite la pression sur la limite quotidienne de requêtes
+// Fireflies. Les transcripts ne sont pas time-critical (apparaissent ≤30 min).
+crons.interval("fireflies-sync", { minutes: 30 }, internal.fireflies.sync, {});
 
 // Relances onboarding (Phase C) — 7h UTC = 8h Paris hiver / 9h Paris été.
 // Pour chaque onboarding non finalisé, envoie une relance 24h/48h/7j depuis

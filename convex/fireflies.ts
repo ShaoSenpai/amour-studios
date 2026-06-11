@@ -110,11 +110,20 @@ export const sync = internalAction({
       }
       await ctx.runMutation(internal.health.recordSuccess, { service: "fireflies" });
     } catch (err) {
+      const msg = err instanceof Error ? err.message : "sync failed";
+      // Rate-limit Fireflies (429 / too_many_requests) : ce N'EST PAS une panne
+      // d'intégration (clé valide, juste throttlé). On NE le compte PAS comme un
+      // échec santé (sinon alerte « N échecs consécutifs » trompeuse). On
+      // réessaie au prochain cron / après le reset quotidien Fireflies.
+      if (/too[\s_]?many[\s_]?requests|rate[\s_]?limit|\b429\b/i.test(msg)) {
+        console.warn("⏳ Fireflies rate-limited — skip ce run (pas une panne):", msg.slice(0, 120));
+        return;
+      }
       console.warn("⚠️ Fireflies sync échec:", err);
       await ctx
         .runMutation(internal.health.recordFailure, {
           service: "fireflies",
-          reason: err instanceof Error ? err.message : "sync failed",
+          reason: msg,
         })
         .catch(() => {});
     }

@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useState, type CSSProperties } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
@@ -13,6 +13,16 @@ import {
   ExternalLink,
   ArrowRight,
 } from "lucide-react";
+import {
+  ACCENT,
+  palette,
+  useIsDark,
+  mono,
+  num,
+  Glass,
+  glassBtn,
+  type C,
+} from "../studio/_components/glass";
 
 // Cookie helpers — le claim token doit survivre à l'OAuth Discord round-trip.
 type ClaimKind = "session" | "pi" | "token";
@@ -160,25 +170,28 @@ function ClaimInner() {
     }
   }, [currentUser, purchase, claimRef, claimBySession, claimByPi, claimByToken, claimState, router]);
 
+  const dark = useIsDark();
+  const c = palette(dark, ACCENT);
+
   // ── Render states ──────────────────────────────────────
 
   // Pas de session dans l'URL
   if (!claimRef && currentUser !== undefined) {
     return (
-      <Screen>
-        <Header tag="◦ ACCÈS" title="Session introuvable" italicWord="introuvable" />
-        <p className="mb-6 font-mono text-sm text-foreground/70" style={fontBody}>
+      <Screen c={c} dark={dark}>
+        <Header c={c} tag="ACCÈS" title="Session introuvable" />
+        <p style={{ fontSize: 14.5, color: c.muted, lineHeight: 1.55, marginBottom: 22 }}>
           Aucune référence de paiement n&apos;a été trouvée dans l&apos;URL.
           Essaie d&apos;ouvrir le lien depuis ton email Stripe, ou contacte{" "}
           <a
             href="mailto:contact@amourstudios.fr"
-            className="text-foreground underline"
+            style={{ color: c.text, textDecoration: "underline" }}
           >
             contact@amourstudios.fr
           </a>
           .
         </p>
-        <Button onClick={() => router.push("/login")}>
+        <Button c={c} onClick={() => router.push("/login")}>
           Se connecter manuellement
           <ArrowRight size={14} />
         </Button>
@@ -189,13 +202,14 @@ function ClaimInner() {
   // Token expiré — message dédié (pas la même UX que "en cours de traitement")
   if (claimRef?.kind === "token" && tokenExpired) {
     return (
-      <Screen>
-        <Header tag="◦ LIEN EXPIRÉ" title="Ce lien a expiré." italicWord="expiré" />
-        <p className="mb-6 font-mono text-sm text-foreground/70" style={fontBody}>
-          Les liens d&apos;activation sont valables <strong className="text-foreground">7 jours</strong>.
+      <Screen c={c} dark={dark}>
+        <Header c={c} tag="LIEN EXPIRÉ" title="Ce lien a expiré." />
+        <p style={{ fontSize: 14.5, color: c.muted, lineHeight: 1.55, marginBottom: 22 }}>
+          Les liens d&apos;activation sont valables{" "}
+          <strong style={{ color: c.text }}>7 jours</strong>.
           Celui-ci n&apos;est plus valide. Contacte-nous pour débloquer ton accès manuellement.
         </p>
-        <Button onClick={() => (window.location.href = "mailto:contact@amourstudios.fr?subject=Lien%20claim%20expir%C3%A9")}>
+        <Button c={c} onClick={() => (window.location.href = "mailto:contact@amourstudios.fr?subject=Lien%20claim%20expir%C3%A9")}>
           Contacter le support
           <ArrowRight size={14} />
         </Button>
@@ -209,13 +223,13 @@ function ClaimInner() {
     purchaseFromToken === null
   ) {
     return (
-      <Screen>
-        <Header tag="◦ LIEN INVALIDE" title="Lien d'activation non reconnu." italicWord="non reconnu" />
-        <p className="mb-6 font-mono text-sm text-foreground/70" style={fontBody}>
+      <Screen c={c} dark={dark}>
+        <Header c={c} tag="LIEN INVALIDE" title="Lien d'activation non reconnu." />
+        <p style={{ fontSize: 14.5, color: c.muted, lineHeight: 1.55, marginBottom: 22 }}>
           Ce lien n&apos;existe pas ou a déjà été utilisé. Si tu viens de payer,
           vérifie ton email — le bon lien t&apos;a été envoyé.
         </p>
-        <Button onClick={() => (window.location.href = "mailto:contact@amourstudios.fr")}>
+        <Button c={c} onClick={() => (window.location.href = "mailto:contact@amourstudios.fr")}>
           Contacter le support
           <ArrowRight size={14} />
         </Button>
@@ -229,13 +243,10 @@ function ClaimInner() {
     (claimRef && purchase === undefined)
   ) {
     return (
-      <Screen>
-        <div className="flex items-center gap-3">
-          <Loader2 className="animate-spin text-foreground" />
-          <span
-            className="font-mono text-xs uppercase tracking-[2px] text-foreground/60"
-            style={fontBody}
-          >
+      <Screen c={c} dark={dark}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <Loader2 className="animate-spin" style={{ color: c.text }} />
+          <span style={{ ...mono, fontSize: 11, color: c.muted }}>
             Chargement…
           </span>
         </div>
@@ -246,28 +257,26 @@ function ClaimInner() {
   // Webhook pas encore reçu — retry automatique toutes les 2s
   if (claimRef && purchase === null) {
     return (
-      <Screen>
+      <Screen c={c} dark={dark}>
         <Header
-          tag="◦ PAIEMENT EN COURS DE TRAITEMENT"
+          c={c}
+          tag="PAIEMENT EN COURS DE TRAITEMENT"
           title="Ton paiement arrive."
-          italicWord="arrive"
         />
-        <p className="mb-6 font-mono text-sm text-foreground/70" style={fontBody}>
+        <p style={{ fontSize: 14.5, color: c.muted, lineHeight: 1.55, marginBottom: 22 }}>
           Stripe nous a confirmé ton paiement, on finalise la création de ton
           accès (5-10 secondes max). Reste sur cette page — tu seras redirigé
           automatiquement.
         </p>
-        <div className="flex items-center gap-3">
-          <Loader2 className="animate-spin text-[#2B7A6F]" />
-          <span
-            className="font-mono text-xs uppercase tracking-[2px] text-foreground/60"
-            style={fontBody}
-          >
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <Loader2 className="animate-spin" style={{ color: ACCENT }} />
+          <span style={{ ...mono, fontSize: 11, color: c.muted }}>
             Synchronisation en cours…
           </span>
         </div>
         <AutoRefresher />
         <ClaimingFallback
+          c={c}
           onRetry={() => {
             // Force reload la query Convex
             window.location.reload();
@@ -285,17 +294,15 @@ function ClaimInner() {
   // Claim en cours
   if (claimState === "claiming") {
     return (
-      <Screen>
-        <div className="flex items-center gap-3">
-          <Loader2 className="animate-spin text-[#2B7A6F]" />
-          <span
-            className="font-mono text-xs uppercase tracking-[2px] text-foreground/60"
-            style={fontBody}
-          >
+      <Screen c={c} dark={dark}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <Loader2 className="animate-spin" style={{ color: ACCENT }} />
+          <span style={{ ...mono, fontSize: 11, color: c.muted }}>
             Liaison de ton paiement…
           </span>
         </div>
         <ClaimingFallback
+          c={c}
           onRetry={() => {
             setClaimState("idle");
             setErrorMsg(null);
@@ -308,25 +315,30 @@ function ClaimInner() {
   // Succès
   if (claimState === "done") {
     return (
-      <Screen>
+      <Screen c={c} dark={dark}>
         <Header
-          tag="◦ ACCÈS ACTIF"
+          c={c}
+          tag="ACCÈS ACTIF"
           title="Bienvenue dans Amour Studios."
-          italicWord="Amour Studios"
         />
-        <div className="mb-6 flex items-center gap-3 border border-[rgba(0,255,133,0.3)] bg-[rgba(0,255,133,0.05)] px-5 py-4">
-          <CheckCircle2 className="text-[#2B7A6F]" size={20} />
-          <p
-            className="font-mono text-sm text-[#2B7A6F]"
-            style={fontBody}
-          >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            border: `1px solid ${c.dark ? "rgba(34,99,64,0.5)" : "rgba(34,99,64,0.25)"}`,
+            background: c.dark ? "rgba(34,99,64,0.18)" : "rgba(34,99,64,0.08)",
+            borderRadius: 12,
+            padding: "14px 18px",
+            marginBottom: 22,
+          }}
+        >
+          <CheckCircle2 style={{ color: c.successFg, flexShrink: 0 }} size={20} />
+          <p style={{ fontSize: 14, color: c.successFg, fontWeight: 500 }}>
             Ton accès est activé. Rôle Discord attribué.
           </p>
         </div>
-        <p
-          className="font-mono text-xs text-foreground/50"
-          style={fontBody}
-        >
+        <p style={{ ...mono, fontSize: 10.5, color: c.faint }}>
           ◦ Redirection automatique vers ton espace…
         </p>
       </Screen>
@@ -336,35 +348,36 @@ function ClaimInner() {
   // Erreur
   if (claimState === "error") {
     return (
-      <Screen>
-        <Header
-          tag="◦ PROBLÈME"
-          title="On a un souci."
-          italicWord="souci"
-        />
-        <div className="mb-6 flex items-start gap-3 border border-[rgba(230,51,38,0.3)] bg-[rgba(230,51,38,0.05)] px-5 py-4">
-          <AlertCircle className="mt-0.5 text-[#E63326]" size={18} />
-          <p
-            className="font-mono text-sm text-[#E63326]"
-            style={fontBody}
-          >
+      <Screen c={c} dark={dark}>
+        <Header c={c} tag="PROBLÈME" title="On a un souci." />
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            gap: 12,
+            border: "1px solid rgba(229,72,77,0.30)",
+            background: "rgba(229,72,77,0.08)",
+            borderRadius: 12,
+            padding: "14px 18px",
+            marginBottom: 22,
+          }}
+        >
+          <AlertCircle style={{ color: "#E5484D", flexShrink: 0, marginTop: 2 }} size={18} />
+          <p style={{ fontSize: 14, color: "#E5484D" }}>
             {errorMsg ?? "Erreur inconnue"}
           </p>
         </div>
-        <p
-          className="mb-4 font-mono text-xs text-foreground/60"
-          style={fontBody}
-        >
+        <p style={{ fontSize: 13.5, color: c.muted, lineHeight: 1.55, marginBottom: 18 }}>
           Contacte-nous à{" "}
           <a
             href="mailto:contact@amourstudios.fr"
-            className="text-foreground underline"
+            style={{ color: c.text, textDecoration: "underline" }}
           >
             contact@amourstudios.fr
           </a>{" "}
           avec ta référence de paiement, on débloque à la main en moins de 24h.
         </p>
-        <Button onClick={() => router.push("/onboarding/welcome")}>
+        <Button c={c} onClick={() => router.push("/onboarding/welcome")}>
           Aller sur le dashboard
           <ArrowRight size={14} />
         </Button>
@@ -386,6 +399,8 @@ function HasDiscordScreen({
 }) {
   const [choice, setChoice] = useState<"yes" | "no" | null>(null);
   const discordInvite = process.env.NEXT_PUBLIC_DISCORD_INVITE_URL;
+  const dark = useIsDark();
+  const c = palette(dark, ACCENT);
 
   const triggerSignIn = async () => {
     // Keep token dans le cookie — le callback reviendra sur /claim
@@ -402,31 +417,28 @@ function HasDiscordScreen({
 
   if (choice === null) {
     return (
-      <Screen>
+      <Screen c={c} dark={dark}>
         <Header
-          tag="◦ PAIEMENT VALIDÉ · ÉTAPE 2/2"
+          c={c}
+          tag="PAIEMENT VALIDÉ · ÉTAPE 2/2"
           title="Bienvenue. Tu as un compte Discord ?"
-          italicWord="Discord"
         />
-        <p
-          className="mb-8 font-mono text-sm text-foreground/70"
-          style={fontBody}
-        >
+        <p style={{ fontSize: 14.5, color: c.muted, lineHeight: 1.55, marginBottom: 26 }}>
           L&apos;accès à ton espace + la communauté se fait via Discord.
           Choisis ton cas :
         </p>
-        <div className="flex flex-col gap-3">
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <OptionCard
+            c={c}
             title="Oui, j'ai déjà Discord"
             subtitle="Je me connecte en 2 clics"
             onClick={() => setChoice("yes")}
-            accent="#2B7A6F"
           />
           <OptionCard
+            c={c}
             title="Non, pas encore"
             subtitle="Tu m'accompagnes pour le créer (gratuit, 2 min)"
             onClick={() => setChoice("no")}
-            accent="#FF6B1F"
           />
         </div>
       </Screen>
@@ -435,24 +447,26 @@ function HasDiscordScreen({
 
   if (choice === "yes") {
     return (
-      <Screen>
-        <Header
-          tag="◦ ÉTAPE 2/2"
-          title="Connecte ton Discord."
-          italicWord="Discord"
-        />
-        <p
-          className="mb-6 font-mono text-sm text-foreground/70"
-          style={fontBody}
-        >
+      <Screen c={c} dark={dark}>
+        <Header c={c} tag="ÉTAPE 2/2" title="Connecte ton Discord." />
+        <p style={{ fontSize: 14.5, color: c.muted, lineHeight: 1.55, marginBottom: 22 }}>
           Un clic et on te lie automatiquement à ton paiement. Aucun email à
           entrer, aucune synchronisation à faire.
         </p>
         <DiscordBtn onClick={triggerSignIn} />
         <button
           onClick={() => setChoice(null)}
-          className="mt-4 font-mono text-[10px] uppercase tracking-[1.5px] text-foreground/50 hover:text-foreground"
-          style={{ fontFamily: "var(--font-body-legacy)", minHeight: 0 }}
+          style={{
+            ...mono,
+            fontSize: 10,
+            color: c.faint,
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            marginTop: 16,
+            padding: 0,
+            alignSelf: "flex-start",
+          }}
         >
           ← Retour
         </button>
@@ -462,14 +476,15 @@ function HasDiscordScreen({
 
   // choice === "no"
   return (
-    <Screen>
+    <Screen c={c} dark={dark}>
       <Header
-        tag="◦ ÉTAPE 2/2 · SANS DISCORD"
+        c={c}
+        tag="ÉTAPE 2/2 · SANS DISCORD"
         title="Créons ton Discord en 2 minutes."
-        italicWord="2 minutes"
       />
-      <ol className="mb-6 flex flex-col gap-3">
+      <ol style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 22, listStyle: "none", padding: 0 }}>
         <Step
+          c={c}
           n={1}
           title="Crée ton compte Discord (gratuit)"
           action={
@@ -477,8 +492,7 @@ function HasDiscordScreen({
               href="https://discord.com/register"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[2px] text-[#5865F2] hover:underline"
-              style={fontBody}
+              style={{ ...mono, fontSize: 10, color: "#5865F2", display: "inline-flex", alignItems: "center", gap: 6, textDecoration: "none" }}
             >
               Ouvrir discord.com <ExternalLink size={10} />
             </a>
@@ -486,6 +500,7 @@ function HasDiscordScreen({
         />
         {discordInvite && (
           <Step
+            c={c}
             n={2}
             title="Rejoins notre serveur Discord"
             action={
@@ -493,8 +508,7 @@ function HasDiscordScreen({
                 href={discordInvite}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[2px] text-[#2B7A6F] hover:underline"
-                style={fontBody}
+                style={{ ...mono, fontSize: 10, color: ACCENT, display: "inline-flex", alignItems: "center", gap: 6, textDecoration: "none" }}
               >
                 Rejoindre <ExternalLink size={10} />
               </a>
@@ -502,6 +516,7 @@ function HasDiscordScreen({
           />
         )}
         <Step
+          c={c}
           n={discordInvite ? 3 : 2}
           title="Reviens ici et clique ci-dessous"
         />
@@ -509,8 +524,17 @@ function HasDiscordScreen({
       <DiscordBtn onClick={triggerSignIn} />
       <button
         onClick={() => setChoice(null)}
-        className="mt-4 font-mono text-[10px] uppercase tracking-[1.5px] text-foreground/50 hover:text-foreground"
-        style={{ fontFamily: "var(--font-body-legacy)", minHeight: 0 }}
+        style={{
+          ...mono,
+          fontSize: 10,
+          color: c.faint,
+          background: "none",
+          border: "none",
+          cursor: "pointer",
+          marginTop: 16,
+          padding: 0,
+          alignSelf: "flex-start",
+        }}
       >
         ← Retour
       </button>
@@ -518,81 +542,103 @@ function HasDiscordScreen({
   );
 }
 
-// ─── UI helpers ───────────────────────────────────────
+// ─── UI helpers (Glass C) ─────────────────────────────
 
-const fontBody: React.CSSProperties = { fontFamily: "var(--font-body-legacy)" };
-const fontSerif: React.CSSProperties = { fontFamily: "var(--font-serif)" };
+const DISCORD = "#5865F2";
 
-function Screen({ children }: { children: React.ReactNode }) {
+const shell: CSSProperties = {
+  minHeight: "100vh",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  fontFamily: "'Schibsted Grotesk', system-ui, sans-serif",
+  padding: 24,
+  overflow: "hidden",
+};
+
+function Screen({
+  c,
+  dark,
+  children,
+}: {
+  c: C;
+  dark: boolean;
+  children: React.ReactNode;
+}) {
   return (
-    <main className="ds-grid-bg relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-background px-6 py-16 text-foreground">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(ellipse 60% 50% at 50% 30%, rgba(0,255,133,0.06) 0%, transparent 70%)",
-        }}
-      />
-      <div className="ds-reveal relative z-10 flex w-full max-w-xl flex-col gap-4">
-        {children}
-      </div>
+    <main style={{ ...shell, background: c.bgGrad, color: c.text }}>
+      <Glass c={c} dark={dark} strong pad={0} style={{ width: "100%", maxWidth: 480, overflow: "hidden" }}>
+        <div style={{ padding: "40px 38px", display: "flex", flexDirection: "column" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 28 }}>
+            <div
+              style={{
+                width: 36,
+                height: 36,
+                background: ACCENT,
+                color: "#0B0B0B",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontWeight: 600,
+                fontSize: 20,
+                borderRadius: 10,
+                letterSpacing: "-0.02em",
+                flexShrink: 0,
+              }}
+            >
+              A
+            </div>
+            <div>
+              <div style={{ ...mono, fontSize: 11, letterSpacing: "0.06em" }}>AMOUR STUDIOS</div>
+              <div style={{ ...mono, fontSize: 9.5, color: c.muted, marginTop: 2 }}>ACTIVATION DE TON ACCÈS</div>
+            </div>
+          </div>
+          {children}
+        </div>
+      </Glass>
     </main>
   );
 }
 
 function Header({
+  c,
   tag,
   title,
-  italicWord,
 }: {
+  c: C;
   tag: string;
   title: string;
-  italicWord?: string;
 }) {
-  const before =
-    italicWord && title.includes(italicWord)
-      ? title.substring(0, title.lastIndexOf(italicWord))
-      : title;
-  const after =
-    italicWord && title.includes(italicWord)
-      ? title.substring(title.lastIndexOf(italicWord) + italicWord.length)
-      : "";
-
   return (
     <>
-      <p
-        className="font-mono text-[10px] uppercase tracking-[3px] text-foreground/55"
-        style={fontBody}
-      >
-        — {tag}
-      </p>
-      <h1
-        className="mb-2 text-[clamp(36px,5vw,56px)] font-normal leading-[0.95] tracking-[-1.5px]"
-        style={fontSerif}
-      >
-        {before}
-        {italicWord && (
-          <em className="italic text-foreground">{italicWord}</em>
-        )}
-        {after}
+      <div style={{ ...mono, color: c.muted }}>{tag}</div>
+      <h1 style={{ ...num, fontSize: 34, fontWeight: 500, lineHeight: 1.05, margin: "10px 0 18px" }}>
+        {title}
       </h1>
     </>
   );
 }
 
 function Button({
+  c,
   onClick,
   children,
 }: {
+  c: C;
   onClick: () => void;
   children: React.ReactNode;
 }) {
   return (
     <button
       onClick={onClick}
-      className="group flex items-center gap-2.5 bg-[#2B7A6F] px-5 py-3 font-mono text-[11px] uppercase tracking-[2px] text-[#0D0B08] transition-all duration-700 [transition-timing-function:var(--ease-reveal)] hover:tracking-[3px] hover:pr-7"
-      style={{ minHeight: 0, ...fontBody }}
+      style={{
+        ...glassBtn(c, "solid"),
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 8,
+        alignSelf: "flex-start",
+      }}
     >
       {children}
     </button>
@@ -603,8 +649,22 @@ function DiscordBtn({ onClick }: { onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className="group flex w-full items-center justify-center gap-3 bg-[#5865F2] px-6 py-4 font-mono text-[11px] uppercase tracking-[2px] text-white transition-all duration-700 [transition-timing-function:var(--ease-reveal)] hover:tracking-[3px] hover:bg-[#4752C4]"
-      style={{ minHeight: 0, ...fontBody }}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 10,
+        width: "100%",
+        padding: "12px 16px",
+        background: DISCORD,
+        color: "#fff",
+        border: "none",
+        borderRadius: 12,
+        cursor: "pointer",
+        fontFamily: "'Schibsted Grotesk', system-ui, sans-serif",
+        fontSize: 14,
+        fontWeight: 600,
+      }}
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -617,81 +677,96 @@ function DiscordBtn({ onClick }: { onClick: () => void }) {
         <path d="M20.317 4.369a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.056 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 0 1 .077-.01c3.927 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.009c.12.099.246.198.373.292a.077.077 0 0 1-.006.127 12.298 12.298 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.06.06 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z" />
       </svg>
       Continuer avec Discord
-      <span
-        className="text-xl italic transition-transform duration-700 [transition-timing-function:var(--ease-reveal)] group-hover:translate-x-1"
-        style={fontSerif}
-      >
-        →
-      </span>
     </button>
   );
 }
 
 function OptionCard({
+  c,
   title,
   subtitle,
   onClick,
-  accent,
 }: {
+  c: C;
   title: string;
   subtitle: string;
   onClick: () => void;
-  accent: string;
 }) {
   return (
     <button
       onClick={onClick}
-      className="group flex items-center justify-between gap-4 border border-foreground/15 bg-foreground/[0.04] px-6 py-5 text-left transition-all duration-700 [transition-timing-function:var(--ease-reveal)] hover:bg-foreground/[0.08]"
-      style={{ minHeight: 0 }}
-      onMouseEnter={(e) => (e.currentTarget.style.borderColor = accent)}
-      onMouseLeave={(e) => (e.currentTarget.style.borderColor = "")}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 16,
+        border: `1px solid ${c.line}`,
+        background: c.chip,
+        borderRadius: 14,
+        padding: "16px 18px",
+        textAlign: "left",
+        cursor: "pointer",
+        fontFamily: "'Schibsted Grotesk', system-ui, sans-serif",
+        transition: "border-color 0.2s ease, background 0.2s ease",
+      }}
+      onMouseEnter={(e) => (e.currentTarget.style.borderColor = ACCENT)}
+      onMouseLeave={(e) => (e.currentTarget.style.borderColor = c.line)}
     >
       <div>
-        <div
-          className="text-xl italic"
-          style={fontSerif}
-        >
-          {title}
-        </div>
-        <div
-          className="mt-1 font-mono text-[11px] text-foreground/60"
-          style={fontBody}
-        >
+        <div style={{ fontSize: 15.5, fontWeight: 600, color: c.text }}>{title}</div>
+        <div style={{ ...mono, fontSize: 10, color: c.muted, marginTop: 4, textTransform: "none", letterSpacing: "0.02em" }}>
           {subtitle}
         </div>
       </div>
-      <span
-        className="text-2xl italic transition-transform duration-700 [transition-timing-function:var(--ease-reveal)] group-hover:translate-x-1"
-        style={{ color: accent, ...fontSerif }}
-      >
-        →
-      </span>
+      <ArrowRight size={18} style={{ color: ACCENT, flexShrink: 0 }} />
     </button>
   );
 }
 
 function Step({
+  c,
   n,
   title,
   action,
 }: {
+  c: C;
   n: number;
   title: string;
   action?: React.ReactNode;
 }) {
   return (
-    <li className="flex items-center gap-4 border-l-2 border-foreground/15 bg-foreground/[0.03] px-4 py-3">
+    <li
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 14,
+        border: `1px solid ${c.line}`,
+        background: c.chip,
+        borderRadius: 12,
+        padding: "12px 14px",
+      }}
+    >
       <span
-        className="flex size-7 shrink-0 items-center justify-center bg-foreground text-sm italic text-background"
-        style={fontSerif}
+        style={{
+          ...num,
+          display: "flex",
+          width: 28,
+          height: 28,
+          flexShrink: 0,
+          alignItems: "center",
+          justifyContent: "center",
+          background: ACCENT,
+          color: "#0B0B0B",
+          borderRadius: 8,
+          fontSize: 14,
+          fontWeight: 600,
+        }}
       >
         {n}
       </span>
-      <div className="min-w-0 flex-1">
-        <div className="text-sm" style={fontBody}>
-          {title}
-        </div>
-        {action && <div className="mt-1">{action}</div>}
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div style={{ fontSize: 14, color: c.text }}>{title}</div>
+        {action && <div style={{ marginTop: 4 }}>{action}</div>}
       </div>
     </li>
   );
@@ -712,7 +787,7 @@ function AutoRefresher({ onStuck }: { onStuck?: () => void }) {
   return null;
 }
 
-function ClaimingFallback({ onRetry }: { onRetry: () => void }) {
+function ClaimingFallback({ c, onRetry }: { c: C; onRetry: () => void }) {
   const [visible, setVisible] = useState(false);
   useEffect(() => {
     const id = setTimeout(() => setVisible(true), 5000);
@@ -720,26 +795,28 @@ function ClaimingFallback({ onRetry }: { onRetry: () => void }) {
   }, []);
   if (!visible) return null;
   return (
-    <div className="mt-8 border-t border-foreground/15 pt-6">
-      <p
-        className="mb-4 font-mono text-xs uppercase tracking-[1.5px] text-foreground/55"
-        style={{ fontFamily: "var(--font-body-legacy)" }}
-      >
-        — Ça prend plus longtemps que d&apos;habitude
+    <div style={{ marginTop: 28, borderTop: `1px solid ${c.line}`, paddingTop: 22 }}>
+      <p style={{ ...mono, fontSize: 10, color: c.muted, marginBottom: 14 }}>
+        Ça prend plus longtemps que d&apos;habitude
       </p>
-      <div className="flex flex-col gap-3 sm:flex-row">
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         <button
           type="button"
           onClick={onRetry}
-          className="inline-flex h-10 items-center gap-2 rounded-full border border-foreground/25 bg-foreground/[0.04] px-5 font-mono text-[11px] font-bold uppercase tracking-[1.5px] text-foreground/80 transition-all hover:border-foreground/50 hover:bg-foreground/[0.08] hover:text-foreground"
-          style={{ fontFamily: "var(--font-body-legacy)", minHeight: 0 }}
+          style={{ ...glassBtn(c, "ghost"), width: "100%" }}
         >
           Réessayer
         </button>
         <a
           href="mailto:contact@amourstudios.fr?subject=Probl%C3%A8me%20claim%20paiement"
-          className="inline-flex h-10 items-center gap-2 rounded-full px-5 font-mono text-[11px] font-bold uppercase tracking-[1.5px] text-foreground transition-opacity hover:opacity-80"
-          style={{ fontFamily: "var(--font-body-legacy)", minHeight: 0 }}
+          style={{
+            ...glassBtn(c, "ghost"),
+            width: "100%",
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            textDecoration: "none",
+          }}
         >
           Contacter le support
         </a>

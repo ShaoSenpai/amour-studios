@@ -1,6 +1,7 @@
 import Discord from "@auth/core/providers/discord";
 import { convexAuth } from "@convex-dev/auth/server";
 import { internal } from "./_generated/api";
+import { logEvent } from "./lib/events";
 
 // ============================================================================
 // Amour Studios — Convex Auth config
@@ -144,6 +145,15 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
       // email → on crée la row d'onboarding (no-op si rien à faire).
       await ctx.scheduler.runAfter(0, internal.onboardings.ensureForUser, {
         userId,
+      });
+
+      // Trace + feed Discord : nouveau membre (titre sans le nom — postFeedToStaff
+      // l'ajoute depuis userId, sinon il serait dupliqué).
+      await logEvent(ctx, {
+        userId,
+        type: "member.new",
+        title: "Nouveau membre",
+        actor: "system",
       });
 
       return userId;

@@ -1,5 +1,6 @@
 import { v } from "convex/values";
-import { internalAction } from "./_generated/server";
+import { internalAction, internalQuery } from "./_generated/server";
+import { internal } from "./_generated/api";
 
 // ============================================================================
 // Amour Studios — Discord staff alerts
@@ -59,6 +60,59 @@ export const postAlertToStaff = internalAction({
       return { ok: true as const };
     } catch (err) {
       console.warn("postAlertToStaff fetch échec:", err);
+      return { ok: false as const };
+    }
+  },
+});
+
+/** Query interne : nom affichable d'un user (pour enrichir le feed). */
+export const userNameById = internalQuery({
+  args: { userId: v.id("users") },
+  handler: async (ctx, { userId }) => {
+    const u = await ctx.db.get(userId);
+    if (!u) return null;
+    return u.name || u.discordUsername || u.email?.split("@")[0] || null;
+  },
+});
+
+/**
+ * Feed de suivi (channel DISCORD_FEED_CHANNEL_ID) — flux passif de TOUT ce qui
+ * se passe (paiements, RDV terminés, exos, statuts…). SILENCIEUX : aucune
+ * mention/ping (contrairement à postAlertToStaff). Fail-silent si le channel
+ * n'est pas configuré. Le nom de l'élève est ajouté si `userId` est fourni.
+ */
+export const postFeedToStaff = internalAction({
+  args: { content: v.string(), userId: v.optional(v.id("users")) },
+  handler: async (ctx, { content, userId }) => {
+    const endpoint = process.env.DISCORD_BOT_ENDPOINT;
+    const secret = process.env.DISCORD_BOT_ENDPOINT_SECRET;
+    const channelId = process.env.DISCORD_FEED_CHANNEL_ID;
+    if (!endpoint || !secret || !channelId) {
+      // Feed non configuré → on ne poste rien (pas d'erreur).
+      return { ok: false, reason: "missing_env" as const };
+    }
+    let line = content;
+    if (userId) {
+      const name = await ctx.runQuery(internal.discord.userNameById, { userId });
+      if (name) line = `${content} — ${name}`;
+    }
+    try {
+      const res = await fetch(`${endpoint.replace(/\/$/, "")}/channel-message`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${secret}`,
+        },
+        body: JSON.stringify({ channelId, content: line }),
+      });
+      if (!res.ok) {
+        const txt = await res.text().catch(() => "");
+        console.warn(`⚠️ postFeedToStaff ${res.status}: ${txt.slice(0, 150)}`);
+        return { ok: false as const };
+      }
+      return { ok: true as const };
+    } catch (err) {
+      console.warn("postFeedToStaff fetch échec:", err);
       return { ok: false as const };
     }
   },

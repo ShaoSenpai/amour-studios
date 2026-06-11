@@ -6,6 +6,7 @@ import {
   moduleOrderOfExercise,
   maybeAutoUnlockNextModule,
 } from "./lib/access";
+import { logEvent } from "./lib/events";
 import type { Id } from "./_generated/dataModel";
 
 /** Vérifie que l'user authentifié peut écrire sur cet exercice (module
@@ -127,6 +128,17 @@ export const complete = mutation({
         updatedAt: now,
       });
       wasNewlyCompleted = true;
+    }
+
+    // Trace + feed Discord : exercice terminé (1re fois seulement).
+    if (wasNewlyCompleted) {
+      const ex = await ctx.db.get(exerciseId);
+      await logEvent(ctx, {
+        userId,
+        type: "exercise.completed",
+        title: `Exercice terminé — ${ex?.title ?? "exercice"}`,
+        actor: "student",
+      });
     }
 
     // Auto-déblocage : si tous les exos du module courant sont completed,

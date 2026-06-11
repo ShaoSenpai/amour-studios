@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { internalAction, internalQuery, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { logEvent } from "./lib/events";
+import { maybeAutoUnlockLesson } from "./lib/access";
 
 // ============================================================================
 // Fireflies — résumé automatique des calls (Brique D).
@@ -104,10 +105,15 @@ export const findSessionForMeeting = internalQuery({
       const u = await ctx.db.get(s.userId);
       if (u?.email && emails.has(u.email.toLowerCase())) return s._id;
     }
-    open.sort(
-      (a, b) => Math.abs(a.scheduledAt - dateMs) - Math.abs(b.scheduledAt - dateMs)
+    // Aucun match email → on refuse l'attachement. Évite la contamination
+    // cross-élève (transcript de A attribué à B juste parce que B avait un
+    // RDV ±3h plus tard). Le transcript reste « orphelin » côté Fireflies,
+    // Walid peut le rattacher manuellement si besoin.
+    console.warn(
+      `Fireflies: aucun match email pour réunion ${new Date(dateMs).toISOString()} ` +
+        `(${open.length} sessions candidates, participants=${participants.join(",")}). Transcript ignoré.`
     );
-    return open[0]._id;
+    return null;
   },
 });
 
@@ -122,13 +128,40 @@ export const attach = internalMutation({
   handler: async (ctx, { sessionId, firefliesId, transcriptUrl, aiSummary }) => {
     const s = await ctx.db.get(sessionId);
     if (!s) return;
-    await ctx.db.patch(sessionId, {
+    // Idempotence : on ne skippe TOTALEMENT que si la session a déjà été
+    // résumée AVEC SUCCÈS (firefliesId + aiSummary non placeholder). Sinon,
+    // on retente l'attach — utile si une 1re passe a échoué partiellement
+    // (par ex. auto-unlock leçon raté). L'opération reste idempotente côté
+    // maybeAutoUnlockLesson + logEvent (création d'un nouvel event = trace).
+    if (
+      s.firefliesId &&
+      s.aiSummary &&
+      s.aiSummary !== "Résumé indisponible"
+    ) {
+      console.log(`Fireflies: session ${sessionId} déjà résumée, skip`);
+      return;
+    }
+    const willComplete = s.status === "scheduled";
+    // patch construit dynamiquement : ne PAS mettre transcriptUrl undefined
+    // dans le patch — Convex.patch supprime le champ si on passe undefined.
+    const patch: Record<string, unknown> = {
       firefliesId,
-      transcriptUrl,
-      aiSummary,
-      status: s.status === "scheduled" ? "completed" : s.status,
+      status: willComplete ? "completed" : s.status,
       updatedAt: Date.now(),
-    });
+    };
+    if (transcriptUrl !== undefined) patch.transcriptUrl = transcriptUrl;
+    // N'écrase JAMAIS un aiSummary déjà présent (notes manuelles de Walid
+    // saisies pendant le call, peu importe que le status soit scheduled ou
+    // completed). Walid garde la main.
+    if (!s.aiSummary) {
+      patch.aiSummary = aiSummary;
+    }
+    await ctx.db.patch(sessionId, patch);
+    // Auto-unlock leçon via helper unique avec guard tier strict
+    // (cf. lib/access.ts → maybeAutoUnlockLesson). Idempotent.
+    if (willComplete && s.curriculumItemId) {
+      await maybeAutoUnlockLesson(ctx, s.userId, s.curriculumItemId);
+    }
     await logEvent(ctx, {
       userId: s.userId,
       type: "call.summary",

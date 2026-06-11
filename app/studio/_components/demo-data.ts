@@ -20,6 +20,7 @@ const MIN = 60_000;
 const uid = (s: string) => s as unknown as Id<"users">;
 const sid = (s: string) => s as unknown as Id<"coachingSessions">;
 const pid = (s: string) => s as unknown as Id<"purchases">;
+const curid = (s: string) => s as unknown as Id<"curriculum">;
 
 // Début du jour courant (00:00) et de la semaine courante (lundi 00:00).
 function startOfTodayTs(): number {
@@ -313,6 +314,7 @@ export const getMemberDetail: Detail = {
     xp: 1240,
     streakDays: 9,
     unlockedModules: [2],
+    unlockedLessonIds: [curid("cur_m2l1"), curid("cur_m2l2")],
   },
   purchase: {
     _id: pid("p_mxlo"),

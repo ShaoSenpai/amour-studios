@@ -69,13 +69,121 @@ export async function accessibleModules(
   set.add(1);
   // duree="3mois" : modules débloqués (manuellement ou auto).
   if (purchase.duree === "3mois") {
+    // (a) legacy `unlockedModules` : tableau d'order.
     for (const n of user.unlockedModules ?? []) {
       if (typeof n === "number" && (COACHING_MODULE_ORDERS as readonly number[]).includes(n)) {
         set.add(n);
       }
     }
+    // (b) granularité fine `unlockedLessonIds` : si ≥1 leçon de M existe ici,
+    //     le module M devient accessible côté exos (gating reste par module
+    //     car les `exercises` sont rattachés à des lessons formation, pas au
+    //     curriculum coaching). La UI timeline garde la granularité par leçon.
+    const lessonIds = user.unlockedLessonIds ?? [];
+    if (lessonIds.length > 0) {
+      // Parallélise les reads (Promise.all) au lieu d'un N+1 séquentiel.
+      const lessons = await Promise.all(lessonIds.map((lid) => ctx.db.get(lid)));
+      for (const lesson of lessons) {
+        if (
+          lesson?.moduleNo &&
+          (COACHING_MODULE_ORDERS as readonly number[]).includes(lesson.moduleNo)
+        ) {
+          set.add(lesson.moduleNo);
+        }
+      }
+    }
   }
   return [...set].sort((a, b) => a - b);
+}
+
+/** Renvoie l'ensemble des leçons curriculum accessibles à ce user. Sert à la
+ *  timeline parcours interactive de la fiche élève /studio (granularité fine
+ *  cercle par cercle). Distinct de `accessibleModules` qui pilote le gating
+ *  des exos (par module entier, dérivé en runtime). */
+export async function accessibleLessons(
+  ctx: Ctx,
+  user: Doc<"users">
+): Promise<Set<Id<"curriculum">>> {
+  const result = new Set<Id<"curriculum">>();
+
+  // Admin : toutes les leçons curriculum.
+  if (user.role === "admin") {
+    const all = await ctx.db.query("curriculum").collect();
+    for (const l of all) result.add(l._id);
+    return result;
+  }
+
+  const purchase = await getActivePurchase(ctx, user);
+  if (!purchase || purchase.tier !== "coaching") return result;
+
+  // M1 implicite pour tout coaching actif.
+  const m1 = await ctx.db.query("curriculum").collect();
+  for (const l of m1) {
+    if (l.moduleNo === 1) result.add(l._id);
+  }
+
+  // 3mois : leçons explicitement débloquées + rétrocompat unlockedModules.
+  if (purchase.duree === "3mois") {
+    for (const lid of user.unlockedLessonIds ?? []) {
+      result.add(lid);
+    }
+    const legacyModules = user.unlockedModules ?? [];
+    if (legacyModules.length > 0) {
+      for (const l of m1) {
+        if (legacyModules.includes(l.moduleNo)) result.add(l._id);
+      }
+    }
+  }
+
+  return result;
+}
+
+/** Auto-débloque une leçon curriculum pour ce user, avec guard tier strict.
+ *  Single source of truth appelée par `coaching.completeSession`,
+ *  `fireflies.attach` et `coaching.autoCompleteSessions`.
+ *
+ *  Règles :
+ *   - Admin → no-op (a tout d'office, pas de stockage).
+ *   - Pas de coaching actif → no-op (donnée propre, pas de pollution).
+ *   - Leçon hors-curriculum coaching (moduleNo ∉ {1,2,3}) → no-op.
+ *   - duree="1mois" + leçon hors M1 → no-op (évite la donnée sale qui
+ *     deviendrait rétro-accessible si l'élève upgrade en 3mois plus tard).
+ *   - Sinon → push lessonId dans `unlockedLessonIds` si pas déjà présent.
+ *
+ *  Idempotent (safe à appeler depuis plusieurs sources sur la même leçon).
+ */
+export async function maybeAutoUnlockLesson(
+  ctx: GenericMutationCtx<DataModel>,
+  userId: Id<"users">,
+  lessonId: Id<"curriculum">
+): Promise<{ unlocked: boolean; reason?: string }> {
+  const user = await ctx.db.get(userId);
+  if (!user) return { unlocked: false, reason: "user introuvable" };
+  if (user.role === "admin") return { unlocked: false, reason: "admin" };
+
+  const lesson = await ctx.db.get(lessonId);
+  if (!lesson) return { unlocked: false, reason: "lesson introuvable" };
+  if (!(COACHING_MODULE_ORDERS as readonly number[]).includes(lesson.moduleNo)) {
+    return { unlocked: false, reason: "lesson hors curriculum coaching" };
+  }
+
+  const purchase = await getActivePurchase(ctx, user);
+  if (!purchase || purchase.tier !== "coaching") {
+    return { unlocked: false, reason: "pas de coaching actif" };
+  }
+
+  // Guard tier strict : 1mois ne peut débloquer que M1.
+  if (purchase.duree === "1mois" && lesson.moduleNo !== 1) {
+    return { unlocked: false, reason: "1mois ne peut pas débloquer M2/M3" };
+  }
+
+  const current = user.unlockedLessonIds ?? [];
+  if (current.includes(lessonId)) return { unlocked: false, reason: "déjà débloquée" };
+
+  await ctx.db.patch(userId, {
+    unlockedLessonIds: [...current, lessonId],
+  });
+  return { unlocked: true };
 }
 
 /** Récupère le `module.order` d'un exercice (via son lesson). Renvoie null si
@@ -155,5 +263,26 @@ export async function maybeAutoUnlockNextModule(
   await ctx.db.patch(userId, {
     unlockedModules: [...(user.unlockedModules ?? []), next.order],
   });
+
+  // Réconciliation legacy → granularité fine : la timeline /studio ne lit
+  // que `unlockedLessonIds`. Sans ça, l'auto-unlock via exos écrirait dans
+  // le legacy seul et Walid verrait M{next} encore verrouillé dans la fiche
+  // élève. On expand donc TOUTES les leçons curriculum du module suivant.
+  if ((COACHING_MODULE_ORDERS as readonly number[]).includes(next.order)) {
+    const newLessons = await ctx.db
+      .query("curriculum")
+      .filter((q) => q.eq(q.field("moduleNo"), next.order))
+      .collect();
+    const currentLessonIds = user.unlockedLessonIds ?? [];
+    const idsToAdd = newLessons
+      .map((l) => l._id)
+      .filter((id) => !currentLessonIds.includes(id));
+    if (idsToAdd.length > 0) {
+      await ctx.db.patch(userId, {
+        unlockedLessonIds: [...currentLessonIds, ...idsToAdd],
+      });
+    }
+  }
+
   return { unlocked: next.order };
 }

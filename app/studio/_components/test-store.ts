@@ -145,9 +145,14 @@ type StoreState = {
   onboardingByUser: Record<string, OnboardingEntity>;
   eventsByUser: Record<string, EventEntity[]>;
   campaigns: CampaignEntity[];
-  /** Modules débloqués manuellement (toggle admin) — clé = userId. M1 implicite
-   *  donc jamais stocké. */
+  /** Modules débloqués manuellement (LEGACY, conservé pour la rétrocompat
+   *  côté Convex). M1 implicite donc jamais stocké. Les nouveaux toggles UI
+   *  passent par `unlockedLessonIdsByUser`. */
   unlockedModulesByUser: Record<string, number[]>;
+  /** Leçons débloquées au niveau granulaire (timeline parcours interactive).
+   *  Clé = userId, valeur = liste d'Id<"curriculum"> (sérialisés en string).
+   *  M1 implicite donc jamais stocké. */
+  unlockedLessonIdsByUser: Record<string, string[]>;
 };
 
 // Helpers de casting d'id (les ids démo ne sont jamais envoyés à Convex en test).
@@ -553,7 +558,13 @@ function createInitialState(): StoreState {
     onboardingByUser: seedOnboarding(now),
     eventsByUser: seedEvents(now),
     campaigns: seedCampaigns(now),
-    unlockedModulesByUser: { u_mxlo: [2] }, // Maxime a M1 implicite + M2 débloqué
+    // LEGACY (rétrocompat). Maxime garde M2 dans son legacy pour démo.
+    unlockedModulesByUser: { u_mxlo: [2] },
+    // NOUVEAU : Maxime a 2 leçons individuelles débloquées dans M2 pour
+    // illustrer la granularité fine (timeline parcours interactive).
+    unlockedLessonIdsByUser: {
+      u_mxlo: ["cur_m2l1", "cur_m2l2"],
+    },
   };
 }
 
@@ -572,6 +583,7 @@ function emit() {
     eventsByUser: state.eventsByUser,
     campaigns: state.campaigns,
     unlockedModulesByUser: state.unlockedModulesByUser,
+    unlockedLessonIdsByUser: state.unlockedLessonIdsByUser,
   };
   listeners.forEach((cb) => cb());
 }
@@ -722,6 +734,20 @@ export const testStore = {
         : s
     );
     if (target) {
+      // Auto-unlock côté granularité fine : mirroir exact de
+      // `convex/coaching.completeSession`. Si le RDV cible une leçon du
+      // curriculum, on l'ajoute à `unlockedLessonIdsByUser` du user.
+      if (target.curriculumItemId) {
+        const userKey = target.userId as unknown as string;
+        const lessonKey = target.curriculumItemId as unknown as string;
+        const cur = state.unlockedLessonIdsByUser[userKey] ?? [];
+        if (!cur.includes(lessonKey)) {
+          state.unlockedLessonIdsByUser = {
+            ...state.unlockedLessonIdsByUser,
+            [userKey]: [...cur, lessonKey],
+          };
+        }
+      }
       pushEvent({
         userId: target.userId,
         type: "rdv.completed",
@@ -843,21 +869,23 @@ export const testStore = {
     emit();
   },
 
-  /** Toggle d'un module débloqué pour un élève (M1 implicite, jamais stocké). */
-  toggleUnlockedModule(input: {
+  /** Toggle d'une LEÇON débloquée pour un élève (timeline parcours interactive).
+   *  M1 implicite côté Convex : ici on accepte quand même les toggles M1 pour
+   *  la démo (le helper côté UI évite de re-locker une leçon M1 en pratique). */
+  toggleUnlockedLesson(input: {
     userId: Id<"users">;
-    moduleNo: number;
+    lessonId: Id<"curriculum">;
     on: boolean;
   }): void {
-    if (input.moduleNo === 1) return;
     const key = input.userId as unknown as string;
-    const cur = state.unlockedModulesByUser[key] ?? [];
+    const lessonKey = input.lessonId as unknown as string;
+    const cur = state.unlockedLessonIdsByUser[key] ?? [];
     const set = new Set(cur);
-    if (input.on) set.add(input.moduleNo);
-    else set.delete(input.moduleNo);
-    state.unlockedModulesByUser = {
-      ...state.unlockedModulesByUser,
-      [key]: [...set].sort((a, b) => a - b),
+    if (input.on) set.add(lessonKey);
+    else set.delete(lessonKey);
+    state.unlockedLessonIdsByUser = {
+      ...state.unlockedLessonIdsByUser,
+      [key]: [...set],
     };
     emit();
   },
@@ -1266,6 +1294,7 @@ export function selectMemberDetail(id: string): MemberDetail {
     xp: 1240,
     streakDays: 9,
     unlockedModules: state.unlockedModulesByUser[key],
+    unlockedLessonIds: (state.unlockedLessonIdsByUser[key] ?? []) as unknown as Id<"curriculum">[],
   };
 
   return {

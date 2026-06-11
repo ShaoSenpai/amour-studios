@@ -561,13 +561,24 @@ http.route({
   handler: httpAction(async (ctx, request) => {
     const rawBody = await request.text();
 
-    // Vérification de signature (si une clé est configurée).
+    // Vérification de signature. En prod (frugal-curlew-831), la clé EST
+    // obligatoire — fail-closed : sans clé, on rejette pour éviter qu'un
+    // attaquant POST un faux invitee.created et crée des sessions.
+    // En dev (autre déploiement), on log un warn et on accepte (pour les
+    // tests locaux qui n'ont pas forcément la clé).
     const signingKey = process.env.CALENDLY_WEBHOOK_SIGNING_KEY;
     if (signingKey) {
       const header = request.headers.get("Calendly-Webhook-Signature") || "";
-      const parts = Object.fromEntries(
-        header.split(",").map((kv) => kv.split("=").map((s) => s.trim()) as [string, string])
-      );
+      // Parsing tolérant : on découpe sur la 1re "=" de chaque segment pour
+      // ne pas casser si la valeur (v1, en hex/base64) contient des "=" de
+      // padding. Le split.map précédent castait `as [string, string]` ce
+      // qui produisait un tuple invalide quand le segment était mal formé.
+      const parts: Record<string, string> = {};
+      for (const segment of header.split(",")) {
+        const eqIdx = segment.indexOf("=");
+        if (eqIdx === -1) continue;
+        parts[segment.slice(0, eqIdx).trim()] = segment.slice(eqIdx + 1).trim();
+      }
       const t = parts["t"];
       const v1 = parts["v1"];
       const expected = t ? await hmacHex(signingKey, `${t}.${rawBody}`) : "";
@@ -575,8 +586,11 @@ http.route({
         console.warn("Calendly webhook: signature invalide");
         return new Response("Invalid signature", { status: 401 });
       }
+    } else if (IS_PROD) {
+      console.error("CALENDLY_WEBHOOK_SIGNING_KEY absent en prod — webhook rejeté");
+      return new Response("Missing signing key", { status: 401 });
     } else {
-      console.warn("CALENDLY_WEBHOOK_SIGNING_KEY non défini — signature non vérifiée");
+      console.warn("CALENDLY_WEBHOOK_SIGNING_KEY non défini (dev) — signature non vérifiée");
     }
 
     let data: {

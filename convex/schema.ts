@@ -62,7 +62,18 @@ export default defineSchema({
     // ajoutés ici par l'admin (toggle dans la fiche élève) OU automatiquement
     // par exerciseResponses.complete quand tous les exos du module précédent
     // sont terminés. duree="1mois" ignore ce champ (limité à M1).
+    //
+    // LEGACY (2026-06) — conservé pour rétrocompat. Les nouveaux toggles fins
+    // se font au niveau LEÇON via `unlockedLessonIds` (timeline parcours
+    // interactive). Si une ancienne row porte `unlockedModules: [n]`, le
+    // helper `accessibleLessons` l'expande à toutes les leçons du module.
     unlockedModules: v.optional(v.array(v.number())),
+
+    // Leçons débloquées au niveau granulaire (toggle cercle par cercle dans
+    // la timeline parcours de la fiche élève /studio). M1 reste implicite
+    // (jamais stocké, jamais lockable). Pour duree="1mois" : ignoré (limité
+    // à M1). Pour duree="3mois" : c'est ce qui pilote le gating /exos.
+    unlockedLessonIds: v.optional(v.array(v.id("curriculum"))),
   })
     .index("email", ["email"])
     .index("phone", ["phone"])

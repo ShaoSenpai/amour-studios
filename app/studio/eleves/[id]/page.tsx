@@ -3,7 +3,7 @@
 import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { use, useState, useRef, useEffect, useLayoutEffect } from "react";
+import { use, useState, useRef, useEffect, useLayoutEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import Link from "next/link";
@@ -141,8 +141,11 @@ export default function FichePage({
     testMode ? "skip" : { userId }
   );
   const exercisesList = testMode ? (selectExercisesForUser() ?? []) : (liveExercises ?? []);
-  const unlockModuleMut = useMutation(api.users.unlockModule);
-  const lockModuleMut = useMutation(api.users.lockModule);
+  // Mutations granularité fine : toggle lock/unlock par leçon depuis la
+  // timeline parcours (les anciennes mutations modules sont conservées côté
+  // Convex pour rétrocompat mais ne sont plus appelées depuis l'UI).
+  const unlockLessonMut = useMutation(api.users.unlockLesson);
+  const lockLessonMut = useMutation(api.users.lockLesson);
 
   const [editingId, setEditingId] = useState<Id<"coachingSessions"> | null>(null);
   const [draftSummary, setDraftSummary] = useState("");
@@ -168,7 +171,7 @@ export default function FichePage({
     "studio:fiche-layout-v1",
     {
       left: ["parcours", "rdv", "exercises"],
-      right: ["paiement", "discord", "onboarding", "unlocks", "notes", "activite"],
+      right: ["paiement", "discord", "onboarding", "notes", "activite"],
     }
   );
 
@@ -228,6 +231,40 @@ export default function FichePage({
     .filter((s) => s.status === "scheduled")
     .sort((a, b) => a.scheduledAt - b.scheduledAt);
   const past = sessions.filter((s) => s.status !== "scheduled");
+
+  // Prochaine leçon à traiter : 1re leçon du curriculum (par `order`) qui
+  // n'est ni dans doneIds, ni déjà couverte par un RDV scheduled. Sert à
+  // pré-remplir le dialog RDV en mode create → Walid n'a plus à choisir la
+  // leçon à chaque nouveau RDV. Si Walid planifie 3 RDV d'avance, ils se
+  // taggent L1 → L2 → L3 successivement (pas tous sur la même).
+  const bookedLessonIds = useMemo(() => {
+    const s = new Set<string>();
+    for (const sess of sessions) {
+      if (sess.status === "scheduled" && sess.curriculum) {
+        s.add(sess.curriculum._id as unknown as string);
+      }
+    }
+    return s;
+  }, [sessions]);
+  const nextLessonId = useMemo(() => {
+    const sorted = [...curriculum].sort((a, b) => a.order - b.order);
+    const next = sorted.find((it) => {
+      const idStr = it._id as unknown as string;
+      return !doneIds.has(idStr) && !bookedLessonIds.has(idStr);
+    });
+    return (next?._id ?? null) as Id<"curriculum"> | null;
+  }, [curriculum, doneIds, bookedLessonIds]);
+
+  // Set memoized des lessonIds débloqués — évite la nouvelle référence à
+  // chaque render (sinon CurriculumTimeline recompute son state visuel à
+  // chaque tick, et chaque Dot re-render inutilement).
+  const unlockedLessonIdsSet = useMemo(
+    () =>
+      new Set(
+        (user.unlockedLessonIds ?? []).map((id) => id as unknown as string)
+      ),
+    [user.unlockedLessonIds]
+  );
 
   const openCreateRdv = () => setRdv({ mode: "create" });
   const openRescheduleRdv = (s: (typeof sessions)[number]) =>
@@ -573,7 +610,23 @@ export default function FichePage({
     parcours: {
       title: "Parcours",
       body: (
-        <CurriculumTimeline c={c} curriculum={curriculum} doneIds={doneIds} currentId={currentId} />
+        <CurriculumTimeline
+          c={c}
+          curriculum={curriculum}
+          doneIds={doneIds}
+          currentId={currentId}
+          unlockedLessonIds={unlockedLessonIdsSet}
+          duree={purchase?.duree ?? null}
+          onToggleLesson={(lessonId, on) => {
+            const lid = lessonId as unknown as Id<"curriculum">;
+            if (testMode) {
+              testStore.toggleUnlockedLesson({ userId, lessonId: lid, on });
+              return;
+            }
+            if (on) void unlockLessonMut({ userId, lessonId: lid });
+            else void lockLessonMut({ userId, lessonId: lid });
+          }}
+        />
       ),
     },
     rdv: {
@@ -814,25 +867,6 @@ export default function FichePage({
       count: events.length,
       body: <ActivityTimeline c={c} events={events} />,
     },
-    unlocks: {
-      title: "Modules débloqués",
-      body: (
-        <UnlocksBlock
-          c={c}
-          duree={purchase?.duree ?? null}
-          unlockedModules={user.unlockedModules ?? []}
-          onToggle={(moduleNo, on) => {
-            if (testMode) {
-              testStore.toggleUnlockedModule({ userId: user._id, moduleNo, on });
-              toast.success("✓ Enregistré (mode test)");
-              return;
-            }
-            if (on) void unlockModuleMut({ userId, moduleNo }).then(() => toast.success(`Module ${moduleNo} débloqué.`));
-            else void lockModuleMut({ userId, moduleNo }).then(() => toast.success(`Module ${moduleNo} reverrouillé.`));
-          }}
-        />
-      ),
-    },
     exercises: {
       title: "Exercices",
       count: exercisesList.filter((e) => e.state === "completed").length,
@@ -930,6 +964,8 @@ export default function FichePage({
                 type: rdv.type,
                 curriculumItemId: rdv.curriculumItemId,
               }
+            : rdv && rdv.mode === "create" && nextLessonId
+            ? { curriculumItemId: nextLessonId }
             : undefined
         }
       />
@@ -1037,11 +1073,17 @@ function CurriculumTimeline({
   curriculum,
   doneIds,
   currentId,
+  unlockedLessonIds,
+  duree,
+  onToggleLesson,
 }: {
   c: C;
   curriculum: CurItem[];
   doneIds: Set<string>;
   currentId: string | null;
+  unlockedLessonIds: Set<string>;
+  duree: "1mois" | "3mois" | null;
+  onToggleLesson: (lessonId: string, on: boolean) => void;
 }) {
   const items = [...curriculum].sort((a, b) => a.order - b.order);
 
@@ -1074,6 +1116,10 @@ function CurriculumTimeline({
   }
   moduleOrder.sort((a, b) => a - b);
 
+  // Helper : une leçon est-elle débloquée ? M1 toujours implicite.
+  const isUnlocked = (item: CurItem) =>
+    item.moduleNo === 1 || unlockedLessonIds.has(item._id as unknown as string);
+
   return (
     <>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18, gap: 12, flexWrap: "wrap" }}>
@@ -1103,25 +1149,81 @@ function CurriculumTimeline({
           const lessons = (byModule.get(mNo) ?? []).slice().sort((a, b) => a.lessonNo - b.lessonNo);
           const mTitle = lessons[0]?.moduleTitle ?? "";
           const mDone = lessons.filter((l) => doneIds.has(l._id as unknown as string)).length;
+          // Engagement 1 mois : seul M1 est manipulable, M2/M3 sont verrouillés.
+          const restrictedBy1Mois = duree === "1mois" && mNo !== 1;
+          // Module entièrement verrouillé : aucune leçon débloquée (hors M1).
+          const moduleAllLocked =
+            mNo !== 1 && lessons.every((l) => !isUnlocked(l));
+          const rowOpacity = restrictedBy1Mois || moduleAllLocked ? 0.5 : 1;
           return (
             <div
               key={mNo}
-              style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 14,
+                flexWrap: "wrap",
+                opacity: rowOpacity,
+                transition: "opacity 160ms ease",
+              }}
+              title={
+                restrictedBy1Mois
+                  ? "Engagement 3 mois requis"
+                  : moduleAllLocked
+                  ? "Module verrouillé · click sur un cercle pour débloquer une leçon"
+                  : undefined
+              }
             >
               <div style={{ minWidth: 150, flex: "1 1 150px" }}>
-                <div style={{ ...num, fontSize: 14.5, fontWeight: 500 }}>
+                <div style={{ ...num, fontSize: 14.5, fontWeight: 500, display: "flex", alignItems: "center", gap: 6 }}>
                   M{mNo} · {mTitle}
+                  {(moduleAllLocked || restrictedBy1Mois) && (
+                    <span aria-label="verrouillé" style={{ fontSize: 12, opacity: 0.7 }}>🔒</span>
+                  )}
                 </div>
-                <div style={{ ...mono, color: c.faint, fontSize: 9, marginTop: 2 }}>{mDone}/{lessons.length}</div>
+                <div style={{ ...mono, color: c.faint, fontSize: 9, marginTop: 2 }}>
+                  {restrictedBy1Mois || moduleAllLocked
+                    ? "Verrouillé"
+                    : `${mDone}/${lessons.length}`}
+                </div>
               </div>
               <div style={{ display: "flex", alignItems: "center" }}>
                 {lessons.map((l, i) => {
                   const idStr = l._id as unknown as string;
                   const isCurrent = currentId != null && idStr === currentId;
                   const isDone = doneIds.has(idStr);
+                  const unlocked = isUnlocked(l);
+                  // Détermine l'état visuel + interactivité.
+                  let state: "done" | "current" | "todo" | "locked";
+                  if (isDone) state = "done";
+                  else if (isCurrent) state = "current";
+                  else if (unlocked) state = "todo";
+                  else state = "locked";
+                  // Click handler : on ne touche jamais aux leçons faites/en cours
+                  // (sécurité pour pas perdre la progression). M1 est implicite
+                  // pour tout coaching actif et n'est jamais stockée — le
+                  // backend court-circuite silencieusement. On rend donc M1
+                  // visuellement non-cliquable pour éviter une UX confuse
+                  // (curseur pointer + zéro feedback au click).
+                  const canClick =
+                    !restrictedBy1Mois &&
+                    l.moduleNo !== 1 &&
+                    !isDone &&
+                    !isCurrent &&
+                    (state === "todo" || state === "locked");
+                  const handleClick = () => {
+                    if (!canClick) return;
+                    onToggleLesson(idStr, state === "locked");
+                  };
                   return (
                     <div key={idStr} style={{ display: "flex", alignItems: "center" }}>
-                      <Dot c={c} state={isCurrent ? "current" : isDone ? "done" : "todo"} lessonNo={l.lessonNo} />
+                      <Dot
+                        c={c}
+                        state={state}
+                        lessonNo={l.lessonNo}
+                        canClick={canClick}
+                        onClick={handleClick}
+                      />
                       {i < lessons.length - 1 && (
                         <div style={{ width: 10, height: 2, background: c.line }} />
                       )}
@@ -1136,7 +1238,7 @@ function CurriculumTimeline({
 
       {/* Légende */}
       <div style={{ ...mono, color: c.faint, fontSize: 9, marginTop: 16 }}>
-        ✓ faite · ◉ en cours · ○ à venir
+        ✓ faite · ◉ en cours · ○ à venir · 🔒 verrouillée · click sur un cercle pour (dé)verrouiller
       </div>
     </>
   );
@@ -1146,10 +1248,14 @@ function Dot({
   c,
   state,
   lessonNo,
+  canClick,
+  onClick,
 }: {
   c: C;
-  state: "done" | "current" | "todo";
+  state: "done" | "current" | "todo" | "locked";
   lessonNo: number;
+  canClick?: boolean;
+  onClick?: () => void;
 }) {
   const base: React.CSSProperties = {
     width: 28,
@@ -1162,6 +1268,8 @@ function Dot({
     fontSize: 10.5,
     fontWeight: 500,
     flexShrink: 0,
+    cursor: canClick ? "pointer" : "default",
+    transition: "transform 120ms ease, box-shadow 160ms ease, background 160ms ease",
   };
   if (state === "done") {
     return (
@@ -1189,100 +1297,76 @@ function Dot({
       </div>
     );
   }
+  if (state === "locked") {
+    return (
+      <div
+        role={canClick ? "button" : undefined}
+        tabIndex={canClick ? 0 : -1}
+        aria-label={`Déverrouiller la leçon ${lessonNo}`}
+        title={
+          canClick
+            ? `Leçon ${lessonNo} · verrouillée · click pour débloquer`
+            : `Leçon ${lessonNo} · verrouillée`
+        }
+        onClick={canClick ? onClick : undefined}
+        onKeyDown={
+          canClick
+            ? (e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onClick?.();
+                }
+              }
+            : undefined
+        }
+        style={{
+          ...base,
+          background: c.chip,
+          color: c.faint,
+          border: `1px dashed ${c.line}`,
+          opacity: 0.55,
+        }}
+        onMouseEnter={(e) => {
+          if (canClick) e.currentTarget.style.opacity = "0.85";
+        }}
+        onMouseLeave={(e) => {
+          if (canClick) e.currentTarget.style.opacity = "0.55";
+        }}
+      >
+        🔒
+      </div>
+    );
+  }
   return (
     <div
-      title={`Leçon ${lessonNo} · à venir`}
+      role={canClick ? "button" : undefined}
+      tabIndex={canClick ? 0 : -1}
+      aria-label={canClick ? `Verrouiller la leçon ${lessonNo}` : undefined}
+      title={
+        canClick
+          ? `Leçon ${lessonNo} · à venir · click pour reverrouiller`
+          : `Leçon ${lessonNo} · à venir`
+      }
+      onClick={canClick ? onClick : undefined}
+      onKeyDown={
+        canClick
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onClick?.();
+              }
+            }
+          : undefined
+      }
       style={{ ...base, background: "transparent", color: c.muted, border: `1px solid ${c.line}` }}
+      onMouseEnter={(e) => {
+        if (canClick) e.currentTarget.style.background = c.chip;
+      }}
+      onMouseLeave={(e) => {
+        if (canClick) e.currentTarget.style.background = "transparent";
+      }}
     >
       {lessonNo}
-    </div>
-  );
-}
-
-// Bloc « Modules débloqués » — 3 toggles M1/M2/M3 sur la fiche élève.
-// M1 toujours coché et désactivé (implicite). M2/M3 = toggle direct → mutation.
-function UnlocksBlock({
-  c,
-  duree,
-  unlockedModules,
-  onToggle,
-}: {
-  c: C;
-  duree: "1mois" | "3mois" | null;
-  unlockedModules: number[];
-  onToggle: (moduleNo: number, on: boolean) => void;
-}) {
-  const isLocked3Mois = duree !== "3mois";
-  const modules = [1, 2, 3] as const;
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-      {modules.map((n) => {
-        const implicit = n === 1;
-        const checked = implicit || unlockedModules.includes(n);
-        const disabled = implicit || isLocked3Mois;
-        const tone = checked ? ACCENT : c.muted;
-        return (
-          <button
-            key={n}
-            type="button"
-            disabled={disabled}
-            onClick={() => onToggle(n, !checked)}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-              padding: "12px 14px",
-              borderRadius: 12,
-              background: checked ? `${ACCENT}1A` : c.chip,
-              border: `1px solid ${checked ? `${ACCENT}66` : c.line}`,
-              cursor: disabled ? "default" : "pointer",
-              color: c.text,
-              fontFamily: "inherit",
-              textAlign: "left",
-              opacity: disabled && !implicit ? 0.45 : 1,
-            }}
-          >
-            <span
-              style={{
-                width: 22,
-                height: 22,
-                borderRadius: 7,
-                background: checked ? ACCENT : "transparent",
-                border: `1.5px solid ${checked ? ACCENT : c.line}`,
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#0B0B0B",
-                fontSize: 13,
-                fontWeight: 700,
-                flexShrink: 0,
-              }}
-            >
-              {checked ? "✓" : ""}
-            </span>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 14, fontWeight: 500, color: checked ? c.text : tone }}>
-                Module {n}
-              </div>
-              <div style={{ ...mono, fontSize: 9.5, color: c.muted, marginTop: 2 }}>
-                {implicit
-                  ? "Implicite (coaching = M1 d'office)"
-                  : isLocked3Mois
-                  ? "Engagement 3 mois requis"
-                  : checked
-                  ? "Débloqué"
-                  : "Cliquer pour débloquer manuellement"}
-              </div>
-            </div>
-          </button>
-        );
-      })}
-      {!isLocked3Mois && (
-        <div style={{ ...mono, fontSize: 9.5, color: c.faint, lineHeight: 1.5, marginTop: 4 }}>
-          Auto-déblocage : le module suivant s&apos;ouvre dès que tous les exos
-          du module courant sont terminés.
-        </div>
-      )}
     </div>
   );
 }

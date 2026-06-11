@@ -3,6 +3,7 @@ import { mutation, query, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { requireAdmin } from "./lib/auth";
 import { logEvent } from "./lib/events";
+import { maybeAutoUnlockLesson } from "./lib/access";
 import { Doc, Id } from "./_generated/dataModel";
 
 const DEFAULT_DUR_MS = 45 * 60 * 1000;
@@ -282,7 +283,12 @@ export const completeSession = mutation({
     if (notes !== undefined) patch.notes = notes;
     await ctx.db.patch(sessionId, patch);
     const done = await ctx.db.get(sessionId);
-    if (done)
+    if (done) {
+      // Auto-unlock leçon (helper unique avec guard tier strict — cf.
+      // lib/access.ts → maybeAutoUnlockLesson). Idempotent.
+      if (done.curriculumItemId) {
+        await maybeAutoUnlockLesson(ctx, done.userId, done.curriculumItemId);
+      }
       await logEvent(ctx, {
         userId: done.userId,
         type: "rdv.completed",
@@ -290,6 +296,7 @@ export const completeSession = mutation({
         actor: "coach",
         meta: { sessionId, curriculumItemId: done.curriculumItemId ?? null },
       });
+    }
   },
 });
 
@@ -301,23 +308,30 @@ export const cancelSession = mutation({
   },
   handler: async (ctx, { sessionId, noShow }) => {
     await requireAdmin(ctx);
+    // On capture le googleEventId AVANT le patch (le patch va le clear).
+    const before = await ctx.db.get(sessionId);
+    const googleEventId = before?.googleEventId;
+    // Marque manual + clear googleEventId pour que la session soit hors-scope
+    // du heritable Calendly (upsertCalendlySession ne tagge alors plus son
+    // curriculumItemId comme un legs pour les futurs RDV Calendly du user).
     await ctx.db.patch(sessionId, {
       status: noShow ? "no_show" : "canceled",
+      source: "manual",
+      googleEventId: undefined,
       updatedAt: Date.now(),
     });
-    // Annuler aussi l'événement Google (notifie les invités).
-    const s = await ctx.db.get(sessionId);
-    if (s)
+    if (before)
       await logEvent(ctx, {
-        userId: s.userId,
+        userId: before.userId,
         type: noShow ? "rdv.no_show" : "rdv.canceled",
         title: noShow ? "RDV no-show" : "RDV annulé",
         actor: "coach",
         meta: { sessionId },
       });
-    if (s?.googleEventId) {
+    // Annuler aussi l'événement Google (notifie les invités).
+    if (googleEventId) {
       await ctx.scheduler.runAfter(0, internal.google.syncDelete, {
-        googleEventId: s.googleEventId,
+        googleEventId,
       });
     }
   },
@@ -357,6 +371,12 @@ export const autoCompleteSessions = internalMutation({
       const endPlusGrace = (s.endAt ?? s.scheduledAt + 45 * 60 * 1000) + GRACE;
       if (endPlusGrace > now) continue;
       await ctx.db.patch(s._id, { status: "completed", updatedAt: now });
+      // Mirroir des autres chemins de complétion : auto-unlock leçon si
+      // le RDV pointe sur une leçon curriculum. Évite que la leçon reste
+      // lockée si Fireflies tombe en panne mais le cron complète le RDV.
+      if (s.curriculumItemId) {
+        await maybeAutoUnlockLesson(ctx, s.userId, s.curriculumItemId);
+      }
       await logEvent(ctx, {
         userId: s.userId,
         type: "rdv.completed",
@@ -1029,6 +1049,41 @@ export const upsertCalendlySession = internalMutation({
     const now = Date.now();
     const isOnboarding = !user.coachingStage || user.coachingStage === "onboarding";
 
+    // Convention produit : Calendly = TOUJOURS le 1er RDV = M1 Leçon 1.
+    // Les RDV suivants sont planifiés manuellement entre Walid et l'élève
+    // (jusqu'à ce qu'on ouvre un sélecteur de créneaux dédié plus tard).
+    // → On auto-attache le curriculumItemId au premier item du curriculum
+    //   (trié par `order` croissant). Si l'admin veut dévier, le dialog RDV
+    //   permet de réassigner à la main.
+    const firstLesson = await ctx.db
+      .query("curriculum")
+      .withIndex("by_order")
+      .order("asc")
+      .first();
+    let autoCurriculumItemId = firstLesson?._id;
+
+    // Reschedule Calendly : invitee.canceled (ancienne URI) + invitee.created
+    // (nouvelle URI) → si on trouve une session de ce user récemment annulée
+    // (< 24h) qui avait un curriculumItemId tagué (potentiellement édité à la
+    // main par Walid), on l'hérite plutôt que de retomber sur M1 L1.
+    const RESCHEDULE_WINDOW = 24 * 60 * 60 * 1000;
+    const recentCanceled = await ctx.db
+      .query("coachingSessions")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect();
+    const heritable = recentCanceled
+      .filter(
+        (s) =>
+          s.status === "canceled" &&
+          s.source === "calendly" &&
+          s.curriculumItemId &&
+          now - (s.updatedAt ?? 0) < RESCHEDULE_WINDOW
+      )
+      .sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0))[0];
+    if (heritable?.curriculumItemId) {
+      autoCurriculumItemId = heritable.curriculumItemId;
+    }
+
     const existing = await ctx.db
       .query("coachingSessions")
       .withIndex("by_calendly_event", (q) =>
@@ -1037,13 +1092,19 @@ export const upsertCalendlySession = internalMutation({
       .first();
 
     if (existing) {
-      await ctx.db.patch(existing._id, {
+      const patch: Record<string, unknown> = {
         userId: user._id,
         scheduledAt: args.scheduledAt,
         endAt: args.endAt,
         status: "scheduled",
         updatedAt: now,
-      });
+      };
+      // On NE re-tagge PLUS le curriculumItemId sur une session déjà
+      // existante : si Walid l'a vidé volontairement (ou si la valeur
+      // courante est legit), un webhook Calendly de mise à jour ne doit
+      // pas la re-set en arrière-plan. Le tag M1L1 reste donc uniquement
+      // sur la 1re création (branche insert ci-dessous).
+      await ctx.db.patch(existing._id, patch);
       return {
         matched: true as const,
         sessionId: existing._id,
@@ -1062,6 +1123,7 @@ export const upsertCalendlySession = internalMutation({
       endAt: args.endAt,
       status: "scheduled",
       summary: args.eventName,
+      curriculumItemId: autoCurriculumItemId,
       createdAt: now,
       updatedAt: now,
     });
@@ -1089,7 +1151,25 @@ export const cancelCalendlySession = internalMutation({
       .collect();
     const now = Date.now();
     for (const s of sessions) {
-      await ctx.db.patch(s._id, { status: "canceled", updatedAt: now });
+      // Capture googleEventId AVANT le patch (le patch va le clear).
+      const googleEventId = s.googleEventId;
+      // On garde source="calendly" : ce cancel vient bien d'un webhook
+      // Calendly (invitee.canceled), donc la session reste candidate au
+      // heritable curriculumItemId si l'élève reschedule dans la fenêtre.
+      // Mais on clear googleEventId pour éviter qu'un patch ultérieur ne
+      // tente de re-syncDelete sur un event déjà supprimé.
+      await ctx.db.patch(s._id, {
+        status: "canceled",
+        googleEventId: undefined,
+        updatedAt: now,
+      });
+      // Supprime l'événement Google Meet de l'ancien créneau, sinon il reste
+      // bloqué sur le calendrier de Walid alors que l'élève a reschedule.
+      if (googleEventId) {
+        await ctx.scheduler.runAfter(0, internal.google.syncDelete, {
+          googleEventId,
+        });
+      }
     }
     return { canceled: sessions.length };
   },

@@ -2,6 +2,8 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 import { query, mutation, action, internalQuery } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { COACHING_MODULE_ORDERS, getActivePurchase } from "./lib/access";
+import { logEvent } from "./lib/events";
 
 // ============================================================================
 // Amour Studios — User queries
@@ -322,5 +324,75 @@ export const lockModule = mutation({
     if (!user) throw new Error("User introuvable");
     const next = (user.unlockedModules ?? []).filter((n) => n !== moduleNo);
     await ctx.db.patch(userId, { unlockedModules: next });
+  },
+});
+
+// ─── Toggle au niveau LEÇON (timeline parcours interactive) ─────────────────
+// Granularité fine pilotée depuis la fiche élève /studio. Click sur un cercle
+// de la timeline → unlock/lock cette leçon individuelle. M1 reste implicite
+// (jamais lockable). Pour 1mois, seul M1 est accessible donc les mutations
+// sur M2/M3 sont autorisées côté backend mais ignorées côté UI (tooltip).
+
+export const unlockLesson = mutation({
+  args: { userId: v.id("users"), lessonId: v.id("curriculum") },
+  handler: async (ctx, { userId, lessonId }) => {
+    await requireAdminUser(ctx);
+    const lesson = await ctx.db.get(lessonId);
+    if (!lesson) throw new Error("Leçon introuvable");
+    // M1 implicite pour tout coaching actif : jamais stockée. Court-circuit
+    // qui ne polluera pas unlockedLessonIds avec des leçons M1.
+    if (lesson.moduleNo === 1) return;
+    // Scope coaching : on refuse de débloquer une leçon hors {M1, M2, M3}.
+    if (!(COACHING_MODULE_ORDERS as readonly number[]).includes(lesson.moduleNo)) {
+      throw new Error(`Leçon hors curriculum coaching (M${lesson.moduleNo})`);
+    }
+    const user = await ctx.db.get(userId);
+    if (!user) throw new Error("User introuvable");
+    // Tier guard : pas de coaching actif → on refuse (évite donnée sale
+    // qui deviendrait rétro-accessible à un futur upgrade).
+    const purchase = await getActivePurchase(ctx, user);
+    if (!purchase || purchase.tier !== "coaching") {
+      throw new Error("Pas de coaching actif");
+    }
+    if (purchase.duree === "1mois" && lesson.moduleNo !== 1) {
+      throw new Error(`Engagement 3 mois requis pour M${lesson.moduleNo}`);
+    }
+    const current = user.unlockedLessonIds ?? [];
+    if (current.includes(lessonId)) return; // déjà débloquée
+    await ctx.db.patch(userId, {
+      unlockedLessonIds: [...current, lessonId],
+    });
+    await logEvent(ctx, {
+      userId,
+      type: "lesson.unlocked.manual",
+      title: `Leçon M${lesson.moduleNo}L${lesson.lessonNo} débloquée (manuel)`,
+      actor: "coach",
+      meta: { lessonId, moduleNo: lesson.moduleNo, lessonNo: lesson.lessonNo },
+    });
+  },
+});
+
+export const lockLesson = mutation({
+  args: { userId: v.id("users"), lessonId: v.id("curriculum") },
+  handler: async (ctx, { userId, lessonId }) => {
+    await requireAdminUser(ctx);
+    // Refuse de retirer une leçon de M1 (implicite pour tout coaching actif).
+    const lesson = await ctx.db.get(lessonId);
+    if (lesson?.moduleNo === 1) return;
+    const user = await ctx.db.get(userId);
+    if (!user) throw new Error("User introuvable");
+    const before = user.unlockedLessonIds ?? [];
+    const next = before.filter((id) => id !== lessonId);
+    if (next.length === before.length) return; // n'était pas débloquée → no-op
+    await ctx.db.patch(userId, { unlockedLessonIds: next });
+    if (lesson) {
+      await logEvent(ctx, {
+        userId,
+        type: "lesson.locked.manual",
+        title: `Leçon M${lesson.moduleNo}L${lesson.lessonNo} verrouillée (manuel)`,
+        actor: "coach",
+        meta: { lessonId, moduleNo: lesson.moduleNo, lessonNo: lesson.lessonNo },
+      });
+    }
   },
 });

@@ -310,7 +310,7 @@ function ClaimInner() {
     return (
       <Screen>
         <Header
-          tag="◦ VIP ACTIF"
+          tag="◦ ACCÈS ACTIF"
           title="Bienvenue dans Amour Studios."
           italicWord="Amour Studios"
         />
@@ -320,14 +320,14 @@ function ClaimInner() {
             className="font-mono text-sm text-[#2B7A6F]"
             style={fontBody}
           >
-            Ton accès VIP est activé. Rôle Discord attribué.
+            Ton accès est activé. Rôle Discord attribué.
           </p>
         </div>
         <p
           className="font-mono text-xs text-foreground/50"
           style={fontBody}
         >
-          ◦ Redirection automatique vers la formation…
+          ◦ Redirection automatique vers ton espace…
         </p>
       </Screen>
     );
@@ -412,7 +412,7 @@ function HasDiscordScreen({
           className="mb-8 font-mono text-sm text-foreground/70"
           style={fontBody}
         >
-          L&apos;accès à ta formation + la communauté VIP se fait via Discord.
+          L&apos;accès à ton espace + la communauté se fait via Discord.
           Choisis ton cas :
         </p>
         <div className="flex flex-col gap-3">
@@ -487,7 +487,7 @@ function HasDiscordScreen({
         {discordInvite && (
           <Step
             n={2}
-            title="Rejoins notre serveur VIP"
+            title="Rejoins notre serveur Discord"
             action={
               <a
                 href={discordInvite}

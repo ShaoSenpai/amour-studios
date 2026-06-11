@@ -50,9 +50,9 @@ const dmMono = DM_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Amour Studios — Formation pour artistes musique",
+  title: "Amour Studios — Coaching & communauté pour artistes musique",
   description:
-    "Maîtrise la création de contenu pour devenir visible en tant qu'artiste musical. Formation vidéo privée et communauté Discord.",
+    "Deviens visible en tant qu'artiste musical : coaching personnalisé et communauté Discord.",
 };
 
 export const viewport: Viewport = {

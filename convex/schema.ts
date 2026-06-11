@@ -122,6 +122,11 @@ export default defineSchema({
     expiresAt: v.optional(v.number()),           // accès temporaire
     revokedAt: v.optional(v.number()),
     revokedReason: v.optional(v.string()),
+    // Dernière relance « paiement non activé » (purchase payé mais jamais lié
+    // à un compte). Pilote le cron remindUnactivatedPurchases (idempotence).
+    activationReminderAt: v.optional(v.number()),
+    // Dernière relance « renouvellement J-7 » (coaching 3 mois proche de la fin).
+    renewalReminderAt: v.optional(v.number()),
   })
     .index("by_email", ["email"])
     .index("by_stripe_session", ["stripeSessionId"])
@@ -220,6 +225,9 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_scheduledAt", ["scheduledAt"])
     .index("by_status", ["status"])
+    // Index composé : autoCompleteSessions interroge status="scheduled" sur une
+    // fenêtre temporelle bornée au lieu de scanner TOUT l'historique passé.
+    .index("by_status_scheduledAt", ["status", "scheduledAt"])
     .index("by_calendly_event", ["calendlyEventUri"]),
 
   modules: defineTable({
@@ -459,4 +467,42 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_user_unread", ["userId", "read"]),
+
+  // Idempotence des webhooks Stripe. Stripe livre at-least-once et rejoue sur
+  // toute réponse non-2xx : on enregistre chaque event.id traité pour ne pas
+  // re-déclencher les side-effects (DM, emails, alertes) lors d'un retry.
+  processedStripeEvents: defineTable({
+    eventId: v.string(),
+    type: v.string(),
+    processedAt: v.number(),
+  }).index("by_event", ["eventId"]),
+
+  // Santé des intégrations externes (Google, Fireflies, Resend, Discord…).
+  // Compteur d'échecs consécutifs : on alerte Walid sur Discord au-delà d'un
+  // seuil, et on remet à zéro au premier succès. Évite le fail-silent total.
+  integrationHealth: defineTable({
+    service: v.string(), // "google" | "fireflies" | "resend" | "discord" | "twilio"
+    consecutiveFailures: v.number(),
+    lastFailureAt: v.optional(v.number()),
+    lastFailureReason: v.optional(v.string()),
+    lastSuccessAt: v.optional(v.number()),
+    alertedAt: v.optional(v.number()), // dernière alerte Discord envoyée
+  }).index("by_service", ["service"]),
+
+  // Transcripts Fireflies orphelins : aucune session ne matche (élève sur un
+  // autre compte Google). Stockés ici pour que Walid les rattache à la main
+  // via /studio au lieu d'un console.warn perdu.
+  firefliesOrphans: defineTable({
+    firefliesId: v.string(),
+    title: v.optional(v.string()),
+    meetingDate: v.number(),
+    participants: v.array(v.string()),
+    transcriptUrl: v.optional(v.string()),
+    aiSummary: v.optional(v.string()),
+    resolvedAt: v.optional(v.number()), // rattaché manuellement
+    resolvedSessionId: v.optional(v.id("coachingSessions")),
+    createdAt: v.number(),
+  })
+    .index("by_fireflies", ["firefliesId"])
+    .index("by_resolved", ["resolvedAt"]),
 });

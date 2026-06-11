@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { action, internalMutation, query } from "./_generated/server";
+import { action, internalAction, internalMutation, query } from "./_generated/server";
 import { api, internal } from "./_generated/api";
 import { requireAdmin } from "./lib/auth";
 import { campaignEmailHtml } from "./emails";
@@ -36,10 +36,13 @@ const TWILIO_ENDPOINT = (sid: string) =>
   `https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`;
 
 /**
- * Envoie UN message WhatsApp via Twilio. Interne — appelé en boucle par
- * sendCampaign et par sendTest. Fail-silent si creds absentes (log + ok:false).
+ * Envoie UN message WhatsApp via Twilio. INTERNE — appelé en boucle par
+ * sendCampaign et par sendTest (via internal.campaigns.sendWhatsAppOne).
+ * En `internalAction` : JAMAIS exposé sur l'API publique, donc impossible
+ * d'envoyer un WhatsApp arbitraire au nom d'AMOUR STUDIOS depuis l'extérieur.
+ * Fail-silent si creds absentes (log + ok:false).
  */
-export const sendWhatsAppOne = action({
+export const sendWhatsAppOne = internalAction({
   args: {
     to: v.string(),
     body: v.string(),
@@ -115,7 +118,7 @@ export const sendTest = action({
 
     const dest = toWhatsApp(to);
     if (!dest) return { ok: false };
-    const res = await ctx.runAction(api.campaigns.sendWhatsAppOne, {
+    const res = await ctx.runAction(internal.campaigns.sendWhatsAppOne, {
       to: dest,
       body: text,
     });
@@ -161,7 +164,7 @@ export const sendCampaign = action({
         const dest = toWhatsApp(m.phone);
         if (!dest) continue;
         const text = personalize(body, m.name ?? m.discordUsername ?? "toi");
-        const res = await ctx.runAction(api.campaigns.sendWhatsAppOne, {
+        const res = await ctx.runAction(internal.campaigns.sendWhatsAppOne, {
           to: dest,
           body: text,
         });

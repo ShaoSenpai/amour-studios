@@ -192,7 +192,22 @@ http.route({
       return new Response("Invalid signature", { status: 400 });
     }
 
-    // Traiter les events d'abonnement (Communauté 79€ / Coaching 179€)
+    // Idempotence : Stripe livre at-least-once et rejoue sur réponse non-2xx.
+    // On « claim » l'event.id en tête : si déjà traité, on sort en 200 sans
+    // rejouer les side-effects (DM, emails, alertes, retrait de rôles).
+    const claim = await ctx.runMutation(internal.stripe.claimStripeEvent, {
+      eventId: event.id,
+      type: event.type,
+    });
+    if (claim.duplicate) {
+      console.log(`Stripe event ${event.id} (${event.type}) déjà traité — skip`);
+      return new Response("OK (duplicate)", { status: 200 });
+    }
+
+    // Traiter les events d'abonnement (Communauté 79€ / Coaching 179€).
+    // Wrappé en try/catch : un throw n'entraîne pas de retry Stripe (l'event
+    // est déjà claimé) pour éviter les doubles notifications ; on alerte Walid.
+    try {
     switch (event.type) {
       // ── Création / modification d'abonnement (upgrade, downgrade, statut) ──
       case "customer.subscription.created":
@@ -533,6 +548,19 @@ http.route({
       default:
         // On ignore les autres events
         break;
+    }
+    } catch (err) {
+      console.error(
+        `[stripe webhook] échec traitement ${event.type} (${event.id}):`,
+        err
+      );
+      // L'event reste claimé (pas de retry → pas de double notif). On prévient
+      // Walid pour rattrapage manuel via /studio.
+      await ctx
+        .runAction(internal.discord.postAlertToStaff, {
+          content: `🛑 **Webhook Stripe en échec** — ${event.type} (${event.id}). Traitement incomplet, vérifie /studio.`,
+        })
+        .catch(() => {});
     }
 
     return new Response("OK", { status: 200 });

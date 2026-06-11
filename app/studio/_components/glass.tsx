@@ -23,7 +23,13 @@ export const R = 22;
 
 /** Suit l'attribut data-theme du <html> (cf. components/layout/theme-toggle). */
 export function useIsDark() {
-  const [dark, setDark] = useState(false);
+  // Init lazy : on lit data-theme dès le 1er render (le script inline de
+  // app/layout.tsx le pose avant le paint) → pas de flash crème en dark mode.
+  const [dark, setDark] = useState(
+    () =>
+      typeof document !== "undefined" &&
+      document.documentElement.getAttribute("data-theme") === "dark"
+  );
   useEffect(() => {
     const read = () =>
       setDark(document.documentElement.getAttribute("data-theme") === "dark");
@@ -36,6 +42,24 @@ export function useIsDark() {
     return () => obs.disconnect();
   }, []);
   return dark;
+}
+
+/**
+ * Vrai sous 900px (mobile / petite tablette). Init lazy via matchMedia pour
+ * éviter le flash de layout desktop au montage, puis écoute les changements.
+ */
+export function useIsMobile(query: string = "(max-width: 900px)") {
+  const [mobile, setMobile] = useState(
+    () => typeof window !== "undefined" && window.matchMedia(query).matches
+  );
+  useEffect(() => {
+    const mq = window.matchMedia(query);
+    const read = () => setMobile(mq.matches);
+    read();
+    mq.addEventListener("change", read);
+    return () => mq.removeEventListener("change", read);
+  }, [query]);
+  return mobile;
 }
 
 export function palette(dark: boolean, accent: string = ACCENT) {

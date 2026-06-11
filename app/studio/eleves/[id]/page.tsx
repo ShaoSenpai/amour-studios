@@ -29,6 +29,7 @@ import {
   ACCENT,
   palette,
   useIsDark,
+  useIsMobile,
   mono,
   num,
   Glass,
@@ -105,6 +106,7 @@ export default function FichePage({
   const { id } = use(params);
   const userId = id as Id<"users">;
   const dark = useIsDark();
+  const isMobile = useIsMobile();
   const { testMode } = useTestMode();
   const c = palette(dark, ACCENT);
   // En mode test, l'id de l'URL est un id démo (ex. "u_mxlo") qui n'est pas un
@@ -380,7 +382,9 @@ export default function FichePage({
       toast.success("✓ Enregistré (mode test)");
       return;
     }
-    void completeSession({ sessionId }).then(() => toast.success("Marqué fait."));
+    void completeSession({ sessionId })
+      .then(() => toast.success("Marqué fait."))
+      .catch(() => toast.error("Échec de l'opération, réessaie."));
   };
   const doCancel = (sessionId: Id<"coachingSessions">, noShow = false) => {
     if (testMode) {
@@ -388,9 +392,9 @@ export default function FichePage({
       toast.success("✓ Enregistré (mode test)");
       return;
     }
-    void cancelSession({ sessionId, noShow }).then(() =>
-      toast.success(noShow ? "No-show." : "Annulé.")
-    );
+    void cancelSession({ sessionId, noShow })
+      .then(() => toast.success(noShow ? "No-show." : "Annulé."))
+      .catch(() => toast.error("Échec de l'opération, réessaie."));
   };
   const doDelete = (sessionId: Id<"coachingSessions">) => {
     // Confirmation explicite avant suppression (action destructive).
@@ -405,7 +409,9 @@ export default function FichePage({
             toast.success("✓ Supprimé (mode test)");
             return;
           }
-          void deleteSession({ sessionId }).then(() => toast.success("Supprimé."));
+          void deleteSession({ sessionId })
+            .then(() => toast.success("Supprimé."))
+            .catch(() => toast.error("Échec de l'opération, réessaie."));
         },
       },
       cancel: { label: "Annuler", onClick: () => {} },
@@ -429,9 +435,9 @@ export default function FichePage({
       toast.success("✓ Enregistré (mode test)");
       return;
     }
-    void updateSession({ sessionId: s._id, status: "scheduled" }).then(() =>
-      toast.success("Remis à venir.")
-    );
+    void updateSession({ sessionId: s._id, status: "scheduled" })
+      .then(() => toast.success("Remis à venir."))
+      .catch(() => toast.error("Échec de l'opération, réessaie."));
   };
 
   // Mise en avant du bloc « à venir » : contour + fond légèrement teintés accent.
@@ -923,7 +929,7 @@ export default function FichePage({
         </Glass>
 
         {/* Main grid — blocs repliables & réordonnables par colonne (drag) */}
-        <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.55fr) minmax(0,1fr)", gap: 16, alignItems: "start" }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0,1.55fr) minmax(0,1fr)", gap: 16, alignItems: "start" }}>
           {(["left", "right"] as const).map((col) => (
             <SortableColumn key={col} ids={orders[col]} onReorder={(ids) => setOrder(col, ids)}>
               {orders[col].map((bid) => {

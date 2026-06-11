@@ -12,6 +12,7 @@ import {
   ACCENT,
   palette,
   useIsDark,
+  useIsMobile,
   mono,
   num,
   Glass,
@@ -101,6 +102,7 @@ function fmtWhen(ts: number): string {
 
 export default function CalendrierPage() {
   const dark = useIsDark();
+  const isMobile = useIsMobile();
   const router = useRouter();
   const { testMode } = useTestMode();
   const c = palette(dark, ACCENT);
@@ -366,7 +368,7 @@ export default function CalendrierPage() {
         </div>
 
         {/* Grid + sidebar */}
-        <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 320px", gap: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0,1fr) 320px", gap: 16 }}>
           {/* Calendar */}
           <Glass c={c} dark={dark} pad={0} style={{ overflow: "hidden" }}>
             {view === "month" ? (
@@ -384,9 +386,10 @@ export default function CalendrierPage() {
                 }}
               />
             ) : (
-            <>
+            // En mobile : scroll horizontal pour ne pas écraser les 7 colonnes.
+            <div style={{ overflowX: isMobile ? "auto" : "visible" }}>
             {/* Day headers */}
-            <div style={{ display: "grid", gridTemplateColumns: `56px repeat(${cols.length}, 1fr)`, borderBottom: `1px solid ${c.line}` }}>
+            <div style={{ display: "grid", gridTemplateColumns: `56px repeat(${cols.length}, 1fr)`, minWidth: isMobile ? 700 : undefined, borderBottom: `1px solid ${c.line}` }}>
               <div />
               {cols.map((d, i) => {
                 const isToday = todayStr === d.toDateString();
@@ -406,7 +409,7 @@ export default function CalendrierPage() {
             </div>
 
             {/* Body */}
-            <div style={{ position: "relative", display: "grid", gridTemplateColumns: `56px repeat(${cols.length}, 1fr)` }}>
+            <div style={{ position: "relative", display: "grid", gridTemplateColumns: `56px repeat(${cols.length}, 1fr)`, minWidth: isMobile ? 700 : undefined }}>
               {/* gutter */}
               <div>
                 {hours.map((h) => (
@@ -536,7 +539,7 @@ export default function CalendrierPage() {
                 );
               })}
             </div>
-            </>
+            </div>
             )}
           </Glass>
 

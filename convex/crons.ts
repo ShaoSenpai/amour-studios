@@ -28,4 +28,21 @@ crons.daily(
   {}
 );
 
+// Paiements non activés : payé mais jamais lié à un compte. Sans ça, un élève
+// qui paye mais ne crée pas son compte est invisible et jamais relancé.
+crons.daily(
+  "remind-unactivated-purchases",
+  { hourUTC: 8, minuteUTC: 0 },
+  internal.lifecycle.remindUnactivatedPurchases,
+  {}
+);
+
+// Renouvellement coaching 3 mois (J-7) : préavis avant la coupure sèche.
+crons.daily(
+  "remind-renewals",
+  { hourUTC: 8, minuteUTC: 30 },
+  internal.lifecycle.remindRenewals,
+  {}
+);
+
 export default crons;

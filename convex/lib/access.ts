@@ -67,18 +67,12 @@ export async function accessibleModules(
   const set = new Set<number>();
   // M1 implicite pour tout coaching actif.
   set.add(1);
-  // duree="3mois" : modules débloqués (manuellement ou auto).
+  // duree="3mois" : modules dérivés des leçons débloquées. SOURCE UNIQUE =
+  // `unlockedLessonIds` (le legacy `unlockedModules` n'est plus lu — migré une
+  // fois vers les leçons, cf. migrations.migrateUnlockedModulesToLessons).
+  // Conséquence : verrouiller une leçon via lockLesson réduit bien l'accès
+  // (plus de divergence où le module restait ouvert côté legacy).
   if (purchase.duree === "3mois") {
-    // (a) legacy `unlockedModules` : tableau d'order.
-    for (const n of user.unlockedModules ?? []) {
-      if (typeof n === "number" && (COACHING_MODULE_ORDERS as readonly number[]).includes(n)) {
-        set.add(n);
-      }
-    }
-    // (b) granularité fine `unlockedLessonIds` : si ≥1 leçon de M existe ici,
-    //     le module M devient accessible côté exos (gating reste par module
-    //     car les `exercises` sont rattachés à des lessons formation, pas au
-    //     curriculum coaching). La UI timeline garde la granularité par leçon.
     const lessonIds = user.unlockedLessonIds ?? [];
     if (lessonIds.length > 0) {
       // Parallélise les reads (Promise.all) au lieu d'un N+1 séquentiel.
@@ -122,16 +116,11 @@ export async function accessibleLessons(
     if (l.moduleNo === 1) result.add(l._id);
   }
 
-  // 3mois : leçons explicitement débloquées + rétrocompat unlockedModules.
+  // 3mois : leçons explicitement débloquées (source unique unlockedLessonIds ;
+  // le legacy unlockedModules a été migré vers ce champ).
   if (purchase.duree === "3mois") {
     for (const lid of user.unlockedLessonIds ?? []) {
       result.add(lid);
-    }
-    const legacyModules = user.unlockedModules ?? [];
-    if (legacyModules.length > 0) {
-      for (const l of m1) {
-        if (legacyModules.includes(l.moduleNo)) result.add(l._id);
-      }
     }
   }
 
@@ -224,8 +213,36 @@ export async function maybeAutoUnlockNextModule(
 
   const user = await ctx.db.get(userId);
   if (!user) return null;
-  const already = new Set(user.unlockedModules ?? []);
-  if (already.has(next.order)) return null;
+
+  // Hors scope coaching (modules 1/2/3) → rien à débloquer côté curriculum.
+  if (!(COACHING_MODULE_ORDERS as readonly number[]).includes(next.order)) {
+    return null;
+  }
+
+  // Guard tier strict (cohérent avec maybeAutoUnlockLesson) : seul un coaching
+  // 3 mois actif débloque M2/M3. Un élève 1 mois qui finit M1 ne débloque RIEN
+  // (sinon donnée sale, rétro-accessible si l'élève upgrade plus tard).
+  if (user.role !== "admin") {
+    const purchase = await getActivePurchase(ctx, user);
+    if (!purchase || purchase.tier !== "coaching" || purchase.duree !== "3mois") {
+      return null;
+    }
+  }
+
+  // Leçons curriculum du module suivant + check « déjà entièrement débloqué ».
+  const nextLessons = await ctx.db
+    .query("curriculum")
+    .filter((q) => q.eq(q.field("moduleNo"), next.order))
+    .collect();
+  const currentLessonIds = new Set(
+    (user.unlockedLessonIds ?? []).map((id) => id as unknown as string)
+  );
+  if (
+    nextLessons.length > 0 &&
+    nextLessons.every((l) => currentLessonIds.has(l._id as unknown as string))
+  ) {
+    return null;
+  }
 
   // Vérifie que TOUS les exos du module courant sont completed pour ce user.
   const lessonsOfModule = await ctx.db
@@ -259,29 +276,16 @@ export async function maybeAutoUnlockNextModule(
     if (!resp || !resp.completedAt) return null; // pas tout fini → on ne débloque pas
   }
 
-  // Tous les exos du module courant sont complétés → on débloque le suivant.
-  await ctx.db.patch(userId, {
-    unlockedModules: [...(user.unlockedModules ?? []), next.order],
-  });
-
-  // Réconciliation legacy → granularité fine : la timeline /studio ne lit
-  // que `unlockedLessonIds`. Sans ça, l'auto-unlock via exos écrirait dans
-  // le legacy seul et Walid verrait M{next} encore verrouillé dans la fiche
-  // élève. On expand donc TOUTES les leçons curriculum du module suivant.
-  if ((COACHING_MODULE_ORDERS as readonly number[]).includes(next.order)) {
-    const newLessons = await ctx.db
-      .query("curriculum")
-      .filter((q) => q.eq(q.field("moduleNo"), next.order))
-      .collect();
-    const currentLessonIds = user.unlockedLessonIds ?? [];
-    const idsToAdd = newLessons
-      .map((l) => l._id)
-      .filter((id) => !currentLessonIds.includes(id));
-    if (idsToAdd.length > 0) {
-      await ctx.db.patch(userId, {
-        unlockedLessonIds: [...currentLessonIds, ...idsToAdd],
-      });
-    }
+  // Tous les exos du module courant sont complétés → on débloque le module
+  // suivant au niveau LEÇON uniquement (source unique `unlockedLessonIds`,
+  // lue par la timeline /studio ET le gating /exos via accessibleModules).
+  const idsToAdd = nextLessons
+    .map((l) => l._id)
+    .filter((id) => !currentLessonIds.has(id as unknown as string));
+  if (idsToAdd.length > 0) {
+    await ctx.db.patch(userId, {
+      unlockedLessonIds: [...(user.unlockedLessonIds ?? []), ...idsToAdd],
+    });
   }
 
   return { unlocked: next.order };

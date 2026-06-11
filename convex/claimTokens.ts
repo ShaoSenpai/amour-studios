@@ -140,7 +140,54 @@ export const claimByToken = mutation({
       });
     }
 
+    // Crée l'onboarding directement depuis le tier du purchase LIÉ. Indispensable
+    // quand l'email Stripe ≠ email Discord : `ensureForUser` cherche le purchase
+    // par email et échouerait, laissant l'élève bloqué en « accès limité » à vie.
+    // Ici on a le purchase en main, donc on bypass le matching email.
+    // createForPurchase est idempotent (no-op si l'onboarding existe déjà).
+    if (accessGranted && purchase.tier) {
+      await ctx.scheduler.runAfter(0, internal.onboardings.createForPurchase, {
+        userId,
+        tier: purchase.tier,
+      });
+    }
+
     return { ok: true, purchaseId: purchase._id };
+  },
+});
+
+/**
+ * Interne : garantit un token de claim VALIDE pour un PaymentIntent. Si le
+ * token existant est expiré ou absent, en crée un neuf (TTL 7j) et le renvoie.
+ * Utilisé par le cron de relance des paiements non activés (le 1er token a pu
+ * expirer avant que l'élève ne crée son compte).
+ */
+export const refreshForPaymentIntent = internalMutation({
+  args: { paymentIntentId: v.string(), email: v.optional(v.string()) },
+  handler: async (ctx, { paymentIntentId, email }) => {
+    const now = Date.now();
+    const existing = await ctx.db
+      .query("claimTokens")
+      .withIndex("by_payment_intent", (q) =>
+        q.eq("paymentIntentId", paymentIntentId)
+      )
+      .first();
+    // Token encore valide et non utilisé → on le réutilise.
+    if (existing && !existing.claimedAt && existing.expiresAt > now) {
+      return existing.token;
+    }
+    // Sinon on en génère un neuf.
+    const array = new Uint8Array(32);
+    crypto.getRandomValues(array);
+    const token = Array.from(array, (b) => b.toString(16).padStart(2, "0")).join("");
+    await ctx.db.insert("claimTokens", {
+      token,
+      paymentIntentId,
+      email: email || existing?.email || undefined,
+      expiresAt: now + TOKEN_TTL_MS,
+      createdAt: now,
+    });
+    return token;
   },
 });
 

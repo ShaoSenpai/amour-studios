@@ -11,6 +11,7 @@ import {
   ACCENT,
   palette,
   useIsDark,
+  useIsMobile,
   mono,
   Avatar,
   glassBtn,
@@ -64,7 +65,11 @@ function StudioShell({
   const dark = useIsDark();
   const { signOut } = useAuthActions();
   const c = palette(dark, ACCENT);
-  const [collapsed, setCollapsed] = useState(false);
+  const isMobile = useIsMobile();
+  const [userCollapsed, setUserCollapsed] = useState(false);
+  // En mobile, la sidebar passe en mode compact (64px, icônes seules) plutôt
+  // qu'un drawer : le contenu reste lisible sans risque de régression desktop.
+  const collapsed = userCollapsed || isMobile;
 
   useEffect(() => {
     if (me === null) router.replace("/studio/login");
@@ -322,7 +327,7 @@ function StudioShell({
               </button>
             )}
             <button
-              onClick={() => setCollapsed((v) => !v)}
+              onClick={() => setUserCollapsed((v) => !v)}
               style={{
                 width: 28,
                 height: 28,

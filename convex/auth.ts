@@ -87,17 +87,28 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
         return existingUserId;
       }
 
-      // Création d'un nouveau user — on initialise tous les champs métier
-      // Puis on cherche un purchase existant avec le même email
+      // Création d'un nouveau user — on initialise tous les champs métier.
+      // Puis on cherche un purchase existant avec le même email (normalisé).
+      // IMPORTANT : on accepte les statuts d'ABONNEMENT (active/past_due) en
+      // plus du legacy "paid" — sinon un payeur coaching était classé « lead
+      // non payé » et restait sans accès. On lie en priorité un coaching actif.
       let purchaseId;
-      if (email) {
-        const purchase = await ctx.db
+      const normEmail = email?.trim().toLowerCase();
+      if (normEmail) {
+        // .filter (pas .withIndex) : le ctx du callback Convex Auth n'expose
+        // pas les index de notre schema. Volume purchases faible → OK.
+        const candidates = await ctx.db
           .query("purchases")
-          .filter((q) => q.eq(q.field("email"), email))
-          .first();
-        if (purchase && purchase.status === "paid") {
-          purchaseId = purchase._id;
-        }
+          .filter((q) => q.eq(q.field("email"), normEmail))
+          .collect();
+        const linkable = candidates.filter(
+          (p) =>
+            p.status === "active" ||
+            p.status === "past_due" ||
+            p.status === "paid"
+        );
+        const chosen = linkable.find((p) => p.tier === "coaching") ?? linkable[0];
+        if (chosen) purchaseId = chosen._id;
       }
 
       const userId = await ctx.db.insert("users", {

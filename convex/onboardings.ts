@@ -813,6 +813,16 @@ export const runDailyRelances = internalAction({
       const link = `${site}/onboarding/${ob.token}`;
       const firstName = ob.firstName ?? contact.firstName ?? null;
 
+      // ── CLAIM AVANT ENVOI (idempotence) ──
+      // On marque la relance comme envoyée AVANT les envois. Si l'action crashe
+      // au milieu (timeout, erreur réseau), elle ne repartira pas en double le
+      // lendemain. Le palier suivant (48h/7j) sert de filet si un envoi échoue.
+      await ctx.runMutation(internal.onboardings._markRelanceSent, {
+        onboardingId: ob._id,
+        level,
+        scenario,
+      });
+
       // ── Email (fail-silent) ──
       if (contact.email) {
         try {
@@ -891,12 +901,6 @@ export const runDailyRelances = internalAction({
         console.log(`🔔 alerte Walid (48h bloqué) — userId=${ob.userId}`);
       }
 
-      // ── Marque la relance comme envoyée (et crée l'event 48h/7j). ──
-      await ctx.runMutation(internal.onboardings._markRelanceSent, {
-        onboardingId: ob._id,
-        level,
-        scenario,
-      });
       sent++;
     }
 

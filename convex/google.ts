@@ -100,9 +100,17 @@ export const syncCreate = internalAction({
         googleEventId: data.id,
         meetUrl,
       });
+      await ctx.runMutation(internal.health.recordSuccess, { service: "google" });
       console.log(`✅ Google event créé (${data.id}) Meet=${meetUrl ?? "—"}`);
     } catch (err) {
       console.warn("⚠️ Google Calendar create échoué:", err);
+      // Échec critique silencieux (token révoqué → tous les RDV sans Meet).
+      await ctx
+        .runMutation(internal.health.recordFailure, {
+          service: "google",
+          reason: err instanceof Error ? err.message : "create failed",
+        })
+        .catch(() => {});
     }
   },
 });

@@ -3,6 +3,7 @@ import { internalAction, internalQuery, internalMutation } from "./_generated/se
 import { internal } from "./_generated/api";
 import { logEvent } from "./lib/events";
 import { maybeAutoUnlockLesson } from "./lib/access";
+import type { Id } from "./_generated/dataModel";
 
 // ============================================================================
 // Fireflies — résumé automatique des calls (Brique D).
@@ -58,11 +59,13 @@ export const sync = internalAction({
       const now = Date.now();
       for (const m of meetings) {
         if (!m.id || !m.date || now - m.date > 7 * 86400000) continue; // < 7 jours
-        const sessionId = await ctx.runQuery(internal.fireflies.findSessionForMeeting, {
+        const match = await ctx.runQuery(internal.fireflies.findSessionForMeeting, {
           dateMs: m.date,
           participants: m.participants ?? [],
         });
-        if (!sessionId) continue;
+        // Ni match ni candidats → réunion hors coaching, on ignore.
+        if (!match.sessionId && !match.hadCandidates) continue;
+
         const det = await ffGraphQL(
           `query($id:String!){ transcript(id:$id){ id transcript_url summary{ overview action_items } } }`,
           { id: m.id }
@@ -75,23 +78,55 @@ export const sync = internalAction({
         const actions = t.summary?.action_items ?? "";
         const aiSummary =
           (overview || "Résumé indisponible") + (actions ? `\n\nActions :\n${actions}` : "");
-        await ctx.runMutation(internal.fireflies.attach, {
-          sessionId,
-          firefliesId: m.id,
-          transcriptUrl: t.transcript_url ?? m.transcript_url,
-          aiSummary,
-        });
+        const transcriptUrl = t.transcript_url ?? m.transcript_url;
+
+        if (match.sessionId) {
+          await ctx.runMutation(internal.fireflies.attach, {
+            sessionId: match.sessionId,
+            firefliesId: m.id,
+            transcriptUrl,
+            aiSummary,
+          });
+        } else {
+          // Orphelin : RDV proches mais aucun match email (élève sur un autre
+          // compte Google). On stocke pour rattachement manuel + alerte Walid,
+          // au lieu d'un console.warn perdu dans les logs.
+          await ctx.runMutation(internal.fireflies.recordOrphan, {
+            firefliesId: m.id,
+            title: m.title,
+            meetingDate: m.date,
+            participants: m.participants ?? [],
+            transcriptUrl,
+            aiSummary,
+          });
+        }
       }
+      await ctx.runMutation(internal.health.recordSuccess, { service: "fireflies" });
     } catch (err) {
       console.warn("⚠️ Fireflies sync échec:", err);
+      await ctx
+        .runMutation(internal.health.recordFailure, {
+          service: "fireflies",
+          reason: err instanceof Error ? err.message : "sync failed",
+        })
+        .catch(() => {});
     }
   },
 });
 
-/** Trouve le RDV correspondant à une réunion Fireflies (heure ± participant). */
+/** Trouve le RDV correspondant à une réunion Fireflies (heure ± participant).
+ *  Renvoie { sessionId, hadCandidates } : hadCandidates=true signale qu'il y
+ *  avait des RDV proches mais aucun match email → vrai orphelin à stocker
+ *  (vs aucune session = réunion hors coaching, à ignorer). */
 export const findSessionForMeeting = internalQuery({
   args: { dateMs: v.number(), participants: v.array(v.string()) },
-  handler: async (ctx, { dateMs, participants }) => {
+  handler: async (
+    ctx,
+    { dateMs, participants }
+  ): Promise<{
+    sessionId: Id<"coachingSessions"> | null;
+    hadCandidates: boolean;
+  }> => {
     const cands = await ctx.db
       .query("coachingSessions")
       .withIndex("by_scheduledAt", (q) =>
@@ -99,21 +134,17 @@ export const findSessionForMeeting = internalQuery({
       )
       .collect();
     const open = cands.filter((s) => !s.firefliesId && s.status !== "canceled");
-    if (open.length === 0) return null;
+    if (open.length === 0) return { sessionId: null, hadCandidates: false };
     const emails = new Set(participants.map((e) => (e || "").toLowerCase()));
     for (const s of open) {
       const u = await ctx.db.get(s.userId);
-      if (u?.email && emails.has(u.email.toLowerCase())) return s._id;
+      if (u?.email && emails.has(u.email.toLowerCase())) {
+        return { sessionId: s._id, hadCandidates: true };
+      }
     }
-    // Aucun match email → on refuse l'attachement. Évite la contamination
-    // cross-élève (transcript de A attribué à B juste parce que B avait un
-    // RDV ±3h plus tard). Le transcript reste « orphelin » côté Fireflies,
-    // Walid peut le rattacher manuellement si besoin.
-    console.warn(
-      `Fireflies: aucun match email pour réunion ${new Date(dateMs).toISOString()} ` +
-        `(${open.length} sessions candidates, participants=${participants.join(",")}). Transcript ignoré.`
-    );
-    return null;
+    // Aucun match email → on refuse l'attachement (anti-contamination cross-élève)
+    // mais il y avait des candidats : c'est un orphelin que Walid devra rattacher.
+    return { sessionId: null, hadCandidates: true };
   },
 });
 
@@ -168,6 +199,43 @@ export const attach = internalMutation({
       title: "Résumé du call ajouté (Fireflies)",
       actor: "fireflies",
       meta: { sessionId },
+    });
+  },
+});
+
+/** Stocke un transcript orphelin (aucun RDV matché par email) pour rattachement
+ *  manuel par Walid + alerte Discord. Idempotent sur firefliesId. */
+export const recordOrphan = internalMutation({
+  args: {
+    firefliesId: v.string(),
+    title: v.optional(v.string()),
+    meetingDate: v.number(),
+    participants: v.array(v.string()),
+    transcriptUrl: v.optional(v.string()),
+    aiSummary: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("firefliesOrphans")
+      .withIndex("by_fireflies", (q) => q.eq("firefliesId", args.firefliesId))
+      .first();
+    if (existing) return; // déjà enregistré
+    await ctx.db.insert("firefliesOrphans", {
+      firefliesId: args.firefliesId,
+      title: args.title,
+      meetingDate: args.meetingDate,
+      participants: args.participants,
+      transcriptUrl: args.transcriptUrl,
+      aiSummary: args.aiSummary,
+      createdAt: Date.now(),
+    });
+    // Alerte Walid une seule fois (à la création de l'orphelin).
+    await ctx.scheduler.runAfter(0, internal.discord.postAlertToStaff, {
+      content:
+        `🟣 **Transcript Fireflies non rattaché**\n` +
+        `Réunion « ${args.title ?? "sans titre"} » (${new Date(args.meetingDate).toLocaleString("fr-FR")}).\n` +
+        `Participants : ${args.participants.join(", ") || "?"}\n` +
+        `→ Aucun RDV ne matche par email. À rattacher manuellement dans /studio.`,
     });
   },
 });

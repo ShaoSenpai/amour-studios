@@ -361,22 +361,24 @@ export const autoCompleteSessions = internalMutation({
   handler: async (ctx) => {
     const now = Date.now();
     const GRACE = 30 * 60 * 1000;
-    const past = await ctx.db
+    // Index composé : on ne lit QUE les RDV encore "scheduled" passés (ensemble
+    // naturellement petit = pipeline de RDV non confirmés), au lieu de scanner
+    // tout l'historique des sessions via by_scheduledAt.
+    const scheduled = await ctx.db
       .query("coachingSessions")
-      .withIndex("by_scheduledAt", (q) => q.lt("scheduledAt", now))
+      .withIndex("by_status_scheduledAt", (q) =>
+        q.eq("status", "scheduled").lt("scheduledAt", now)
+      )
       .collect();
     let completed = 0;
-    for (const s of past) {
-      if (s.status !== "scheduled") continue;
+    for (const s of scheduled) {
       const endPlusGrace = (s.endAt ?? s.scheduledAt + 45 * 60 * 1000) + GRACE;
       if (endPlusGrace > now) continue;
       await ctx.db.patch(s._id, { status: "completed", updatedAt: now });
-      // Mirroir des autres chemins de complétion : auto-unlock leçon si
-      // le RDV pointe sur une leçon curriculum. Évite que la leçon reste
-      // lockée si Fireflies tombe en panne mais le cron complète le RDV.
-      if (s.curriculumItemId) {
-        await maybeAutoUnlockLesson(ctx, s.userId, s.curriculumItemId);
-      }
+      // PAS d'auto-unlock ici : le cron ne PROUVE pas que le call a eu lieu
+      // (l'élève a pu no-show sans que Walid l'ait marqué). Seuls les chemins
+      // avec preuve débloquent la leçon — Fireflies (transcript) et la
+      // complétion manuelle par Walid (completeSession).
       await logEvent(ctx, {
         userId: s.userId,
         type: "rdv.completed",
@@ -1096,9 +1098,16 @@ export const upsertCalendlySession = internalMutation({
         userId: user._id,
         scheduledAt: args.scheduledAt,
         endAt: args.endAt,
-        status: "scheduled",
         updatedAt: now,
       };
+      // Guard de transition : on ne fait JAMAIS revenir une session terminale
+      // (completed / no_show) à "scheduled". Un replay Calendly (invitee.created
+      // re-livré) sur un RDV déjà passé/fait ne doit pas écraser son état.
+      // On ne (ré)active que si la session est encore scheduled ou canceled
+      // (cas légitime d'un reschedule qui réactive un créneau annulé).
+      if (existing.status === "scheduled" || existing.status === "canceled") {
+        patch.status = "scheduled";
+      }
       // On NE re-tagge PLUS le curriculumItemId sur une session déjà
       // existante : si Walid l'a vidé volontairement (ou si la valeur
       // courante est legit), un webhook Calendly de mise à jour ne doit
@@ -1151,6 +1160,10 @@ export const cancelCalendlySession = internalMutation({
       .collect();
     const now = Date.now();
     for (const s of sessions) {
+      // Guard de transition : ne pas annuler une session déjà terminale
+      // (completed / no_show). Un invitee.canceled tardif ne doit pas effacer
+      // un RDV qui a réellement eu lieu.
+      if (s.status === "completed" || s.status === "no_show") continue;
       // Capture googleEventId AVANT le patch (le patch va le clear).
       const googleEventId = s.googleEventId;
       // On garde source="calendly" : ce cancel vient bien d'un webhook

@@ -69,6 +69,19 @@ export const createSubscription = action({
     }
     if (normalizedEmail.length > 254) throw new Error("Email trop long");
 
+    // Rate limit par email DANS l'action (pas seulement sur la route HTTP) :
+    // createSubscription est une action publique, donc appelable directement
+    // via le client Convex en contournant le rate-limit du handler /api. On
+    // limite à 5 créations d'abonnement/min par email pour bloquer le spam de
+    // customers + subscriptions Stripe.
+    const rl = await ctx.runMutation(internal.rateLimit.checkAndIncrement, {
+      key: `createSubscription:${normalizedEmail}`,
+      max: 5,
+    });
+    if (!rl.allowed) {
+      throw new Error("Trop de tentatives. Attends une minute et réessaie.");
+    }
+
     const tier: Tier = offre === "coaching" ? "coaching" : "communaute";
     const priceId = priceForTier(tier);
     const cleanPhone =
@@ -186,9 +199,32 @@ export const createPaymentIntent = action({
 });
 
 /**
+ * Mutation interne : « claim » un event Stripe pour garantir l'idempotence du
+ * webhook. Insère l'event.id ; renvoie { duplicate: true } s'il était déjà
+ * traité (retry Stripe). Transactionnel → check-and-insert atomique, donc deux
+ * livraisons concurrentes du même event ne peuvent pas être traitées 2 fois.
+ */
+export const claimStripeEvent = internalMutation({
+  args: { eventId: v.string(), type: v.string() },
+  handler: async (ctx, { eventId, type }) => {
+    const existing = await ctx.db
+      .query("processedStripeEvents")
+      .withIndex("by_event", (q) => q.eq("eventId", eventId))
+      .first();
+    if (existing) return { duplicate: true as const };
+    await ctx.db.insert("processedStripeEvents", {
+      eventId,
+      type,
+      processedAt: Date.now(),
+    });
+    return { duplicate: false as const };
+  },
+});
+
+/**
  * Mutation interne : upsert d'un abonnement (clé = stripeSubscriptionId).
  * Idempotent : si l'abonnement existe déjà, on patch ; sinon on insère.
- * Lie au user si un user avec cet email existe déjà.
+ * Lie au user si un user avec cet email existe déjà (dans les DEUX branches).
  */
 export const recordSubscription = internalMutation({
   args: {
@@ -238,6 +274,19 @@ export const recordSubscription = internalMutation({
       if (args.phone) patch.phone = args.phone;
       if (args.status === "active" && !existing.paidAt) patch.paidAt = now;
       await ctx.db.patch(existing._id, patch);
+
+      // Lier au user si pas encore lié : le webhook subscription.updated /
+      // invoice.paid arrive souvent APRÈS la création du user (login Discord),
+      // donc la liaison de la branche insert ci-dessous ne suffit pas.
+      if (args.email) {
+        const linkUser = await ctx.db
+          .query("users")
+          .withIndex("email", (q) => q.eq("email", args.email))
+          .first();
+        if (linkUser && !linkUser.purchaseId) {
+          await ctx.db.patch(linkUser._id, { purchaseId: existing._id });
+        }
+      }
       return existing._id;
     }
 
@@ -336,8 +385,10 @@ export const assignDiscordRole = internalAction({
     discordId: v.string(),
     email: v.string(),
     tier: v.optional(v.union(v.literal("communaute"), v.literal("coaching"))),
+    // Compteur de tentatives (retry auto via scheduler). 0 au 1er appel.
+    attempt: v.optional(v.number()),
   },
-  handler: async (ctx, { discordId, email, tier }) => {
+  handler: async (ctx, { discordId, email, tier, attempt }) => {
     const botEndpoint = process.env.DISCORD_BOT_ENDPOINT;
     const botSecret = process.env.DISCORD_BOT_ENDPOINT_SECRET;
     if (!botEndpoint || !botSecret) {
@@ -349,6 +400,32 @@ export const assignDiscordRole = internalAction({
       tier ??
       (await ctx.runQuery(internal.stripe.latestTierForEmail, { email })) ??
       "communaute";
+
+    const tryNum = attempt ?? 0;
+    const MAX_RETRIES = 3; // 1er essai + 3 retries = 4 tentatives au total
+    // Retry programmé : un élève payant ne doit pas rester sans rôle si le bot
+    // est momentanément down (403 hiérarchie, 404 membre pas encore arrivé…).
+    const scheduleRetry = async (reason: string) => {
+      if (tryNum < MAX_RETRIES) {
+        const delayMs = (tryNum + 1) * 60_000; // 1min, 2min, 3min
+        await ctx.scheduler.runAfter(delayMs, internal.stripe.assignDiscordRole, {
+          discordId,
+          email,
+          tier: resolvedTier,
+          attempt: tryNum + 1,
+        });
+        console.warn(`⚠️ Discord role sync retry ${tryNum + 1}/${MAX_RETRIES} dans ${delayMs / 1000}s (${reason})`);
+      } else {
+        // Échec définitif → alerte Walid pour action manuelle.
+        await ctx.runAction(internal.discord.postAlertToStaff, {
+          content:
+            `🛑 **Attribution de rôle Discord échouée** — ${email} (${discordId})\n` +
+            `Après ${MAX_RETRIES + 1} tentatives : ${reason}.\n` +
+            `→ Assigne le rôle manuellement ou vérifie la hiérarchie du bot.`,
+        }).catch(() => {});
+      }
+    };
+
     try {
       const res = await fetch(`${botEndpoint}/sync-roles`, {
         method: "POST",
@@ -362,10 +439,10 @@ export const assignDiscordRole = internalAction({
       if (res.ok) {
         console.log(`✅ Discord roles synced (${resolvedTier}): ${data.status ?? "ok"} (${data.member ?? discordId})`);
       } else {
-        console.warn(`⚠️ Discord role sync failed: ${data.error ?? res.statusText}`);
+        await scheduleRetry(`HTTP ${res.status} ${data.error ?? res.statusText}`);
       }
     } catch (err) {
-      console.warn("⚠️ Discord bot unreachable (sync-roles):", err);
+      await scheduleRetry(`bot injoignable (${err instanceof Error ? err.message : "network"})`);
     }
   },
 });

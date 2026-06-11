@@ -45,6 +45,11 @@ import {
 
 type Channel = "email" | "whatsapp";
 
+// WhatsApp (Twilio) EN PAUSE : canal masqué dans l'UI tant qu'on ne le maîtrise
+// pas. Tout le code backend (campaigns.sendWhatsAppOne) et l'UI WhatsApp restent
+// en place — pour réactiver, repasser ce flag à true. Aucune perte.
+const WHATSAPP_ENABLED = false;
+
 const PREVIEW_PRENOM = "Maxime";
 const PREVIEW_PSEUDO = "mxlo.beats";
 
@@ -390,12 +395,20 @@ export default function CampagnesPage() {
                 <Segmented
                   c={c}
                   value={channel}
-                  onChange={setChannel}
+                  onChange={(id) => setChannel(id as Channel)}
                   items={[
                     { id: "email", label: (<span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><Mail size={12} /> Email</span>) },
-                    { id: "whatsapp", label: (<span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><MessageCircle size={12} /> WhatsApp</span>) },
+                    // WhatsApp masqué tant que WHATSAPP_ENABLED est false (en pause).
+                    ...(WHATSAPP_ENABLED
+                      ? [{ id: "whatsapp", label: (<span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><MessageCircle size={12} /> WhatsApp</span>) }]
+                      : []),
                   ]}
                 />
+                {!WHATSAPP_ENABLED && (
+                  <div style={{ ...mono, color: c.faint, fontSize: 10.5, marginTop: 8 }}>
+                    📵 WhatsApp en pause — campagnes par email uniquement pour le moment.
+                  </div>
+                )}
               </Field>
 
               {/* Objet (email only) */}

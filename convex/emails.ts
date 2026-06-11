@@ -247,7 +247,7 @@ export const sendClaimEmail = internalAction({
 
 export const sendRefundNotice = internalAction({
   args: { to: v.string(), amount: v.number(), currency: v.string() },
-  handler: async (_ctx, { to, amount, currency }) => {
+  handler: async (ctx, { to, amount, currency }) => {
     if (!to) return { ok: false as const, reason: "no_email" as const };
     const eur = (amount / 100).toFixed(2);
     const cur = currency.toUpperCase();
@@ -276,7 +276,7 @@ export const sendRefundNotice = internalAction({
       to,
       subject: `Remboursement effectué · ${eur} ${cur}`,
       html,
-    });
+    }, ctx);
     return { ok: res.ok };
   },
 });
@@ -405,14 +405,14 @@ export const sendBroadcastBatch = internalAction({
     body: v.string(),
     accent: v.string(),
   },
-  handler: async (_ctx, { to, title, body, accent }) => {
+  handler: async (ctx, { to, title, body, accent }) => {
     const html = broadcastEmailHtml({ title, body, accent });
     // Resend supporte l'envoi en batch via /emails/batch, mais ça demande
     // un payload array. On fait du parallèle avec un fetch par destinataire
     // pour rester simple — OK jusqu'à quelques centaines de membres.
     await Promise.allSettled(
       to.map((email) =>
-        sendViaResend({ to: email, subject: title, html })
+        sendViaResend({ to: email, subject: title, html }, ctx)
       )
     );
   },
@@ -444,9 +444,9 @@ export const sendCampaignEmailOne = internalAction({
     subject: v.string(),
     html: v.string(),
   },
-  handler: async (_ctx, { to, subject, html }) => {
+  handler: async (ctx, { to, subject, html }) => {
     if (!to) return { ok: false as const, reason: "no_email" as const };
-    const res = await sendViaResend({ to, subject, html });
+    const res = await sendViaResend({ to, subject, html }, ctx);
     return { ok: res.ok };
   },
 });
@@ -503,7 +503,7 @@ export const sendOnboardingLinkEmail = internalAction({
     link: v.string(),
     tier: v.union(v.literal("coaching"), v.literal("communaute")),
   },
-  handler: async (_ctx, { to, firstName, link, tier }) => {
+  handler: async (ctx, { to, firstName, link, tier }) => {
     if (!to) return { ok: false as const, reason: "no_email" as const };
     const subject =
       tier === "coaching"
@@ -513,7 +513,7 @@ export const sendOnboardingLinkEmail = internalAction({
       to,
       subject,
       html: onboardingLinkEmailHtml({ firstName, link, tier }),
-    });
+    }, ctx);
     return { ok: res.ok };
   },
 });
@@ -815,7 +815,7 @@ export const sendWalidStuckStudentAlert = internalAction({
     daysBlocked: v.number(),
   },
   handler: async (
-    _ctx,
+    ctx,
     { to, studentName, tier, scenario, studentEmail, daysBlocked }
   ) => {
     if (!to) return { ok: false as const, reason: "no_email" as const };
@@ -824,7 +824,7 @@ export const sendWalidStuckStudentAlert = internalAction({
       to,
       subject,
       html: walidAlertHtml({ studentName, tier, scenario, studentEmail, daysBlocked }),
-    });
+    }, ctx);
     return { ok: res.ok };
   },
 });

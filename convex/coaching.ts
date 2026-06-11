@@ -698,6 +698,8 @@ export const dashboardToday = query({
       )
       .slice(0, 6)
       .map((p) => ({
+        purchaseId: p._id,
+        userId: p.userId ?? null,
         who: p.email?.split("@")[0] ?? "—",
         type: p.status === "past_due" ? "Échec paiement" : "Annulation",
         montant: `${p.tier === "coaching" ? 179 : 79} €`,
@@ -730,7 +732,7 @@ export const dashboardToday = query({
       });
 
     // Semaine à venir : 5 prochains jours.
-    const rdvSemaine: Array<{ jour: string; n: number }> = [];
+    const rdvSemaine: Array<{ jour: string; n: number; date: number }> = [];
     for (let i = 0; i < 5; i++) {
       const dStart = todayStart + i * DAY;
       const dEnd = dStart + DAY;
@@ -741,7 +743,7 @@ export const dashboardToday = query({
         .toLocaleDateString("fr-FR", { weekday: "short", day: "2-digit" })
         .toUpperCase()
         .replace(".", "");
-      rdvSemaine.push({ jour: label, n });
+      rdvSemaine.push({ jour: label, n, date: dStart });
     }
     const semaineTotal = scheduled.filter(
       (s) => s.scheduledAt < todayStart + 7 * DAY
@@ -783,7 +785,12 @@ export const dashboardToday = query({
     }
 
     // Onboarding en attente : étape onboarding (ou non défini) pour coaching actif.
-    const onboarding: Array<{ who: string; etape: string; depuis: string }> = [];
+    const onboarding: Array<{
+      userId?: Id<"users">;
+      who: string;
+      etape: string;
+      depuis: string;
+    }> = [];
     for (const [uid, p] of purchaseByUser) {
       if (p.tier !== "coaching") continue;
       const u = userById.get(uid);
@@ -791,6 +798,7 @@ export const dashboardToday = query({
       if (u?.onboardingCompletedAt) continue;
       const depuis = `${Math.max(1, Math.round((now - (p.paidAt ?? p.createdAt ?? now)) / DAY))} j`;
       onboarding.push({
+        userId: u?._id,
         who: nameOf(u),
         etape: u?.coachingStage ? "À programmer" : "Formulaire envoyé",
         depuis,
@@ -799,20 +807,27 @@ export const dashboardToday = query({
     }
 
     // Activité récente (paiements + nouveaux membres + sessions complétées).
-    type Act = { at: number; txt: string };
+    type Act = {
+      at: number;
+      txt: string;
+      userId?: Id<"users">;
+      kind: "payment" | "user" | "session";
+    };
     const acts: Act[] = [];
     for (const p of allPurchases) {
       if (p.paidAt) {
         const u = p.userId ? userById.get(p.userId as unknown as string) : null;
         acts.push({
           at: p.paidAt,
+          userId: u?._id,
+          kind: "payment",
           txt: `Paiement reçu — ${nameOf(u) !== "—" ? nameOf(u) : p.email?.split("@")[0]} · ${p.tier === "coaching" ? "179 €" : "79 €"}`,
         });
       }
     }
     for (const u of liveUsers) {
       if (u.createdAt)
-        acts.push({ at: u.createdAt, txt: `Nouveau membre — ${nameOf(u)}` });
+        acts.push({ at: u.createdAt, userId: u._id, kind: "user", txt: `Nouveau membre — ${nameOf(u)}` });
     }
     const completedSessions = await ctx.db
       .query("coachingSessions")
@@ -820,7 +835,7 @@ export const dashboardToday = query({
       .collect();
     for (const s of completedSessions) {
       const u = userById.get(s.userId as unknown as string);
-      acts.push({ at: s.updatedAt, txt: `RDV terminé — ${nameOf(u)} · notes ajoutées` });
+      acts.push({ at: s.updatedAt, userId: s.userId, kind: "session", txt: `RDV terminé — ${nameOf(u)} · notes ajoutées` });
     }
     const rel = (at: number) => {
       const diff = now - at;
@@ -832,7 +847,7 @@ export const dashboardToday = query({
     const activite = acts
       .sort((a, b) => b.at - a.at)
       .slice(0, 6)
-      .map((a) => ({ t: rel(a.at), txt: a.txt }));
+      .map((a) => ({ t: rel(a.at), txt: a.txt, userId: a.userId ?? null, kind: a.kind }));
 
     // Sparkline MRR : nb d'abonnements actifs cumulés sur 12 mois (approx).
     const mrrSpark: number[] = [];

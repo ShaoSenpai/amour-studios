@@ -1070,7 +1070,7 @@ export function selectDashboardToday(): DashboardToday {
       .toLocaleDateString("fr-FR", { weekday: "short", day: "2-digit" })
       .toUpperCase()
       .replace(".", "");
-    rdvSemaine.push({ jour: label, n });
+    rdvSemaine.push({ jour: label, n, date: dStart });
   }
   const semaineTotal = scheduled.filter(
     (s) => s.scheduledAt >= todayStart && s.scheduledAt < todayStart + 7 * DAY
@@ -1101,6 +1101,8 @@ export function selectDashboardToday(): DashboardToday {
     .filter((s) => s.status === "past_due" || s.status === "canceled")
     .slice(0, 6)
     .map((s) => ({
+      purchaseId: pid(`p_${(s._id as unknown as string).replace(/^u_/, "")}`),
+      userId: uid(s._id as unknown as string),
       who: s.discordUsername || s.name || "—",
       type: s.status === "past_due" ? "Échec paiement" : "Annulation",
       montant: `${s.tier === "coaching" ? 179 : 79} €`,
@@ -1115,6 +1117,7 @@ export function selectDashboardToday(): DashboardToday {
     if (onb?.completedAt) continue;
     const depuis = `${Math.max(1, Math.round((now - s.createdAt) / DAY))} j`;
     onboarding.push({
+      userId: uid(s._id as unknown as string),
       who: s.discordUsername || s.name || "—",
       etape: s.coachingStage ? "À programmer" : "Formulaire envoyé",
       depuis,
@@ -1123,23 +1126,35 @@ export function selectDashboardToday(): DashboardToday {
   }
 
   // Activité récente : sessions complétées + nouveaux membres.
-  type Act = { at: number; txt: string };
+  type Act = {
+    at: number;
+    txt: string;
+    userId?: Id<"users">;
+    kind: "payment" | "user" | "session";
+  };
   const acts: Act[] = [];
   for (const s of sessions) {
     if (s.status !== "completed") continue;
     const u = findStudent(s.userId as unknown as string);
     acts.push({
       at: s.updatedAt,
+      userId: u?._id,
+      kind: "session",
       txt: `RDV terminé — ${u?.discordUsername || u?.name || "—"} · notes ajoutées`,
     });
   }
   for (const s of students) {
-    acts.push({ at: s.createdAt, txt: `Nouveau membre — ${s.discordUsername || s.name || "—"}` });
+    acts.push({
+      at: s.createdAt,
+      userId: uid(s._id as unknown as string),
+      kind: "user",
+      txt: `Nouveau membre — ${s.discordUsername || s.name || "—"}`,
+    });
   }
   const activite: DashboardToday["activite"] = acts
     .sort((a, b) => b.at - a.at)
     .slice(0, 6)
-    .map((a) => ({ t: relativeDays(a.at, now), txt: a.txt }));
+    .map((a) => ({ t: relativeDays(a.at, now), txt: a.txt, userId: a.userId ?? null, kind: a.kind }));
 
   const mrrSpark = [62, 64, 63, 68, 71, 70, 74, 78, 76, 80, 78, 82];
 

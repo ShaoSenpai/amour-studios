@@ -29,7 +29,7 @@ const EMAIL_RE =
 
 type Tier = "communaute" | "coaching";
 
-function priceForTier(tier: Tier): string {
+export function priceForTier(tier: Tier): string {
   const price =
     tier === "coaching"
       ? process.env.STRIPE_PRICE_COACHING
@@ -771,7 +771,7 @@ type PurchaseDoc = {
   currentPeriodEnd?: number;
 };
 
-async function stripeClient() {
+export async function stripeClient() {
   const Stripe = (await import("stripe")).default;
   return new Stripe(process.env.STRIPE_SECRET_KEY!, {
     apiVersion: "2026-03-25.dahlia",

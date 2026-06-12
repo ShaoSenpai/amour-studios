@@ -126,11 +126,24 @@ export const upgradeMySubscription = action({
     const sub = await stripe.subscriptions.retrieve(p.subscriptionId);
     const itemId = sub.items.data[0]?.id;
     if (!itemId) throw new Error("Abonnement Stripe sans item.");
-    await stripe.subscriptions.update(p.subscriptionId, {
-      items: [{ id: itemId, price: coachingPrice }],
-      proration_behavior: "always_invoice",
-      metadata: { ...(sub.metadata ?? {}), tier: "coaching", duree: "1mois" },
-    });
+    // ⚠️ SÉCURITÉ PAIEMENT : `always_invoice` facture la proration tout de suite,
+    // et `error_if_incomplete` rend l'opération ATOMIQUE — si la carte est
+    // refusée (ou exige une 3DS), Stripe lève une erreur 402 et NE bascule PAS
+    // l'abonnement (pas de coaching impayé/past_due). On capte l'erreur pour un
+    // message propre, et `_applyUpgrade` ne tourne donc QUE si le débit a réussi.
+    try {
+      await stripe.subscriptions.update(p.subscriptionId, {
+        items: [{ id: itemId, price: coachingPrice }],
+        proration_behavior: "always_invoice",
+        payment_behavior: "error_if_incomplete",
+        metadata: { ...(sub.metadata ?? {}), tier: "coaching", duree: "1mois" },
+      });
+    } catch (err) {
+      console.warn("⚠️ upgrade self-service échec:", err instanceof Error ? err.message : err);
+      throw new Error(
+        "Le paiement de la différence n'a pas pu être validé (carte refusée ou validation requise). Réessaie ou contacte le support."
+      );
+    }
     await ctx.runMutation(internal.subscriptions._applyUpgrade, { purchaseId: p.purchaseId, userId, coachingPrice });
     if (p.discordId) {
       await ctx.scheduler.runAfter(0, internal.stripe.assignDiscordRole, { discordId: p.discordId, email: p.email ?? "", tier: "coaching" });

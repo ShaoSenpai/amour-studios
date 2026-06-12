@@ -25,6 +25,11 @@ import {
 // ============================================================================
 
 const DISCORD_INVITE = "https://discord.gg/78v8PSgjxx";
+// Lien Calendly du 1er RDV — MÊME source que le flow onboarding
+// (app/onboarding/[token]/page.tsx). NEXT_PUBLIC_* est inliné au build Vercel,
+// donc dispo côté client et garanti cohérent avec l'onboarding.
+const CALENDLY_URL =
+  process.env.NEXT_PUBLIC_CALENDLY_URL ?? "https://calendly.com/amourstudios/onboarding";
 
 /** Date FR longue : « 12 juin 2026 ». */
 function fmtDateFr(ts: number): string {
@@ -194,7 +199,7 @@ function CompteInner() {
           </p>
 
           {/* 3 — Bloc RDV (coaching uniquement) */}
-          {isCoaching && sub.needsFirstRdv && sub.calendlyUrl ? (
+          {isCoaching && sub.needsFirstRdv ? (
             <div style={boxStyle}>
               <div style={{ ...mono, fontSize: 10, color: ACCENT }}>Active ton coaching</div>
               <p style={{ fontSize: 13.5, color: c.muted, margin: "8px 0 12px", lineHeight: 1.5 }}>
@@ -202,7 +207,7 @@ function CompteInner() {
                 ce qui débloque ton accès complet.
               </p>
               <a
-                href={sub.calendlyUrl}
+                href={CALENDLY_URL}
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{

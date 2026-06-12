@@ -35,20 +35,16 @@ export const mySubscription = query({
     // L'onboarding coaching termine à `step:"rdv_booked"` (cf. onboardings.ts :
     // awaiting_presentation → link_sent → form_done → rdv_booked). Tout step
     // AVANT rdv_booked ⇒ RDV encore à faire. Pas d'onboarding row ⇒ false.
+    // L'URL Calendly elle-même est fournie côté FRONT (NEXT_PUBLIC_CALENDLY_URL,
+    // inlinée au build Vercel) — PAS ici : l'env Convex n'a pas cette var, donc
+    // la calculer côté backend divergerait du lien réel du flow onboarding.
     let needsFirstRdv = false;
-    let calendlyUrl: string | null = null;
     if (isCoaching) {
       const ob = await ctx.db
         .query("onboardings")
         .withIndex("by_user", (q) => q.eq("userId", userId))
         .first();
       needsFirstRdv = !!ob && ob.step !== "rdv_booked";
-      // URL Calendly du 1er RDV : même source que le flow onboarding
-      // (app/onboarding/[token]/page.tsx) — env NEXT_PUBLIC_CALENDLY_URL avec le
-      // même fallback littéral, pour que le lien soit toujours présent.
-      calendlyUrl =
-        process.env.NEXT_PUBLIC_CALENDLY_URL ??
-        "https://calendly.com/amourstudios/onboarding";
     }
 
     // ── nextRdvAt ──────────────────────────────────────────────────────────
@@ -79,7 +75,6 @@ export const mySubscription = query({
       canUpgrade: purchase.tier === "communaute" && purchase.status !== "canceled",
       needsFirstRdv,
       nextRdvAt,
-      calendlyUrl,
     };
   },
 });

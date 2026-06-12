@@ -63,8 +63,13 @@ function StudioShell({
 }) {
   const me = useQuery(api.users.current);
   // Badge nav : nombre de transcripts Fireflies en attente de rattachement.
-  // Query légère (orphelins non résolus), admin-gated côté serveur.
-  const orphanCount = useQuery(api.fireflies.listOrphans, {})?.length ?? 0;
+  // Query légère (orphelins non résolus), admin-gated côté serveur. ⚠️ Elle
+  // THROW "Admin uniquement" pour un non-admin → on ne l'appelle QUE si l'user
+  // est admin (sinon "skip"), sinon un compte non-admin authentifié qui ouvre
+  // /studio fait crasher tout le shell (useQuery propage l'erreur serveur).
+  const isAdmin = me?.role === "admin";
+  const orphanCount =
+    useQuery(api.fireflies.listOrphans, isAdmin ? {} : "skip")?.length ?? 0;
   const router = useRouter();
   const dark = useIsDark();
   const { signOut } = useAuthActions();
@@ -76,11 +81,15 @@ function StudioShell({
   const collapsed = userCollapsed || isMobile;
 
   useEffect(() => {
+    // Non connecté → login. Connecté mais NON-admin (ex. session de test) →
+    // hors du back-office : le dispatcher racine le renverra vers /exos.
     if (me === null) router.replace("/studio/login");
+    else if (me && me.role !== "admin") router.replace("/");
   }, [me, router]);
 
-  // Loader
-  if (me === undefined || me === null) {
+  // Loader (inclut le non-admin : on n'affiche jamais le shell admin à un
+  // non-admin — il voit le loader le temps de la redirection ci-dessus).
+  if (me === undefined || me === null || me.role !== "admin") {
     return (
       <main
         style={{

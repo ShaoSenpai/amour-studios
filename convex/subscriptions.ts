@@ -126,15 +126,29 @@ export const upgradeMySubscription = action({
     const sub = await stripe.subscriptions.retrieve(p.subscriptionId);
     const itemId = sub.items.data[0]?.id;
     if (!itemId) throw new Error("Abonnement Stripe sans item.");
-    // ⚠️ SÉCURITÉ PAIEMENT : `always_invoice` facture la proration tout de suite,
-    // et `error_if_incomplete` rend l'opération ATOMIQUE — si la carte est
-    // refusée (ou exige une 3DS), Stripe lève une erreur 402 et NE bascule PAS
-    // l'abonnement (pas de coaching impayé/past_due). On capte l'erreur pour un
-    // message propre, et `_applyUpgrade` ne tourne donc QUE si le débit a réussi.
+    // 💶 DÉCISION PRODUIT (verrouillée) : l'upgrade self-service depuis /compte =
+    // **179€ PLEIN, cycle remis à neuf aujourd'hui** — PAS de prorata.
+    //   - `proration_behavior: "none"` → on ne facture AUCUN ajustement au
+    //     prorata des jours Communauté déjà payés (ils sont perdus, c'est voulu).
+    //   - `billing_cycle_anchor: "now"` → le cycle de facturation redémarre
+    //     maintenant : le mois coaching démarre aujourd'hui et Stripe émet
+    //     immédiatement une facture de 179€ (premier mois plein), puis 179€/mois.
+    //   ⚠️ Ne PAS confondre avec l'upsell d'onboarding (`upgradeToCoaching` dans
+    //     stripe.ts) qui, lui, débite un +100€ one-time (différentiel 79→179) car
+    //     il intervient dans l'heure suivant le paiement Communauté. Le +100€
+    //     prorata est RÉSERVÉ à l'onboarding ; ici (plus tard, /compte) c'est 179 plein.
+    //
+    // ⚠️ SÉCURITÉ PAIEMENT : `error_if_incomplete` rend l'opération ATOMIQUE — si
+    // la carte (par défaut) est refusée ou exige une 3DS, Stripe lève une erreur
+    // 402 et NE bascule PAS l'abonnement (pas de coaching impayé/past_due). On
+    // capte l'erreur pour un message propre, et `_applyUpgrade` ne tourne donc
+    // QUE si le débit des 179€ a réussi. Le débit frappe la default_payment_method
+    // du customer (que Task 2 / `startCardUpdate` permet de changer au préalable).
     try {
       await stripe.subscriptions.update(p.subscriptionId, {
         items: [{ id: itemId, price: coachingPrice }],
-        proration_behavior: "always_invoice",
+        proration_behavior: "none",
+        billing_cycle_anchor: "now",
         payment_behavior: "error_if_incomplete",
         metadata: { ...(sub.metadata ?? {}), tier: "coaching", duree: "1mois" },
       });

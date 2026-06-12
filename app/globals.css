@@ -125,6 +125,13 @@
   --dur-slow: 900ms;
   --dur-cascade: 70ms;
 
+  /* Motion Apple — polish 2026-06 (ADDITIF : ne pas toucher aux tokens --dur- et --ease- existants) */
+  --ease-spring: cubic-bezier(.32, .72, 0, 1); /* easing sheet iOS, déjà utilisé par les page transitions */
+  --ease-snap: cubic-bezier(.2, .9, .3, 1);
+  --dur-instant: 150ms;
+  --dur-quick: 250ms;
+  --dur-smooth: 400ms;
+
   --grid-line: rgba(13, 11, 8, 0.04);
 
   --background: #F0E9DB;

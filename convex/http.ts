@@ -308,6 +308,12 @@ http.route({
               discordId: user.discordId,
               email,
             });
+            // Nettoyage du rôle « Onboardé » (jamais retiré jusqu'ici) :
+            // l'abonnement disparaît → l'accès complet débloqué par l'onboarding
+            // doit l'être aussi.
+            await ctx.runAction(internal.stripe.removeOnboardedRole, {
+              discordId: user.discordId,
+            });
           }
         }
 
@@ -411,6 +417,10 @@ http.route({
             await ctx.runAction(internal.stripe.removeDiscordRoles, {
               discordId: user.discordId,
               email,
+            });
+            // Retire aussi le rôle « Onboardé » (remboursement = accès coupé).
+            await ctx.runAction(internal.stripe.removeOnboardedRole, {
+              discordId: user.discordId,
             });
             // DM élève — voix Papi Amour, tutoiement
             await ctx.runAction(internal.onboardings.discordDm, {

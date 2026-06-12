@@ -627,6 +627,43 @@ export const removeDiscordRoles = internalAction({
 });
 
 /**
+ * Action interne : retire le rôle « Onboardé » d'un membre (résiliation / refund).
+ * Distinct de `removeDiscordRoles` (qui retire Membre + Coaching) : le rôle
+ * Onboardé est posé par le flow d'onboarding et doit être nettoyé à part quand
+ * l'abonnement disparaît. Endpoint bot : `POST /remove-onboarded` (idempotent
+ * côté bot : renvoie `not_onboarded` si le membre ne l'a pas). Fail-silent.
+ */
+export const removeOnboardedRole = internalAction({
+  args: { discordId: v.string() },
+  handler: async (_ctx, { discordId }) => {
+    const botEndpoint = process.env.DISCORD_BOT_ENDPOINT;
+    const botSecret = process.env.DISCORD_BOT_ENDPOINT_SECRET;
+    if (!botEndpoint || !botSecret) {
+      console.warn("Discord bot endpoint not configured, skipping onboarded role removal");
+      return;
+    }
+    try {
+      const res = await fetch(`${botEndpoint}/remove-onboarded`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${botSecret}`,
+        },
+        body: JSON.stringify({ discordId }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        console.log(`✅ Discord onboarded role removed: ${data.status ?? "ok"} (${discordId})`);
+      } else {
+        console.warn(`⚠️ Discord onboarded role removal failed: ${data.error ?? res.statusText}`);
+      }
+    } catch (err) {
+      console.warn("⚠️ Discord bot unreachable (remove-onboarded):", err);
+    }
+  },
+});
+
+/**
  * Action interne : annonce un événement côté Discord (badge, nouveau contenu).
  * Appelle `POST ${DISCORD_BOT_ENDPOINT}/announce` avec Authorization Bearer.
  * Fail silent — ne bloque pas le flow métier si le bot est down ou pas encore

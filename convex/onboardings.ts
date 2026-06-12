@@ -5,11 +5,12 @@ import {
   internalMutation,
   internalAction,
   internalQuery,
+  type MutationCtx,
 } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { requireAdmin } from "./lib/auth";
 import { logEvent } from "./lib/events";
-import type { Id } from "./_generated/dataModel";
+import type { Id, Doc } from "./_generated/dataModel";
 
 // ============================================================================
 // Onboarding client post-paiement.
@@ -421,6 +422,41 @@ export const markRdvBookedByUser = internalMutation({
 /** Bot Discord → marque qu'un user s'est présenté.
  *  Idempotent : ne fait rien si l'étape n'est plus "awaiting_presentation".
  *  Déclenche l'envoi du lien (email + DM Discord) via scheduler. */
+// Résout le purchase actif d'un user (purchaseId puis fallback par email,
+// statuts vivants active/past_due/paid, priorité coaching) et planifie
+// l'attribution du rôle = palier (idempotent : `assignDiscordRole` règle les
+// rôles cibles). Retourne le tier si l'user est payant, null sinon. Helper
+// PARTAGÉ par `resolveAndAssignRoleByDiscordId` (arrivée serveur) et
+// `markPresentedByDiscordId` (présentation auto-réparante) — DRY.
+async function scheduleRoleFromActivePurchase(
+  ctx: MutationCtx,
+  user: Doc<"users">
+): Promise<"coaching" | "communaute" | null> {
+  if (!user.discordId) return null;
+  const email = (user.email ?? "").trim().toLowerCase();
+  const isLive = (s?: string) =>
+    s === "active" || s === "past_due" || s === "paid";
+  let purchase = user.purchaseId ? await ctx.db.get(user.purchaseId) : null;
+  if (!purchase || !isLive(purchase.status) || !purchase.tier) {
+    purchase = null;
+    if (email) {
+      const candidates = await ctx.db
+        .query("purchases")
+        .withIndex("by_email", (q) => q.eq("email", email))
+        .collect();
+      const live = candidates.filter((p) => isLive(p.status) && p.tier);
+      purchase = live.find((p) => p.tier === "coaching") ?? live[0] ?? null;
+    }
+  }
+  if (!purchase || !purchase.tier) return null;
+  await ctx.scheduler.runAfter(0, internal.stripe.assignDiscordRole, {
+    discordId: user.discordId,
+    email,
+    tier: purchase.tier,
+  });
+  return purchase.tier;
+}
+
 export const markPresentedByDiscordId = internalMutation({
   args: { discordId: v.string() },
   handler: async (ctx, { discordId }) => {
@@ -428,14 +464,23 @@ export const markPresentedByDiscordId = internalMutation({
       .query("users")
       .withIndex("by_discord", (q) => q.eq("discordId", discordId))
       .first();
-    if (!user) return { ok: false, reason: "user_not_found" };
+    if (!user) return { ok: false as const, reason: "user_not_found" as const };
+
+    // Self-heal : (ré)attribue le rôle = palier si le purchase est actif. Couvre
+    // le cas « lié mais sans rôle » (ex. bot down au join → guildMemberAdd perdu,
+    // OAuth fait avant le join). Si aucun purchase actif → visiteur/non-payant :
+    // on s'arrête là (pas de welcome ni d'onboarding déclenché côté bot).
+    const tier = await scheduleRoleFromActivePurchase(ctx, user);
+    if (!tier) return { ok: false as const, reason: "no_active_purchase" as const };
+
     const ob = await ctx.db
       .query("onboardings")
       .withIndex("by_user", (q) => q.eq("userId", user._id))
       .first();
-    if (!ob) return { ok: false, reason: "no_onboarding" };
+    // Membre payant mais pas d'onboarding row : le rôle a quand même été (ré)assuré.
+    if (!ob) return { ok: true as const, tier, reason: "no_onboarding" as const };
     if (ob.step !== "awaiting_presentation") {
-      return { ok: true, alreadyDone: true };
+      return { ok: true as const, tier, alreadyDone: true as const };
     }
     const now = Date.now();
     await ctx.db.patch(ob._id, {
@@ -457,7 +502,7 @@ export const markPresentedByDiscordId = internalMutation({
       firstName: ob.firstName ?? null,
       tier: ob.tier,
     });
-    return { ok: true };
+    return { ok: true as const, tier };
   },
 });
 
@@ -480,36 +525,9 @@ export const resolveAndAssignRoleByDiscordId = internalMutation({
       .withIndex("by_discord", (q) => q.eq("discordId", discordId))
       .first();
     if (!user) return { ok: false as const, reason: "user_not_found" as const };
-
-    const email = (user.email ?? "").trim().toLowerCase();
-
-    // Résout le purchase actif : purchaseId du user d'abord, sinon fallback par
-    // email (statuts vivants : active / past_due / paid). Priorité coaching.
-    const isLive = (s?: string) =>
-      s === "active" || s === "past_due" || s === "paid";
-    let purchase = user.purchaseId ? await ctx.db.get(user.purchaseId) : null;
-    if (!purchase || !isLive(purchase.status) || !purchase.tier) {
-      purchase = null;
-      if (email) {
-        const candidates = await ctx.db
-          .query("purchases")
-          .withIndex("by_email", (q) => q.eq("email", email))
-          .collect();
-        const live = candidates.filter((p) => isLive(p.status) && p.tier);
-        purchase = live.find((p) => p.tier === "coaching") ?? live[0] ?? null;
-      }
-    }
-    if (!purchase || !purchase.tier) {
-      return { ok: false as const, reason: "no_active_purchase" as const };
-    }
-
-    // Attribue le rôle = palier (action → scheduler, comme ailleurs). Idempotent.
-    await ctx.scheduler.runAfter(0, internal.stripe.assignDiscordRole, {
-      discordId,
-      email,
-      tier: purchase.tier,
-    });
-    return { ok: true as const, tier: purchase.tier };
+    const tier = await scheduleRoleFromActivePurchase(ctx, user);
+    if (!tier) return { ok: false as const, reason: "no_active_purchase" as const };
+    return { ok: true as const, tier };
   },
 });
 

@@ -170,9 +170,42 @@ export const _applyUpgrade = internalMutation({
   args: { purchaseId: v.id("purchases"), userId: v.id("users"), coachingPrice: v.string() },
   handler: async (ctx, { purchaseId, userId, coachingPrice }) => {
     await ctx.db.patch(purchaseId, { tier: "coaching", stripePriceId: coachingPrice, amount: 17900, duree: undefined });
+
+    // ── Onboarding : basculer le membre Communauté vers l'état coaching
+    // « RDV à réserver » ───────────────────────────────────────────────────────
+    // Un membre Communauté qui upgrade est DÉJÀ dans Discord, a DÉJÀ posté sa
+    // présentation et a DÉJÀ le rôle « Onboardé » (il a fini son flow communauté
+    // jusqu'à `community_ready`). Il ne refait donc PAS la présentation/le form.
+    // Il lui reste UNE chose pour activer le coaching : réserver son 1er RDV
+    // Calendly (= leçon M1 L1).
+    //
+    // On le pose sur `step:"form_done"` qui, dans le state-machine coaching, est
+    // précisément l'état « questionnaire fini, RDV à réserver » : c'est le step
+    // depuis lequel `scenarioForStep` renvoie le scénario `rdv` (relances RDV) et
+    // d'où une réservation Calendly mène à `rdv_booked`.
+    //
+    // ⚠️ On NE rappelle PAS `grantOnboarded` ici : le rôle Onboardé est déjà
+    // posé (flow communauté), et pour le coaching il sera (ré)attribué à la
+    // réservation Calendly via `markRdvBookedByUser` → `grantOnboarded`. Cette
+    // bascule ne déclenche AUCUN appel Discord (sauf `assignDiscordRole` planifié
+    // par l'action appelante pour ajouter le rôle Coaching).
+    //
+    // Robustesse : on ne fait QUE FAIRE AVANCER vers `form_done` les rows encore
+    // en amont (awaiting_presentation / link_sent / community_ready). Si l'élève
+    // est déjà plus loin dans un flow coaching (form_done / rdv_booked — cas d'un
+    // re-traitement), on n'écrase pas son étape.
     const ob = await ctx.db.query("onboardings").withIndex("by_user", (q) => q.eq("userId", userId)).first();
-    if (ob && ob.tier === "communaute") {
-      await ctx.db.patch(ob._id, { tier: "coaching", step: ob.step === "community_ready" ? "form_done" : ob.step, updatedAt: Date.now() });
+    if (ob) {
+      const stepsToAdvance = ["awaiting_presentation", "link_sent", "community_ready"];
+      const nextStep = stepsToAdvance.includes(ob.step) ? "form_done" : ob.step;
+      await ctx.db.patch(ob._id, {
+        tier: "coaching",
+        step: nextStep,
+        // Ferme une éventuelle fenêtre d'offre d'upsell encore ouverte (l'upgrade
+        // a eu lieu autrement) pour éviter un double-chemin d'upgrade.
+        upgradeOfferExpiresAt: undefined,
+        updatedAt: Date.now(),
+      });
     }
     await logEvent(ctx, { userId, type: "subscription.tier_changed", title: "Upgrade Communauté → Coaching (self-service /compte)", actor: "member", meta: { from: "communaute", to: "coaching", via: "self_service" } });
   },

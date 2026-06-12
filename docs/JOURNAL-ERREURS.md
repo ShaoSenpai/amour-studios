@@ -46,6 +46,7 @@
 | # | Scénario | Ce qui se passe | À faire |
 |---|----------|-----------------|---------|
 | 14 | L'élève paie mais **ne termine pas l'activation** (clique « Continuer avec Discord » mais n'autorise pas, OU rejoint le serveur sans revenir cliquer) | Aucun user/onboarding créé, 0 rôle → poster dans #présente-toi ne déclenche rien, **sans message d'erreur**. | (audit en cours) rappel email, message Discord d'accueil, ou rendre le retour automatique. |
+| 16 | **Self-service `/compte` injoignable par sa cible.** Le lien vers `/compte` (annuler / upgrade) n'était posé que dans `/exos`, **réservé au Coaching**. Or le membre **Communauté** (cible du bouton « passer au Coaching » 1-clic + « annuler ») atterrit sur l'écran verrouillé « Active ton coaching » de `/exos`, qui ne proposait que l'offre **externe** (= re-payer dehors). | Gap de découvrabilité : la feature existe mais son audience ne peut pas l'atteindre. Détecté avant test, en relisant le parcours réel (dispatcher → `/exos` → écran verrouillé). | CTA conditionnel sur l'écran verrouillé (`exos/layout.tsx`) : `tier==="communaute"` → « Passer au Coaching » + « Gérer mon abonnement » vers `/compte` ; sinon → offre externe d'origine. ✅ déployé. **Leçon : toujours dérouler le parcours de l'utilisateur-cible jusqu'au bout, pas juste construire la page.** |
 
 ---
 

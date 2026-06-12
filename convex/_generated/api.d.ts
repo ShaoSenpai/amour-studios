@@ -46,6 +46,7 @@ import type * as seedExerciseUrls from "../seedExerciseUrls.js";
 import type * as segments from "../segments.js";
 import type * as streaks from "../streaks.js";
 import type * as stripe from "../stripe.js";
+import type * as subscriptions from "../subscriptions.js";
 import type * as tools from "../tools.js";
 import type * as users from "../users.js";
 
@@ -94,6 +95,7 @@ declare const fullApi: ApiFromModules<{
   segments: typeof segments;
   streaks: typeof streaks;
   stripe: typeof stripe;
+  subscriptions: typeof subscriptions;
   tools: typeof tools;
   users: typeof users;
 }>;

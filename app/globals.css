@@ -1182,16 +1182,14 @@ html[data-theme="dark"] {
 .glass-btn {
   transition:
     transform var(--dur-instant) var(--ease-spring),
-    filter var(--dur-instant) var(--ease-spring),
     opacity var(--dur-instant) var(--ease-spring);
 }
 .glass-btn:hover {
   transform: translateY(-1px);
-  filter: brightness(1.06);
 }
 .glass-btn:active {
   transform: translateY(0) scale(0.97);
-  filter: brightness(0.96);
+  opacity: 0.85;
   transition-duration: 80ms;
 }
 .glass-btn:focus-visible {

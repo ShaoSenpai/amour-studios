@@ -342,6 +342,7 @@ export function GlassButton({
 }) {
   return (
     <button
+      type="button"
       className={className ? `glass-btn ${className}` : "glass-btn"}
       style={{ ...glassBtn(c, kind), ...style }}
       {...props}

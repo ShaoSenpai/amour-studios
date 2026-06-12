@@ -9,6 +9,7 @@ import {
 } from "framer-motion";
 import { GripVertical, ChevronDown } from "lucide-react";
 import { Glass, mono, type C } from "./glass";
+import { SPRING } from "@/lib/motion";
 
 // ============================================================================
 // Blocs repliables + réordonnables (Framer Motion).
@@ -16,8 +17,6 @@ import { Glass, mono, type C } from "./glass";
 //  - glisser-déposer pour réordonner DANS chaque colonne (poignée dédiée)
 //  - ordre + état replié mémorisés en localStorage (hook useLayoutPrefs)
 // ============================================================================
-
-const SPRING = { type: "spring" as const, stiffness: 320, damping: 34, mass: 0.9 };
 
 export type LayoutPrefs = {
   orders: Record<string, string[]>;

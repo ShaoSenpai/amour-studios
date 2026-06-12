@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { SPRING, SPRING_SNAPPY } from "@/lib/motion";
+import { useAppSpring } from "@/lib/use-app-spring";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
@@ -124,6 +126,8 @@ function RdvForm({ onClose, mode, userId, students, initial }: RdvDialogProps) {
   const dark = useIsDark();
   const c = palette(dark, ACCENT);
   const { testMode } = useTestMode();
+  const spring = useAppSpring(SPRING);
+  const springSnappy = useAppSpring(SPRING_SNAPPY);
   const createSession = useMutation(api.coaching.createSession);
   const updateSession = useMutation(api.coaching.updateSession);
 
@@ -326,7 +330,7 @@ function RdvForm({ onClose, mode, userId, students, initial }: RdvDialogProps) {
         initial={{ opacity: 0, scale: 0.92, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.94, y: 8 }}
-        transition={{ type: "spring", stiffness: 420, damping: 32, mass: 0.9 }}
+        transition={springSnappy}
         style={{
           width: "100%",
           maxWidth: 440,
@@ -366,7 +370,7 @@ function RdvForm({ onClose, mode, userId, students, initial }: RdvDialogProps) {
           <motion.button
             whileTap={{ scale: 0.9 }}
             whileHover={{ scale: 1.08 }}
-            transition={{ type: "spring", stiffness: 400, damping: 26 }}
+            transition={spring}
             onClick={onClose}
             aria-label="Fermer"
             style={{
@@ -545,7 +549,7 @@ function RdvForm({ onClose, mode, userId, students, initial }: RdvDialogProps) {
           <motion.button
             whileTap={{ scale: 0.96 }}
             whileHover={{ scale: 1.03 }}
-            transition={{ type: "spring", stiffness: 400, damping: 26 }}
+            transition={spring}
             onClick={onClose}
             style={glassBtn(c, "ghost")}
           >
@@ -554,7 +558,7 @@ function RdvForm({ onClose, mode, userId, students, initial }: RdvDialogProps) {
           <motion.button
             whileTap={{ scale: 0.96 }}
             whileHover={{ scale: submitting ? 1 : 1.03 }}
-            transition={{ type: "spring", stiffness: 400, damping: 26 }}
+            transition={spring}
             onClick={() => void handleSubmit()}
             disabled={submitting}
             style={{ ...glassBtn(c, "solid"), opacity: submitting ? 0.6 : 1, cursor: submitting ? "default" : "pointer" }}

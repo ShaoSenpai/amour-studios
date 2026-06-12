@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
+import { SPRING } from "@/lib/motion";
 import {
   ACCENT,
   mono,
@@ -28,7 +29,7 @@ const STATUS_ORDER: SessionStatus[] = ["completed", "scheduled", "no_show", "can
 const TAP = {
   whileTap: { scale: 0.95 },
   whileHover: { scale: 1.04 },
-  transition: { type: "spring" as const, stiffness: 400, damping: 26 },
+  transition: SPRING,
 };
 
 export type { SessionType, SessionStatus };

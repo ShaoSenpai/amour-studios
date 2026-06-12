@@ -20,26 +20,23 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
     Discord({
       clientId: process.env.DISCORD_CLIENT_ID,
       clientSecret: process.env.DISCORD_CLIENT_SECRET,
-      // Scope : identify + email + guilds (guilds requis pour le gate membership)
+      // Scope : identify + email + guilds. La scope `guilds` est inoffensive
+      // (on ne s'en sert plus pour gater l'auth) — on la garde pour ne pas
+      // modifier l'écran de consentement Discord déjà validé par les membres.
       authorization: { params: { scope: "identify email guilds" } },
       // Mapping du profil Discord vers les champs Convex Auth.
-      // Le 2e arg contient les tokens OAuth — on s'en sert pour vérifier
-      // que le user est bien dans notre serveur Discord avant d'autoriser.
-      async profile(discordProfile, tokens) {
-        const requiredGuildId = process.env.DISCORD_GUILD_ID;
-        if (requiredGuildId) {
-          const res = await fetch("https://discord.com/api/users/@me/guilds", {
-            headers: { Authorization: `Bearer ${tokens.access_token}` },
-          });
-          if (!res.ok) {
-            throw new Error("DISCORD_GUILDS_FETCH_FAILED");
-          }
-          const guilds = (await res.json()) as Array<{ id: string }>;
-          const isMember = guilds.some((g) => g.id === requiredGuildId);
-          if (!isMember) {
-            throw new Error("NOT_IN_DISCORD_SERVER");
-          }
-        }
+      //
+      // ⚠️ ON NE GATE PLUS l'auth sur l'appartenance au serveur Discord.
+      // Avant, `profile()` throwait `NOT_IN_DISCORD_SERVER` si l'user n'était
+      // pas déjà dans la guild : un NOUVEAU client qui se connectait AVANT de
+      // rejoindre le serveur voyait son OAuth échouer silencieusement → aucun
+      // compte Convex créé, paiement jamais lié, aucun rôle → le bot restait
+      // muet à sa présentation. Le guard cassait donc l'acquisition.
+      // L'accès reste correctement gaté par l'ACHAT (purchase) et le RÔLE
+      // Discord (attribué au paiement, au /claim, et à l'arrivée du membre via
+      // le listener guildMemberAdd → /webhooks/discord/member-joined), pas par
+      // l'appartenance au serveur au moment du login.
+      async profile(discordProfile) {
         return {
           id: discordProfile.id,
           name: discordProfile.global_name ?? discordProfile.username,

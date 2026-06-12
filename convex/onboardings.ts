@@ -398,6 +398,7 @@ export const _userContact = internalQuery({
       email: u.email ?? null,
       discordId: u.discordId ?? null,
       firstName: ob?.firstName ?? null,
+      tier: ob?.tier ?? null,
     };
   },
 });
@@ -432,6 +433,17 @@ export const grantOnboarded = internalAction({
         console.warn(`⚠️ grant-onboarded bot ${res.status}: ${txt.slice(0, 150)}`);
         return { ok: false };
       }
+      // Rôle Onboardé attribué = accès complet débloqué → DM de confirmation
+      // (fail-silent, adapté à l'offre). C'est le « tu as accès à tout ».
+      const hi = u.firstName ? `${u.firstName}, ` : "";
+      const content =
+        u.tier === "coaching"
+          ? `🎉 ${hi}c'est validé ! Ton accès est complet : tu peux désormais écrire dans tous les channels, ton espace exercices est ouvert, et ton 1er RDV est calé. On se voit très vite. 🚀`
+          : `🎉 ${hi}bienvenue dans AMOUR STUDIOS ! Ta présentation est validée — tu as maintenant accès à **tous les channels** de la communauté. Partage ta musique, pose tes questions, profite des ressources. 🎵`;
+      await ctx.scheduler.runAfter(0, internal.onboardings.discordDm, {
+        discordId: u.discordId,
+        content,
+      });
       return { ok: true };
     } catch (err) {
       console.warn("⚠️ grant-onboarded fetch échec:", err);

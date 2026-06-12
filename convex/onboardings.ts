@@ -145,6 +145,128 @@ export const getByToken = query({
   },
 });
 
+/** Query publique : état de l'offre d'upsell Communauté → Coaching (+100€).
+ *  Lue par l'écran de FIN d'onboarding communauté (/onboarding/[token], "done").
+ *  Éligible UNIQUEMENT si : tier communaute, step community_ready, et on est
+ *  encore dans la fenêtre d'1h (upgradeOfferExpiresAt dans le futur). */
+export const upgradeOffer = query({
+  args: { token: v.string() },
+  handler: async (ctx, { token }) => {
+    const ob = await ctx.db
+      .query("onboardings")
+      .withIndex("by_token", (q) => q.eq("token", token))
+      .first();
+    if (
+      !ob ||
+      ob.tier !== "communaute" ||
+      ob.step !== "community_ready" ||
+      !ob.upgradeOfferExpiresAt ||
+      Date.now() >= ob.upgradeOfferExpiresAt
+    ) {
+      return { eligible: false as const };
+    }
+    return {
+      eligible: true as const,
+      firstName: ob.firstName ?? null,
+      currentEur: 79,
+      coachingEur: 179,
+      feeEur: 100,
+      expiresAt: ob.upgradeOfferExpiresAt,
+    };
+  },
+});
+
+/** Internal query : récupère l'onboarding (par token) + le purchase lié + les
+ *  coordonnées Discord/email du user. Sert à l'action `upgradeToCoaching`
+ *  (convex/stripe.ts) qui n'a pas d'accès db direct. */
+export const _obByToken = internalQuery({
+  args: { token: v.string() },
+  handler: async (ctx, { token }) => {
+    const ob = await ctx.db
+      .query("onboardings")
+      .withIndex("by_token", (q) => q.eq("token", token))
+      .first();
+    if (!ob) return null;
+    const user = await ctx.db.get(ob.userId);
+    const email = (user?.email ?? "").trim().toLowerCase();
+    // Purchase lié : prioritairement via le purchaseId du user, sinon le plus
+    // récent abonnement (active/past_due/paid) du même email.
+    let purchase = user?.purchaseId ? await ctx.db.get(user.purchaseId) : null;
+    if ((!purchase || !purchase.stripeSubscriptionId) && email) {
+      const purchases = await ctx.db
+        .query("purchases")
+        .withIndex("by_email", (q) => q.eq("email", email))
+        .collect();
+      const candidate = purchases
+        .filter(
+          (p) =>
+            p.stripeSubscriptionId &&
+            (p.status === "active" ||
+              p.status === "past_due" ||
+              p.status === "paid")
+        )
+        .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))[0];
+      if (candidate) purchase = candidate;
+    }
+    return {
+      onboardingId: ob._id,
+      userId: ob.userId,
+      tier: ob.tier,
+      step: ob.step,
+      upgradeOfferExpiresAt: ob.upgradeOfferExpiresAt ?? null,
+      discordId: user?.discordId ?? null,
+      email: user?.email ?? null,
+      purchaseId: purchase?._id ?? null,
+      purchaseTier: purchase?.tier ?? null,
+      stripeSubscriptionId: purchase?.stripeSubscriptionId ?? null,
+      stripeCustomerId: purchase?.stripeCustomerId ?? null,
+    };
+  },
+});
+
+/** Internal mutation : applique l'upgrade Communauté → Coaching côté onboarding
+ *  une fois le débit Stripe confirmé. Bascule la row sur coaching/form_done et
+ *  ferme la fenêtre d'offre (→ la page enchaîne l'étape RDV coaching). Log
+ *  l'event tier_changed. Idempotent : ne re-log pas si déjà coaching. */
+export const _applyUpgradeOnboarding = internalMutation({
+  args: { onboardingId: v.id("onboardings") },
+  handler: async (ctx, { onboardingId }) => {
+    const ob = await ctx.db.get(onboardingId);
+    if (!ob) return;
+    const alreadyCoaching = ob.tier === "coaching";
+    await ctx.db.patch(onboardingId, {
+      tier: "coaching",
+      step: "form_done",
+      upgradeOfferExpiresAt: undefined,
+      updatedAt: Date.now(),
+    });
+    if (!alreadyCoaching) {
+      await logEvent(ctx, {
+        userId: ob.userId,
+        type: "subscription.tier_changed",
+        title: "Upgrade Communauté → Coaching (+100€)",
+        actor: "stripe",
+        meta: { from: "communaute", to: "coaching", via: "onboarding_upsell" },
+      });
+    }
+  },
+});
+
+/** Internal mutation : patch du purchase après upgrade (tier coaching, prix &
+ *  montant coaching, duree effacée). Le webhook Stripe (subscription.updated)
+ *  confirmera/écrasera ensuite — on pose tôt pour cohérence immédiate. */
+export const _applyUpgradePurchase = internalMutation({
+  args: { purchaseId: v.id("purchases"), stripePriceId: v.string() },
+  handler: async (ctx, { purchaseId, stripePriceId }) => {
+    await ctx.db.patch(purchaseId, {
+      tier: "coaching",
+      stripePriceId,
+      amount: 17900,
+      duree: undefined,
+    });
+  },
+});
+
 /** Étape 1 : prénom / nom / téléphone. */
 export const submitContact = mutation({
   args: {
@@ -204,6 +326,10 @@ export const submitAnswers = mutation({
       patch.formCompletedAt = now;
       if (ob.tier === "communaute") {
         patch.step = "community_ready";
+        // Ouvre la fenêtre d'upsell Communauté → Coaching (+100€ one-time,
+        // débit off-session 1-clic). Strictement 1h à partir de maintenant ;
+        // au-delà, upgradeOffer renvoie { eligible: false }.
+        patch.upgradeOfferExpiresAt = now + 60 * 60 * 1000;
       } else if (ob.step === "link_sent") {
         patch.step = "form_done";
       }

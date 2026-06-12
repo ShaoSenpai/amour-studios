@@ -406,6 +406,11 @@ export default defineSchema({
     relance24hAt: v.optional(v.number()),
     relance48hAt: v.optional(v.number()),
     relance7dAt: v.optional(v.number()),
+    // Upsell Communauté → Coaching : fenêtre STRICTE d'~1h après la fin de
+    // l'onboarding communauté (step community_ready). Passé ce timestamp,
+    // l'offre +100€ one-time (débit off-session) n'est plus éligible.
+    // Posé dans submitAnswers ; effacé (undefined) une fois l'upgrade appliqué.
+    upgradeOfferExpiresAt: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { use, useEffect, useMemo, useState } from "react";
 import Script from "next/script";
@@ -105,6 +105,9 @@ export default function OnboardingTokenPage({
   const submitContact = useMutation(api.onboardings.submitContact);
   const submitAnswers = useMutation(api.onboardings.submitAnswers);
   const markRdvBooked = useMutation(api.onboardings.markRdvBooked);
+  // Upsell Communauté → Coaching (écran de fin, fenêtre 1h).
+  const offer = useQuery(api.onboardings.upgradeOffer, { token });
+  const upgradeToCoaching = useAction(api.stripe.upgradeToCoaching);
 
   // État local UI.
   const [step, setStep] = useState<StepKey>("loading");
@@ -113,6 +116,30 @@ export default function OnboardingTokenPage({
   const [phone, setPhone] = useState("");
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+  // Upsell : masquage local ("Non merci") + état d'activation du débit.
+  const [upsellDismissed, setUpsellDismissed] = useState(false);
+  const [upgrading, setUpgrading] = useState(false);
+
+  // Handler du débit +100€ off-session puis bascule coaching. Le succès patche
+  // l'onboarding (→ tier coaching/form_done) : `data` (useQuery réactif) se met
+  // à jour seul et la page enchaîne automatiquement sur l'étape RDV coaching.
+  const handleUpgrade = async () => {
+    if (upgrading) return;
+    setUpgrading(true);
+    try {
+      const res = await upgradeToCoaching({ token });
+      if (res.already) {
+        toast.success("Coaching déjà actif.");
+      } else {
+        toast.success("🎉 Coaching débloqué !");
+      }
+      // Pas de setStep manuel : on laisse la query réactive piloter l'écran.
+    } catch (err) {
+      toast.error((err as Error).message ?? "Le paiement a échoué.");
+    } finally {
+      setUpgrading(false);
+    }
+  };
 
   // Détermine l'étape initiale depuis l'état serveur.
   useEffect(() => {
@@ -274,8 +301,18 @@ export default function OnboardingTokenPage({
   }
 
   if (step === "done") {
+    const showUpsell = offer?.eligible === true && !upsellDismissed;
     return (
       <Shell c={c} dark={dark}>
+        {showUpsell && (
+          <UpsellBlock
+            c={c}
+            offer={offer}
+            upgrading={upgrading}
+            onUpgrade={handleUpgrade}
+            onDismiss={() => setUpsellDismissed(true)}
+          />
+        )}
         <div>
           <div style={{ ...mono, color: ACCENT }}>◦ Accès débloqué ✓</div>
           <h1 style={{ ...num, fontSize: 36, fontWeight: 500, lineHeight: 1.05, margin: "10px 0 0" }}>
@@ -658,6 +695,142 @@ function UnlockBanner({
         {label}
       </span>
     </div>
+  );
+}
+
+// Offre éligible (variante "true" du retour de api.onboardings.upgradeOffer).
+type EligibleOffer = {
+  eligible: true;
+  firstName: string | null;
+  currentEur: number;
+  coachingEur: number;
+  feeEur: number;
+  expiresAt: number;
+};
+
+/** Bloc d'upsell émotionnel Communauté → Coaching, affiché au-dessus du message
+ *  de fin (écran "done") quand l'offre 1h est encore éligible. Débit +100€
+ *  one-time off-session en 1 clic. */
+function UpsellBlock({
+  c,
+  offer,
+  upgrading,
+  onUpgrade,
+  onDismiss,
+}: {
+  c: C;
+  offer: EligibleOffer;
+  upgrading: boolean;
+  onUpgrade: () => void;
+  onDismiss: () => void;
+}) {
+  const hi = offer.firstName ? `${offer.firstName}, t` : "T";
+  return (
+    <Glass
+      c={c}
+      dark={c.dark}
+      strong
+      tint={`${ACCENT}14`}
+      style={{ border: `1px solid ${ACCENT}66`, marginBottom: 4 }}
+    >
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <div style={{ ...mono, fontSize: 10, color: ACCENT, letterSpacing: "0.08em" }}>
+          ◦ OFFRE — MAINTENANT SEULEMENT
+        </div>
+        <h2
+          style={{
+            ...num,
+            fontSize: 26,
+            fontWeight: 500,
+            lineHeight: 1.1,
+            margin: 0,
+            color: c.text,
+          }}
+        >
+          Débloque le coaching avec Walid.
+        </h2>
+        <p style={{ fontSize: 14, color: c.text, margin: 0, lineHeight: 1.6 }}>
+          {hi}u as la communauté. Le vrai déclic, c&apos;est le coaching 1:1 :
+          ta méthode, tes RDV, tes exos. Tu es à <strong>+100€</strong> de tout
+          débloquer — au lieu de <strong>{offer.coachingEur}€</strong>. C&apos;est
+          maintenant, et seulement maintenant : après cette page, ce sera au
+          tarif plein.
+        </p>
+
+        {/* Contraste prix : 179€ barré → +100€ mis en valeur. */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "baseline",
+            gap: 14,
+            padding: "12px 16px",
+            background: c.chip,
+            border: `1px solid ${c.line}`,
+            borderRadius: 12,
+          }}
+        >
+          <span
+            style={{
+              ...num,
+              fontSize: 17,
+              color: c.faint,
+              textDecoration: "line-through",
+              textDecorationColor: c.muted,
+            }}
+          >
+            {offer.coachingEur}€
+          </span>
+          <span style={{ ...mono, fontSize: 16, color: c.muted }}>→</span>
+          <span style={{ ...num, fontSize: 34, fontWeight: 600, color: ACCENT, lineHeight: 1 }}>
+            +{offer.feeEur}€
+          </span>
+          <span style={{ ...mono, fontSize: 9.5, color: c.muted, marginLeft: "auto" }}>
+            une seule fois
+          </span>
+        </div>
+
+        <button
+          type="button"
+          onClick={onUpgrade}
+          disabled={upgrading}
+          style={{
+            ...glassBtn(c, "solid"),
+            padding: "15px 18px",
+            fontSize: 12,
+            opacity: upgrading ? 0.6 : 1,
+            cursor: upgrading ? "default" : "pointer",
+            width: "100%",
+            boxSizing: "border-box",
+          }}
+        >
+          {upgrading ? "Activation…" : `Débloquer le coaching · +${offer.feeEur}€`}
+        </button>
+
+        <button
+          type="button"
+          onClick={onDismiss}
+          disabled={upgrading}
+          style={{
+            background: "none",
+            border: "none",
+            color: c.muted,
+            fontFamily: "inherit",
+            fontSize: 12.5,
+            cursor: upgrading ? "default" : "pointer",
+            textDecoration: "underline",
+            textUnderlineOffset: 3,
+            padding: 0,
+            alignSelf: "center",
+          }}
+        >
+          Non merci, rester en communauté
+        </button>
+
+        <p style={{ ...mono, fontSize: 9, color: c.faint, textAlign: "center", lineHeight: 1.4, margin: 0 }}>
+          Débité en 1 clic sur ta carte enregistrée · sécurisé par Stripe
+        </p>
+      </div>
+    </Glass>
   );
 }
 

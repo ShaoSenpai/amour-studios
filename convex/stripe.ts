@@ -176,6 +176,147 @@ export const createSubscription = action({
 });
 
 /**
+ * Action publique : UPSELL Communauté → Coaching depuis l'écran de fin
+ * d'onboarding (/onboarding/[token], step community_ready). Débite +100€
+ * one-time (off-session) sur la carte déjà enregistrée du membre, puis bascule
+ * son abonnement sur le price coaching (sans proration : le +100€ couvre le
+ * passage, coaching mensuel dès le prochain cycle).
+ *
+ * Garde-fous PAIEMENT :
+ *  - Fenêtre stricte : upgradeOfferExpiresAt doit être dans le futur.
+ *  - Idempotence : si déjà coaching → { ok, already } SANS débit.
+ *  - Rate-limit : 5 tentatives/min par token.
+ *  - PaymentIntent confirm:true off_session — si status ≠ succeeded, on throw
+ *    (v1 : pas de relance SCA via Elements) et on NE bascule PAS l'abonnement.
+ */
+export const upgradeToCoaching = action({
+  args: { token: v.string() },
+  handler: async (ctx, { token }): Promise<{ ok: true; already?: boolean }> => {
+    // 1) Charge l'onboarding + purchase + contact (accès db via internalQuery).
+    const data = await ctx.runQuery(internal.onboardings._obByToken, { token });
+    if (!data) throw new Error("Offre expirée ou non éligible.");
+
+    // 2) IDEMPOTENCE — déjà coaching (onboarding OU purchase) : aucun débit.
+    if (data.tier === "coaching" || data.purchaseTier === "coaching") {
+      return { ok: true, already: true };
+    }
+
+    // 3) Éligibilité stricte (tier/step/fenêtre).
+    if (
+      data.tier !== "communaute" ||
+      data.step !== "community_ready" ||
+      !data.upgradeOfferExpiresAt ||
+      Date.now() >= data.upgradeOfferExpiresAt
+    ) {
+      throw new Error("Offre expirée ou non éligible.");
+    }
+
+    // 4) Rate-limit par token (action publique → appelable directement).
+    const rl = await ctx.runMutation(internal.rateLimit.checkAndIncrement, {
+      key: `upgrade:${token}`,
+      max: 5,
+    });
+    if (!rl.allowed) {
+      throw new Error("Trop de tentatives. Attends une minute et réessaie.");
+    }
+
+    // 5) Besoin d'un abonnement + customer Stripe.
+    const subId = data.stripeSubscriptionId;
+    const customerId = data.stripeCustomerId;
+    if (!subId || !customerId) {
+      throw new Error("Aucun abonnement Stripe à mettre à niveau.");
+    }
+
+    const coachingPriceId = priceForTier("coaching");
+    const stripe = await stripeClient();
+
+    // 6) Récupère l'abonnement + le moyen de paiement par défaut.
+    const sub = await stripe.subscriptions.retrieve(subId);
+
+    const pmFromSub =
+      typeof sub.default_payment_method === "string"
+        ? sub.default_payment_method
+        : sub.default_payment_method?.id;
+    let paymentMethodId: string | undefined = pmFromSub;
+    if (!paymentMethodId) {
+      const cust = await stripe.customers.retrieve(customerId);
+      if (!cust.deleted) {
+        const dpm = cust.invoice_settings?.default_payment_method;
+        paymentMethodId = typeof dpm === "string" ? dpm : dpm?.id;
+      }
+    }
+    if (!paymentMethodId) {
+      throw new Error("Aucune carte enregistrée pour l'upgrade.");
+    }
+
+    // 7) Débit one-time +100€ off-session (carte déjà enregistrée).
+    // ⚠️ idempotencyKey par token : si une étape ULTÉRIEURE plante (bascule sub
+    // ou patch Convex) et que le membre réessaie, Stripe renvoie LE MÊME
+    // PaymentIntent au lieu de re-débiter. Garde-fou anti double-débit.
+    let pi;
+    try {
+      pi = await stripe.paymentIntents.create(
+        {
+          amount: 10000,
+          currency: "eur",
+          customer: customerId,
+          payment_method: paymentMethodId,
+          off_session: true,
+          confirm: true,
+          description: "Upgrade Communauté → Coaching (+100€)",
+          metadata: { type: "upgrade", token, userId: data.userId },
+        },
+        { idempotencyKey: `upgrade-pi:${token}` }
+      );
+    } catch (err) {
+      // Off-session : une carte refusée / nécessitant une 3DS lève une erreur
+      // Stripe ici. Rien n'est encaissé. Message propre (pas de flux SCA v1).
+      console.warn("⚠️ upgrade PI échec:", err instanceof Error ? err.message : err);
+      throw new Error(
+        "Le paiement n'a pas pu être validé (carte refusée ou validation requise). Réessaie ou contacte le support."
+      );
+    }
+    if (pi.status !== "succeeded") {
+      // Carte nécessitant une authentification (3DS) : on n'a pas de flux SCA
+      // côté Elements en v1 → on ne bascule PAS l'abonnement. Le débit n'est
+      // pas capturé (requires_action) donc rien n'est encaissé.
+      throw new Error(
+        "Ta carte demande une validation. Réessaie ou contacte le support."
+      );
+    }
+
+    // 8) Bascule l'abonnement sur le price coaching, sans proration.
+    const itemId = sub.items.data[0]?.id;
+    if (!itemId) throw new Error("Subscription Stripe sans item.");
+    await stripe.subscriptions.update(subId, {
+      items: [{ id: itemId, price: coachingPriceId }],
+      proration_behavior: "none",
+      metadata: { ...(sub.metadata ?? {}), tier: "coaching", duree: "1mois" },
+    });
+
+    // 9) Applique l'upgrade côté Convex (purchase + onboarding + rôle Discord).
+    if (data.purchaseId) {
+      await ctx.runMutation(internal.onboardings._applyUpgradePurchase, {
+        purchaseId: data.purchaseId,
+        stripePriceId: coachingPriceId,
+      });
+    }
+    await ctx.runMutation(internal.onboardings._applyUpgradeOnboarding, {
+      onboardingId: data.onboardingId,
+    });
+    if (data.discordId) {
+      await ctx.scheduler.runAfter(0, internal.stripe.assignDiscordRole, {
+        discordId: data.discordId,
+        email: data.email ?? "",
+        tier: "coaching",
+      });
+    }
+
+    return { ok: true };
+  },
+});
+
+/**
  * @deprecated Ancien flux « Programme Créateur » (paiement unique 497€), remplacé
  * par les abonnements (`createSubscription`). Conservé uniquement pour que le
  * composant in-app `components/payment/payment-modal.tsx` (plateforme vidéos EN

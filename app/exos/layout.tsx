@@ -108,12 +108,36 @@ export default function ExosLayout({ children }: { children: ReactNode }) {
                 directement depuis cet espace.
               </p>
             </div>
-            <a
-              href="https://amourstudios.fr/coaching"
-              style={{ ...glassBtn(c, "solid"), textAlign: "center", textDecoration: "none" }}
-            >
-              Voir l&apos;offre coaching →
-            </a>
+            {summary.tier === "communaute" ? (
+              <>
+                {/* Déjà membre Communauté → upgrade 1-clic (prorata) + gestion, sans re-payer dehors */}
+                <a
+                  href="/compte"
+                  style={{ ...glassBtn(c, "solid"), textAlign: "center", textDecoration: "none" }}
+                >
+                  Passer au Coaching →
+                </a>
+                <a
+                  href="/compte"
+                  style={{
+                    ...mono,
+                    fontSize: 10.5,
+                    color: c.muted,
+                    textAlign: "center",
+                    textDecoration: "none",
+                  }}
+                >
+                  Gérer mon abonnement (annuler / facturation)
+                </a>
+              </>
+            ) : (
+              <a
+                href="https://amourstudios.fr/coaching"
+                style={{ ...glassBtn(c, "solid"), textAlign: "center", textDecoration: "none" }}
+              >
+                Voir l&apos;offre coaching →
+              </a>
+            )}
             <a
               href="/studio"
               style={{

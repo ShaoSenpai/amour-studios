@@ -5,6 +5,7 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  type ComponentProps,
   type CSSProperties,
   type ReactNode,
 } from "react";
@@ -327,6 +328,27 @@ export function glassBtn(c: C, kind: "solid" | "ghost" | "ink" = "ghost"): CSSPr
   };
 }
 
+/** Bouton Glass C avec états hover/active/focus (classe CSS .glass-btn).
+ *  Remplace le pattern `<button style={glassBtn(c, kind)}>`. */
+export function GlassButton({
+  c,
+  kind = "ghost",
+  style,
+  className,
+  ...props
+}: ComponentProps<"button"> & {
+  c: C;
+  kind?: "solid" | "ghost" | "ink";
+}) {
+  return (
+    <button
+      className={className ? `glass-btn ${className}` : "glass-btn"}
+      style={{ ...glassBtn(c, kind), ...style }}
+      {...props}
+    />
+  );
+}
+
 export type PillTone =
   | "ghost"
   | "accent"
@@ -409,6 +431,7 @@ export function Segmented<T extends string>({
         return (
           <button
             key={it.id}
+            className="glass-seg"
             onClick={() => onChange(it.id)}
             style={{
               ...mono,

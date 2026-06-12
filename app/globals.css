@@ -1176,6 +1176,44 @@ html[data-theme="dark"] {
   border-color: var(--orange) !important;
 }
 
+/* ── GlassButton : états interactifs (polish Apple 2026-06) ─────────────
+   Les couleurs restent en inline (DA Glass C). Ici : uniquement des
+   propriétés jamais posées en inline → pas de conflit. */
+.glass-btn {
+  transition:
+    transform var(--dur-instant) var(--ease-spring),
+    filter var(--dur-instant) var(--ease-spring),
+    opacity var(--dur-instant) var(--ease-spring);
+}
+.glass-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+}
+.glass-btn:active {
+  transform: translateY(0) scale(0.97);
+  filter: brightness(0.96);
+  transition-duration: 80ms;
+}
+.glass-btn:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+.glass-btn:disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* Boutons de Segmented : feedback sans déplacement (pas de translateY dans un rail) */
+.glass-seg {
+  transition: filter var(--dur-instant) var(--ease-snap);
+}
+.glass-seg:hover { filter: brightness(1.1); }
+.glass-seg:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: -2px;
+  border-radius: 999px;
+}
+
 /* ============================================================================
    Transitions de page « push » du back-office /studio (cf. page-transition).
    Animations CSS = thread compositeur → fluides même quand le thread principal

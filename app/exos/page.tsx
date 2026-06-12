@@ -91,6 +91,14 @@ export default function ExosCatalogPage() {
                 )}
               </div>
             </div>
+            <div style={{ display: "flex", alignItems: "flex-start", padding: "26px 30px" }}>
+              <Link
+                href="/compte"
+                style={{ ...mono, fontSize: 10, color: c.muted, textDecoration: "none", whiteSpace: "nowrap" }}
+              >
+                Mon abonnement ›
+              </Link>
+            </div>
           </div>
         </Glass>
 

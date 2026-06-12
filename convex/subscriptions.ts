@@ -196,6 +196,11 @@ export const startCardUpdate = action({
       mode: "setup",
       customer,
       currency: "eur",
+      // On transporte l'id d'abonnement jusqu'au webhook : la carte devra être
+      // posée en défaut DE L'ABONNEMENT (pas seulement du customer), car
+      // `createSubscription` pose `save_default_payment_method:"on_subscription"`
+      // → la default_payment_method de l'abonnement PRIME pour ses factures.
+      metadata: { subscriptionId: p.subscriptionId },
       success_url: `${site}/compte?card=updated`,
       cancel_url: `${site}/compte`,
     });

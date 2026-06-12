@@ -356,6 +356,7 @@ http.route({
           mode?: string;
           customer?: string | { id?: string } | null;
           setup_intent?: string | { id?: string } | null;
+          metadata?: { subscriptionId?: string } | null;
         };
         // On ne traite QUE les sessions de setup de carte. Les autres modes
         // (payment/subscription) ne nous concernent pas ici → ignorés sans rien
@@ -392,6 +393,16 @@ http.route({
         console.log(
           `✅ Carte par défaut mise à jour (setup) pour customer ${customerId} → pm ${pm}`
         );
+        // ⚠️ CRUCIAL : l'abonnement a sa PROPRE default_payment_method
+        // (`createSubscription` → `save_default_payment_method:"on_subscription"`),
+        // qui PRIME sur celle du customer pour les factures d'abonnement. Sans
+        // cette mise à jour, l'upgrade (`billing_cycle_anchor:"now"`) débiterait
+        // l'ANCIENNE carte. On pose donc aussi la carte par défaut DE L'ABONNEMENT.
+        const setupSubId = session.metadata?.subscriptionId;
+        if (setupSubId) {
+          await stripe.subscriptions.update(setupSubId, { default_payment_method: pm });
+          console.log(`✅ Carte par défaut de l'abonnement ${setupSubId} → pm ${pm}`);
+        }
         break;
       }
 

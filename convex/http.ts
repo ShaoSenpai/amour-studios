@@ -339,6 +339,56 @@ http.route({
         break;
       }
 
+      // ── Carte ajoutée via Checkout `mode:"setup"` (choix d'une autre carte) ──
+      // Flux self-service /compte : le membre a installé une nouvelle carte via
+      // `startCardUpdate` (Checkout setup, AUCUN débit). On la pose en moyen de
+      // paiement par défaut du customer pour que le prochain upgrade / la
+      // prochaine facture la débite. ⚠️ AUCUN débit n'est déclenché ici.
+      case "checkout.session.completed": {
+        const session = event.data.object as unknown as {
+          id: string;
+          mode?: string;
+          customer?: string | { id?: string } | null;
+          setup_intent?: string | { id?: string } | null;
+        };
+        // On ne traite QUE les sessions de setup de carte. Les autres modes
+        // (payment/subscription) ne nous concernent pas ici → ignorés sans rien
+        // casser (les abonnements passent par customer.subscription.* / invoice.*).
+        if (session.mode !== "setup") {
+          console.log(`checkout.session.completed (mode=${session.mode ?? "?"}) ignoré`);
+          break;
+        }
+        const setupIntentId =
+          typeof session.setup_intent === "string"
+            ? session.setup_intent
+            : session.setup_intent?.id;
+        if (!setupIntentId) {
+          console.warn("checkout.session.completed (setup) sans setup_intent — ignoré");
+          break;
+        }
+        const si = await stripe.setupIntents.retrieve(setupIntentId);
+        const pm =
+          typeof si.payment_method === "string"
+            ? si.payment_method
+            : si.payment_method?.id;
+        const customerId =
+          typeof si.customer === "string" ? si.customer : si.customer?.id;
+        if (!pm || !customerId) {
+          console.warn(
+            `checkout.session.completed (setup): payment_method/customer manquant (pm=${pm ?? "?"}, cust=${customerId ?? "?"})`
+          );
+          break;
+        }
+        // Pose la nouvelle carte en moyen de paiement par défaut du customer.
+        await stripe.customers.update(customerId, {
+          invoice_settings: { default_payment_method: pm },
+        });
+        console.log(
+          `✅ Carte par défaut mise à jour (setup) pour customer ${customerId} → pm ${pm}`
+        );
+        break;
+      }
+
       // ── Remboursement (manuel ou via bot SAV Stripe) ──
       // Retire les rôles Discord, prévient l'élève (DM + email), alerte Walid.
       case "charge.refunded": {

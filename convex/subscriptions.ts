@@ -166,6 +166,44 @@ export const upgradeMySubscription = action({
   },
 });
 
+// 4) Mettre à jour / choisir la carte de paiement (Stripe Checkout `mode:"setup"`).
+//    Le membre peut vouloir payer son upgrade avec une AUTRE carte que celle en
+//    place. On collecte/installe la carte via Checkout en mode "setup" — qui
+//    n'effectue AUCUN débit — puis le webhook `checkout.session.completed`
+//    (cf. convex/http.ts) la pose en `invoice_settings.default_payment_method`.
+//    Ensuite, l'upgrade (`upgradeMySubscription`) débitera cette carte par défaut.
+//    👉 UN SEUL point de débit = l'update de subscription, JAMAIS Checkout ici.
+export const startCardUpdate = action({
+  args: {},
+  handler: async (ctx): Promise<{ url: string }> => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Non authentifié");
+    const p = await ctx.runQuery(internal.subscriptions._purchaseForUser, { userId });
+    if (!p) throw new Error("Aucun abonnement.");
+    const stripe = await stripeClient();
+
+    // `_purchaseForUser` n'expose pas le customerId → on le récupère depuis
+    // l'abonnement Stripe (sub.customer). C'est le customer sur lequel la
+    // Checkout setup posera la carte par défaut.
+    const sub = await stripe.subscriptions.retrieve(p.subscriptionId);
+    const customer =
+      typeof sub.customer === "string" ? sub.customer : sub.customer?.id;
+    if (!customer) throw new Error("Customer Stripe introuvable pour cet abonnement.");
+
+    // Même source de SITE_URL que le reste du backend (onboardings.ts).
+    const site = process.env.SITE_URL ?? "https://amour-studios.vercel.app";
+    const session = await stripe.checkout.sessions.create({
+      mode: "setup",
+      customer,
+      currency: "eur",
+      success_url: `${site}/compte?card=updated`,
+      cancel_url: `${site}/compte`,
+    });
+    if (!session.url) throw new Error("Stripe Checkout: URL de session manquante.");
+    return { url: session.url };
+  },
+});
+
 export const _applyUpgrade = internalMutation({
   args: { purchaseId: v.id("purchases"), userId: v.id("users"), coachingPrice: v.string() },
   handler: async (ctx, { purchaseId, userId, coachingPrice }) => {

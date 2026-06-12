@@ -461,6 +461,58 @@ export const markPresentedByDiscordId = internalMutation({
   },
 });
 
+/** Bot Discord → un membre vient de REJOINDRE le serveur. On lui (ré)attribue
+ *  son rôle d'après son purchase déjà lié. Couvre l'ordre « se connecter
+ *  (OAuth + claim) AVANT de rejoindre le serveur » : à l'arrivée, le compte
+ *  existe et le purchase est lié, mais aucun rôle n'avait pu être posé (le bot
+ *  ne voyait pas encore le membre). Idempotent : `assignDiscordRole` règle les
+ *  rôles = palier (ré-appel sans effet si déjà bons).
+ *
+ *  Résolution du purchase : on réutilise la logique existante (purchaseId du
+ *  user en priorité, sinon fallback par email sur un abonnement vivant
+ *  active/past_due/paid). Sans user ou sans purchase actif → no-op silencieux
+ *  (visiteur, staff, ou membre pas encore payeur). */
+export const resolveAndAssignRoleByDiscordId = internalMutation({
+  args: { discordId: v.string() },
+  handler: async (ctx, { discordId }) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_discord", (q) => q.eq("discordId", discordId))
+      .first();
+    if (!user) return { ok: false as const, reason: "user_not_found" as const };
+
+    const email = (user.email ?? "").trim().toLowerCase();
+
+    // Résout le purchase actif : purchaseId du user d'abord, sinon fallback par
+    // email (statuts vivants : active / past_due / paid). Priorité coaching.
+    const isLive = (s?: string) =>
+      s === "active" || s === "past_due" || s === "paid";
+    let purchase = user.purchaseId ? await ctx.db.get(user.purchaseId) : null;
+    if (!purchase || !isLive(purchase.status) || !purchase.tier) {
+      purchase = null;
+      if (email) {
+        const candidates = await ctx.db
+          .query("purchases")
+          .withIndex("by_email", (q) => q.eq("email", email))
+          .collect();
+        const live = candidates.filter((p) => isLive(p.status) && p.tier);
+        purchase = live.find((p) => p.tier === "coaching") ?? live[0] ?? null;
+      }
+    }
+    if (!purchase || !purchase.tier) {
+      return { ok: false as const, reason: "no_active_purchase" as const };
+    }
+
+    // Attribue le rôle = palier (action → scheduler, comme ailleurs). Idempotent.
+    await ctx.scheduler.runAfter(0, internal.stripe.assignDiscordRole, {
+      discordId,
+      email,
+      tier: purchase.tier,
+    });
+    return { ok: true as const, tier: purchase.tier };
+  },
+});
+
 /** Envoie le lien d'onboarding par email (Resend) + DM Discord (bot).
  *  Fail-silent sur chaque canal individuellement. */
 export const sendLink = internalAction({

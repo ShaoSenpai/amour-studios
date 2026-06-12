@@ -797,4 +797,43 @@ http.route({
   }),
 });
 
+// ── Webhook Discord membre rejoint ──────────────────────────────────────────
+// Le bot écoute `guildMemberAdd`. À l'arrivée d'un membre (non-bot, bonne
+// guild), il POST ici avec son discordId → on lui (ré)attribue son rôle d'après
+// son purchase déjà lié. Couvre l'ordre « se connecter (OAuth + claim) AVANT de
+// rejoindre le serveur » (le rôle n'avait pas pu être posé tant que le membre
+// n'était pas là). Auth IDENTIQUE à /webhooks/discord/presentation :
+// Bearer DISCORD_BOT_ENDPOINT_SECRET (= BOT_SECRET côté bot).
+http.route({
+  path: "/webhooks/discord/member-joined",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const expected = process.env.DISCORD_BOT_ENDPOINT_SECRET;
+    if (!expected) {
+      return new Response("Not configured", { status: 500 });
+    }
+    const auth = request.headers.get("Authorization") ?? "";
+    if (auth !== `Bearer ${expected}`) {
+      return new Response("Unauthorized", { status: 401 });
+    }
+    let body: { discordId?: string } = {};
+    try {
+      body = (await request.json()) as { discordId?: string };
+    } catch {
+      return new Response("Bad JSON", { status: 400 });
+    }
+    const discordId = (body.discordId ?? "").trim();
+    if (!discordId) return new Response("discordId required", { status: 400 });
+
+    const res = await ctx.runMutation(
+      internal.onboardings.resolveAndAssignRoleByDiscordId,
+      { discordId }
+    );
+    return new Response(JSON.stringify(res), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }),
+});
+
 export default http;

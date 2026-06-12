@@ -27,6 +27,47 @@ export const mySubscription = query({
         .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))[0] ?? purchase;
     }
     if (!purchase || !purchase.stripeSubscriptionId) return { authed: true as const, hasSubscription: false as const };
+
+    const isCoaching = purchase.tier === "coaching";
+
+    // ── needsFirstRdv ──────────────────────────────────────────────────────
+    // Coaching seulement : true tant que le membre n'a pas réservé son 1er RDV.
+    // L'onboarding coaching termine à `step:"rdv_booked"` (cf. onboardings.ts :
+    // awaiting_presentation → link_sent → form_done → rdv_booked). Tout step
+    // AVANT rdv_booked ⇒ RDV encore à faire. Pas d'onboarding row ⇒ false.
+    let needsFirstRdv = false;
+    let calendlyUrl: string | null = null;
+    if (isCoaching) {
+      const ob = await ctx.db
+        .query("onboardings")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .first();
+      needsFirstRdv = !!ob && ob.step !== "rdv_booked";
+      // URL Calendly du 1er RDV : même source que le flow onboarding
+      // (app/onboarding/[token]/page.tsx) — env NEXT_PUBLIC_CALENDLY_URL avec le
+      // même fallback littéral, pour que le lien soit toujours présent.
+      calendlyUrl =
+        process.env.NEXT_PUBLIC_CALENDLY_URL ??
+        "https://calendly.com/amourstudios/onboarding";
+    }
+
+    // ── nextRdvAt ──────────────────────────────────────────────────────────
+    // Début du prochain RDV coaching futur (table coachingSessions, index
+    // by_user). Future = status "scheduled" ET scheduledAt >= maintenant ;
+    // on prend le plus proche. Même critère que coaching.ts (nextSession).
+    let nextRdvAt: number | null = null;
+    if (isCoaching) {
+      const now = Date.now();
+      const sessions = await ctx.db
+        .query("coachingSessions")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .collect();
+      const next = sessions
+        .filter((s) => s.status === "scheduled" && s.scheduledAt >= now)
+        .sort((a, b) => a.scheduledAt - b.scheduledAt)[0];
+      nextRdvAt = next?.scheduledAt ?? null;
+    }
+
     return {
       authed: true as const,
       hasSubscription: true as const,
@@ -36,6 +77,9 @@ export const mySubscription = query({
       currentPeriodEnd: purchase.currentPeriodEnd ?? null,
       cancelAtPeriodEnd: purchase.cancelAtPeriodEnd ?? false,
       canUpgrade: purchase.tier === "communaute" && purchase.status !== "canceled",
+      needsFirstRdv,
+      nextRdvAt,
+      calendlyUrl,
     };
   },
 });

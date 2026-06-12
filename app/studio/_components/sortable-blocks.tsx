@@ -10,6 +10,7 @@ import {
 import { GripVertical, ChevronDown } from "lucide-react";
 import { Glass, mono, type C } from "./glass";
 import { SPRING } from "@/lib/motion";
+import { useAppSpring } from "@/lib/use-app-spring";
 
 // ============================================================================
 // Blocs repliables + réordonnables (Framer Motion).
@@ -135,6 +136,7 @@ export function CollapsibleBlock({
   children: ReactNode;
 }) {
   const controls = useDragControls();
+  const spring = useAppSpring(SPRING);
   return (
     <Reorder.Item
       as="div"
@@ -143,7 +145,7 @@ export function CollapsibleBlock({
       dragControls={controls}
       layout
       whileDrag={{ scale: 1.02, zIndex: 50, cursor: "grabbing" }}
-      transition={SPRING}
+      transition={spring}
       style={{ listStyle: "none" }}
     >
       <Glass c={c} dark={dark} pad={0} style={{ overflow: "hidden" }}>
@@ -200,7 +202,7 @@ export function CollapsibleBlock({
             )}
             <motion.span
               animate={{ rotate: collapsed ? -90 : 0 }}
-              transition={SPRING}
+              transition={spring}
               style={{ display: "inline-flex", color: c.faint, marginLeft: 2 }}
             >
               <ChevronDown size={15} />
@@ -217,7 +219,7 @@ export function CollapsibleBlock({
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              transition={SPRING}
+              transition={spring}
               style={{ overflow: "hidden" }}
             >
               <div style={{ padding: "0 18px 18px" }}>{children}</div>

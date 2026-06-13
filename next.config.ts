@@ -3,12 +3,14 @@ import type { NextConfig } from "next";
 // CSP volontairement permissive : les exercices s'affichent en iframe via
 // `exerciseUrl` (outils externes variés) → `frame-src *`. On garde 'unsafe-inline'
 // /'unsafe-eval' pour ne pas casser Next/Convex/Stripe et le script de thème inline.
+// assets.calendly.com : widget.js + widget.css + polices du widget inline d'onboarding
+// (sinon le script est bloqué par script-src → Calendly ne s'affiche pas, cf. /onboarding).
 const CSP = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-  "style-src 'self' 'unsafe-inline'",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://assets.calendly.com",
+  "style-src 'self' 'unsafe-inline' https://assets.calendly.com",
   "img-src 'self' data: https: blob:",
-  "font-src 'self' data:",
+  "font-src 'self' data: https://assets.calendly.com",
   "connect-src 'self' https: wss:",
   "frame-src *",
   "media-src 'self' https: blob:",

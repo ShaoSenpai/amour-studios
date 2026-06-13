@@ -836,4 +836,73 @@ http.route({
   }),
 });
 
+// ── Webhook Discord tickets ─────────────────────────────────────────────────
+// Le bot poste ici quand un membre ouvre (action "open") ou ferme (action
+// "close") un ticket de support. On garde une trace (table tickets) pour le
+// suivi /studio/tickets. Sur "open", on alerte aussi le staff (postAlertToStaff)
+// avec le lien du salon. Auth IDENTIQUE à /webhooks/discord/presentation :
+// Bearer DISCORD_BOT_ENDPOINT_SECRET (= BOT_SECRET côté bot).
+http.route({
+  path: "/webhooks/discord/ticket",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const expected = process.env.DISCORD_BOT_ENDPOINT_SECRET;
+    if (!expected) {
+      return new Response("Not configured", { status: 500 });
+    }
+    const auth = request.headers.get("Authorization") ?? "";
+    if (auth !== `Bearer ${expected}`) {
+      return new Response("Unauthorized", { status: 401 });
+    }
+    let body: {
+      action?: string;
+      discordId?: string;
+      username?: string;
+      channelId?: string;
+      closedBy?: string;
+    } = {};
+    try {
+      body = (await request.json()) as typeof body;
+    } catch {
+      return new Response("Bad JSON", { status: 400 });
+    }
+
+    const action = (body.action ?? "").trim();
+    const channelId = (body.channelId ?? "").trim();
+    if (!channelId) return new Response("channelId required", { status: 400 });
+
+    if (action === "open") {
+      const discordId = (body.discordId ?? "").trim();
+      if (!discordId) return new Response("discordId required", { status: 400 });
+      await ctx.runMutation(internal.tickets.recordOpen, {
+        discordId,
+        username: body.username,
+        channelId,
+      });
+      // Lien cliquable du salon (le guildId est implicite côté Discord : un
+      // mention de salon <#id> résout dans le serveur où l'alerte est postée).
+      await ctx.runAction(internal.discord.postAlertToStaff, {
+        content: `🎫 **Nouveau ticket** de <@${discordId}> → <#${channelId}>`,
+      });
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "close") {
+      await ctx.runMutation(internal.tickets.recordClose, {
+        channelId,
+        closedBy: body.closedBy,
+      });
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    return new Response("Unknown action", { status: 400 });
+  }),
+});
+
 export default http;

@@ -494,6 +494,23 @@ export default defineSchema({
     alertedAt: v.optional(v.number()), // dernière alerte Discord envoyée
   }).index("by_service", ["service"]),
 
+  // Tickets de support Discord — bouton « Ouvrir un ticket » dans #support →
+  // salon privé client↔staff → fermeture → trace ici (suivi dans /studio). Le
+  // coach répond DANS Discord ; cette table = audit/visibilité côté back-office.
+  // Une ligne par salon de ticket. status open → closed (closedAt/closedBy).
+  tickets: defineTable({
+    discordId: v.string(),
+    username: v.optional(v.string()),
+    channelId: v.string(),
+    status: v.union(v.literal("open"), v.literal("closed")),
+    openedAt: v.number(),
+    closedAt: v.optional(v.number()),
+    closedBy: v.optional(v.string()),
+  })
+    .index("by_channel", ["channelId"])
+    .index("by_status", ["status"])
+    .index("by_discord", ["discordId"]),
+
   // Transcripts Fireflies orphelins : aucune session ne matche (élève sur un
   // autre compte Google). Stockés ici pour que Walid les rattache à la main
   // via /studio au lieu d'un console.warn perdu.

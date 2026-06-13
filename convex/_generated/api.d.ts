@@ -47,6 +47,7 @@ import type * as segments from "../segments.js";
 import type * as streaks from "../streaks.js";
 import type * as stripe from "../stripe.js";
 import type * as subscriptions from "../subscriptions.js";
+import type * as tickets from "../tickets.js";
 import type * as tools from "../tools.js";
 import type * as users from "../users.js";
 
@@ -96,6 +97,7 @@ declare const fullApi: ApiFromModules<{
   streaks: typeof streaks;
   stripe: typeof stripe;
   subscriptions: typeof subscriptions;
+  tickets: typeof tickets;
   tools: typeof tools;
   users: typeof users;
 }>;

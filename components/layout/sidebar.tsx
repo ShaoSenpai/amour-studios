@@ -187,7 +187,7 @@ function NavItem({
   collapsed: boolean;
   external?: boolean;
 }) {
-  const className = `flex items-center gap-3 h-10 rounded-lg text-sm transition-all duration-200 ${
+  const className = `flex items-center gap-3 h-11 rounded-lg text-sm transition-all duration-200 ${
     collapsed ? "justify-center w-10 mx-auto px-0" : "px-3"
   } ${
     active

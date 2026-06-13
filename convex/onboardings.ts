@@ -457,6 +457,30 @@ async function scheduleRoleFromActivePurchase(
   return purchase.tier;
 }
 
+/** Filet de visibilité coach : une présentation Discord détectée mais NON liée
+ *  à un paiement (compte inconnu ou sans purchase actif) déclenche une alerte
+ *  discrète dans le channel staff. La récup self-service (DM bot + page /lier)
+ *  tourne déjà en parallèle ; ce message sert juste à ce que Walid voie passer
+ *  le cas. Fail-silent : on schedule l'action (qui est elle-même fail-silent)
+ *  et on n'interrompt jamais le no-op de la présentation. mentionAdmins=false
+ *  pour rester discret (pas de ping). */
+async function alertStaffUnlinkedPresentation(
+  ctx: MutationCtx,
+  discordId: string,
+  reason: "user_not_found" | "no_active_purchase"
+): Promise<void> {
+  const why =
+    reason === "user_not_found"
+      ? "compte inconnu en base"
+      : "aucun paiement actif lié";
+  await ctx.scheduler.runAfter(0, internal.discord.postAlertToStaff, {
+    content:
+      `⚠️ <@${discordId}> s'est présenté sans paiement lié (${why}). ` +
+      `Récup auto envoyée par DM (lien /lier).`,
+    mentionAdmins: false,
+  });
+}
+
 export const markPresentedByDiscordId = internalMutation({
   args: { discordId: v.string() },
   handler: async (ctx, { discordId }) => {
@@ -464,14 +488,24 @@ export const markPresentedByDiscordId = internalMutation({
       .query("users")
       .withIndex("by_discord", (q) => q.eq("discordId", discordId))
       .first();
-    if (!user) return { ok: false as const, reason: "user_not_found" as const };
+    if (!user) {
+      // Compte Discord inconnu en base = présentation non liée à un paiement.
+      // Le bot DM déjà le présentateur (lien /lier) ; ici on prévient le coach
+      // (filet de visibilité, fail-silent, sans bloquer le no-op).
+      await alertStaffUnlinkedPresentation(ctx, discordId, "user_not_found");
+      return { ok: false as const, reason: "user_not_found" as const };
+    }
 
     // Self-heal : (ré)attribue le rôle = palier si le purchase est actif. Couvre
     // le cas « lié mais sans rôle » (ex. bot down au join → guildMemberAdd perdu,
     // OAuth fait avant le join). Si aucun purchase actif → visiteur/non-payant :
     // on s'arrête là (pas de welcome ni d'onboarding déclenché côté bot).
     const tier = await scheduleRoleFromActivePurchase(ctx, user);
-    if (!tier) return { ok: false as const, reason: "no_active_purchase" as const };
+    if (!tier) {
+      // User connu mais sans paiement actif lié → même filet coach.
+      await alertStaffUnlinkedPresentation(ctx, discordId, "no_active_purchase");
+      return { ok: false as const, reason: "no_active_purchase" as const };
+    }
 
     const ob = await ctx.db
       .query("onboardings")

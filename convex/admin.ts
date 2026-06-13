@@ -1,4 +1,9 @@
-import { query, mutation, internalMutation } from "./_generated/server";
+import {
+  query,
+  mutation,
+  internalMutation,
+  internalAction,
+} from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { requireAdmin } from "./lib/auth";
@@ -880,6 +885,195 @@ export const _setHiddenFromCoachingByTitles = internalMutation({
     const found = new Set(matched.map((m) => m.title));
     const missing = titles.filter((t) => !found.has(t));
     return { ok: true as const, patched: matched.length, matched, missing };
+  },
+});
+
+// ============================================================================
+// Reset d'identité de test — rejouer le flux fallback « compte non lié » avec
+// le MÊME compte Discord sans créer de nouveaux comptes.
+// ============================================================================
+
+/** Interne : appelle le bot Discord pour OUBLIER les caches de présentation
+ *  d'un discordId (RECENT_PRESENTATIONS + RECENT_RECOVERY_DM). Sans ça, après
+ *  un reset BDD, le bot resterait sur son cache 24h et ne re-DM/re-notifierait
+ *  pas. Pattern calqué sur internal.stripe.removeOnboardedRole. Fail-silent. */
+export const forgetPresentationOnBot = internalAction({
+  args: { discordId: v.string() },
+  handler: async (_ctx, { discordId }) => {
+    const endpoint = process.env.DISCORD_BOT_ENDPOINT;
+    const secret = process.env.DISCORD_BOT_ENDPOINT_SECRET;
+    if (!endpoint || !secret) {
+      console.warn(
+        "forgetPresentationOnBot: DISCORD_BOT_ENDPOINT(_SECRET) absent — skip"
+      );
+      return { ok: false as const, reason: "missing_env" as const };
+    }
+    try {
+      const res = await fetch(
+        `${endpoint.replace(/\/$/, "")}/forget-presentation`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${secret}`,
+          },
+          body: JSON.stringify({ discordId }),
+        }
+      );
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        console.log(
+          `🧹 forget-presentation bot ok (${discordId}, had=${data.had ?? "?"})`
+        );
+        return { ok: true as const };
+      }
+      console.warn(
+        `⚠️ forget-presentation bot ${res.status}: ${data.error ?? res.statusText}`
+      );
+      return { ok: false as const };
+    } catch (err) {
+      console.warn("⚠️ forget-presentation bot injoignable:", err);
+      return { ok: false as const };
+    }
+  },
+});
+
+/** Interne (TEST/DEV) : remet à zéro l'identité d'un email et/ou d'un discordId
+ *  pour pouvoir rejouer le flux fallback bout-en-bout :
+ *   - supprime les purchases (par email + ceux liés au user),
+ *   - supprime les claimTokens de ces purchases,
+ *   - supprime les onboardings du user,
+ *   - délie le user du purchase (purchaseId undefined) et, si possible, retire
+ *     ses rôles Discord (palier + Onboardé) via le bot,
+ *   - demande au bot d'oublier la présentation (caches) pour ce discordId.
+ *
+ *  ⚠️ Outil de TEST. Ne supprime PAS le compte user lui-même (sessions auth
+ *  intactes) — on veut pouvoir se reconnecter avec le même compte Discord.
+ *
+ *  Usage :
+ *    npx convex run admin:resetTestIdentity '{"email":"x@y.z"}'
+ *    npx convex run admin:resetTestIdentity '{"discordId":"123..."}'
+ */
+export const resetTestIdentity = internalMutation({
+  args: {
+    email: v.optional(v.string()),
+    discordId: v.optional(v.string()),
+  },
+  handler: async (ctx, { email, discordId }) => {
+    const normalizedEmail = email?.trim().toLowerCase();
+    const normalizedDiscordId = discordId?.trim();
+    if (!normalizedEmail && !normalizedDiscordId) {
+      throw new Error("Fournis au moins email ou discordId");
+    }
+
+    const deleted = {
+      purchases: 0,
+      claimTokens: 0,
+      onboardings: 0,
+      usersUnlinked: 0,
+    };
+    const purchaseIds = new Set<Id<"purchases">>();
+    const userIds = new Set<Id<"users">>();
+    // discordIds dont on retire les rôles + oublie la présentation côté bot.
+    const discordIds = new Set<string>();
+    if (normalizedDiscordId) discordIds.add(normalizedDiscordId);
+
+    // ── Résolution des cibles ──────────────────────────────────────────────
+    // user par discordId
+    if (normalizedDiscordId) {
+      const u = await ctx.db
+        .query("users")
+        .withIndex("by_discord", (q) => q.eq("discordId", normalizedDiscordId))
+        .first();
+      if (u) userIds.add(u._id);
+    }
+    // user(s) + purchases par email
+    if (normalizedEmail) {
+      const usersByEmail = (await ctx.db.query("users").collect()).filter(
+        (u) => (u.email ?? "").toLowerCase() === normalizedEmail
+      );
+      for (const u of usersByEmail) {
+        userIds.add(u._id);
+        if (u.discordId) discordIds.add(u.discordId);
+      }
+      const purchasesByEmail = await ctx.db
+        .query("purchases")
+        .withIndex("by_email", (q) => q.eq("email", normalizedEmail))
+        .collect();
+      for (const p of purchasesByEmail) purchaseIds.add(p._id);
+    }
+    // purchase lié à chacun des users ciblés
+    for (const uid of userIds) {
+      const u = await ctx.db.get(uid);
+      if (u?.purchaseId) purchaseIds.add(u.purchaseId);
+      if (u?.discordId) discordIds.add(u.discordId);
+    }
+
+    // ── Suppression claimTokens (par paymentIntent des purchases ciblés) ────
+    for (const pid of purchaseIds) {
+      const p = await ctx.db.get(pid);
+      if (!p?.stripePaymentIntentId) continue;
+      const tokens = await ctx.db
+        .query("claimTokens")
+        .withIndex("by_payment_intent", (q) =>
+          q.eq("paymentIntentId", p.stripePaymentIntentId!)
+        )
+        .collect();
+      for (const t of tokens) {
+        await ctx.db.delete(t._id);
+        deleted.claimTokens++;
+      }
+    }
+
+    // ── Suppression onboardings des users ciblés ───────────────────────────
+    for (const uid of userIds) {
+      const obs = await ctx.db
+        .query("onboardings")
+        .withIndex("by_user", (q) => q.eq("userId", uid))
+        .collect();
+      for (const o of obs) {
+        await ctx.db.delete(o._id);
+        deleted.onboardings++;
+      }
+    }
+
+    // ── Délie les users du purchase ────────────────────────────────────────
+    for (const uid of userIds) {
+      const u = await ctx.db.get(uid);
+      if (u?.purchaseId) {
+        await ctx.db.patch(uid, { purchaseId: undefined });
+        deleted.usersUnlinked++;
+      }
+    }
+
+    // ── Suppression des purchases ──────────────────────────────────────────
+    for (const pid of purchaseIds) {
+      await ctx.db.delete(pid);
+      deleted.purchases++;
+    }
+
+    // ── Nettoyage Discord (rôles + caches présentation) — fail-silent ───────
+    for (const did of discordIds) {
+      await ctx.scheduler.runAfter(0, internal.stripe.removeDiscordRoles, {
+        discordId: did,
+        email: normalizedEmail ?? "",
+      });
+      await ctx.scheduler.runAfter(0, internal.stripe.removeOnboardedRole, {
+        discordId: did,
+      });
+      await ctx.scheduler.runAfter(
+        0,
+        internal.admin.forgetPresentationOnBot,
+        { discordId: did }
+      );
+    }
+
+    return {
+      ok: true as const,
+      deleted,
+      discordIds: Array.from(discordIds),
+      userIds: Array.from(userIds).map((id) => id as unknown as string),
+    };
   },
 });
 void internal;

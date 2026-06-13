@@ -501,13 +501,14 @@ export default function ProfilePage() {
 
         {/* Logout */}
         <section className="mb-10">
-          <button
+          <Button
+            variant="outline"
             onClick={() => signOut()}
-            className="flex w-full items-center justify-center gap-2 border border-foreground/15 bg-foreground/[0.02] py-4 font-mono text-[11px] uppercase tracking-[2px] text-foreground/60 transition-all hover:border-[rgba(230,51,38,0.4)] hover:bg-[rgba(230,51,38,0.05)] hover:text-[#E63326]"
-            style={{ fontFamily: "var(--font-body-legacy)", minHeight: 0 }}
+            className="h-auto w-full gap-2 rounded-none border-foreground/15 bg-foreground/[0.02] py-4 font-mono text-[11px] uppercase tracking-[2px] text-foreground/60 hover:border-destructive/40 hover:bg-destructive/5 hover:text-destructive"
+            style={{ fontFamily: "var(--font-body-legacy)" }}
           >
             <LogOut size={13} /> Se déconnecter
-          </button>
+          </Button>
         </section>
       </div>
     </main>

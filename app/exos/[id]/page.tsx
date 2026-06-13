@@ -163,7 +163,7 @@ export default function ExoDetailPage({
               target="_blank"
               rel="noopener noreferrer"
               className="glass-btn"
-              style={{ ...glassBtn(c, "ink"), textDecoration: "none", display: "inline-block" }}
+              style={{ ...glassBtn(c, "ink"), textDecoration: "none", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
             >
               Ouvrir l&apos;exercice externe ↗
             </a>

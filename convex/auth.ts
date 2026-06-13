@@ -85,6 +85,35 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
         return existingUserId;
       }
 
+      // Dédup par discordId → un compte lié manuellement (sans authAccount,
+      // créé via admin.adminLinkDiscordToPurchase pour le SAV « mauvais compte
+      // à l'OAuth / compte recréé ») est ADOPTÉ à l'OAuth, pas dupliqué.
+      // Le ctx du callback Convex Auth n'expose pas les index de notre schema
+      // → on filtre (cf. .filter pour purchases plus bas). Volume users faible.
+      if (discordId) {
+        const existingByDiscord = await ctx.db
+          .query("users")
+          .filter((q) => q.eq(q.field("discordId"), discordId))
+          .first();
+        if (existingByDiscord) {
+          await ctx.db.patch(existingByDiscord._id, {
+            name,
+            email,
+            image,
+            discordUsername,
+            lastActiveAt: now,
+            ...(shouldBeAdmin ? { role: "admin" as const } : {}),
+            // purchaseId conservé tel quel (lien manuel déjà posé) — on ne
+            // l'écrase pas ici.
+          });
+          // Idempotent : crée l'onboarding si purchase actif + pas encore de row.
+          await ctx.scheduler.runAfter(0, internal.onboardings.ensureForUser, {
+            userId: existingByDiscord._id,
+          });
+          return existingByDiscord._id;
+        }
+      }
+
       // Création d'un nouveau user — on initialise tous les champs métier.
       // Puis on cherche un purchase existant avec le même email (normalisé).
       // IMPORTANT : on accepte les statuts d'ABONNEMENT (active/past_due) en

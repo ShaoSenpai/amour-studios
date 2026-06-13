@@ -1212,6 +1212,12 @@ html[data-theme="dark"] {
   border-radius: 999px;
 }
 
+/* Ligne de liste cliquable (ex. liste élèves) : focus ring clavier sur toute la ligne */
+.glass-row:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: -2px;
+}
+
 /* ============================================================================
    Transitions de page « push » du back-office /studio (cf. page-transition).
    Animations CSS = thread compositeur → fluides même quand le thread principal

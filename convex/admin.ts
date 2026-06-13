@@ -9,6 +9,7 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { requireAdmin } from "./lib/auth";
 import { internal } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
+import { logEvent } from "./lib/events";
 
 // ============================================================================
 // Amour Studios — Admin queries & mutations
@@ -213,6 +214,131 @@ export const linkPurchase = mutation({
     await requireAdmin(ctx);
     await ctx.db.patch(userId, { purchaseId });
     await ctx.db.patch(purchaseId, { userId });
+  },
+});
+
+/**
+ * SAV — Lier un compte Discord à un paiement, SANS OAuth.
+ *
+ * Cas d'usage : un client se présente sur Discord avec un compte qui n'est PAS
+ * lié à son paiement (mauvais compte choisi à l'OAuth, compte recréé…). Le coach
+ * lie manuellement le discordId au purchase. Sert aussi à tester le flux sans
+ * jongler avec les comptes Discord.
+ *
+ * Si le discordId n'a pas encore de user → on crée un user minimal (PAS
+ * d'authAccount). Ce user sera ADOPTÉ — pas dupliqué — quand le client fera
+ * réellement l'OAuth Discord (cf. dédup par discordId dans convex/auth.ts).
+ */
+export const adminLinkDiscordToPurchase = mutation({
+  args: {
+    discordId: v.string(),
+    purchaseId: v.id("purchases"),
+  },
+  handler: async (ctx, { discordId, purchaseId }) => {
+    await requireAdmin(ctx);
+    const trimmedDiscordId = discordId.trim();
+    if (!trimmedDiscordId) throw new Error("Discord ID requis");
+
+    const purchase = await ctx.db.get(purchaseId);
+    if (!purchase) throw new Error("Paiement introuvable");
+
+    const now = Date.now();
+
+    // User existant pour ce discordId ?
+    let user = await ctx.db
+      .query("users")
+      .withIndex("by_discord", (q) => q.eq("discordId", trimmedDiscordId))
+      .first();
+
+    let userCreated = false;
+    if (!user) {
+      // Pas d'authAccount — sera adopté à l'OAuth (dédup par discordId).
+      const userId = await ctx.db.insert("users", {
+        discordId: trimmedDiscordId,
+        email: purchase.email,
+        role: "member",
+        xp: 0,
+        streakDays: 0,
+        createdAt: now,
+        lastActiveAt: now,
+      });
+      user = await ctx.db.get(userId);
+      userCreated = true;
+    }
+    if (!user) throw new Error("Échec création user");
+
+    // Liaison bidirectionnelle purchase ↔ user.
+    await ctx.db.patch(purchase._id, { userId: user._id });
+    if (!user.purchaseId) {
+      await ctx.db.patch(user._id, { purchaseId: purchase._id });
+    }
+
+    // Onboarding (idempotent côté createForPurchase) si le purchase a un tier.
+    if (purchase.tier) {
+      await ctx.scheduler.runAfter(0, internal.onboardings.createForPurchase, {
+        userId: user._id,
+        tier: purchase.tier,
+      });
+    }
+
+    // Rôle Discord si le paiement est vivant (active / past_due / paid).
+    const isLive =
+      purchase.status === "active" ||
+      purchase.status === "past_due" ||
+      purchase.status === "paid";
+    if (isLive) {
+      await ctx.scheduler.runAfter(0, internal.stripe.assignDiscordRole, {
+        discordId: trimmedDiscordId,
+        email: purchase.email,
+        tier: purchase.tier ?? undefined,
+      });
+    }
+
+    await logEvent(ctx, {
+      userId: user._id,
+      type: "purchase.linked_manually",
+      title: "Compte Discord lié manuellement à un paiement",
+      actor: "admin",
+      meta: {
+        discordId: trimmedDiscordId,
+        purchaseId: purchase._id,
+        tier: purchase.tier ?? null,
+        userCreated,
+      },
+    });
+
+    return { ok: true as const, userCreated, tier: purchase.tier ?? null };
+  },
+});
+
+/**
+ * SAV — Recherche de paiements pour l'UI « Lier un compte ».
+ * Avec email → match `by_email`. Sans → les ~15 plus récents (createdAt desc).
+ */
+export const adminSearchPurchases = query({
+  args: { email: v.optional(v.string()) },
+  handler: async (ctx, { email }) => {
+    await requireAdmin(ctx);
+    const trimmed = email?.trim().toLowerCase();
+
+    const rows = trimmed
+      ? await ctx.db
+          .query("purchases")
+          .withIndex("by_email", (q) => q.eq("email", trimmed))
+          .collect()
+      : (await ctx.db.query("purchases").order("desc").take(15));
+
+    return rows
+      .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))
+      .map((p) => ({
+        purchaseId: p._id,
+        email: p.email,
+        tier: p.tier ?? null,
+        status: p.status,
+        hasUser: !!p.userId,
+        pi: p.stripePaymentIntentId,
+        createdAt: p.createdAt,
+      }));
   },
 });
 

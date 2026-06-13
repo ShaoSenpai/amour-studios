@@ -14,7 +14,7 @@ import {
   Glass,
   Pill,
   Segmented,
-  glassBtn,
+  GlassButton,
   fmtDateShort,
   fmtTime,
   type C,
@@ -331,9 +331,9 @@ export default function CampagnesPage() {
                       {members.length} destinataire{members.length > 1 ? "s" : ""}
                     </div>
                   </div>
-                  <button onClick={() => void handleExport()} style={glassBtn(c, "ghost")}>
+                  <GlassButton c={c} onClick={() => void handleExport()}>
                     Exporter
-                  </button>
+                  </GlassButton>
                 </div>
                 <div style={{ maxHeight: 360, overflowY: "auto" }}>
                   {members.length === 0 && (
@@ -480,20 +480,23 @@ export default function CampagnesPage() {
 
             {/* Actions */}
             <div style={{ padding: "16px 24px", borderTop: `1px solid ${c.line}`, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-              <button
+              <GlassButton
+                c={c}
                 onClick={() => void handleSendTest()}
                 disabled={testing || !body.trim()}
-                style={{ ...glassBtn(c, "ghost"), opacity: testing || !body.trim() ? 0.55 : 1, cursor: testing || !body.trim() ? "default" : "pointer" }}
+                style={{ opacity: testing || !body.trim() ? 0.55 : 1, cursor: testing || !body.trim() ? "default" : "pointer" }}
               >
                 {testing ? "Envoi…" : "Envoyer un test"}
-              </button>
-              <button
+              </GlassButton>
+              <GlassButton
+                c={c}
+                kind="solid"
                 onClick={() => setConfirmOpen(true)}
                 disabled={!canSend}
-                style={{ ...glassBtn(c, "solid"), opacity: canSend ? 1 : 0.5, cursor: canSend ? "pointer" : "default" }}
+                style={{ opacity: canSend ? 1 : 0.5, cursor: canSend ? "pointer" : "default" }}
               >
                 Envoyer à {reachable} personne{reachable > 1 ? "s" : ""}
-              </button>
+              </GlassButton>
             </div>
           </Glass>
         </div>
@@ -671,16 +674,18 @@ function ConfirmDialog({
           </div>
         </div>
         <div style={{ padding: "16px 26px", borderTop: `1px solid ${c.line}`, display: "flex", justifyContent: "flex-end", gap: 8 }}>
-          <button onClick={onCancel} style={glassBtn(c, "ghost")}>
+          <GlassButton c={c} onClick={onCancel}>
             Annuler
-          </button>
-          <button
+          </GlassButton>
+          <GlassButton
+            c={c}
+            kind="solid"
             onClick={onConfirm}
             disabled={sending}
-            style={{ ...glassBtn(c, "solid"), opacity: sending ? 0.6 : 1, cursor: sending ? "default" : "pointer" }}
+            style={{ opacity: sending ? 0.6 : 1, cursor: sending ? "default" : "pointer" }}
           >
             {sending ? "Envoi…" : `Envoyer (${count})`}
-          </button>
+          </GlassButton>
         </div>
       </div>
     </div>

@@ -113,6 +113,7 @@ export default function ExosLayout({ children }: { children: ReactNode }) {
                 {/* Déjà membre Communauté → upgrade 1-clic (prorata) + gestion, sans re-payer dehors */}
                 <a
                   href="/compte"
+                  className="glass-btn"
                   style={{ ...glassBtn(c, "solid"), textAlign: "center", textDecoration: "none" }}
                 >
                   Passer au Coaching →
@@ -133,6 +134,7 @@ export default function ExosLayout({ children }: { children: ReactNode }) {
             ) : (
               <a
                 href="https://amourstudios.fr/coaching"
+                className="glass-btn"
                 style={{ ...glassBtn(c, "solid"), textAlign: "center", textDecoration: "none" }}
               >
                 Voir l&apos;offre coaching →

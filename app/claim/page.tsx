@@ -21,6 +21,7 @@ import {
   num,
   Glass,
   glassBtn,
+  GlassButton,
   type C,
 } from "../studio/_components/glass";
 
@@ -713,10 +714,11 @@ function Button({
   children: React.ReactNode;
 }) {
   return (
-    <button
+    <GlassButton
+      c={c}
+      kind="solid"
       onClick={onClick}
       style={{
-        ...glassBtn(c, "solid"),
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
@@ -725,7 +727,7 @@ function Button({
       }}
     >
       {children}
-    </button>
+    </GlassButton>
   );
 }
 
@@ -791,7 +793,7 @@ function OptionCard({
         textAlign: "left",
         cursor: "pointer",
         fontFamily: "'Schibsted Grotesk', system-ui, sans-serif",
-        transition: "border-color 0.2s ease, background 0.2s ease",
+        transition: "border-color var(--dur-instant) var(--ease-snap), background var(--dur-instant) var(--ease-snap)",
       }}
       onMouseEnter={(e) => (e.currentTarget.style.borderColor = ACCENT)}
       onMouseLeave={(e) => (e.currentTarget.style.borderColor = c.line)}
@@ -884,15 +886,12 @@ function ClaimingFallback({ c, onRetry }: { c: C; onRetry: () => void }) {
         Ça prend plus longtemps que d&apos;habitude
       </p>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        <button
-          type="button"
-          onClick={onRetry}
-          style={{ ...glassBtn(c, "ghost"), width: "100%" }}
-        >
+        <GlassButton c={c} kind="ghost" onClick={onRetry} style={{ width: "100%" }}>
           Réessayer
-        </button>
+        </GlassButton>
         <a
           href="mailto:contact@amourstudios.fr?subject=Probl%C3%A8me%20claim%20paiement"
+          className="glass-btn"
           style={{
             ...glassBtn(c, "ghost"),
             width: "100%",

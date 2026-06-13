@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import {
   ACCENT,
   Glass,
-  glassBtn,
+  GlassButton,
   mono,
   num,
   palette,
@@ -238,11 +238,11 @@ function PendingRow({
       </span>
 
       {/* Relancer */}
-      <button
+      <GlassButton
+        c={c}
         onClick={() => onRelance(row._id)}
         disabled={sending}
         style={{
-          ...glassBtn(c, "ghost"),
           padding: "8px 12px",
           fontSize: 10,
           opacity: sending ? 0.5 : 1,
@@ -250,7 +250,7 @@ function PendingRow({
         }}
       >
         {sending ? "Envoi…" : "Relancer"}
-      </button>
+      </GlassButton>
     </div>
   );
 }

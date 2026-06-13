@@ -15,6 +15,7 @@ import {
   num,
   Glass,
   glassBtn,
+  GlassButton,
 } from "../../studio/_components/glass";
 import { ExerciseRenderer } from "@/components/exercises/exercise-renderer";
 
@@ -53,7 +54,7 @@ export default function ExoDetailPage({
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div style={{ ...mono, color: ACCENT }}>◦ Exercice introuvable</div>
           <h1 style={{ ...num, fontSize: 30, fontWeight: 500, margin: 0 }}>Ce lien n&apos;est pas valide.</h1>
-          <Link href="/exos" style={{ ...glassBtn(c, "ghost"), textDecoration: "none", textAlign: "center" }}>
+          <Link href="/exos" className="glass-btn" style={{ ...glassBtn(c, "ghost"), textDecoration: "none", textAlign: "center" }}>
             ← Retour à mes exos
           </Link>
         </div>
@@ -79,7 +80,7 @@ export default function ExoDetailPage({
             <strong style={{ color: c.text }}>Module {data.module.order} — {data.module.title}</strong>.
             Il sera débloqué dès que Walid ou ton avancée l&apos;auront ouvert.
           </p>
-          <Link href="/exos" style={{ ...glassBtn(c, "ghost"), textDecoration: "none", textAlign: "center" }}>
+          <Link href="/exos" className="glass-btn" style={{ ...glassBtn(c, "ghost"), textDecoration: "none", textAlign: "center" }}>
             ← Retour à mes exos
           </Link>
         </div>
@@ -135,13 +136,15 @@ export default function ExoDetailPage({
                 <Check size={13} /> TERMINÉ
               </span>
             ) : (
-              <button
+              <GlassButton
+                c={c}
+                kind="solid"
                 onClick={() => void handleComplete()}
                 disabled={completing}
-                style={{ ...glassBtn(c, "solid"), opacity: completing ? 0.6 : 1 }}
+                style={{ opacity: completing ? 0.6 : 1 }}
               >
                 {completing ? "…" : "Marquer fait ✓"}
-              </button>
+              </GlassButton>
             )}
           </div>
         </Glass>
@@ -159,7 +162,8 @@ export default function ExoDetailPage({
               href={data.exercise.exerciseUrl}
               target="_blank"
               rel="noopener noreferrer"
-              style={{ ...glassBtn(c, "ink"), textDecoration: "none", display: "inline-block" }}
+              className="glass-btn"
+              style={{ ...glassBtn(c, "ink"), textDecoration: "none", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
             >
               Ouvrir l&apos;exercice externe ↗
             </a>

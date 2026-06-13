@@ -14,6 +14,7 @@ import {
   num,
   Glass,
   glassBtn,
+  GlassButton,
 } from "../studio/_components/glass";
 
 // ============================================================================
@@ -210,6 +211,7 @@ function CompteInner() {
                 href={CALENDLY_URL}
                 target="_blank"
                 rel="noopener noreferrer"
+                className="glass-btn"
                 style={{
                   ...glassBtn(c, "solid"),
                   display: "block",
@@ -235,17 +237,19 @@ function CompteInner() {
                 <strong style={{ color: c.text }}>prélevés aujourd&apos;hui</strong> (ton mois
                 de coaching démarre maintenant).
               </p>
-              <button
+              <GlassButton
+                c={c}
+                kind="solid"
                 onClick={() =>
                   run("up", () => upgradeMut({}), "🎉 Coaching débloqué !").then(() =>
                     router.refresh()
                   )
                 }
                 disabled={!!busy}
-                style={{ ...glassBtn(c, "solid"), width: "100%", opacity: busy ? 0.6 : 1 }}
+                style={{ width: "100%", opacity: busy ? 0.6 : 1 }}
               >
                 {busy === "up" ? "Activation…" : "Passer au Coaching — 179€"}
-              </button>
+              </GlassButton>
               <div style={{ marginTop: 12, textAlign: "center" }}>
                 <button
                   onClick={() => goCardUpdate("up-card")}
@@ -260,24 +264,28 @@ function CompteInner() {
 
           {/* 5 — Actions abonnement */}
           {sub.cancelAtPeriodEnd ? (
-            <button
+            <GlassButton
+              c={c}
+              kind="solid"
               onClick={() => run("re", () => reactivateMut({}), "Abonnement réactivé.")}
               disabled={!!busy}
-              style={{ ...glassBtn(c, "solid"), width: "100%", opacity: busy ? 0.6 : 1 }}
+              style={{ width: "100%", opacity: busy ? 0.6 : 1 }}
             >
               {busy === "re" ? "…" : "Réactiver mon abonnement"}
-            </button>
+            </GlassButton>
           ) : (
-            <button
+            <GlassButton
+              c={c}
+              kind="ghost"
               onClick={() => {
                 if (confirm("Résilier ton abonnement à la fin de la période en cours ?"))
                   run("ca", () => cancelMut({}), "Résiliation programmée à la fin de la période.");
               }}
               disabled={!!busy}
-              style={{ ...glassBtn(c, "ghost"), width: "100%", opacity: busy ? 0.6 : 1 }}
+              style={{ width: "100%", opacity: busy ? 0.6 : 1 }}
             >
               {busy === "ca" ? "…" : "Résilier mon abonnement"}
-            </button>
+            </GlassButton>
           )}
 
           <div style={{ textAlign: "center" }}>

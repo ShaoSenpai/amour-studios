@@ -32,7 +32,7 @@ export function MobileNav() {
           <Link
             key={item.href}
             href={item.href}
-            className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg text-xs transition-colors ${
+            className={`flex flex-col items-center justify-center min-h-11 gap-0.5 px-3 py-2 rounded-lg text-xs transition-colors ${
               item.active
                 ? "text-primary"
                 : "text-muted-foreground"
@@ -47,14 +47,14 @@ export function MobileNav() {
             href={discordInvite}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg text-xs text-muted-foreground"
+            className="flex flex-col items-center justify-center min-h-11 gap-0.5 px-3 py-2 rounded-lg text-xs text-muted-foreground"
           >
             <MessageCircle size={20} />
             <span>Discord</span>
           </a>
         )}
         {/* Profile */}
-        <Link href="/dashboard/profile" className="flex flex-col items-center gap-0.5 px-3 py-1.5">
+        <Link href="/dashboard/profile" className="flex flex-col items-center justify-center min-h-11 gap-0.5 px-3 py-2">
           {user.image ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img

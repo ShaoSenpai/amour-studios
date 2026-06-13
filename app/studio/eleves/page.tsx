@@ -206,36 +206,37 @@ export default function ElevesPage() {
             const si = m.status ? statusInfo(m.status) : { label: "—", tone: "outline" as const };
             const hasRdv = m.nextSessionAt != null;
             return (
-              <Row key={m._id} cols={COLS} c={c} last={i === filtered.length - 1}>
-                <button
-                  onClick={() => router.push(`/studio/eleves/${m._id}`)}
-                  style={{ display: "contents", background: "transparent", border: "none", cursor: "pointer", textAlign: "left", color: c.text, fontFamily: "inherit" }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
-                    <Avatar name={who} size={32} dark={dark} image={m.image} />
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 14, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{who}</div>
-                      <div style={{ ...mono, color: c.muted, marginTop: 2 }}>
-                        {m.name && m.name !== who ? `${m.name} · ` : ""}
-                        {m.createdAt ? `inscrit ${relativeFromNow(m.createdAt)}` : ""}
-                      </div>
+              <Row
+                key={m._id}
+                cols={COLS}
+                c={c}
+                last={i === filtered.length - 1}
+                onClick={() => router.push(`/studio/eleves/${m._id}`)}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+                  <Avatar name={who} size={32} dark={dark} image={m.image} />
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{who}</div>
+                    <div style={{ ...mono, color: c.muted, marginTop: 2 }}>
+                      {m.name && m.name !== who ? `${m.name} · ` : ""}
+                      {m.createdAt ? `inscrit ${relativeFromNow(m.createdAt)}` : ""}
                     </div>
                   </div>
-                  <div>
-                    <Pill c={c} tone={m.tier === "coaching" ? "ink" : "outline"}>{offre}</Pill>
-                  </div>
-                  <div>
-                    <Pill c={c} tone={si.tone}>
-                      <span style={{ width: 5, height: 5, borderRadius: 5, background: si.tone === "success" ? c.successFg : si.tone === "outline" ? c.faint : "#0B0B0B" }} />
-                      {si.label}
-                    </Pill>
-                  </div>
-                  <div style={{ fontSize: 13.5 }}>{stageLabel(m.coachingStage)}</div>
-                  <div style={{ ...num, fontSize: 13, color: hasRdv ? c.text : c.faint, whiteSpace: "nowrap" }}>{fmtNextRdv(m.nextSessionAt)}</div>
-                  <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11.5, color: m.phone ? c.muted : c.faint, whiteSpace: "nowrap" }}>{m.phone ?? "—"}</div>
-                  <div style={{ ...mono, color: c.muted }}>{m.lastActiveAt ? relativeFromNow(m.lastActiveAt) : "—"}</div>
-                  <div style={{ color: c.muted, fontSize: 16, textAlign: "right" }}>›</div>
-                </button>
+                </div>
+                <div>
+                  <Pill c={c} tone={m.tier === "coaching" ? "ink" : "outline"}>{offre}</Pill>
+                </div>
+                <div>
+                  <Pill c={c} tone={si.tone}>
+                    <span style={{ width: 5, height: 5, borderRadius: 5, background: si.tone === "success" ? c.successFg : si.tone === "outline" ? c.faint : "#0B0B0B" }} />
+                    {si.label}
+                  </Pill>
+                </div>
+                <div style={{ fontSize: 13.5 }}>{stageLabel(m.coachingStage)}</div>
+                <div style={{ ...num, fontSize: 13, color: hasRdv ? c.text : c.faint, whiteSpace: "nowrap" }}>{fmtNextRdv(m.nextSessionAt)}</div>
+                <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11.5, color: m.phone ? c.muted : c.faint, whiteSpace: "nowrap" }}>{m.phone ?? "—"}</div>
+                <div style={{ ...mono, color: c.muted }}>{m.lastActiveAt ? relativeFromNow(m.lastActiveAt) : "—"}</div>
+                <div style={{ color: c.muted, fontSize: 16, textAlign: "right" }}>›</div>
               </Row>
             );
           })}
@@ -255,15 +256,20 @@ function Row({
   cols,
   c,
   last,
+  onClick,
   children,
 }: {
   cols: string;
   c: ReturnType<typeof palette>;
   last: boolean;
+  onClick: () => void;
   children: React.ReactNode;
 }) {
   return (
-    <div
+    <button
+      type="button"
+      onClick={onClick}
+      className="glass-row"
       style={{
         display: "grid",
         gridTemplateColumns: cols,
@@ -271,11 +277,19 @@ function Row({
         padding: "14px 22px",
         borderBottom: last ? "none" : `1px solid ${c.hairline}`,
         alignItems: "center",
+        width: "100%",
+        background: "transparent",
+        border: "none",
+        borderRadius: 0,
+        textAlign: "left",
+        cursor: "pointer",
+        color: c.text,
+        font: "inherit",
       }}
       onMouseEnter={(e) => (e.currentTarget.style.background = c.chip)}
       onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
     >
       {children}
-    </div>
+    </button>
   );
 }

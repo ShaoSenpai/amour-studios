@@ -125,6 +125,13 @@
   --dur-slow: 900ms;
   --dur-cascade: 70ms;
 
+  /* Motion Apple — polish 2026-06 (ADDITIF : ne pas toucher aux tokens --dur- et --ease- existants) */
+  --ease-spring: cubic-bezier(.32, .72, 0, 1); /* easing sheet iOS, déjà utilisé par les page transitions */
+  --ease-snap: cubic-bezier(.2, .9, .3, 1);
+  --dur-instant: 150ms;
+  --dur-quick: 250ms;
+  --dur-smooth: 400ms;
+
   --grid-line: rgba(13, 11, 8, 0.04);
 
   --background: #F0E9DB;
@@ -520,6 +527,12 @@ html[data-theme="dark"] {
     cursor: pointer;
     flex: none;
     transition: background 0.4s var(--ease-out), border-color 0.4s var(--ease-out);
+  }
+  /* Zone tactile étendue à ~46px sans changer le visuel 56×30 (cible ≥44px) */
+  .theme-toggle::before {
+    content: "";
+    position: absolute;
+    inset: -8px;
   }
   [data-theme="dark"] .theme-toggle {
     background: rgba(240,233,219,.12);
@@ -1167,6 +1180,48 @@ html[data-theme="dark"] {
 [data-skin="swiss"] .border-\[\#2B7A6F\]\/30,
 [data-skin="swiss"] .border-\[\#2B7A6F\]\/50 {
   border-color: var(--orange) !important;
+}
+
+/* ── GlassButton : états interactifs (polish Apple 2026-06) ─────────────
+   Les couleurs restent en inline (DA Glass C). Ici : uniquement des
+   propriétés jamais posées en inline → pas de conflit. */
+.glass-btn {
+  transition:
+    transform var(--dur-instant) var(--ease-spring),
+    opacity var(--dur-instant) var(--ease-spring);
+}
+.glass-btn:hover {
+  transform: translateY(-1px);
+}
+.glass-btn:active {
+  transform: translateY(0) scale(0.97);
+  opacity: 0.85;
+  transition-duration: 80ms;
+}
+.glass-btn:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+.glass-btn:disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* Boutons de Segmented : feedback sans déplacement (pas de translateY dans un rail) */
+.glass-seg {
+  transition: filter var(--dur-instant) var(--ease-snap);
+}
+.glass-seg:hover { filter: brightness(1.1); }
+.glass-seg:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: -2px;
+  border-radius: 999px;
+}
+
+/* Ligne de liste cliquable (ex. liste élèves) : focus ring clavier sur toute la ligne */
+.glass-row:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: -2px;
 }
 
 /* ============================================================================

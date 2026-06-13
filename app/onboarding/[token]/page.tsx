@@ -13,6 +13,7 @@ import {
   num,
   Glass,
   glassBtn,
+  GlassButton,
 } from "../../studio/_components/glass";
 
 // ============================================================================
@@ -333,6 +334,7 @@ export default function OnboardingTokenPage({
             href={DISCORD_INVITE}
             target="_blank"
             rel="noopener noreferrer"
+            className="glass-btn"
             style={{
               ...glassBtn(c, "solid"),
               marginTop: 22,
@@ -395,9 +397,9 @@ export default function OnboardingTokenPage({
           <Field c={c} label="Téléphone (WhatsApp)">
             <input value={phone} onChange={(e) => setPhone(e.target.value)} style={inputStyle(c)} placeholder="+33 6 12 34 56 78" type="tel" required />
           </Field>
-          <button type="submit" disabled={busy} style={{ ...glassBtn(c, "solid"), padding: "13px 16px", opacity: busy ? 0.6 : 1 }}>
+          <GlassButton c={c} kind="solid" type="submit" disabled={busy} style={{ padding: "13px 16px", opacity: busy ? 0.6 : 1 }}>
             {busy ? "Enregistrement…" : "Continuer →"}
-          </button>
+          </GlassButton>
         </form>
       )}
 
@@ -487,9 +489,9 @@ export default function OnboardingTokenPage({
               );
             })}
           </div>
-          <button type="submit" disabled={busy} style={{ ...glassBtn(c, "solid"), padding: "13px 16px", opacity: busy ? 0.6 : 1 }}>
+          <GlassButton c={c} kind="solid" type="submit" disabled={busy} style={{ padding: "13px 16px", opacity: busy ? 0.6 : 1 }}>
             {busy ? "Enregistrement…" : tier === "coaching" ? "Continuer → Réserver le RDV" : "Terminer"}
-          </button>
+          </GlassButton>
         </form>
       )}
 
@@ -553,6 +555,7 @@ export default function OnboardingTokenPage({
             href={COACHING_UPSELL_URL}
             target="_blank"
             rel="noopener noreferrer"
+            className="glass-btn"
             style={{
               ...glassBtn(c, "solid"),
               padding: "14px 18px",
@@ -567,19 +570,18 @@ export default function OnboardingTokenPage({
             Passer en Coaching 179€/mois →
           </a>
 
-          <button
-            type="button"
+          <GlassButton
+            c={c}
+            kind="ghost"
             onClick={() => setStep("done")}
             style={{
-              ...glassBtn(c, "ghost"),
               padding: "12px 16px",
               width: "100%",
               boxSizing: "border-box",
-              cursor: "pointer",
             }}
           >
             Non merci, je reste en Communauté
-          </button>
+          </GlassButton>
 
           <p style={{ ...mono, fontSize: 9.5, color: c.faint, textAlign: "center", lineHeight: 1.4 }}>
             Tu peux y revenir plus tard depuis Discord — l&apos;offre reste ouverte.
@@ -789,12 +791,12 @@ function UpsellBlock({
           </span>
         </div>
 
-        <button
-          type="button"
+        <GlassButton
+          c={c}
+          kind="solid"
           onClick={onUpgrade}
           disabled={upgrading}
           style={{
-            ...glassBtn(c, "solid"),
             padding: "15px 18px",
             fontSize: 12,
             opacity: upgrading ? 0.6 : 1,
@@ -804,7 +806,7 @@ function UpsellBlock({
           }}
         >
           {upgrading ? "Activation…" : `Débloquer le coaching · +${offer.feeEur}€`}
-        </button>
+        </GlassButton>
 
         <button
           type="button"

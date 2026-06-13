@@ -13,6 +13,7 @@ import {
   num,
   Glass,
   glassBtn,
+  GlassButton,
 } from "../../studio/_components/glass";
 
 // ============================================================================
@@ -106,12 +107,12 @@ export default function OnboardingWelcomePage() {
                   connecté, tu auras les instructions pour la suite.
                 </p>
               </div>
-              <button
-                type="button"
+              <GlassButton
+                c={c}
+                kind="solid"
                 onClick={handleSignIn}
                 disabled={signingIn}
                 style={{
-                  ...glassBtn(c, "solid"),
                   width: "100%",
                   padding: "14px 16px",
                   display: "flex",
@@ -123,7 +124,7 @@ export default function OnboardingWelcomePage() {
               >
                 <DiscordIcon />
                 {signingIn ? "Redirection…" : "Continuer avec Discord"}
-              </button>
+              </GlassButton>
               <p style={{ ...mono, fontSize: 9.5, color: c.faint, textAlign: "center" }}>
                 Utilise le même Discord que celui avec lequel tu rejoindras le serveur.
               </p>
@@ -159,6 +160,7 @@ export default function OnboardingWelcomePage() {
                 href={DISCORD_INVITE}
                 target="_blank"
                 rel="noopener noreferrer"
+                className="glass-btn"
                 style={{
                   ...glassBtn(c, "solid"),
                   width: "100%",

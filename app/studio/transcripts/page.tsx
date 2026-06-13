@@ -14,7 +14,7 @@ import {
   num,
   Glass,
   Pill,
-  glassBtn,
+  GlassButton,
   type C,
   type PillTone,
 } from "../_components/glass";
@@ -206,25 +206,21 @@ function OrphanCard({ c, dark, orphan }: { c: C; dark: boolean; orphan: Orphan }
             width: isMobile ? "100%" : "auto",
           }}
         >
-          <button
+          <GlassButton
+            c={c}
+            kind={picking ? "ghost" : "solid"}
             onClick={() => setPicking((v) => !v)}
-            style={{
-              ...glassBtn(c, picking ? "ghost" : "solid"),
-              flex: isMobile ? 1 : undefined,
-            }}
+            style={{ flex: isMobile ? 1 : undefined }}
           >
             {picking ? "Fermer" : "Rattacher"}
-          </button>
-          <button
+          </GlassButton>
+          <GlassButton
+            c={c}
             onClick={handleDismiss}
-            style={{
-              ...glassBtn(c, "ghost"),
-              color: c.muted,
-              flex: isMobile ? 1 : undefined,
-            }}
+            style={{ color: c.muted, flex: isMobile ? 1 : undefined }}
           >
             Ignorer
-          </button>
+          </GlassButton>
         </div>
       </div>
 

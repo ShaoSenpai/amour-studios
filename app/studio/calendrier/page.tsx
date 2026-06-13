@@ -7,6 +7,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
+import { SPRING } from "@/lib/motion";
+import { useAppSpring } from "@/lib/use-app-spring";
 import { Loader2 } from "lucide-react";
 import {
   ACCENT,
@@ -18,7 +20,7 @@ import {
   Glass,
   Avatar,
   Pill,
-  glassBtn,
+  GlassButton,
   curriculumLabel,
   type C,
 } from "../_components/glass";
@@ -106,6 +108,7 @@ export default function CalendrierPage() {
   const router = useRouter();
   const { testMode } = useTestMode();
   const c = palette(dark, ACCENT);
+  const spring = useAppSpring(SPRING);
 
   // Deep-link : ?date=YYYY-MM-DD ouvre ce jour, ?view= force la vue (depuis le
   // dashboard « Aujourd'hui » : cases « Semaine à venir », toggle Jour/Sem/Mois).
@@ -345,8 +348,8 @@ export default function CalendrierPage() {
               </div>
             </div>
             <div style={{ padding: 22, display: "flex", gap: 8, alignItems: "center" }}>
-              <button onClick={() => setAnchor(new Date())} style={glassBtn(c, "ghost")}>↺ Aujourd&apos;hui</button>
-              <button onClick={openManual} style={glassBtn(c, "solid")}>＋ RDV manuel</button>
+              <GlassButton c={c} onClick={() => setAnchor(new Date())}>↺ Aujourd&apos;hui</GlassButton>
+              <GlassButton c={c} kind="solid" onClick={openManual}>＋ RDV manuel</GlassButton>
             </div>
           </div>
         </Glass>
@@ -611,7 +614,7 @@ export default function CalendrierPage() {
                   scrollbarColor: `${c.line} transparent`,
                 }}
               >
-                <motion.div layout transition={{ type: "spring", stiffness: 380, damping: 34 }}>
+                <motion.div layout transition={spring}>
                   <AnimatePresence initial={false} mode="popLayout">
                     {filteredRdv.length === 0 ? (
                       <motion.div
@@ -633,7 +636,7 @@ export default function CalendrierPage() {
                             initial={{ opacity: 0, y: 8 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -8 }}
-                            transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                            transition={spring}
                           >
                             <button
                               onClick={() => s.student && router.push(`/studio/eleves/${s.student._id}`)}

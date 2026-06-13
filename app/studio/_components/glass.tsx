@@ -388,7 +388,7 @@ export function Pill({
     <span
       style={{
         ...mono,
-        fontSize: 10,
+        fontSize: 11,
         background: t.bg,
         color: t.color,
         padding: "4px 9px",
@@ -436,8 +436,8 @@ export function Segmented<T extends string>({
             onClick={() => onChange(it.id)}
             style={{
               ...mono,
-              fontSize: 10.5,
-              padding: "6px 12px",
+              fontSize: 11,
+              padding: "8px 14px",
               borderRadius: 999,
               border: "none",
               cursor: "pointer",

@@ -793,7 +793,7 @@ function OptionCard({
         textAlign: "left",
         cursor: "pointer",
         fontFamily: "'Schibsted Grotesk', system-ui, sans-serif",
-        transition: "border-color 0.2s ease, background 0.2s ease",
+        transition: "border-color var(--dur-instant) var(--ease-snap), background var(--dur-instant) var(--ease-snap)",
       }}
       onMouseEnter={(e) => (e.currentTarget.style.borderColor = ACCENT)}
       onMouseLeave={(e) => (e.currentTarget.style.borderColor = c.line)}

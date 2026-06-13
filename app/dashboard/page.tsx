@@ -577,7 +577,7 @@ function ModuleRowView({
       {!locked && (
         <span
           aria-hidden
-          className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-0 origin-bottom transition-[height] duration-400 ease-[cubic-bezier(.22,1,.36,1)] group-hover/module:h-full"
+          className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-0 origin-bottom transition-[height] [transition-duration:var(--dur-smooth)] [transition-timing-function:var(--ease-out)] group-hover/module:h-full"
           style={{ background: `${accent}28` }}
         />
       )}

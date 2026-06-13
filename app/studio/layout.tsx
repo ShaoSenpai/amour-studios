@@ -173,7 +173,7 @@ function StudioShell({
           borderRight: `1px solid ${sideLine}`,
           display: "flex",
           flexDirection: "column",
-          transition: "width .18s ease",
+          transition: "width var(--dur-instant) var(--ease-spring)",
           position: "sticky",
           top: 0,
           height: "100vh",

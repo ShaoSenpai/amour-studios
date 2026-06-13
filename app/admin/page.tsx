@@ -279,8 +279,8 @@ export default function AujourdhuiPage() {
               </div>
             </div>
             <div style={{ padding: 22, display: "flex", gap: 8, alignItems: "center" }}>
-              <button style={glassBtn(c, "ghost")}>＋ Note</button>
-              <button style={glassBtn(c, "solid")}>＋ Nouveau RDV</button>
+              <button className="glass-btn" style={glassBtn(c, "ghost")}>＋ Note</button>
+              <button className="glass-btn" style={glassBtn(c, "solid")}>＋ Nouveau RDV</button>
             </div>
           </div>
         </Glass>

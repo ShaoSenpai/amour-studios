@@ -9,6 +9,7 @@ import {
   num,
   Glass,
   glassBtn,
+  GlassButton,
 } from "../studio/_components/glass";
 
 // Error boundary de l'espace élève /exos — DA Glass C (inline styles).
@@ -114,15 +115,12 @@ export default function ExosError({
           )}
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <button
-              type="button"
-              onClick={reset}
-              style={glassBtn(c, "solid")}
-            >
+            <GlassButton c={c} kind="solid" onClick={reset}>
               Réessayer
-            </button>
+            </GlassButton>
             <a
               href="/exos"
+              className="glass-btn"
               style={{
                 ...glassBtn(c, "ghost"),
                 textAlign: "center",

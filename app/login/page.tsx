@@ -12,7 +12,7 @@ import {
   mono,
   num,
   Glass,
-  glassBtn,
+  GlassButton,
 } from "../studio/_components/glass";
 
 // ============================================================================
@@ -128,14 +128,15 @@ function LoginInner() {
             <a href={discordInvite} target="_blank" rel="noopener noreferrer" style={discordBtn}>
               <DiscordIcon size={20} /> Rejoindre le serveur
             </a>
-            <button
-              type="button"
+            <GlassButton
+              c={c}
+              kind="ghost"
               onClick={handleDiscordSignIn}
               disabled={isLoading}
-              style={{ ...glassBtn(c, "ghost"), width: "100%", opacity: isLoading ? 0.6 : 1 }}
+              style={{ width: "100%", opacity: isLoading ? 0.6 : 1 }}
             >
               {isLoading ? "Redirection…" : "J'ai rejoint — réessayer"}
-            </button>
+            </GlassButton>
             <p style={{ ...mono, fontSize: 9.5, color: c.faint, textAlign: "center" }}>
               L&apos;inscription au Discord est gratuite et prend 10 secondes.
             </p>
@@ -187,12 +188,12 @@ function LoginInner() {
           {/* Étape 2 — Connexion */}
           <div>
             <div style={{ ...mono, color: c.muted, marginBottom: 10 }}>ÉTAPE 2 — CONNECTE-TOI</div>
-            <button
-              type="button"
+            <GlassButton
+              c={c}
+              kind="solid"
               onClick={handleDiscordSignIn}
               disabled={isLoading}
               style={{
-                ...glassBtn(c, "solid"),
                 width: "100%",
                 display: "flex",
                 alignItems: "center",
@@ -202,7 +203,7 @@ function LoginInner() {
               }}
             >
               <DiscordIcon /> {isLoading ? "Redirection…" : "Continuer avec Discord"}
-            </button>
+            </GlassButton>
           </div>
 
           <div style={{ borderTop: `1px solid ${c.line}`, paddingTop: 16 }}>

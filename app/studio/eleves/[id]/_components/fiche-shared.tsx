@@ -7,7 +7,6 @@ import { SPRING } from "@/lib/motion";
 import {
   ACCENT,
   mono,
-  glassBtn,
   type C,
 } from "../../../_components/glass";
 

@@ -567,7 +567,6 @@ export default function FichePage({
               ) : (
                 <div
                   title="Le lien Meet est généré quand le RDV est synchronisé à Google Agenda."
-                  className="glass-btn"
                   style={{
                     ...glassBtn(c, "ghost"),
                     display: "flex",

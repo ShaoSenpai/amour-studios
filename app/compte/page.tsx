@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery, useAction } from "convex/react";
+import { useAuthActions } from "@convex-dev/auth/react";
 import { api } from "@/convex/_generated/api";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -60,6 +61,7 @@ function CompteInner() {
   const c = palette(dark, ACCENT);
   const router = useRouter();
   const params = useSearchParams();
+  const { signOut } = useAuthActions();
 
   const sub = useQuery(api.subscriptions.mySubscription);
   const cancelMut = useAction(api.subscriptions.cancelMySubscription);
@@ -288,9 +290,15 @@ function CompteInner() {
             </GlassButton>
           )}
 
-          <div style={{ textAlign: "center" }}>
+          <div style={{ textAlign: "center", display: "flex", gap: 16, justifyContent: "center" }}>
             <button onClick={() => goCardUpdate("card")} disabled={!!busy} style={subLinkStyle}>
               {busy === "card" ? "Redirection…" : "Gérer ma carte"}
+            </button>
+            <button
+              onClick={() => void signOut().then(() => router.replace("/login"))}
+              style={{ ...subLinkStyle, cursor: "pointer", opacity: 1 }}
+            >
+              Se déconnecter
             </button>
           </div>
 

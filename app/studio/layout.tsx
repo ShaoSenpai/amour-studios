@@ -81,15 +81,15 @@ function StudioShell({
   const collapsed = userCollapsed || isMobile;
 
   useEffect(() => {
-    // Non connecté → login. Connecté mais NON-admin (ex. session de test) →
-    // hors du back-office : le dispatcher racine le renverra vers /exos.
+    // Non connecté → login. Un non-admin n'est PAS rebondi : il voit l'écran
+    // « Accès refusé » ci-dessous (avec bouton Se déconnecter) — sinon, coincé
+    // dans une session client, il ne pourrait jamais se déco pour revenir admin.
     if (me === null) router.replace("/studio/login");
-    else if (me && me.role !== "admin") router.replace("/");
   }, [me, router]);
 
-  // Loader (inclut le non-admin : on n'affiche jamais le shell admin à un
-  // non-admin — il voit le loader le temps de la redirection ci-dessus).
-  if (me === undefined || me === null || me.role !== "admin") {
+  // Loader pendant le chargement / la redirection login. Un non-admin chargé
+  // tombe ensuite sur l'écran « Accès refusé » (avec Se déconnecter).
+  if (me === undefined || me === null) {
     return (
       <main
         style={{

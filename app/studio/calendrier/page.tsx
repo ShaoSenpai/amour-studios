@@ -20,7 +20,7 @@ import {
   Glass,
   Avatar,
   Pill,
-  glassBtn,
+  GlassButton,
   curriculumLabel,
   type C,
 } from "../_components/glass";
@@ -348,8 +348,8 @@ export default function CalendrierPage() {
               </div>
             </div>
             <div style={{ padding: 22, display: "flex", gap: 8, alignItems: "center" }}>
-              <button onClick={() => setAnchor(new Date())} style={glassBtn(c, "ghost")}>↺ Aujourd&apos;hui</button>
-              <button onClick={openManual} style={glassBtn(c, "solid")}>＋ RDV manuel</button>
+              <GlassButton c={c} onClick={() => setAnchor(new Date())}>↺ Aujourd&apos;hui</GlassButton>
+              <GlassButton c={c} kind="solid" onClick={openManual}>＋ RDV manuel</GlassButton>
             </div>
           </div>
         </Glass>

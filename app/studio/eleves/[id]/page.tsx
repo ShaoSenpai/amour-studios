@@ -176,7 +176,7 @@ export default function FichePage({
     return (
       <main style={{ background: c.bgGrad, color: c.text, minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, fontFamily: "'Schibsted Grotesk', system-ui, sans-serif" }}>
         <p style={{ ...mono, color: c.muted }}>◦ Élève introuvable</p>
-        <Link href="/studio/eleves" style={{ ...glassBtn(c, "ink"), textDecoration: "none" }}>← Retour aux élèves</Link>
+        <Link href="/studio/eleves" className="glass-btn" style={{ ...glassBtn(c, "ink"), textDecoration: "none" }}>← Retour aux élèves</Link>
       </main>
     );
   }
@@ -567,6 +567,7 @@ export default function FichePage({
               ) : (
                 <div
                   title="Le lien Meet est généré quand le RDV est synchronisé à Google Agenda."
+                  className="glass-btn"
                   style={{
                     ...glassBtn(c, "ghost"),
                     display: "flex",

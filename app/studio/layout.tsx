@@ -14,7 +14,7 @@ import {
   useIsMobile,
   mono,
   Avatar,
-  glassBtn,
+  GlassButton,
 } from "./_components/glass";
 import {
   TestModeProvider,
@@ -131,12 +131,13 @@ function StudioShell({
           Cet espace est l&apos;outil interne de l&apos;équipe Amour Studios. Ton
           compte n&apos;a pas les droits administrateur.
         </p>
-        <button
+        <GlassButton
+          c={c}
+          kind="ink"
           onClick={() => void signOut().then(() => router.replace("/studio/login"))}
-          style={glassBtn(c, "ink")}
         >
           Se déconnecter
-        </button>
+        </GlassButton>
       </main>
     );
   }

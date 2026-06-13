@@ -6,7 +6,7 @@ import { api } from "@/convex/_generated/api";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { ACCENT, palette, useIsDark, mono, num, Glass, glassBtn } from "../_components/glass";
+import { ACCENT, palette, useIsDark, mono, num, Glass, GlassButton } from "../_components/glass";
 
 // ============================================================================
 // Login /studio — connexion Discord, style Glass. Réservé à l'équipe.
@@ -88,12 +88,12 @@ export default function StudioLoginPage() {
             </p>
           </div>
 
-          <button
-            type="button"
+          <GlassButton
+            c={c}
+            kind="solid"
             onClick={handleSignIn}
             disabled={loading}
             style={{
-              ...glassBtn(c, "solid"),
               width: "100%",
               padding: "14px 16px",
               display: "flex",
@@ -105,7 +105,7 @@ export default function StudioLoginPage() {
           >
             <DiscordIcon />
             {loading ? "Redirection…" : "Continuer avec Discord"}
-          </button>
+          </GlassButton>
 
           <p style={{ ...mono, fontSize: 9.5, color: c.faint, textAlign: "center" }}>
             Réservé aux administrateurs · Amour Studios

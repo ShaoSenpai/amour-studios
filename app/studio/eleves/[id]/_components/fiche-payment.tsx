@@ -8,7 +8,7 @@ import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import {
   mono,
-  glassBtn,
+  GlassButton,
   type C,
 } from "../../../_components/glass";
 import { fieldInput } from "./fiche-shared";
@@ -190,34 +190,32 @@ export function PaymentSavSection({
         Actions SAV
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-        <button
-          type="button"
+        <GlassButton
+          c={c}
           disabled={disabled || !hasCustomer || busy !== null}
           onClick={() => void handlePortal()}
           style={{
-            ...glassBtn(c, "ghost"),
             opacity: disabled || !hasCustomer || busy !== null ? 0.55 : 1,
             cursor: disabled || !hasCustomer || busy !== null ? "default" : "pointer",
           }}
           title={!hasCustomer ? "Pas de customer Stripe" : "Customer Portal (auto-gestion)"}
         >
           {busy === "portal" ? "…" : "Customer Portal ↗"}
-        </button>
-        <button
-          type="button"
+        </GlassButton>
+        <GlassButton
+          c={c}
           disabled={disabled || noSub || !currentTier || busy !== null}
           onClick={() => setModal({ kind: "changeTier" })}
           style={{
-            ...glassBtn(c, "ghost"),
             opacity: disabled || noSub || !currentTier || busy !== null ? 0.55 : 1,
             cursor: disabled || noSub || !currentTier || busy !== null ? "default" : "pointer",
           }}
           title={noSub ? "Pas d'abonnement Stripe" : `Passer en ${tierOther}`}
         >
           Changer plan
-        </button>
-        <button
-          type="button"
+        </GlassButton>
+        <GlassButton
+          c={c}
           disabled={
             disabled ||
             noSub ||
@@ -226,7 +224,6 @@ export function PaymentSavSection({
           }
           onClick={() => setModal({ kind: "cancel" })}
           style={{
-            ...glassBtn(c, "ghost"),
             opacity:
               disabled || noSub || busy !== null || status === "canceled" ? 0.55 : 1,
             cursor:
@@ -245,13 +242,12 @@ export function PaymentSavSection({
           }
         >
           Annuler abonnement
-        </button>
-        <button
-          type="button"
+        </GlassButton>
+        <GlassButton
+          c={c}
           disabled={disabled || !hasCustomer || busy !== null}
           onClick={() => setModal({ kind: "refund" })}
           style={{
-            ...glassBtn(c, "ghost"),
             opacity: disabled || !hasCustomer || busy !== null ? 0.55 : 1,
             cursor: disabled || !hasCustomer || busy !== null ? "default" : "pointer",
             color: "#E03131",
@@ -260,20 +256,19 @@ export function PaymentSavSection({
           title={!hasCustomer ? "Pas de customer Stripe" : "Rembourser la dernière facture"}
         >
           Refund
-        </button>
-        <button
-          type="button"
+        </GlassButton>
+        <GlassButton
+          c={c}
           disabled={disabled || noSub || busy !== null}
           onClick={() => setModal({ kind: "forceSync" })}
           style={{
-            ...glassBtn(c, "ghost"),
             opacity: disabled || noSub || busy !== null ? 0.55 : 1,
             cursor: disabled || noSub || busy !== null ? "default" : "pointer",
           }}
           title={noSub ? "Pas d'abonnement Stripe" : "Forcer la re-sync depuis Stripe"}
         >
           {busy === "forceSync" ? "…" : "Re-sync Stripe"}
-        </button>
+        </GlassButton>
       </div>
 
       {modal?.kind === "changeTier" && (
@@ -561,24 +556,23 @@ function SavActions({
 }) {
   return (
     <div style={{ display: "flex", gap: 8, marginTop: 18, justifyContent: "flex-end" }}>
-      <button
-        type="button"
+      <GlassButton
+        c={c}
         onClick={onCancel}
         disabled={confirming}
         style={{
-          ...glassBtn(c, "ghost"),
           cursor: confirming ? "default" : "pointer",
           opacity: confirming ? 0.6 : 1,
         }}
       >
         Annuler
-      </button>
-      <button
-        type="button"
+      </GlassButton>
+      <GlassButton
+        c={c}
+        kind="solid"
         onClick={onConfirm}
         disabled={confirming}
         style={{
-          ...glassBtn(c, "solid"),
           cursor: confirming ? "default" : "pointer",
           opacity: confirming ? 0.7 : 1,
           ...(danger
@@ -592,7 +586,7 @@ function SavActions({
         }}
       >
         {confirming ? "…" : confirmLabel}
-      </button>
+      </GlassButton>
     </div>
   );
 }

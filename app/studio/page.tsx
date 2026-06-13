@@ -14,7 +14,7 @@ import {
   Avatar,
   Sparkline,
   Pill,
-  glassBtn,
+  GlassButton,
   type C,
 } from "./_components/glass";
 import { useTestMode } from "./_components/test-mode";
@@ -143,8 +143,8 @@ export default function AujourdhuiPage() {
               </div>
             </div>
             <div style={{ padding: 22, display: "flex", gap: 8, alignItems: "center" }}>
-              <button onClick={() => router.push("/studio/eleves")} style={glassBtn(c, "ghost")}>＋ Note</button>
-              <button onClick={() => setRdvOpen(true)} style={glassBtn(c, "solid")}>＋ Nouveau RDV</button>
+              <GlassButton c={c} onClick={() => router.push("/studio/eleves")}>＋ Note</GlassButton>
+              <GlassButton c={c} kind="solid" onClick={() => setRdvOpen(true)}>＋ Nouveau RDV</GlassButton>
             </div>
           </div>
         </Glass>

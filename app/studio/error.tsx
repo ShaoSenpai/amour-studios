@@ -9,6 +9,7 @@ import {
   num,
   Glass,
   glassBtn,
+  GlassButton,
 } from "./_components/glass";
 
 // Error boundary du back-office /studio — DA Glass C (inline styles).
@@ -114,15 +115,12 @@ export default function StudioError({
           )}
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <button
-              type="button"
-              onClick={reset}
-              style={glassBtn(c, "solid")}
-            >
+            <GlassButton c={c} kind="solid" onClick={reset}>
               Réessayer
-            </button>
+            </GlassButton>
             <a
               href="/studio"
+              className="glass-btn"
               style={{
                 ...glassBtn(c, "ghost"),
                 textAlign: "center",

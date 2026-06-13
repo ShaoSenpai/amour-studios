@@ -35,6 +35,7 @@ const NAV = [
   { href: "/studio/eleves", label: "Élèves", icon: "◉", exact: false },
   { href: "/studio/calendrier", label: "Calendrier", icon: "◫", exact: false },
   { href: "/studio/paiements", label: "Paiements", icon: "◇", exact: false },
+  { href: "/studio/tickets", label: "Tickets", icon: "🎫", exact: false },
   { href: "/studio/lier", label: "Lier", icon: "⚯", exact: false },
   { href: "/studio/campagnes", label: "Campagnes", icon: "◗", exact: false },
   { href: "/studio/transcripts", label: "Transcripts", icon: "◍", exact: false },

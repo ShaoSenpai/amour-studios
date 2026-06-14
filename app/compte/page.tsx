@@ -16,6 +16,7 @@ import {
   Glass,
   glassBtn,
   GlassButton,
+  Avatar,
 } from "../studio/_components/glass";
 
 // ============================================================================
@@ -68,8 +69,19 @@ function CompteInner() {
   const reactivateMut = useAction(api.subscriptions.reactivateMySubscription);
   const upgradeMut = useAction(api.subscriptions.upgradeMySubscription);
   const startCardUpdate = useAction(api.subscriptions.startCardUpdate);
+  const myInvoices = useAction(api.subscriptions.myInvoices);
+  const startBillingPortal = useAction(api.subscriptions.startBillingPortal);
 
   const [busy, setBusy] = useState<string | null>(null);
+  const [invoices, setInvoices] = useState<Array<{
+    id: string;
+    amountCents: number;
+    currency: string;
+    created: number;
+    status: string | null;
+    pdfUrl: string | null;
+    hostedUrl: string | null;
+  }>>([]);
 
   const run = async (key: string, fn: () => Promise<unknown>, ok: string) => {
     setBusy(key);
@@ -105,11 +117,19 @@ function CompteInner() {
     }
   }, [params]);
 
+  // Charge les factures si l'utilisateur a un abonnement actif.
+  useEffect(() => {
+    if (sub && "hasSubscription" in sub && sub.hasSubscription) {
+      myInvoices({}).then(setInvoices).catch(() => {});
+    }
+  }, [sub, myInvoices]);
+
   const shell = {
     background: c.bgGrad,
     color: c.text,
     minHeight: "100vh",
     display: "flex",
+    flexDirection: "column" as const,
     alignItems: "center",
     justifyContent: "center",
     fontFamily: "'Schibsted Grotesk', system-ui, sans-serif",
@@ -126,20 +146,44 @@ function CompteInner() {
   if (!sub.authed || !("hasSubscription" in sub) || !sub.hasSubscription)
     return (
       <main style={shell}>
-        <Glass c={c} dark={dark} strong pad={0} style={{ width: "100%", maxWidth: 460 }}>
-          <div style={{ padding: "40px 38px" }}>
-            <div style={{ ...mono, color: c.muted }}>Mon compte</div>
-            <h1 style={{ ...num, fontSize: 30, fontWeight: 500, margin: "10px 0 0" }}>
-              Aucun abonnement actif.
-            </h1>
-            <p style={{ fontSize: 14, color: c.muted, marginTop: 12, lineHeight: 1.55 }}>
-              Tu n&apos;as pas d&apos;abonnement en cours.{" "}
-              <a href="https://amourstudios.fr" style={{ color: ACCENT, textDecoration: "none" }}>
-                Découvrir les offres ↗
-              </a>
-            </p>
-          </div>
-        </Glass>
+        <div style={{ width: "100%", maxWidth: 460, display: "flex", flexDirection: "column", gap: 12 }}>
+          {/* Bloc identité + déconnexion (toujours visible) */}
+          <Glass c={c} dark={dark} style={{ marginBottom: 2 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <Avatar
+                name={sub?.discordUsername || sub?.name || sub?.email || "?"}
+                size={40}
+                dark={dark}
+                image={("image" in sub && sub.image) ? sub.image : undefined}
+              />
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ fontSize: 15, fontWeight: 500, color: c.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {("discordUsername" in sub && sub.discordUsername) || ("name" in sub && sub.name) || "Mon compte"}
+                </div>
+                <div style={{ ...mono, fontSize: 11, color: c.muted }}>
+                  {("email" in sub && sub.email) ?? "—"}
+                </div>
+              </div>
+              <GlassButton c={c} kind="ghost" onClick={() => void signOut().then(() => router.replace("/login?returnTo=%2Fcompte"))}>
+                Se déconnecter
+              </GlassButton>
+            </div>
+          </Glass>
+          <Glass c={c} dark={dark} strong pad={0}>
+            <div style={{ padding: "40px 38px" }}>
+              <div style={{ ...mono, color: c.muted }}>Mon compte</div>
+              <h1 style={{ ...num, fontSize: 30, fontWeight: 500, margin: "10px 0 0" }}>
+                Aucun abonnement actif.
+              </h1>
+              <p style={{ fontSize: 14, color: c.muted, marginTop: 12, lineHeight: 1.55 }}>
+                Tu n&apos;as pas d&apos;abonnement en cours.{" "}
+                <a href="https://amourstudios.fr" style={{ color: ACCENT, textDecoration: "none" }}>
+                  Découvrir les offres ↗
+                </a>
+              </p>
+            </div>
+          </Glass>
+        </div>
       </main>
     );
 
@@ -170,6 +214,27 @@ function CompteInner() {
 
   return (
     <main style={shell}>
+      {/* Bloc identité + déconnexion (toujours en haut) */}
+      <Glass c={c} dark={dark} style={{ width: "100%", maxWidth: 480, marginBottom: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <Avatar
+            name={sub.discordUsername || sub.name || sub.email || "?"}
+            size={40}
+            dark={dark}
+            image={sub.image ?? undefined}
+          />
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ fontSize: 15, fontWeight: 500, color: c.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {sub.discordUsername || sub.name || "Mon compte"}
+            </div>
+            <div style={{ ...mono, fontSize: 11, color: c.muted }}>{sub.email ?? "—"}</div>
+          </div>
+          <GlassButton c={c} kind="ghost" onClick={() => void signOut().then(() => router.replace("/login?returnTo=%2Fcompte"))}>
+            Se déconnecter
+          </GlassButton>
+        </div>
+      </Glass>
+
       <Glass c={c} dark={dark} strong pad={0} style={{ width: "100%", maxWidth: 480 }}>
         <div style={{ padding: "40px 38px", display: "flex", flexDirection: "column", gap: 22 }}>
           {/* 1 — En-tête état des lieux */}
@@ -294,13 +359,77 @@ function CompteInner() {
             <button onClick={() => goCardUpdate("card")} disabled={!!busy} style={subLinkStyle}>
               {busy === "card" ? "Redirection…" : "Gérer ma carte"}
             </button>
-            <button
-              onClick={() => void signOut().then(() => router.replace("/login"))}
-              style={{ ...subLinkStyle, cursor: "pointer", opacity: 1 }}
-            >
-              Se déconnecter
-            </button>
           </div>
+
+          {/* 6 — Historique factures */}
+          <div style={{ borderTop: `1px solid ${c.line}`, paddingTop: 18 }}>
+            <div style={{ ...mono, fontSize: 10, color: c.muted, marginBottom: 10 }}>◦ Factures</div>
+            {invoices.length === 0 ? (
+              <p style={{ fontSize: 13, color: c.muted, margin: 0 }}>
+                Aucune facture pour le moment.
+              </p>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {invoices.map((inv) => (
+                  <div
+                    key={inv.id}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      fontSize: 13,
+                    }}
+                  >
+                    <span style={{ color: c.muted, flex: 1, minWidth: 0 }}>
+                      {new Date(inv.created).toLocaleDateString("fr-FR", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </span>
+                    <span style={{ ...mono, fontSize: 12, color: c.text, whiteSpace: "nowrap" }}>
+                      {(inv.amountCents / 100).toFixed(2).replace(".", ",")} €
+                    </span>
+                    {inv.status && (
+                      <span style={{ ...mono, fontSize: 10, color: c.muted, whiteSpace: "nowrap" }}>
+                        {inv.status}
+                      </span>
+                    )}
+                    {(inv.pdfUrl ?? inv.hostedUrl) && (
+                      <a
+                        href={(inv.pdfUrl ?? inv.hostedUrl)!}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          ...mono,
+                          fontSize: 10,
+                          color: ACCENT,
+                          textDecoration: "none",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        Reçu PDF ↗
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 6b — Portail de facturation Stripe */}
+          <GlassButton
+            c={c}
+            kind="ghost"
+            onClick={() =>
+              startBillingPortal({})
+                .then((r) => { window.location.href = r.url; })
+                .catch((e) => toast.error((e as Error).message))
+            }
+            style={{ width: "100%" }}
+          >
+            Gérer ma facturation ↗
+          </GlassButton>
 
           {/* 7 — Pied */}
           <p style={{ ...mono, fontSize: 9.5, color: c.faint, textAlign: "center", margin: 0 }}>

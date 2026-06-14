@@ -1213,8 +1213,9 @@ export const gateNonOnboarded = internalAction({
     mode: v.string(),
     extraVisibleIds: v.optional(v.array(v.string())),
     forceHideIds: v.optional(v.array(v.string())),
+    hideFromAllIds: v.optional(v.array(v.string())),
   },
-  handler: async (_ctx, { mode, extraVisibleIds, forceHideIds }) => {
+  handler: async (_ctx, { mode, extraVisibleIds, forceHideIds, hideFromAllIds }) => {
     const endpoint = process.env.DISCORD_BOT_ENDPOINT;
     const secret = process.env.DISCORD_BOT_ENDPOINT_SECRET;
     if (!endpoint || !secret) {
@@ -1235,7 +1236,7 @@ export const gateNonOnboarded = internalAction({
         "Content-Type": "application/json",
         Authorization: `Bearer ${secret}`,
       },
-      body: JSON.stringify({ mode, extraVisibleIds, forceHideIds, skipIds }),
+      body: JSON.stringify({ mode, extraVisibleIds, forceHideIds, hideFromAllIds, skipIds }),
     });
     const json = await res.json().catch(() => ({}));
     return { httpStatus: res.status, ...json };

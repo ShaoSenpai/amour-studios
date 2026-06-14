@@ -80,7 +80,11 @@ export const mySubscription = query({
       amountEur: Math.round((purchase.amount ?? 0) / 100),
       currentPeriodEnd: purchase.currentPeriodEnd ?? null,
       cancelAtPeriodEnd: purchase.cancelAtPeriodEnd ?? false,
-      canUpgrade: purchase.tier === "communaute" && purchase.status !== "canceled",
+      canTakeCoaching: purchase.tier === "communaute" && purchase.status !== "canceled",
+      canContinueCoaching:
+        purchase.tier === "coaching" &&
+        (purchase.cancelAtPeriodEnd ?? false) === true &&
+        purchase.status !== "canceled",
       needsFirstRdv,
       nextRdvAt,
       name: user.name ?? null,
@@ -162,9 +166,11 @@ export const reactivateMySubscription = action({
 });
 
 // 3) Upgrade Communauté → Coaching (proration immédiate).
+//    plan="coaching_1m" → cancel_at_period_end:true (1 prélèvement puis stop).
+//    plan="coaching_3m" → cancel_at_period_end:false (récurrent).
 export const upgradeMySubscription = action({
-  args: {},
-  handler: async (ctx): Promise<{ ok: true; already?: boolean }> => {
+  args: { plan: v.union(v.literal("coaching_1m"), v.literal("coaching_3m")) },
+  handler: async (ctx, { plan }): Promise<{ ok: true; already?: boolean }> => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Non authentifié");
     const p = await ctx.runQuery(internal.subscriptions._purchaseForUser, { userId });
@@ -184,6 +190,8 @@ export const upgradeMySubscription = action({
     //   - `billing_cycle_anchor: "now"` → le cycle de facturation redémarre
     //     maintenant : le mois coaching démarre aujourd'hui et Stripe émet
     //     immédiatement une facture de 179€ (premier mois plein), puis 179€/mois.
+    //   - `cancel_at_period_end` : true pour 1 mois (1 seul prélèvement puis stop),
+    //     false pour 3 mois (récurrent jusqu'à annulation explicite).
     //   ⚠️ Ne PAS confondre avec l'upsell d'onboarding (`upgradeToCoaching` dans
     //     stripe.ts) qui, lui, débite un +100€ one-time (différentiel 79→179) car
     //     il intervient dans l'heure suivant le paiement Communauté. Le +100€
@@ -201,7 +209,8 @@ export const upgradeMySubscription = action({
         proration_behavior: "none",
         billing_cycle_anchor: "now",
         payment_behavior: "error_if_incomplete",
-        metadata: { ...(sub.metadata ?? {}), tier: "coaching", duree: "1mois" },
+        cancel_at_period_end: plan === "coaching_1m",
+        metadata: { ...(sub.metadata ?? {}), tier: "coaching", duree: plan === "coaching_1m" ? "1mois" : "3mois" },
       });
     } catch (err) {
       console.warn("⚠️ upgrade self-service échec:", err instanceof Error ? err.message : err);
@@ -210,6 +219,8 @@ export const upgradeMySubscription = action({
       );
     }
     await ctx.runMutation(internal.subscriptions._applyUpgrade, { purchaseId: p.purchaseId, userId, coachingPrice });
+    // Patch le purchase pour refléter cancel_at_period_end selon le plan choisi.
+    await ctx.runMutation(internal.stripe.patchPurchase, { purchaseId: p.purchaseId, cancelAtPeriodEnd: plan === "coaching_1m" });
     if (p.discordId) {
       await ctx.scheduler.runAfter(0, internal.stripe.assignDiscordRole, { discordId: p.discordId, email: p.email ?? "", tier: "coaching" });
     }

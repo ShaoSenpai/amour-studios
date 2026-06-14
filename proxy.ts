@@ -59,10 +59,12 @@ export const proxy = convexAuthNextjsMiddleware(async (request, { convexAuth }) 
     return nextjsMiddlewareRedirect(request, "/login");
   }
 
-  // /login : déjà connecté → racine (dispatcher selon le rôle : admin /studio,
-  // membre /exos).
+  // /login : déjà connecté → honore returnTo si chemin interne, sinon racine
+  // (dispatcher selon le rôle : admin /studio, membre /exos).
   if (isLoginRoute(request) && isAuth) {
-    return nextjsMiddlewareRedirect(request, "/");
+    const rt = request.nextUrl.searchParams.get("returnTo");
+    const dest = rt && rt.startsWith("/") && !rt.startsWith("//") ? rt : "/";
+    return nextjsMiddlewareRedirect(request, dest);
   }
 });
 

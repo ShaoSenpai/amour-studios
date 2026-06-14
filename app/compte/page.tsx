@@ -295,29 +295,50 @@ function CompteInner() {
             </p>
           ) : null}
 
-          {/* 4 — Bloc upgrade (Communauté → Coaching) */}
-          {sub.canUpgrade && (
+          {/* 4a — Bloc upgrade Communauté → Coaching (2 offres : 1 mois / 3 mois) */}
+          {sub.canTakeCoaching && (
             <div style={boxStyle}>
               <div style={{ ...mono, fontSize: 10, color: ACCENT }}>PASSER AU COACHING</div>
-              <p style={{ fontSize: 13.5, color: c.muted, margin: "8px 0 12px", lineHeight: 1.5 }}>
-                Débloque le coaching 1:1 avec Walid (RDV + exos). Tu passes à 179€/mois,{" "}
-                <strong style={{ color: c.text }}>prélevés aujourd&apos;hui</strong> (ton mois
-                de coaching démarre maintenant).
+              <p style={{ fontSize: 13.5, color: c.muted, margin: "8px 0 14px", lineHeight: 1.5 }}>
+                Débloque le coaching 1:1 avec Walid (RDV + exos),{" "}
+                <strong style={{ color: c.text }}>prélevés aujourd&apos;hui</strong> (cycle
+                coaching démarre maintenant).
               </p>
+              {/* Coaching 1 mois */}
               <GlassButton
                 c={c}
                 kind="solid"
                 onClick={() =>
-                  run("up", () => upgradeMut({}), "🎉 Coaching débloqué !").then(() =>
+                  run("up1", () => upgradeMut({ plan: "coaching_1m" }), "🎉 Coaching débloqué !").then(() =>
+                    router.refresh()
+                  )
+                }
+                disabled={!!busy}
+                style={{ width: "100%", opacity: busy ? 0.6 : 1, marginBottom: 8 }}
+              >
+                {busy === "up1" ? "Activation…" : "Coaching 1 mois · 179€"}
+              </GlassButton>
+              <p style={{ ...mono, fontSize: 10, color: c.muted, margin: "0 0 14px", textAlign: "center" }}>
+                Un seul prélèvement, sans engagement.
+              </p>
+              {/* Coaching 3 mois */}
+              <GlassButton
+                c={c}
+                kind="solid"
+                onClick={() =>
+                  run("up3", () => upgradeMut({ plan: "coaching_3m" }), "🎉 Coaching débloqué !").then(() =>
                     router.refresh()
                   )
                 }
                 disabled={!!busy}
                 style={{ width: "100%", opacity: busy ? 0.6 : 1 }}
               >
-                {busy === "up" ? "Activation…" : "Passer au Coaching — 179€"}
+                {busy === "up3" ? "Activation…" : "Coaching 3 mois · 179€/mois"}
               </GlassButton>
-              <div style={{ marginTop: 12, textAlign: "center" }}>
+              <p style={{ ...mono, fontSize: 10, color: c.muted, margin: "8px 0 4px", textAlign: "center" }}>
+                Abonnement récurrent, annulable à tout moment.
+              </p>
+              <div style={{ marginTop: 8, textAlign: "center" }}>
                 <button
                   onClick={() => goCardUpdate("up-card")}
                   disabled={!!busy}
@@ -326,6 +347,26 @@ function CompteInner() {
                   {busy === "up-card" ? "Redirection…" : "Payer avec une autre carte"}
                 </button>
               </div>
+            </div>
+          )}
+
+          {/* 4b — Continuer le coaching (coaching en annulation programmée) */}
+          {sub.canContinueCoaching && (
+            <div style={boxStyle}>
+              <div style={{ ...mono, fontSize: 10, color: ACCENT }}>TON COACHING S&apos;ARRÊTE BIENTÔT</div>
+              <p style={{ fontSize: 13.5, color: c.muted, margin: "8px 0 12px", lineHeight: 1.5 }}>
+                Ton coaching est programmé pour se terminer en fin de période. Clique ci-dessous
+                pour annuler la résiliation et continuer.
+              </p>
+              <GlassButton
+                c={c}
+                kind="solid"
+                onClick={() => run("cont", () => reactivateMut({}), "Coaching prolongé.")}
+                disabled={!!busy}
+                style={{ width: "100%", opacity: busy ? 0.6 : 1 }}
+              >
+                {busy === "cont" ? "…" : "Continuer mon coaching"}
+              </GlassButton>
             </div>
           )}
 

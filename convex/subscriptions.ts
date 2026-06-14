@@ -304,3 +304,40 @@ export const _applyUpgrade = internalMutation({
     await logEvent(ctx, { userId, type: "subscription.tier_changed", title: "Upgrade Communauté → Coaching (self-service /compte)", actor: "member", meta: { from: "communaute", to: "coaching", via: "self_service" } });
   },
 });
+
+// Historique de facturation du membre connecté (lecture seule).
+export const myInvoices = action({
+  args: {},
+  handler: async (
+    ctx
+  ): Promise<
+    Array<{
+      id: string;
+      amountCents: number;
+      currency: string;
+      created: number;
+      status: string | null;
+      pdfUrl: string | null;
+      hostedUrl: string | null;
+    }>
+  > => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Non authentifié");
+    const p = await ctx.runQuery(internal.subscriptions._purchaseForUser, { userId });
+    if (!p) return [];
+    const stripe = await stripeClient();
+    const sub = await stripe.subscriptions.retrieve(p.subscriptionId);
+    const customer = typeof sub.customer === "string" ? sub.customer : sub.customer?.id;
+    if (!customer) return [];
+    const list = await stripe.invoices.list({ customer, limit: 24 });
+    return list.data.map((inv) => ({
+      id: inv.id,
+      amountCents: inv.amount_paid ?? inv.amount_due ?? 0,
+      currency: inv.currency ?? "eur",
+      created: (inv.created ?? 0) * 1000,
+      status: inv.status ?? null,
+      pdfUrl: inv.invoice_pdf ?? null,
+      hostedUrl: inv.hosted_invoice_url ?? null,
+    }));
+  },
+});

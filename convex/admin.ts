@@ -1220,13 +1220,22 @@ export const gateNonOnboarded = internalAction({
     if (!endpoint || !secret) {
       throw new Error("DISCORD_BOT_ENDPOINT(_SECRET) absent côté Convex");
     }
+    // Protection absolue : les feeds staff (alertes, paiements, suivi-élèves)
+    // ne doivent JAMAIS être gatés (sinon exposés aux onboardés s'ils sont
+    // publics). On injecte leurs IDs d'env Convex dans skipIds.
+    const skipIds = [
+      process.env.DISCORD_ALERTS_CHANNEL_ID,
+      process.env.DISCORD_FEED_CHANNEL_ID,
+      process.env.DISCORD_FEED_PAYMENTS_CHANNEL_ID,
+      process.env.DISCORD_FEED_STUDENTS_CHANNEL_ID,
+    ].filter(Boolean);
     const res = await fetch(`${endpoint.replace(/\/$/, "")}/gate-non-onboarded`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${secret}`,
       },
-      body: JSON.stringify({ mode, extraVisibleIds, forceHideIds }),
+      body: JSON.stringify({ mode, extraVisibleIds, forceHideIds, skipIds }),
     });
     const json = await res.json().catch(() => ({}));
     return { httpStatus: res.status, ...json };

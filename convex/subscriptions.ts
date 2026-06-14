@@ -26,7 +26,15 @@ export const mySubscription = query({
         .filter((p) => p.stripeSubscriptionId && (p.status === "active" || p.status === "past_due" || p.status === "paid"))
         .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))[0] ?? purchase;
     }
-    if (!purchase || !purchase.stripeSubscriptionId) return { authed: true as const, hasSubscription: false as const };
+    if (!purchase || !purchase.stripeSubscriptionId)
+      return {
+        authed: true as const,
+        hasSubscription: false as const,
+        name: user.name ?? null,
+        email: user.email ?? null,
+        discordUsername: user.discordUsername ?? null,
+        image: user.image ?? null,
+      };
 
     const isCoaching = purchase.tier === "coaching";
 
@@ -75,6 +83,10 @@ export const mySubscription = query({
       canUpgrade: purchase.tier === "communaute" && purchase.status !== "canceled",
       needsFirstRdv,
       nextRdvAt,
+      name: user.name ?? null,
+      email: user.email ?? null,
+      discordUsername: user.discordUsername ?? null,
+      image: user.image ?? null,
     };
   },
 });
@@ -290,5 +302,71 @@ export const _applyUpgrade = internalMutation({
       });
     }
     await logEvent(ctx, { userId, type: "subscription.tier_changed", title: "Upgrade Communauté → Coaching (self-service /compte)", actor: "member", meta: { from: "communaute", to: "coaching", via: "self_service" } });
+  },
+});
+
+// Historique de facturation du membre connecté (lecture seule).
+export const myInvoices = action({
+  args: {},
+  handler: async (
+    ctx
+  ): Promise<
+    Array<{
+      id: string;
+      amountCents: number;
+      currency: string;
+      created: number;
+      status: string | null;
+      pdfUrl: string | null;
+      hostedUrl: string | null;
+    }>
+  > => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Non authentifié");
+    const p = await ctx.runQuery(internal.subscriptions._purchaseForUser, { userId });
+    if (!p) return [];
+    // Résilience : un sub périmé/archivé côté Stripe (donnée Convex stale) ou un
+    // souci réseau ne doit pas crasher la page — on renvoie [] (section factures
+    // vide) plutôt que de throw.
+    try {
+      const stripe = await stripeClient();
+      const sub = await stripe.subscriptions.retrieve(p.subscriptionId);
+      const customer = typeof sub.customer === "string" ? sub.customer : sub.customer?.id;
+      if (!customer) return [];
+      const list = await stripe.invoices.list({ customer, limit: 24 });
+      return list.data.map((inv) => ({
+        id: inv.id,
+        amountCents: inv.amount_paid ?? inv.amount_due ?? 0,
+        currency: inv.currency ?? "eur",
+        created: (inv.created ?? 0) * 1000,
+        status: inv.status ?? null,
+        pdfUrl: inv.invoice_pdf ?? null,
+        hostedUrl: inv.hosted_invoice_url ?? null,
+      }));
+    } catch (err) {
+      console.warn("myInvoices: échec Stripe, renvoi []:", err instanceof Error ? err.message : err);
+      return [];
+    }
+  },
+});
+
+// Ouvre le Portail Client Stripe (factures, carte, plan) — page hébergée Stripe.
+export const startBillingPortal = action({
+  args: {},
+  handler: async (ctx): Promise<{ url: string }> => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Non authentifié");
+    const p = await ctx.runQuery(internal.subscriptions._purchaseForUser, { userId });
+    if (!p) throw new Error("Aucun abonnement.");
+    const stripe = await stripeClient();
+    const sub = await stripe.subscriptions.retrieve(p.subscriptionId);
+    const customer = typeof sub.customer === "string" ? sub.customer : sub.customer?.id;
+    if (!customer) throw new Error("Customer Stripe introuvable.");
+    const site = process.env.SITE_URL ?? "https://amour-studios.vercel.app";
+    const session = await stripe.billingPortal.sessions.create({
+      customer,
+      return_url: `${site}/compte`,
+    });
+    return { url: session.url };
   },
 });

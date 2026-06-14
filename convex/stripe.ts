@@ -245,7 +245,22 @@ export const upgradeToCoaching = action({
         paymentMethodId = typeof dpm === "string" ? dpm : dpm?.id;
       }
     }
+    // Fallback : aucune carte « par défaut » mais une carte peut être ATTACHÉE
+    // au client (selon comment le PaymentIntent du 79€ a été confirmé, la carte
+    // n'est pas toujours posée en default sur le sub/customer). On prend alors
+    // la carte enregistrée la plus récente du client.
     if (!paymentMethodId) {
+      const pms = await stripe.paymentMethods.list({
+        customer: customerId,
+        type: "card",
+        limit: 1,
+      });
+      paymentMethodId = pms.data[0]?.id;
+    }
+    if (!paymentMethodId) {
+      console.warn(
+        `⚠️ upgrade: aucune carte pour customer ${customerId} (sub ${subId}) — le paiement 79€ n'a pas enregistré de carte.`
+      );
       throw new Error("Aucune carte enregistrée pour l'upgrade.");
     }
 

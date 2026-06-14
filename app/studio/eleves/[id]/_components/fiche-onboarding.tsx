@@ -1,6 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
+import { useMutation } from "convex/react";
+import { toast } from "sonner";
+import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
 import {
   mono,
   glassBtn,
@@ -20,6 +25,7 @@ const ONB_STEP_LABEL: Record<string, { label: string; color: string }> = {
 };
 
 type OnboardingData = {
+  _id?: Id<"onboardings">;
   tier?: "coaching" | "communaute";
   step?: string;
   firstName?: string | null;
@@ -58,6 +64,30 @@ export function OnboardingBlock({
       ? `${ob?.firstName ?? ""} ${ob?.lastName ?? ""}`.trim()
       : null;
 
+  const forceComplete = useMutation(api.onboardings.forceCompleteOnboarding);
+  const [forcing, setForcing] = useState(false);
+  const isFinal = ob?.step === "rdv_booked" || ob?.step === "community_ready";
+  const canForce = !!ob?._id && !isFinal;
+
+  const handleForceComplete = async () => {
+    if (!ob?._id) return;
+    const label =
+      ob.tier === "coaching"
+        ? "Marquer le 1er RDV comme pris et débloquer l'accès complet (rôle Onboardé) ?"
+        : "Marquer la communauté comme prête et débloquer l'accès (rôle Onboardé) ?";
+    if (!window.confirm(label)) return;
+    setForcing(true);
+    try {
+      const res = await forceComplete({ onboardingId: ob._id });
+      if (res.ok) toast.success("Onboarding débloqué. Rôle Onboardé en cours d'attribution.");
+      else toast.message("Onboarding déjà finalisé.");
+    } catch (e) {
+      toast.error((e as Error).message ?? "Erreur");
+    } finally {
+      setForcing(false);
+    }
+  };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       {/* Statut */}
@@ -88,6 +118,17 @@ export function OnboardingBlock({
           <span style={{ ...mono, fontSize: 9.5, color: c.muted }}>
             · {ob.tier === "coaching" ? "Coaching 179€" : "Communauté 79€"}
           </span>
+        )}
+        {canForce && (
+          <motion.button
+            {...TAP}
+            onClick={handleForceComplete}
+            disabled={forcing}
+            style={{ ...glassBtn(c, "ghost"), marginLeft: "auto", opacity: forcing ? 0.6 : 1 }}
+            title="Débloquer manuellement : Walid a calé le RDV à la main, ou le client est coincé."
+          >
+            {forcing ? "…" : "Débloquer l'accès"}
+          </motion.button>
         )}
       </div>
 

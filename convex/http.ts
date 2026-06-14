@@ -505,13 +505,18 @@ http.route({
             typeof periodEndSec === "number" ? periodEndSec * 1000 : undefined,
         });
 
-        // Email de confirmation + claim token (uniquement la 1ère facture).
+        // Email de claim — UNIQUEMENT tant que la purchase n'est pas encore
+        // liée à un compte. `invoice.paid` se redéclenche à CHAQUE renouvellement
+        // mensuel ; sans ce guard `!purchase.userId`, un abonné déjà actif
+        // recevrait « active ton accès » tous les mois (byPaymentIntent ne filtre
+        // pas les tokens déjà consommés). Une fois lié → le cron lifecycle gère
+        // les relances des seuls non-activés.
         const purchase = await ctx.runQuery(
           internal.stripe.findPurchaseBySubscription,
           { stripeSubscriptionId: subId }
         );
         const targetEmail = email || purchase?.email || "";
-        if (purchase?.stripePaymentIntentId) {
+        if (purchase?.stripePaymentIntentId && !purchase.userId) {
           const claimToken = await ctx.runQuery(internal.claimTokens.byPaymentIntent, {
             paymentIntentId: purchase.stripePaymentIntentId,
           });

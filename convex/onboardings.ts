@@ -829,6 +829,40 @@ export const triggerManualRelance = mutation({
   },
 });
 
+/** Mutation admin : force la finalisation d'un onboarding bloqué. Cas d'usage :
+ *  Walid a calé le 1er RDV à la main (WhatsApp/tel, hors Calendly) ou veut
+ *  débloquer un client resté coincé à `form_done` / `awaiting_presentation`.
+ *  Marque l'étape finale du palier (communaute → community_ready, coaching →
+ *  rdv_booked) et accorde le rôle « Onboardé ». Idempotent : no-op si déjà
+ *  finalisé. C'est le filet manuel quand l'auto-réparation ne suffit pas. */
+export const forceCompleteOnboarding = mutation({
+  args: { onboardingId: v.id("onboardings") },
+  handler: async (ctx, { onboardingId }) => {
+    await requireAdmin(ctx);
+    const ob = await ctx.db.get(onboardingId);
+    if (!ob) throw new Error("Onboarding introuvable.");
+    if (ob.step === "rdv_booked" || ob.step === "community_ready") {
+      return { ok: false as const, reason: "already_done" as const };
+    }
+    const now = Date.now();
+    const patch =
+      ob.tier === "communaute"
+        ? { step: "community_ready" as const, updatedAt: now }
+        : { step: "rdv_booked" as const, rdvBookedAt: now, updatedAt: now };
+    await ctx.db.patch(ob._id, patch);
+    await ctx.scheduler.runAfter(0, internal.onboardings.grantOnboarded, {
+      userId: ob.userId,
+    });
+    await logEvent(ctx, {
+      userId: ob.userId,
+      type: "onboarding.force_complete",
+      title: "Onboarding débloqué manuellement par Walid",
+      actor: "admin",
+    });
+    return { ok: true as const, step: patch.step };
+  },
+});
+
 /** Détails de l'onboarding d'un user pour la fiche élève. */
 export const getForUser = query({
   args: { userId: v.id("users") },

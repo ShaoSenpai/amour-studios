@@ -1242,4 +1242,39 @@ export const gateNonOnboarded = internalAction({
     return { httpStatus: res.status, ...json };
   },
 });
+
+/** Outil admin (CLI, lecture seule) : liste les prix Stripe actifs avec produit,
+ *  montant, récurrence et id. Sert à identifier/câbler les prix coaching 1m/3m.
+ *  `npx convex run admin:inspectStripePrices --prod` */
+export const inspectStripePrices = internalAction({
+  args: {},
+  handler: async (): Promise<
+    Array<{
+      id: string;
+      product: string;
+      amountEur: number | null;
+      currency: string;
+      recurring: string;
+      active: boolean;
+    }>
+  > => {
+    const { stripeClient } = await import("./stripe");
+    const stripe = await stripeClient();
+    const prices = await stripe.prices.list({ active: true, limit: 100, expand: ["data.product"] });
+    return prices.data.map((p) => {
+      const prod = p.product as { name?: string; deleted?: boolean };
+      const name = prod && !prod.deleted ? (prod.name ?? "(sans nom)") : "(deleted)";
+      return {
+        id: p.id,
+        product: name,
+        amountEur: p.unit_amount != null ? p.unit_amount / 100 : null,
+        currency: p.currency,
+        recurring: p.recurring
+          ? `${p.recurring.interval_count ?? 1}×${p.recurring.interval}`
+          : "one-time",
+        active: p.active,
+      };
+    });
+  },
+});
 void internal;

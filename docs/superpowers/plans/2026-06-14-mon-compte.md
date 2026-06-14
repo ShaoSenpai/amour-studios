@@ -356,83 +356,57 @@ vercel --prod --yes
 
 ## PHASE 3 — Offres & upsell coaching depuis `/compte`
 
-Contexte produit (validé) : **2 offres coaching** — *Coaching 1 mois* (179€ one-time) et *Coaching 3 mois* (179€/mois récurrent). Depuis /compte : un **Communauté** peut prendre l'une OU l'autre ; un **Coaching** peut « continuer » en **3 mois**. (Distinct de l'upsell d'onboarding +100€ qui reste géré dans `stripe.ts`.)
+Contexte produit (validé 2026-06-14) : **un seul prix coaching** existe (179€/mois récurrent, `STRIPE_PRICE_COACHING` = `price_1TgXRbEPVgDbT6ZucHZ5WJPz`). Les deux « offres » diffèrent **uniquement par le comportement**, PAS par le prix → **aucun nouveau prix Stripe, aucune nouvelle env var** :
+- **Coaching 1 mois** = bascule sur le prix coaching + `cancel_at_period_end: true` (1 prélèvement puis stop).
+- **Coaching 3 mois** = bascule sur le prix coaching, **récurrent** (`cancel_at_period_end: false`, le membre résilie quand il veut).
+- **Continuer mon coaching** (coaché dont l'abo est en annulation programmée) = retirer l'annulation = `reactivateMySubscription` **qui existe déjà** → on le ré-expose juste avec un libellé adapté.
 
-### Task 3.1 — Prix Stripe + résolveur
+Depuis /compte : **Communauté** → prendre coaching 1 mois OU 3 mois ; **Coaching avec annulation programmée** → continuer (3 mois). (Distinct de l'upsell d'onboarding +100€ qui reste dans `stripe.ts`.)
 
-**Files:** Stripe dashboard (manuel) + Modify `convex/stripe.ts` (`priceForTier`)
+### ~~Task 3.1 — Prix Stripe~~ — SUPPRIMÉE
+Plus de prix/env à créer (cf. décision ci-dessus). On réutilise `priceForTier("coaching")`.
 
-- [ ] **Step 1 : créer/confirmer les prix Stripe**
-  - Confirmer le prix existant **Coaching 1 mois** (179€). Déterminer s'il est *one-time* ou *recurring* (à vérifier dans le dashboard). Pour « 1 mois » non renouvelable : un prix recurring mensuel + `cancel_at_period_end` à la création, OU un prix one-time. **Décision d'implémentation : prix recurring mensuel 179€ + annulation programmée à 1 mois** (cohérent avec le reste du code qui manipule des subscriptions). 
-  - Créer le prix **Coaching 3 mois** : recurring **mensuel** 179€/mois (le « 3 mois » = engagement/affichage ; techniquement un abonnement mensuel qui continue). Noter le `price_id`.
-  - Poser les env Convex prod : `npx convex env set STRIPE_PRICE_COACHING_1M price_xxx --prod` et `STRIPE_PRICE_COACHING_3M price_yyy --prod` (+ dev sans `--prod`).
+### Task 3.2 — `upgradeMySubscription({ plan })` (même prix, comportement différent)
 
-- [ ] **Step 2 : résolveur de prix dans `stripe.ts`**
-
-Repérer `priceForTier` (utilisé par les upgrades). Ajouter une fonction explicite par plan :
-```ts
-export function priceForPlan(plan: "coaching_1m" | "coaching_3m"): string {
-  const id =
-    plan === "coaching_3m"
-      ? process.env.STRIPE_PRICE_COACHING_3M
-      : process.env.STRIPE_PRICE_COACHING_1M;
-  if (!id) throw new Error(`Prix Stripe manquant pour ${plan}`);
-  return id;
-}
-```
-(Garder `priceForTier("coaching")` pour la compat de l'upsell onboarding → le faire pointer sur `STRIPE_PRICE_COACHING_1M` pour rester cohérent.)
-
-- [ ] **Step 3 : push + commit**
-
-```bash
-npx convex dev --once
-git add convex/stripe.ts
-git commit -m "feat(offres): résolveur priceForPlan (coaching 1m/3m) + env prix"
-```
-
-### Task 3.2 — `upgradeMySubscription({ plan })`
-
-**Files:** Modify `convex/subscriptions.ts:153-206`
+**Files:** Modify `convex/subscriptions.ts` (action `upgradeMySubscription` + query `mySubscription`)
 
 - [ ] **Step 1 : accepter la cible de plan**
 
-Modifier la signature et le prix utilisé :
+`upgradeMySubscription` passe d'aucun argument à `{ plan }`. **Même prix** (`priceForTier("coaching")`) pour les deux ; seul `cancel_at_period_end` change :
 ```ts
 export const upgradeMySubscription = action({
   args: { plan: v.union(v.literal("coaching_1m"), v.literal("coaching_3m")) },
   handler: async (ctx, { plan }): Promise<{ ok: true; already?: boolean }> => {
-    // ... mêmes guards (auth, purchase, rate-limit) ...
-    const coachingPrice = priceForPlan(plan); // au lieu de priceForTier("coaching")
-    // ... sub.update avec ce price ; pour coaching_1m : ajouter cancel_at_period_end:true
-    //     (1 mois non renouvelable) ; pour coaching_3m : récurrent (pas de cancel).
+    // ... mêmes guards existants (auth, purchase, déjà coaching → already, rate-limit) ...
+    const coachingPrice = priceForTier("coaching"); // un seul prix coaching
+    // ... retrieve sub + itemId ...
+    await stripe.subscriptions.update(p.subscriptionId, {
+      items: [{ id: itemId, price: coachingPrice }],
+      proration_behavior: "none",
+      billing_cycle_anchor: "now",
+      payment_behavior: "error_if_incomplete",
+      cancel_at_period_end: plan === "coaching_1m", // 1 mois = 1 prélèvement puis stop ; 3 mois = récurrent
+      metadata: { ...(sub.metadata ?? {}), tier: "coaching", duree: plan === "coaching_1m" ? "1mois" : "3mois" },
+    });
+    // ... try/catch 402, _applyUpgrade, assignDiscordRole inchangés ...
 ```
-Détail du `subscriptions.update` :
-```ts
-await stripe.subscriptions.update(p.subscriptionId, {
-  items: [{ id: itemId, price: coachingPrice }],
-  proration_behavior: "none",
-  billing_cycle_anchor: "now",
-  payment_behavior: "error_if_incomplete",
-  cancel_at_period_end: plan === "coaching_1m",
-  metadata: { ...(sub.metadata ?? {}), tier: "coaching", duree: plan === "coaching_3m" ? "3mois" : "1mois" },
-});
-```
-Le reste (try/catch 402, `_applyUpgrade`, `assignDiscordRole`) inchangé. `_applyUpgrade` doit accepter/écrire la `duree` si la colonne existe (sinon ignorer).
+⚠️ Le `cancelAtPeriodEnd` du purchase doit refléter le choix : après l'upgrade, patcher `cancelAtPeriodEnd` sur le purchase (via `internal.stripe.patchPurchase`, déjà utilisé par cancel/reactivate) à `plan === "coaching_1m"` — sinon le webhook le resynchronisera mais l'UI pourrait être en retard. Ajouter ce patch après `_applyUpgrade`.
 
 - [ ] **Step 2 : `mySubscription` expose les options d'upsell**
 
-Dans le retour de `mySubscription`, remplacer `canUpgrade` par des drapeaux explicites :
+Remplacer `canUpgrade` par :
 ```ts
-canTakeCoaching: purchase.tier === "communaute" && purchase.status !== "canceled", // → propose 1m + 3m
-canContinueCoaching: purchase.tier === "coaching" && purchase.status !== "canceled", // → propose 3m
+canTakeCoaching: purchase.tier === "communaute" && purchase.status !== "canceled", // Communauté → propose 1m + 3m
+canContinueCoaching: purchase.tier === "coaching" && purchase.cancelAtPeriodEnd === true && purchase.status !== "canceled", // coaché en annulation programmée → propose de continuer
 ```
+(« Continuer » = lever l'annulation = `reactivateMySubscription` qui existe déjà ; pas de nouvelle action backend.)
 
-- [ ] **Step 3 : push + commit**
+- [ ] **Step 3 : push + typecheck + commit**
 
 ```bash
 npx convex dev --once
 git add convex/subscriptions.ts
-git commit -m "feat(offres): upgradeMySubscription({plan}) 1m/3m + flags upsell par tier"
+git commit -m "feat(offres): upgradeMySubscription({plan}) 1m=cancel/3m=récurrent + flags upsell"
 ```
 
 ### Task 3.3 — UI upsell `/compte` par tier
@@ -442,8 +416,8 @@ git commit -m "feat(offres): upgradeMySubscription({plan}) 1m/3m + flags upsell 
 - [ ] **Step 1 : adapter le bloc upgrade existant**
 
 Le bloc upgrade actuel (`upgradeMut({})`) appelle sans argument. Le remplacer par une UI conditionnelle :
-- Si `sub.canTakeCoaching` (Communauté) → deux boutons : **« Coaching 1 mois · 179€ »** (`upgradeMut({ plan: "coaching_1m" })`) et **« Coaching 3 mois · 179€/mois »** (`upgradeMut({ plan: "coaching_3m" })`), avec un court descriptif de chaque.
-- Si `sub.canContinueCoaching` (Coaching) → un bouton **« Continuer mon coaching · 3 mois »** (`upgradeMut({ plan: "coaching_3m" })`).
+- Si `sub.canTakeCoaching` (Communauté) → deux boutons : **« Coaching 1 mois · 179€ »** (`upgradeMut({ plan: "coaching_1m" })`) et **« Coaching 3 mois · 179€/mois »** (`upgradeMut({ plan: "coaching_3m" })`), avec un court descriptif (1 mois = un prélèvement ; 3 mois = abonnement qui continue).
+- Si `sub.canContinueCoaching` (Coaching dont l'abo est en annulation programmée) → un bouton **« Continuer mon coaching »** qui appelle **`reactivateMut({})`** (réactivation existante = lève l'annulation), PAS upgradeMut. Note : le bouton « Réactiver » générique existant peut être réutilisé/relibellé selon le tier.
 - Sinon → pas de bloc upsell.
 Chaque clic réutilise le helper `run(...)` existant + le toast succès, puis refresh de `mySubscription` (réactif).
 

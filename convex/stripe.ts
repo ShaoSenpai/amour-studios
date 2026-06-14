@@ -279,6 +279,8 @@ export const upgradeToCoaching = action({
           off_session: true,
           confirm: true,
           description: "Upgrade Communauté → Coaching (+100€)",
+          // Reçu officiel Stripe en plus de notre reçu brandé (cf. sendPaymentReceipt).
+          ...(data.email ? { receipt_email: data.email } : {}),
           metadata: { type: "upgrade", token, userId: data.userId },
         },
         { idempotencyKey: `upgrade-pi:${token}` }
@@ -324,6 +326,27 @@ export const upgradeToCoaching = action({
         discordId: data.discordId,
         email: data.email ?? "",
         tier: "coaching",
+      });
+    }
+
+    // Reçu brandé AMOUR du +100€ (en plus du reçu officiel Stripe via
+    // receipt_email). Best-effort sur le last4. Fail-silent.
+    if (data.email) {
+      let cardLast4: string | undefined;
+      try {
+        const pm = await stripe.paymentMethods.retrieve(paymentMethodId);
+        cardLast4 = pm.card?.last4 ?? undefined;
+      } catch {
+        cardLast4 = undefined;
+      }
+      await ctx.scheduler.runAfter(0, internal.emails.sendPaymentReceipt, {
+        to: data.email,
+        firstName: data.firstName ?? "",
+        offerLabel: "Upgrade Coaching (+100€)",
+        amountCents: 10000,
+        currency: "eur",
+        paidAt: pi.created * 1000,
+        cardLast4,
       });
     }
 

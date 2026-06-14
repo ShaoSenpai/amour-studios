@@ -243,6 +243,120 @@ export const sendClaimEmail = internalAction({
   },
 });
 
+// ─── Email — Reçu de paiement (invoice.paid + upsell) ─────────────────
+
+function formatEur(cents: number, currency: string): string {
+  const amount = cents / 100;
+  try {
+    return amount.toLocaleString("fr-FR", {
+      style: "currency",
+      currency: (currency || "eur").toUpperCase(),
+    });
+  } catch {
+    return `${amount.toFixed(2).replace(".", ",")} €`;
+  }
+}
+
+function formatDateFr(ms: number): string {
+  try {
+    return new Date(ms).toLocaleDateString("fr-FR", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  } catch {
+    return new Date(ms).toISOString().slice(0, 10);
+  }
+}
+
+function receiptEmailHtml({
+  firstName,
+  offerLabel,
+  amountCents,
+  currency,
+  paidAt,
+  cardLast4,
+  receiptPdfUrl,
+}: {
+  firstName: string;
+  offerLabel: string;
+  amountCents: number;
+  currency: string;
+  paidAt: number;
+  cardLast4?: string;
+  receiptPdfUrl?: string;
+}) {
+  const row = (label: string, value: string) => `
+    <div style="display:flex;justify-content:space-between;gap:16px;padding:10px 0;border-bottom:1px solid rgba(11,11,11,0.08);">
+      <span style="color:rgba(11,11,11,0.55);font-size:13.5px;">${escape(label)}</span>
+      <span style="font-weight:500;font-size:14px;text-align:right;">${escape(value)}</span>
+    </div>`;
+  const body = `
+    <p style="font-family:ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:0.10em;text-transform:uppercase;color:rgba(11,11,11,0.55);margin:0 0 14px;">
+      ◦ Paiement reçu
+    </p>
+    <h1 style="font-size:34px;line-height:1.05;font-weight:500;letter-spacing:-0.025em;margin:0 0 18px;color:#0B0B0B;">
+      Merci${firstName ? `, ${escape(firstName)}` : ""} 🧾
+    </h1>
+    <p style="color:#0B0B0B;margin:0 0 28px;font-size:16px;">
+      Voici le récapitulatif de ton paiement AMOUR STUDIOS.
+    </p>
+
+    <div style="margin:0 0 28px;padding:20px 24px;background:rgba(255,255,255,0.55);border-left:3px solid #FF5A1F;border-radius:0 12px 12px 0;">
+      ${row("Offre", offerLabel)}
+      ${row("Montant", formatEur(amountCents, currency))}
+      ${row("Date", formatDateFr(paidAt))}
+      ${cardLast4 ? row("Moyen de paiement", `Carte •••• ${cardLast4}`) : ""}
+    </div>
+
+    ${
+      receiptPdfUrl
+        ? `<a href="${receiptPdfUrl}" style="display:inline-block;background:#FF5A1F;color:#FFFFFF;padding:13px 24px;border-radius:999px;font-size:14px;font-weight:500;text-decoration:none;margin:0 0 28px;">
+            Télécharger le reçu (PDF) →
+          </a>`
+        : ""
+    }
+
+    <p style="color:rgba(11,11,11,0.65);font-size:13.5px;margin:0;">
+      Une question sur ce paiement ? Réponds simplement à cet email, on est là.
+    </p>
+  `;
+  return layout({ title: `Reçu AMOUR STUDIOS — ${offerLabel}`, children: body });
+}
+
+export const sendPaymentReceipt = internalAction({
+  args: {
+    to: v.string(),
+    firstName: v.optional(v.string()),
+    offerLabel: v.string(),
+    amountCents: v.number(),
+    currency: v.string(),
+    paidAt: v.number(),
+    cardLast4: v.optional(v.string()),
+    receiptPdfUrl: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    if (!args.to) return { ok: false as const, reason: "no_email" as const };
+    await sendViaResend(
+      {
+        to: args.to,
+        subject: `Reçu AMOUR STUDIOS · ${args.offerLabel} · ${formatEur(args.amountCents, args.currency)}`,
+        html: receiptEmailHtml({
+          firstName: args.firstName ?? "",
+          offerLabel: args.offerLabel,
+          amountCents: args.amountCents,
+          currency: args.currency,
+          paidAt: args.paidAt,
+          cardLast4: args.cardLast4,
+          receiptPdfUrl: args.receiptPdfUrl,
+        }),
+      },
+      ctx
+    );
+    return { ok: true as const };
+  },
+});
+
 // ─── Email — Refund effectué (charge.refunded) ────────────────────────
 
 export const sendRefundNotice = internalAction({

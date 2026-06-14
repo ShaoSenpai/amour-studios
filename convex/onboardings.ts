@@ -214,6 +214,7 @@ export const _obByToken = internalQuery({
       userId: ob.userId,
       tier: ob.tier,
       step: ob.step,
+      firstName: ob.firstName ?? null,
       upgradeOfferExpiresAt: ob.upgradeOfferExpiresAt ?? null,
       discordId: user?.discordId ?? null,
       email: user?.email ?? null,

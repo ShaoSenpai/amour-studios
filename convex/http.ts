@@ -481,6 +481,10 @@ http.route({
           amount_paid?: number;
           currency?: string;
           lines?: { data?: Array<{ period?: { end?: number } }> };
+          invoice_pdf?: string | null;
+          hosted_invoice_url?: string | null;
+          charge?: string | null;
+          status_transitions?: { paid_at?: number | null } | null;
         };
         const subId =
           invoice.subscription ||
@@ -528,6 +532,37 @@ http.route({
               tier: purchase?.tier,
             });
           }
+        }
+
+        // Reçu de paiement — envoyé à CHAQUE facture payée (1er paiement ET
+        // renouvellements), indépendamment du guard claim ci-dessus. Idempotent
+        // via claimStripeEvent (event traité une seule fois). Fail-silent.
+        if (targetEmail && typeof invoice.amount_paid === "number") {
+          // Carte (best-effort) : récupère le last4 depuis la charge.
+          let cardLast4: string | undefined;
+          if (invoice.charge) {
+            try {
+              const charge = await stripe.charges.retrieve(invoice.charge);
+              cardLast4 =
+                charge.payment_method_details?.card?.last4 ?? undefined;
+            } catch {
+              cardLast4 = undefined;
+            }
+          }
+          const paidAt = invoice.status_transitions?.paid_at
+            ? invoice.status_transitions.paid_at * 1000
+            : Date.now();
+          await ctx.runAction(internal.emails.sendPaymentReceipt, {
+            to: targetEmail,
+            firstName: "",
+            offerLabel: purchase?.tier === "coaching" ? "Coaching" : "Communauté",
+            amountCents: invoice.amount_paid,
+            currency: invoice.currency ?? "eur",
+            paidAt,
+            cardLast4,
+            receiptPdfUrl:
+              invoice.invoice_pdf ?? invoice.hosted_invoice_url ?? undefined,
+          });
         }
 
         // (Re)synchroniser le rôle Discord selon le palier.

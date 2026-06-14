@@ -1202,4 +1202,33 @@ export const resetTestIdentity = internalMutation({
     };
   },
 });
+
+/** Outil admin (CLI) : pilote le gate « non-onboardé » côté bot Discord.
+ *  Cache tous les salons sauf #présente-toi / #sos pour qui n'a pas le rôle
+ *  Onboardé. `mode` = preview | apply | revert. Lancer via :
+ *    npx convex run admin:gateNonOnboarded '{"mode":"preview"}' --prod
+ *  `extraVisibleIds` = salons à garder visibles en plus (#règlement, #annonces). */
+export const gateNonOnboarded = internalAction({
+  args: {
+    mode: v.string(),
+    extraVisibleIds: v.optional(v.array(v.string())),
+  },
+  handler: async (_ctx, { mode, extraVisibleIds }) => {
+    const endpoint = process.env.DISCORD_BOT_ENDPOINT;
+    const secret = process.env.DISCORD_BOT_ENDPOINT_SECRET;
+    if (!endpoint || !secret) {
+      throw new Error("DISCORD_BOT_ENDPOINT(_SECRET) absent côté Convex");
+    }
+    const res = await fetch(`${endpoint.replace(/\/$/, "")}/gate-non-onboarded`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${secret}`,
+      },
+      body: JSON.stringify({ mode, extraVisibleIds }),
+    });
+    const json = await res.json().catch(() => ({}));
+    return { httpStatus: res.status, ...json };
+  },
+});
 void internal;

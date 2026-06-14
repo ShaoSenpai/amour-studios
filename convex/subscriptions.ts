@@ -341,3 +341,24 @@ export const myInvoices = action({
     }));
   },
 });
+
+// Ouvre le Portail Client Stripe (factures, carte, plan) — page hébergée Stripe.
+export const startBillingPortal = action({
+  args: {},
+  handler: async (ctx): Promise<{ url: string }> => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Non authentifié");
+    const p = await ctx.runQuery(internal.subscriptions._purchaseForUser, { userId });
+    if (!p) throw new Error("Aucun abonnement.");
+    const stripe = await stripeClient();
+    const sub = await stripe.subscriptions.retrieve(p.subscriptionId);
+    const customer = typeof sub.customer === "string" ? sub.customer : sub.customer?.id;
+    if (!customer) throw new Error("Customer Stripe introuvable.");
+    const site = process.env.SITE_URL ?? "https://amour-studios.vercel.app";
+    const session = await stripe.billingPortal.sessions.create({
+      customer,
+      return_url: `${site}/compte`,
+    });
+    return { url: session.url };
+  },
+});

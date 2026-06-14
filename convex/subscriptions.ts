@@ -325,20 +325,28 @@ export const myInvoices = action({
     if (!userId) throw new Error("Non authentifié");
     const p = await ctx.runQuery(internal.subscriptions._purchaseForUser, { userId });
     if (!p) return [];
-    const stripe = await stripeClient();
-    const sub = await stripe.subscriptions.retrieve(p.subscriptionId);
-    const customer = typeof sub.customer === "string" ? sub.customer : sub.customer?.id;
-    if (!customer) return [];
-    const list = await stripe.invoices.list({ customer, limit: 24 });
-    return list.data.map((inv) => ({
-      id: inv.id,
-      amountCents: inv.amount_paid ?? inv.amount_due ?? 0,
-      currency: inv.currency ?? "eur",
-      created: (inv.created ?? 0) * 1000,
-      status: inv.status ?? null,
-      pdfUrl: inv.invoice_pdf ?? null,
-      hostedUrl: inv.hosted_invoice_url ?? null,
-    }));
+    // Résilience : un sub périmé/archivé côté Stripe (donnée Convex stale) ou un
+    // souci réseau ne doit pas crasher la page — on renvoie [] (section factures
+    // vide) plutôt que de throw.
+    try {
+      const stripe = await stripeClient();
+      const sub = await stripe.subscriptions.retrieve(p.subscriptionId);
+      const customer = typeof sub.customer === "string" ? sub.customer : sub.customer?.id;
+      if (!customer) return [];
+      const list = await stripe.invoices.list({ customer, limit: 24 });
+      return list.data.map((inv) => ({
+        id: inv.id,
+        amountCents: inv.amount_paid ?? inv.amount_due ?? 0,
+        currency: inv.currency ?? "eur",
+        created: (inv.created ?? 0) * 1000,
+        status: inv.status ?? null,
+        pdfUrl: inv.invoice_pdf ?? null,
+        hostedUrl: inv.hosted_invoice_url ?? null,
+      }));
+    } catch (err) {
+      console.warn("myInvoices: échec Stripe, renvoi []:", err instanceof Error ? err.message : err);
+      return [];
+    }
   },
 });
 

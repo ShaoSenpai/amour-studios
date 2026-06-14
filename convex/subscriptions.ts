@@ -26,7 +26,15 @@ export const mySubscription = query({
         .filter((p) => p.stripeSubscriptionId && (p.status === "active" || p.status === "past_due" || p.status === "paid"))
         .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))[0] ?? purchase;
     }
-    if (!purchase || !purchase.stripeSubscriptionId) return { authed: true as const, hasSubscription: false as const };
+    if (!purchase || !purchase.stripeSubscriptionId)
+      return {
+        authed: true as const,
+        hasSubscription: false as const,
+        name: user.name ?? null,
+        email: user.email ?? null,
+        discordUsername: user.discordUsername ?? null,
+        image: user.image ?? null,
+      };
 
     const isCoaching = purchase.tier === "coaching";
 
@@ -75,6 +83,10 @@ export const mySubscription = query({
       canUpgrade: purchase.tier === "communaute" && purchase.status !== "canceled",
       needsFirstRdv,
       nextRdvAt,
+      name: user.name ?? null,
+      email: user.email ?? null,
+      discordUsername: user.discordUsername ?? null,
+      image: user.image ?? null,
     };
   },
 });

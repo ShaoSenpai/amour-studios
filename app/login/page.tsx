@@ -46,6 +46,10 @@ function LoginInner() {
   const [isLoading, setIsLoading] = useState(false);
   const searchParams = useSearchParams();
   const hasError = searchParams.has("error");
+  const rawReturn = searchParams.get("returnTo") || "";
+  // Sécurité : uniquement un chemin interne ("/..."), jamais une URL externe ni protocole-relatif ("//evil").
+  const returnTo =
+    rawReturn.startsWith("/") && !rawReturn.startsWith("//") ? rawReturn : "/";
   const dark = useIsDark();
   const c = palette(dark, ACCENT);
 
@@ -61,7 +65,7 @@ function LoginInner() {
   const handleDiscordSignIn = async () => {
     setIsLoading(true);
     try {
-      await signIn("discord", { redirectTo: "/" });
+      await signIn("discord", { redirectTo: returnTo });
     } catch (error) {
       console.error("Discord sign-in failed:", error);
       toast.error("Impossible de se connecter à Discord. Réessaie.");

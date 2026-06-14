@@ -19,7 +19,7 @@ export default function CompteLayout({ children }: { children: ReactNode }) {
   const c = palette(dark, ACCENT);
 
   useEffect(() => {
-    if (me === null) router.replace("/login");
+    if (me === null) router.replace("/login?returnTo=%2Fcompte");
   }, [me, router]);
 
   if (me === undefined)

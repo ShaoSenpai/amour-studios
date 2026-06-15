@@ -1186,6 +1186,25 @@ export const runDailyRelances = internalAction({
   },
 });
 
+/** Re-paiement d'un ancien membre : s'il avait déjà finalisé son onboarding,
+ *  on lui redonne le rôle « Onboardé » (accès complet) sans refaire le flow.
+ *  No-op s'il n'a pas d'onboarding finalisé. */
+export const regrantOnboardedIfDone = internalMutation({
+  args: { userId: v.id("users") },
+  handler: async (ctx, { userId }) => {
+    const ob = await ctx.db
+      .query("onboardings")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .first();
+    if (!ob) return { ok: false as const, reason: "no_onboarding" as const };
+    if (ob.step !== "rdv_booked" && ob.step !== "community_ready") {
+      return { ok: false as const, reason: "not_finalized" as const };
+    }
+    await ctx.scheduler.runAfter(0, internal.onboardings.grantOnboarded, { userId });
+    return { ok: true as const };
+  },
+});
+
 /** Helper dev/test : crée un onboarding "à remplir" pour un user donné.
  *  À supprimer après tests bout-en-bout. */
 export const _devSeed = internalMutation({

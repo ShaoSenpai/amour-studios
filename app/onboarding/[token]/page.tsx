@@ -820,42 +820,39 @@ function UpsellBlock({
           Débloque le coaching avec Walid.
         </h2>
         <p style={{ fontSize: 14, color: c.text, margin: 0, lineHeight: 1.6 }}>
-          {hi}u as la communauté. Le vrai déclic, c&apos;est le coaching 1:1 :
-          ta méthode, tes RDV, tes exos. Tu es à <strong>+100€</strong> de tout
-          débloquer — au lieu de <strong>{offer.coachingEur}€</strong>. C&apos;est
-          maintenant, et seulement maintenant : après cette page, ce sera au
-          tarif plein.
+          {hi}u as l&apos;offre d&apos;entrée Communauté ({offer.currentEur}€). Le
+          vrai déclic, c&apos;est le coaching 1:1 avec Walid : ta méthode, tes RDV,
+          tes exos. Tu paies juste la <strong>différence (+{offer.feeEur}€)</strong>{" "}
+          pour passer au coaching à <strong>{offer.coachingEur}€/mois</strong>.
+          C&apos;est maintenant ou jamais : après cette page, l&apos;offre disparaît.
         </p>
 
-        {/* Contraste prix : 179€ barré → +100€ mis en valeur. */}
+        {/* Math claire : 49€ payé → +130€ aujourd'hui → 179€/mois plein. */}
         <div
           style={{
             display: "flex",
             alignItems: "baseline",
-            gap: 14,
+            gap: 12,
             padding: "12px 16px",
             background: c.chip,
             border: `1px solid ${c.line}`,
             borderRadius: 12,
+            flexWrap: "wrap",
           }}
         >
-          <span
-            style={{
-              ...num,
-              fontSize: 17,
-              color: c.faint,
-              textDecoration: "line-through",
-              textDecorationColor: c.muted,
-            }}
-          >
-            {offer.coachingEur}€
+          <span style={{ ...mono, fontSize: 11, color: c.muted }}>
+            {offer.currentEur}€ payé
           </span>
-          <span style={{ ...mono, fontSize: 16, color: c.muted }}>→</span>
+          <span style={{ ...mono, fontSize: 14, color: c.muted }}>+</span>
           <span style={{ ...num, fontSize: 34, fontWeight: 600, color: ACCENT, lineHeight: 1 }}>
-            +{offer.feeEur}€
+            {offer.feeEur}€
           </span>
-          <span style={{ ...mono, fontSize: 9.5, color: c.muted, marginLeft: "auto" }}>
-            une seule fois
+          <span style={{ ...mono, fontSize: 14, color: c.muted }}>=</span>
+          <span style={{ ...num, fontSize: 20, fontWeight: 600, color: c.text }}>
+            {offer.coachingEur}€<span style={{ ...mono, fontSize: 11, color: c.muted }}>/mois</span>
+          </span>
+          <span style={{ ...mono, fontSize: 9.5, color: c.muted, marginLeft: "auto", width: "100%", textAlign: "right", marginTop: 2 }}>
+            +{offer.feeEur}€ une seule fois · puis {offer.coachingEur}€/mois · engagement 3 mois
           </span>
         </div>
 

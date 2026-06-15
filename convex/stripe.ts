@@ -288,13 +288,16 @@ export const upgradeToCoaching = action({
     try {
       pi = await stripe.paymentIntents.create(
         {
-          amount: 10000,
+          // Différence vers le prix coaching PLEIN : la Communauté est une offre
+          // d'ENTRÉE à 49€, donc on débite 179 − 49 = 130€ pour que le 1er mois
+          // coaching soit bien à 179€ (puis 179€/mois, engagement 3 mois).
+          amount: 13000,
           currency: "eur",
           customer: customerId,
           payment_method: paymentMethodId,
           off_session: true,
           confirm: true,
-          description: "Upgrade Communauté → Coaching (+100€)",
+          description: "Upgrade Communauté → Coaching (différence vers 179€)",
           // Reçu officiel Stripe en plus de notre reçu brandé (cf. sendPaymentReceipt).
           ...(data.email ? { receipt_email: data.email } : {}),
           metadata: { type: "upgrade", token, userId: data.userId },

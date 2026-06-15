@@ -169,9 +169,11 @@ export const upgradeOffer = query({
     return {
       eligible: true as const,
       firstName: ob.firstName ?? null,
-      currentEur: 79,
+      // Communauté = offre d'entrée 49€ → on paie la différence (179 − 49 = 130)
+      // pour un coaching à 179€ PLEIN (engagement 3 mois).
+      currentEur: 49,
       coachingEur: 179,
-      feeEur: 100,
+      feeEur: 130,
       expiresAt: ob.upgradeOfferExpiresAt,
     };
   },

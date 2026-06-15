@@ -106,6 +106,14 @@ export const createSubscription = action({
         ? Math.floor(Date.now() / 1000) + 90 * 24 * 60 * 60
         : undefined;
 
+    // Offre d'entrée Communauté : coupon répétitif (-30€) appliqué aux 3
+    // premières mensualités → 49€/mois pendant 3 mois, puis retour AUTOMATIQUE
+    // à 79€/mois (le price reste le 79€, c'est le coupon qui remise). No-op si
+    // `STRIPE_COMMUNITY_INTRO_COUPON` n'est pas configuré (env absente). Le tier
+    // reste "communaute" (même rôle Discord, même accès, abonnement sans fin).
+    const introCoupon =
+      tier === "communaute" ? process.env.STRIPE_COMMUNITY_INTRO_COUPON : undefined;
+
     const subscription = await stripe.subscriptions.create({
       customer: customer.id,
       items: [{ price: priceId }],
@@ -122,6 +130,7 @@ export const createSubscription = action({
       // "pi_xxx_secret_yyy", on en extrait l'ID PI pour le claim token.
       expand: ["latest_invoice.confirmation_secret"],
       ...(cancelAt ? { cancel_at: cancelAt } : {}),
+      ...(introCoupon ? { discounts: [{ coupon: introCoupon }] } : {}),
       metadata: {
         tier,
         duree: duree ?? "",

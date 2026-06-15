@@ -747,10 +747,27 @@ http.route({
       const expected = t ? await hmacHex(signingKey, `${t}.${rawBody}`) : "";
       if (!t || !v1 || v1 !== expected) {
         console.warn("Calendly webhook: signature invalide");
+        // Fail-loud : si le header est bien formé (t+v1 présents) mais la
+        // signature ne matche pas, c'est très probablement une CLÉ DÉSYNCHRONISÉE
+        // (abonnement webhook recréé côté Calendly → nouvelle signing key) → tous
+        // les RDV échouent en silence. On alerte le staff. On n'alerte PAS les
+        // POST sans header (scans/bruit).
+        if (t && v1) {
+          await ctx.runAction(internal.discord.postAlertToStaff, {
+            content:
+              "⚠️ **Calendly : signature webhook invalide.** La clé `CALENDLY_WEBHOOK_SIGNING_KEY` ne correspond plus à l'abonnement webhook Calendly → les RDV ne se synchronisent pas sur le dashboard. À resynchroniser (clé ou abonnement).",
+            mentionAdmins: true,
+          });
+        }
         return new Response("Invalid signature", { status: 401 });
       }
     } else if (IS_PROD) {
       console.error("CALENDLY_WEBHOOK_SIGNING_KEY absent en prod — webhook rejeté");
+      await ctx.runAction(internal.discord.postAlertToStaff, {
+        content:
+          "⚠️ **Calendly : `CALENDLY_WEBHOOK_SIGNING_KEY` absente en prod** → tous les RDV sont rejetés et n'apparaissent pas sur le dashboard. À configurer côté Convex.",
+        mentionAdmins: true,
+      });
       return new Response("Missing signing key", { status: 401 });
     } else {
       console.warn("CALENDLY_WEBHOOK_SIGNING_KEY non défini (dev) — signature non vérifiée");
@@ -809,7 +826,30 @@ http.route({
             sessionId: res.sessionId,
           });
         }
+        // Fail-loud : RDV reçu mais aucun compte trouvé (email inconnu ET pas de
+        // token onboarding) → session non créée. On le rend visible au staff au
+        // lieu de le perdre silencieusement (récupérable via « Resync Calendly »).
+        if (!res.matched) {
+          await ctx.runAction(internal.discord.postAlertToStaff, {
+            content:
+              `📅 ⚠️ **RDV Calendly non rattaché** : \`${email}\` (${se.name ?? "RDV"}). ` +
+              `Aucun compte ne correspond (email inconnu + pas de lien onboarding). ` +
+              `À relier manuellement ou via « Resync Calendly » dans le studio.`,
+            mentionAdmins: false,
+          });
+        }
         console.log(`📅 Calendly invitee.created (${email}) → matched=${res.matched}`);
+      } else {
+        // Payload incomplet (email / uri / heure manquant) : au lieu d'ignorer
+        // en silence, on alerte (Calendly a peut-être changé sa structure).
+        await ctx.runAction(internal.discord.postAlertToStaff, {
+          content:
+            "📅 ⚠️ **Webhook Calendly invitee.created incomplet** (email/URI/heure manquant) → RDV non enregistré. À vérifier.",
+          mentionAdmins: false,
+        });
+        console.warn(
+          `Calendly invitee.created payload incomplet (email=${!!email} uri=${!!eventUri} start=${start})`
+        );
       }
     } else if (data.event === "invitee.canceled") {
       if (eventUri) {

@@ -186,6 +186,8 @@ export default function CalendrierPage() {
   const completeSession = useMutation(api.coaching.completeSession);
   const cancelSession = useMutation(api.coaching.cancelSession);
   const updateSession = useMutation(api.coaching.updateSession);
+  const resyncCalendly = useMutation(api.coaching.resyncCalendlyNow);
+  const [resyncing, setResyncing] = useState(false);
   // Snapshot réactif : sert de dépendance aux mémos des sélecteurs sandbox.
   const storeState = useTestStore();
 
@@ -349,6 +351,24 @@ export default function CalendrierPage() {
             </div>
             <div style={{ padding: 22, display: "flex", gap: 8, alignItems: "center" }}>
               <GlassButton c={c} onClick={() => setAnchor(new Date())}>↺ Aujourd&apos;hui</GlassButton>
+              <GlassButton
+                c={c}
+                disabled={resyncing}
+                onClick={async () => {
+                  if (resyncing) return;
+                  setResyncing(true);
+                  try {
+                    await resyncCalendly({});
+                    toast.success("Resync Calendly lancé — les RDV manquants vont apparaître.");
+                  } catch (err) {
+                    toast.error((err as Error).message ?? "Resync échoué.");
+                  } finally {
+                    setResyncing(false);
+                  }
+                }}
+              >
+                {resyncing ? "Resync…" : "🔁 Resync Calendly"}
+              </GlassButton>
               <GlassButton c={c} kind="solid" onClick={openManual}>＋ RDV manuel</GlassButton>
             </div>
           </div>

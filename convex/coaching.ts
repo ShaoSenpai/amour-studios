@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query, internalMutation } from "./_generated/server";
+import { mutation, query, internalMutation, internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { requireAdmin } from "./lib/auth";
 import { logEvent } from "./lib/events";
@@ -1200,5 +1200,133 @@ export const cancelCalendlySession = internalMutation({
       }
     }
     return { canceled: sessions.length };
+  },
+});
+
+/**
+ * Interne (action) : RATTRAPAGE des RDV Calendly manqués (webhook jamais reçu /
+ * rejeté pour signature). Rapatrie les `scheduled_events` actifs des N derniers
+ * jours via l'API Calendly et les (ré)upsert via `upsertCalendlySession`
+ * (idempotent par calendlyEventUri) en réutilisant le matching email + token
+ * onboarding (utm_source). No-op propre si `CALENDLY_API_TOKEN` absent.
+ */
+export const resyncCalendly = internalAction({
+  args: { sinceDays: v.optional(v.number()) },
+  handler: async (ctx, { sinceDays }) => {
+    const token = process.env.CALENDLY_API_TOKEN;
+    if (!token) {
+      console.warn("resyncCalendly: CALENDLY_API_TOKEN absent — no-op");
+      return { ok: false as const, reason: "no_token" as const };
+    }
+    const auth = { Authorization: `Bearer ${token}` };
+    const apiBase = "https://api.calendly.com";
+
+    // 1) Organisation du compte connecté.
+    const meRes = await fetch(`${apiBase}/users/me`, { headers: auth });
+    if (!meRes.ok) {
+      console.warn(`resyncCalendly: /users/me ${meRes.status}`);
+      return { ok: false as const, reason: "auth_failed" as const };
+    }
+    const me = (await meRes.json()) as {
+      resource?: { current_organization?: string };
+    };
+    const org = me.resource?.current_organization;
+    if (!org) return { ok: false as const, reason: "no_org" as const };
+
+    // 2) Events actifs depuis N jours (1 page de 100 suffit largement).
+    const days = sinceDays ?? 30;
+    const minStart = new Date(
+      Date.now() - days * 24 * 60 * 60 * 1000
+    ).toISOString();
+    const evUrl = new URL(`${apiBase}/scheduled_events`);
+    evUrl.searchParams.set("organization", org);
+    evUrl.searchParams.set("min_start_time", minStart);
+    evUrl.searchParams.set("status", "active");
+    evUrl.searchParams.set("count", "100");
+    const evRes = await fetch(evUrl.toString(), { headers: auth });
+    if (!evRes.ok) {
+      console.warn(`resyncCalendly: scheduled_events ${evRes.status}`);
+      return { ok: false as const, reason: "events_failed" as const };
+    }
+    const evData = (await evRes.json()) as {
+      collection?: Array<{
+        uri?: string;
+        name?: string;
+        start_time?: string;
+        end_time?: string;
+      }>;
+    };
+    const events = evData.collection ?? [];
+
+    let scanned = 0;
+    let matched = 0;
+    let unmatched = 0;
+    for (const ev of events) {
+      if (!ev.uri || !ev.start_time) continue;
+      scanned++;
+      // Invité (email + tracking utm_source) du RDV.
+      const invRes = await fetch(`${ev.uri}/invitees?count=10`, { headers: auth });
+      if (!invRes.ok) {
+        unmatched++;
+        continue;
+      }
+      const invData = (await invRes.json()) as {
+        collection?: Array<{
+          email?: string;
+          status?: string;
+          tracking?: { utm_source?: string };
+        }>;
+      };
+      const list = invData.collection ?? [];
+      const inv = list.find((i) => i.status === "active") ?? list[0];
+      const email = (inv?.email ?? "").trim().toLowerCase();
+      if (!email) {
+        unmatched++;
+        continue;
+      }
+      const utm = (inv?.tracking?.utm_source ?? "").trim();
+      const fallbackToken = utm.startsWith("onboarding-")
+        ? utm.slice("onboarding-".length)
+        : undefined;
+
+      const res = await ctx.runMutation(internal.coaching.upsertCalendlySession, {
+        email,
+        calendlyEventUri: ev.uri,
+        scheduledAt: Date.parse(ev.start_time),
+        endAt: ev.end_time ? Date.parse(ev.end_time) : undefined,
+        eventName: ev.name,
+        fallbackOnboardingToken: fallbackToken,
+      });
+      if (res.matched) {
+        matched++;
+        if (res.isOnboarding) {
+          await ctx.runMutation(internal.onboardings.markRdvBookedByUser, {
+            userId: res.userId,
+            sessionId: res.sessionId,
+          });
+        }
+      } else {
+        unmatched++;
+      }
+    }
+    console.log(
+      `🔁 resyncCalendly: ${scanned} events scannés, ${matched} rattachés, ${unmatched} non rattachés`
+    );
+    return { ok: true as const, scanned, matched, unmatched };
+  },
+});
+
+/**
+ * Admin : lance le rattrapage Calendly à la demande (bouton studio). Les
+ * sessions manquantes réapparaissent sur le calendrier dès le run (réactif).
+ */
+export const resyncCalendlyNow = mutation({
+  args: { sinceDays: v.optional(v.number()) },
+  handler: async (ctx, { sinceDays }) => {
+    await requireAdmin(ctx);
+    await ctx.scheduler.runAfter(0, internal.coaching.resyncCalendly, {
+      sinceDays,
+    });
+    return { ok: true as const, scheduled: true as const };
   },
 });

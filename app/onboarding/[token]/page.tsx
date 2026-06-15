@@ -4,6 +4,7 @@ import { useAction, useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { use, useEffect, useMemo, useState } from "react";
 import Script from "next/script";
+import dynamic from "next/dynamic";
 import { toast } from "sonner";
 import {
   ACCENT,
@@ -33,6 +34,13 @@ const CALENDLY_URL =
 const DISCORD_INVITE =
   process.env.NEXT_PUBLIC_DISCORD_INVITE_URL ??
   "https://discord.gg/amourstudios";
+
+// Vidéo « quick win » de l'écran post-questionnaire (coaching). Lecteur Mux
+// chargé côté client uniquement (web component → pas de SSR). Si le playback ID
+// n'est pas configuré, l'écran s'affiche sans lecteur (dégradé propre).
+const QUICKWIN_MUX_PLAYBACK_ID =
+  process.env.NEXT_PUBLIC_ONBOARDING_QUICKWIN_MUX_PLAYBACK_ID ?? "";
+const MuxPlayer = dynamic(() => import("@mux/mux-player-react"), { ssr: false });
 
 // Questions du questionnaire — coaching 179€ (10 questions).
 const COACHING_QUESTIONS = [
@@ -91,7 +99,7 @@ function shouldShowUpsell(answers: Record<string, string>): boolean {
 
 const COACHING_UPSELL_URL = "https://amourstudios.fr/paiement?offre=coaching";
 
-type StepKey = "loading" | "invalid" | "contact" | "questions" | "rdv" | "upsell" | "done";
+type StepKey = "loading" | "invalid" | "contact" | "questions" | "quickwin" | "rdv" | "upsell" | "done";
 
 export default function OnboardingTokenPage({
   params,
@@ -240,7 +248,11 @@ export default function OnboardingTokenPage({
       }));
       await submitAnswers({ token, answers: arr, finalize: true });
       if (tier === "coaching") {
-        setStep("rdv");
+        // Interstitiel « quick win » (vidéo de félicitation/préparation) avant
+        // le RDV. One-shot : sur reload, le mapping réactif renvoie direct à "rdv".
+        // Si la vidéo Mux n'est pas configurée, on saute l'écran (pas d'écran
+        // vide qui parlerait d'une vidéo absente) → RDV direct.
+        setStep(QUICKWIN_MUX_PLAYBACK_ID ? "quickwin" : "rdv");
       } else if (shouldShowUpsell(answers)) {
         setStep("upsell");
       } else {
@@ -363,6 +375,62 @@ export default function OnboardingTokenPage({
           >
             Direction <strong style={{ color: c.muted }}>#💬・général</strong>
             {tier === "coaching" ? " ou présente-toi à Walid" : ""}
+          </p>
+        </div>
+      </Shell>
+    );
+  }
+
+  if (step === "quickwin") {
+    return (
+      <Shell c={c} dark={dark}>
+        <div>
+          <div style={{ ...mono, color: ACCENT }}>◦ Questionnaire validé ✓</div>
+          <h1 style={{ ...num, fontSize: 34, fontWeight: 500, lineHeight: 1.05, margin: "10px 0 0" }}>
+            {firstName ? `Bravo ${firstName},` : "Bravo,"} tu y es presque.
+          </h1>
+          <p style={{ fontSize: 14.5, color: c.text, marginTop: 14, lineHeight: 1.55 }}>
+            Avant de réserver ton 1er appel, prends 2 minutes pour cette vidéo :
+            Walid t&apos;explique comment préparer ce premier RDV pour en tirer le maximum.
+          </p>
+          {QUICKWIN_MUX_PLAYBACK_ID ? (
+            <div
+              style={{
+                marginTop: 18,
+                borderRadius: 14,
+                overflow: "hidden",
+                border: `1px solid ${c.line}`,
+                aspectRatio: "16 / 9",
+                background: "#000",
+              }}
+            >
+              <MuxPlayer
+                playbackId={QUICKWIN_MUX_PLAYBACK_ID}
+                streamType="on-demand"
+                accentColor={ACCENT}
+                style={{ width: "100%", height: "100%" }}
+              />
+            </div>
+          ) : null}
+          <GlassButton
+            c={c}
+            kind="solid"
+            onClick={() => setStep("rdv")}
+            style={{
+              marginTop: 22,
+              padding: "14px 18px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 10,
+              width: "100%",
+              boxSizing: "border-box",
+            }}
+          >
+            Continuer → réserver mon 1er RDV
+          </GlassButton>
+          <p style={{ ...mono, fontSize: 9.5, color: c.faint, textAlign: "center", marginTop: 10 }}>
+            Dernière étape avant ton accès complet
           </p>
         </div>
       </Shell>

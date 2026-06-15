@@ -227,7 +227,7 @@ export default function FichePage({
   const tier = purchase?.tier ?? null;
   const offreLabel =
     tier === "coaching"
-      ? `Coaching${purchase?.duree === "3mois" ? " · 3 mois" : purchase?.duree === "1mois" ? " · 1 mois" : ""}`
+      ? "Coaching"
       : tier === "communaute"
       ? "Communauté"
       : "—";
@@ -723,7 +723,7 @@ export default function FichePage({
           </div>
           <div style={{ marginTop: 18, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <Field c={c} label="Offre" value={offreLabel} />
-            <Field c={c} label="Engagement" value={purchase?.duree === "3mois" ? "3 mois" : purchase?.duree === "1mois" ? "1 mois" : "—"} />
+            <Field c={c} label="Engagement" value={tier === "coaching" ? "3 mois" : "—"} />
             <Field c={c} label="Prochaine échéance" value={fmtDate(purchase?.currentPeriodEnd)} />
             <Field c={c} label="Client depuis" value={fmtDate(purchase?.paidAt ?? purchase?.createdAt)} />
           </div>

@@ -106,6 +106,12 @@ export const createSubscription = action({
         ? Math.floor(Date.now() / 1000) + 90 * 24 * 60 * 60
         : undefined;
 
+    // Offre coaching UNIQUE = 3 mois (le « 1 mois » a été retiré). On ignore le
+    // `duree` reçu et on force "3mois" pour tout coaching → accès complet
+    // (M1+M2/M3) et cohérence partout. Communauté : pas de durée.
+    const effectiveDuree: "3mois" | undefined =
+      tier === "coaching" ? "3mois" : undefined;
+
     // Offre d'entrée Communauté : coupon répétitif (-30€) appliqué aux 3
     // premières mensualités → 49€/mois pendant 3 mois, puis retour AUTOMATIQUE
     // à 79€/mois (le price reste le 79€, c'est le coupon qui remise). No-op si
@@ -133,7 +139,7 @@ export const createSubscription = action({
       ...(introCoupon ? { discounts: [{ coupon: introCoupon }] } : {}),
       metadata: {
         tier,
-        duree: duree ?? "",
+        duree: effectiveDuree ?? "",
         email: normalizedEmail,
         claim_token: claimToken,
         source: "amourstudios.fr/paiement",
@@ -170,7 +176,7 @@ export const createSubscription = action({
       stripePaymentIntentId: pi.id,
       stripePriceId: priceId,
       tier,
-      duree: duree,
+      duree: effectiveDuree,
       amount: priceAmount,
       currency: subscription.currency ?? "eur",
       status: "incomplete",
@@ -1107,12 +1113,20 @@ export const changeTier = action({
     const itemId = sub.items?.data?.[0]?.id;
     if (!itemId) throw new Error("Subscription Stripe sans item");
 
+    // Offre coaching UNIQUE = 3 mois : en passant à coaching on pose le cap
+    // 3 mois (cancel_at +90j) + duree="3mois" (accès complet). En repassant à
+    // communauté, on retire le cap (récurrent sans fin) et la durée.
+    const isCoaching = newTier === "coaching";
     await stripe.subscriptions.update(purchase.stripeSubscriptionId, {
       items: [{ id: itemId, price: newPriceId }],
       proration_behavior: prorate === false ? "none" : "create_prorations",
+      cancel_at: isCoaching
+        ? Math.floor(Date.now() / 1000) + 90 * 24 * 60 * 60
+        : null,
       metadata: {
         ...(sub.metadata ?? {}),
         tier: newTier,
+        duree: isCoaching ? "3mois" : "",
       },
     });
 
@@ -1122,6 +1136,7 @@ export const changeTier = action({
       tier: newTier,
       stripePriceId: newPriceId,
       amount: newAmount,
+      duree: isCoaching ? "3mois" : undefined,
     });
 
     // Re-sync rôles Discord pour matcher le nouveau palier.

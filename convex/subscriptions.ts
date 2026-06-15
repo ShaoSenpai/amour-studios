@@ -269,7 +269,9 @@ export const startCardUpdate = action({
 export const _applyUpgrade = internalMutation({
   args: { purchaseId: v.id("purchases"), userId: v.id("users"), coachingPrice: v.string() },
   handler: async (ctx, { purchaseId, userId, coachingPrice }) => {
-    await ctx.db.patch(purchaseId, { tier: "coaching", stripePriceId: coachingPrice, amount: 17900, duree: undefined });
+    // duree="3mois" directement (offre coaching unique) → accès complet
+    // immédiat, sans fenêtre M1-only avant que le webhook ne recolle la durée.
+    await ctx.db.patch(purchaseId, { tier: "coaching", stripePriceId: coachingPrice, amount: 17900, duree: "3mois" });
 
     // ── Onboarding : basculer le membre Communauté vers l'état coaching
     // « RDV à réserver » ───────────────────────────────────────────────────────

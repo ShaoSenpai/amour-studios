@@ -264,19 +264,19 @@ function seedStudents(now: number): StudentEntity[] {
   };
   const seeds: Seed[] = [
     { key: "mxlo", discordUsername: "mxlo.beats", discordId: "123456789012345678", name: "Maxime Lefèvre", tier: "coaching", duree: "3mois", status: "active", stage: "positionnement", phone: "+33 6 12 34 56 78", inscritDaysAgo: 120, lastActiveMs: 6 * HOUR },
-    { key: "lena", discordUsername: "lena__rmr", discordId: "223456789012345601", name: "Léna R.", tier: "coaching", duree: "1mois", status: "active", stage: "feedback_analyse", phone: "+33 6 22 11 09 87", inscritDaysAgo: 62, lastActiveMs: 1 * DAY },
+    { key: "lena", discordUsername: "lena__rmr", discordId: "223456789012345601", name: "Léna R.", tier: "coaching", duree: "3mois", status: "active", stage: "feedback_analyse", phone: "+33 6 22 11 09 87", inscritDaysAgo: 62, lastActiveMs: 1 * DAY },
     { key: "yuko", discordUsername: "yuko_prod", discordId: "223456789012345602", name: "Yuko P.", tier: "coaching", duree: "3mois", status: "active", stage: "onboarding", phone: "+33 6 43 22 11 33", inscritDaysAgo: 8, lastActiveMs: 3 * HOUR },
     { key: "soren", discordUsername: "soren.wav", discordId: "223456789012345603", name: "Soren D.", tier: "coaching", duree: "3mois", status: "active", stage: "contenu", phone: "+33 6 14 23 67 12", inscritDaysAgo: 182, lastActiveMs: 1 * DAY },
-    { key: "kira", discordUsername: "kira.ldn", discordId: "223456789012345604", name: "Kira N.", tier: "coaching", duree: "1mois", status: "active", stage: "contenu", phone: "+33 6 78 91 02 33", inscritDaysAgo: 92, lastActiveMs: 4 * HOUR },
+    { key: "kira", discordUsername: "kira.ldn", discordId: "223456789012345604", name: "Kira N.", tier: "coaching", duree: "3mois", status: "active", stage: "contenu", phone: "+33 6 78 91 02 33", inscritDaysAgo: 92, lastActiveMs: 4 * HOUR },
     { key: "thibz", discordUsername: "thibz_prod", discordId: "223456789012345605", name: "Thibault Z.", tier: "coaching", duree: "3mois", status: "past_due", stage: "contenu", phone: "+33 6 19 38 45 22", inscritDaysAgo: 150, lastActiveMs: 6 * DAY },
-    { key: "amir", discordUsername: "amir.flow", discordId: "223456789012345671", name: "Amir F.", tier: "coaching", duree: "1mois", status: "active", stage: "contenu", phone: "+33 6 87 33 12 09", inscritDaysAgo: 31, lastActiveMs: 18 * DAY },
+    { key: "amir", discordUsername: "amir.flow", discordId: "223456789012345671", name: "Amir F.", tier: "coaching", duree: "3mois", status: "active", stage: "contenu", phone: "+33 6 87 33 12 09", inscritDaysAgo: 31, lastActiveMs: 18 * DAY },
     { key: "nour", discordUsername: "nour_tape", discordId: "223456789012345672", name: "Nour T.", tier: "coaching", duree: "3mois", status: "active", stage: "feedback_analyse", phone: "+33 6 14 88 21 04", inscritDaysAgo: 120, lastActiveMs: 22 * DAY },
-    { key: "octave", discordUsername: "octave.fm", discordId: null, name: "Octave M.", tier: "coaching", duree: "1mois", status: "active", stage: "positionnement", phone: "+33 6 22 09 87 33", inscritDaysAgo: 62, lastActiveMs: 11 * DAY },
+    { key: "octave", discordUsername: "octave.fm", discordId: null, name: "Octave M.", tier: "coaching", duree: "3mois", status: "active", stage: "positionnement", phone: "+33 6 22 09 87 33", inscritDaysAgo: 62, lastActiveMs: 11 * DAY },
     { key: "valk", discordUsername: "valk.ldr", discordId: "223456789012345674", name: "Valentin K.", tier: "coaching", duree: "3mois", status: "active", stage: "contenu", phone: "+33 6 65 41 28 73", inscritDaysAgo: 150, lastActiveMs: 14 * DAY },
     { key: "selma", discordUsername: "selma.snd", discordId: "223456789012345606", name: "Selma D.", tier: "communaute", status: "canceled", stage: "termine", phone: "+33 6 88 22 11 09", inscritDaysAgo: 92, lastActiveMs: 8 * DAY },
-    { key: "kaori", discordUsername: "kaori.b", discordId: "223456789012345607", name: "Kaori B.", tier: "coaching", duree: "1mois", status: "past_due", stage: "positionnement", phone: "+33 6 03 45 67 89", inscritDaysAgo: 31, lastActiveMs: 2 * DAY },
+    { key: "kaori", discordUsername: "kaori.b", discordId: "223456789012345607", name: "Kaori B.", tier: "coaching", duree: "3mois", status: "past_due", stage: "positionnement", phone: "+33 6 03 45 67 89", inscritDaysAgo: 31, lastActiveMs: 2 * DAY },
     { key: "hanna", discordUsername: "h4nna.wav", discordId: "223456789012345608", name: "Hanna V.", tier: "communaute", status: "active", stage: null, phone: null, inscritDaysAgo: 1, lastActiveMs: 1 * HOUR },
-    { key: "remi", discordUsername: "remi.ssr", discordId: "223456789012345609", name: "Rémi S.", tier: "coaching", duree: "1mois", status: "active", stage: "onboarding", phone: "+33 6 71 23 45 67", inscritDaysAgo: 4, lastActiveMs: 4 * DAY },
+    { key: "remi", discordUsername: "remi.ssr", discordId: "223456789012345609", name: "Rémi S.", tier: "coaching", duree: "3mois", status: "active", stage: "onboarding", phone: "+33 6 71 23 45 67", inscritDaysAgo: 4, lastActiveMs: 4 * DAY },
   ];
   return seeds.map((s) => ({
     _id: uid(`u_${s.key}`),
@@ -289,7 +289,7 @@ function seedStudents(now: number): StudentEntity[] {
     lastActiveAt: now - s.lastActiveMs,
     coachingStage: s.stage,
     tier: s.tier,
-    duree: s.tier === "coaching" ? (s.duree ?? "1mois") : null,
+    duree: s.tier === "coaching" ? (s.duree ?? "3mois") : null,
     status: s.status,
     phone: s.phone,
   }));
@@ -1288,7 +1288,7 @@ export function selectMemberDetail(id: string): MemberDetail {
     createdAt: student.createdAt,
     paidAt: student.createdAt,
     tier: student.tier,
-    duree: student.tier === "coaching" ? (student.duree ?? "1mois") : undefined,
+    duree: student.tier === "coaching" ? (student.duree ?? "3mois") : undefined,
     currentPeriodEnd: now + 16 * DAY,
     phone: student.phone ?? undefined,
     source: "stripe",

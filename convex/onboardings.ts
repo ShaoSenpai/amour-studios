@@ -255,8 +255,8 @@ export const _applyUpgradeOnboarding = internalMutation({
 });
 
 /** Internal mutation : patch du purchase après upgrade (tier coaching, prix &
- *  montant coaching, duree effacée). Le webhook Stripe (subscription.updated)
- *  confirmera/écrasera ensuite — on pose tôt pour cohérence immédiate. */
+ *  montant coaching, duree="3mois" = offre coaching unique → accès complet
+ *  immédiat). Le webhook Stripe (subscription.updated) confirmera ensuite. */
 export const _applyUpgradePurchase = internalMutation({
   args: { purchaseId: v.id("purchases"), stripePriceId: v.string() },
   handler: async (ctx, { purchaseId, stripePriceId }) => {
@@ -264,7 +264,7 @@ export const _applyUpgradePurchase = internalMutation({
       tier: "coaching",
       stripePriceId,
       amount: 17900,
-      duree: undefined,
+      duree: "3mois",
     });
   },
 });

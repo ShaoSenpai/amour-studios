@@ -103,14 +103,16 @@ export default function PaiementsPage() {
   }
 
   const rep = data.repartition;
+  // Offre coaching unique (le « 1 mois » a été retiré) : on fusionne en une
+  // seule ligne « Coaching » (coaching3m + tout reliquat 1 mois historique).
+  const coachingN = rep.coaching3m + rep.coaching1m;
   const repItems = [
-    { label: "Coaching · 3 mois", n: rep.coaching3m, montant: rep.coaching3m * 179 },
-    { label: "Coaching · 1 mois", n: rep.coaching1m, montant: rep.coaching1m * 179 },
+    { label: "Coaching", n: coachingN, montant: coachingN * 179 },
     { label: "Communauté", n: rep.communaute, montant: rep.communaute * 79 },
   ];
   const repTotal = repItems.reduce((a, x) => a + x.n, 0) || 1;
   const repColor = (i: number) =>
-    i === 0 ? ACCENT : i === 1 ? (dark ? "rgba(255,255,255,0.85)" : "#0B0B0B") : (dark ? "rgba(255,255,255,0.2)" : "rgba(11,11,11,0.2)");
+    i === 0 ? ACCENT : (dark ? "rgba(255,255,255,0.4)" : "rgba(11,11,11,0.35)");
 
   const COLS = "minmax(200px, 1.3fr) 140px 100px 120px 130px 130px";
 

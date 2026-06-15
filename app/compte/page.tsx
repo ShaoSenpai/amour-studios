@@ -66,8 +66,7 @@ function CompteInner() {
 
   const sub = useQuery(api.subscriptions.mySubscription);
   // Gestion (factures, carte, résiliation) déléguée au Portail Client Stripe.
-  // On garde seulement l'upsell custom (upgrade / continuer) côté /compte.
-  const reactivateMut = useAction(api.subscriptions.reactivateMySubscription);
+  // On garde seulement l'upsell custom (passer au coaching) côté /compte.
   const upgradeMut = useAction(api.subscriptions.upgradeMySubscription);
   const startBillingPortal = useAction(api.subscriptions.startBillingPortal);
 
@@ -182,19 +181,6 @@ function CompteInner() {
     padding: "16px 18px",
   } as const;
 
-  const subLinkStyle = {
-    ...mono,
-    fontSize: 10,
-    color: c.muted,
-    background: "none",
-    border: "none",
-    cursor: busy ? "default" : "pointer",
-    padding: 0,
-    textDecoration: "underline",
-    textUnderlineOffset: 3,
-    opacity: busy ? 0.6 : 1,
-  } as const;
-
   return (
     <main style={shell}>
       {/* Bloc identité + déconnexion (toujours en haut) */}
@@ -278,78 +264,33 @@ function CompteInner() {
             </p>
           ) : null}
 
-          {/* 4a — Bloc upgrade Communauté → Coaching (2 offres : 1 mois / 3 mois) */}
+          {/* 4 — Passer au Coaching (Communauté uniquement). Offre UNIQUE :
+              179€/mois pendant 3 mois puis arrêt automatique. */}
           {sub.canTakeCoaching && (
             <div style={boxStyle}>
               <div style={{ ...mono, fontSize: 10, color: ACCENT }}>PASSER AU COACHING</div>
               <p style={{ fontSize: 13.5, color: c.muted, margin: "8px 0 14px", lineHeight: 1.5 }}>
-                Débloque le coaching 1:1 avec Walid (RDV + exos),{" "}
-                <strong style={{ color: c.text }}>prélevés aujourd&apos;hui</strong> (cycle
-                coaching démarre maintenant).
+                Débloque le coaching 1:1 avec Walid (RDV + exos) :{" "}
+                <strong style={{ color: c.text }}>179€/mois pendant 3 mois</strong>, prélevé
+                aujourd&apos;hui (le cycle coaching démarre maintenant).
               </p>
-              {/* Coaching 1 mois */}
               <GlassButton
                 c={c}
                 kind="solid"
                 onClick={() =>
-                  run("up1", () => upgradeMut({ plan: "coaching_1m" }), "🎉 Coaching débloqué !").then(() =>
-                    router.refresh()
-                  )
-                }
-                disabled={!!busy}
-                style={{ width: "100%", opacity: busy ? 0.6 : 1, marginBottom: 8 }}
-              >
-                {busy === "up1" ? "Activation…" : "Coaching 1 mois · 179€"}
-              </GlassButton>
-              <p style={{ ...mono, fontSize: 10, color: c.muted, margin: "0 0 14px", textAlign: "center" }}>
-                Un seul prélèvement, sans engagement.
-              </p>
-              {/* Coaching 3 mois */}
-              <GlassButton
-                c={c}
-                kind="solid"
-                onClick={() =>
-                  run("up3", () => upgradeMut({ plan: "coaching_3m" }), "🎉 Coaching débloqué !").then(() =>
+                  run("up", () => upgradeMut({}), "🎉 Coaching débloqué !").then(() =>
                     router.refresh()
                   )
                 }
                 disabled={!!busy}
                 style={{ width: "100%", opacity: busy ? 0.6 : 1 }}
               >
-                {busy === "up3" ? "Activation…" : "Coaching 3 mois · 179€/mois"}
+                {busy === "up" ? "Activation…" : "Passer au Coaching · 179€/mois (3 mois)"}
               </GlassButton>
-              <p style={{ ...mono, fontSize: 10, color: c.muted, margin: "8px 0 4px", textAlign: "center" }}>
-                Abonnement récurrent, annulable à tout moment.
+              <p style={{ ...mono, fontSize: 10, color: c.muted, margin: "8px 0 0", textAlign: "center" }}>
+                Engagement 3 mois, puis arrêt automatique. Pour changer de carte, passe par
+                « Gérer mon abonnement ».
               </p>
-              <div style={{ marginTop: 8, textAlign: "center" }}>
-                <button
-                  onClick={() => goPortal("up-card")}
-                  disabled={!!busy}
-                  style={subLinkStyle}
-                >
-                  {busy === "up-card" ? "Redirection…" : "Changer de carte avant de payer ↗"}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* 4b — Continuer le coaching (coaching en annulation programmée) */}
-          {sub.canContinueCoaching && (
-            <div style={boxStyle}>
-              <div style={{ ...mono, fontSize: 10, color: ACCENT }}>TON COACHING S&apos;ARRÊTE BIENTÔT</div>
-              <p style={{ fontSize: 13.5, color: c.muted, margin: "8px 0 12px", lineHeight: 1.5 }}>
-                Ton coaching est programmé pour se terminer en fin de période. Clique ci-dessous
-                pour annuler la résiliation et continuer.
-              </p>
-              <GlassButton
-                c={c}
-                kind="solid"
-                onClick={() => run("cont", () => reactivateMut({}), "Coaching prolongé.")}
-                disabled={!!busy}
-                style={{ width: "100%", opacity: busy ? 0.6 : 1 }}
-              >
-                {busy === "cont" ? "…" : "Continuer mon coaching"}
-              </GlassButton>
             </div>
           )}
 

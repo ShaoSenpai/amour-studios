@@ -279,6 +279,9 @@ http.route({
             await ctx.runMutation(internal.onboardings.ensureForUser, {
               userId: user._id,
             });
+            await ctx.runMutation(internal.onboardings.regrantOnboardedIfDone, {
+              userId: user._id,
+            });
           }
         }
 

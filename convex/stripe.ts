@@ -99,9 +99,10 @@ export const createSubscription = action({
 
     const claimToken = generateClaimToken();
 
-    // Coaching 3 mois = engagement : l'abonnement se termine seul après ~90j.
+    // Coaching = engagement 3 mois : l'abonnement se termine seul après ~90j
+    // (prolongation manuelle/en live). Communauté = récurrent sans fin.
     const cancelAt =
-      tier === "coaching" && duree === "3mois"
+      tier === "coaching"
         ? Math.floor(Date.now() / 1000) + 90 * 24 * 60 * 60
         : undefined;
 
@@ -302,13 +303,14 @@ export const upgradeToCoaching = action({
       );
     }
 
-    // 8) Bascule l'abonnement sur le price coaching, sans proration.
+    // 8) Bascule l'abonnement sur le price coaching, sans proration + cap 3 mois.
     const itemId = sub.items.data[0]?.id;
     if (!itemId) throw new Error("Subscription Stripe sans item.");
     await stripe.subscriptions.update(subId, {
       items: [{ id: itemId, price: coachingPriceId }],
       proration_behavior: "none",
-      metadata: { ...(sub.metadata ?? {}), tier: "coaching", duree: "1mois" },
+      cancel_at: Math.floor(Date.now() / 1000) + 90 * 24 * 60 * 60,
+      metadata: { ...(sub.metadata ?? {}), tier: "coaching", duree: "3mois" },
     });
 
     // 9) Applique l'upgrade côté Convex (purchase + onboarding + rôle Discord).

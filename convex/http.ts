@@ -279,9 +279,24 @@ http.route({
             await ctx.runMutation(internal.onboardings.ensureForUser, {
               userId: user._id,
             });
-            await ctx.runMutation(internal.onboardings.regrantOnboardedIfDone, {
-              userId: user._id,
-            });
+            const regrant = await ctx.runMutation(
+              internal.onboardings.regrantOnboardedIfDone,
+              { userId: user._id }
+            );
+            // Nouveau membre (pas un re-paiement d'onboarding déjà finalisé) :
+            // DM boussole d'accueil « paiement validé → présente-toi ».
+            // Seulement à la CRÉATION (jamais sur updated = renouvellement) et
+            // seulement si regrant n'a PAS finalisé (sinon double-DM avec
+            // grantOnboarded).
+            if (
+              event.type === "customer.subscription.created" &&
+              !regrant.ok
+            ) {
+              await ctx.runAction(internal.onboardings.sendStatusDm, {
+                userId: user._id,
+                context: "payment_active",
+              });
+            }
           }
         }
 
@@ -316,6 +331,12 @@ http.route({
             // doit l'être aussi.
             await ctx.runAction(internal.stripe.removeOnboardedRole, {
               discordId: user.discordId,
+            });
+            // DM boussole « ton accès a pris fin » (couvre résiliation ET fin
+            // auto du coaching 3 mois). On a le userId via findUserByEmail.
+            await ctx.runAction(internal.onboardings.sendStatusDm, {
+              userId: user._id,
+              context: "payment_canceled",
             });
           }
         }

@@ -323,6 +323,9 @@ export const submitAnswers = mutation({
       .first();
     if (!ob) throw new Error("Lien onboarding invalide.");
     const now = Date.now();
+    // Capture l'étape AVANT patch (le doc `ob` pourrait être muté en mémoire) :
+    // c'est elle qui détermine si on déclenche le DM boussole coaching.
+    const prevStep = ob.step;
     const patch: Record<string, unknown> = { answers, updatedAt: now };
     if (finalize) {
       patch.formCompletedAt = now;
@@ -348,6 +351,16 @@ export const submitAnswers = mutation({
       if (ob.tier === "communaute") {
         await ctx.scheduler.runAfter(0, internal.onboardings.grantOnboarded, {
           userId: ob.userId,
+        });
+      }
+      // Coaching : questionnaire validé mais RDV pas encore pris → DM boussole
+      // « réserve ton RDV » (le seul moment sans confirmation jusqu'ici).
+      // On se base sur `prevStep` (état AVANT patch) qui a déclenché le passage
+      // à form_done. Le grantOnboarded communauté n'est PAS dupliqué ici.
+      if (ob.tier === "coaching" && prevStep === "link_sent") {
+        await ctx.scheduler.runAfter(0, internal.onboardings.sendStatusDm, {
+          userId: ob.userId,
+          context: "transition",
         });
       }
     }
@@ -515,6 +528,16 @@ export const markPresentedByDiscordId = internalMutation({
     // Membre payant mais pas d'onboarding row : le rôle a quand même été (ré)assuré.
     if (!ob) return { ok: true as const, tier, reason: "no_onboarding" as const };
     if (ob.step !== "awaiting_presentation") {
+      // Membre coincé qui revient poster (link_sent / form_done) → rappel
+      // boussole « voilà où tu en es ». Les états finaux (rdv_booked/
+      // community_ready) sont déjà filtrés en amont par le bot (rôle Onboardé),
+      // mais on garde sendStatusDm state-aware par sécurité.
+      if (ob.step === "link_sent" || ob.step === "form_done") {
+        await ctx.scheduler.runAfter(0, internal.onboardings.sendStatusDm, {
+          userId: user._id,
+          context: "reminder",
+        });
+      }
       return { ok: true as const, tier, alreadyDone: true as const };
     }
     const now = Date.now();
@@ -631,6 +654,96 @@ export const _userContact = internalQuery({
       firstName: ob?.firstName ?? null,
       tier: ob?.tier ?? null,
     };
+  },
+});
+
+/** Lit l'état composite d'un membre (onboarding + paiement + Discord) pour la
+ *  boussole `sendStatusDm`. */
+export const _statusForUser = internalQuery({
+  args: { userId: v.id("users") },
+  handler: async (ctx, { userId }) => {
+    const user = await ctx.db.get(userId);
+    if (!user) return null;
+    const ob = await ctx.db
+      .query("onboardings")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .first();
+    const email = (user.email ?? "").trim().toLowerCase();
+    const isLive = (s?: string) =>
+      s === "active" || s === "past_due" || s === "paid";
+    let purchase = user.purchaseId ? await ctx.db.get(user.purchaseId) : null;
+    if ((!purchase || !isLive(purchase.status)) && email) {
+      const cands = await ctx.db
+        .query("purchases")
+        .withIndex("by_email", (q) => q.eq("email", email))
+        .collect();
+      purchase =
+        cands
+          .filter((p) => isLive(p.status))
+          .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))[0] ?? purchase;
+    }
+    return {
+      discordId: user.discordId ?? null,
+      firstName: ob?.firstName ?? null,
+      tier: (ob?.tier ?? purchase?.tier ?? null) as
+        | "coaching"
+        | "communaute"
+        | null,
+      step: ob?.step ?? null,
+      token: ob?.token ?? null,
+      purchaseStatus: purchase?.status ?? null,
+      purchaseActive: purchase ? isLive(purchase.status) : false,
+    };
+  },
+});
+
+/** La boussole : envoie au membre un DM Discord qui confirme où il en est et
+ *  lui donne la prochaine action + le lien. State-aware (réutilisable en push
+ *  comme en pull). Ne DM jamais les états déjà couverts par grantOnboarded sauf
+ *  fallback explicite. Fail-silent. */
+export const sendStatusDm = internalAction({
+  args: {
+    userId: v.id("users"),
+    context: v.optional(
+      v.union(
+        v.literal("transition"),
+        v.literal("reminder"),
+        v.literal("payment_active"),
+        v.literal("payment_canceled")
+      )
+    ),
+  },
+  handler: async (ctx, { userId, context }) => {
+    const s = await ctx.runQuery(internal.onboardings._statusForUser, { userId });
+    if (!s || !s.discordId) return { ok: false as const, reason: "no_discord" as const };
+    const site = process.env.SITE_URL ?? "https://amour-studios.vercel.app";
+    const link = s.token ? `${site}/onboarding/${s.token}` : site;
+    const Hi = s.firstName ? `Salut ${s.firstName} 👋` : "Salut 👋";
+    const hi = s.firstName ? `${s.firstName}, ` : "";
+
+    let content: string | null = null;
+
+    if (context === "payment_canceled" || s.purchaseStatus === "canceled") {
+      content = `${Hi}\n\nTon accès AMOUR STUDIOS a pris fin. Si tu veux revenir, tout est ici 👉 ${site}/paiement\nUne question ? Réponds à ce DM. 🧡`;
+    } else if (!s.step || s.step === "awaiting_presentation") {
+      content = `${Hi}\n\nIl te reste une étape pour débloquer ton accès : **présente-toi dans #🎤・présente-toi** (qui tu es, ton projet, ce que tu cherches). Dès que tu postes, je t'envoie ton lien dans la foulée. 🔥`;
+    } else if (s.step === "link_sent") {
+      content =
+        s.tier === "coaching"
+          ? `${Hi}\n\nTu y es presque : termine ton **questionnaire** (~5 min) pour que Walid prépare ton 1er appel 👉 ${link}`
+          : `${Hi}\n\nTu y es presque : complète tes **infos** (~2 min) pour débloquer ton accès complet 👉 ${link}`;
+    } else if (s.step === "form_done" && s.tier === "coaching") {
+      content = `${hi ? `Bravo ${s.firstName} 🙌` : "Bravo 🙌"}\n\nTon questionnaire est **validé** ✅ Dernière étape pour débloquer ton accès Discord complet : **réserve ton 1er RDV avec Walid** 👉 ${link}`;
+    } else if (s.step === "rdv_booked" || s.step === "community_ready") {
+      content = `🎉 ${hi}tout est validé — tu as accès à tout sur le Discord. À très vite ! 🧡`;
+    }
+
+    if (!content) return { ok: false as const, reason: "no_message" as const };
+    await ctx.scheduler.runAfter(0, internal.onboardings.discordDm, {
+      discordId: s.discordId,
+      content,
+    });
+    return { ok: true as const };
   },
 });
 

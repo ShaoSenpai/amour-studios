@@ -65,23 +65,13 @@ function CompteInner() {
   const { signOut } = useAuthActions();
 
   const sub = useQuery(api.subscriptions.mySubscription);
-  const cancelMut = useAction(api.subscriptions.cancelMySubscription);
+  // Gestion (factures, carte, résiliation) déléguée au Portail Client Stripe.
+  // On garde seulement l'upsell custom (upgrade / continuer) côté /compte.
   const reactivateMut = useAction(api.subscriptions.reactivateMySubscription);
   const upgradeMut = useAction(api.subscriptions.upgradeMySubscription);
-  const startCardUpdate = useAction(api.subscriptions.startCardUpdate);
-  const myInvoices = useAction(api.subscriptions.myInvoices);
   const startBillingPortal = useAction(api.subscriptions.startBillingPortal);
 
   const [busy, setBusy] = useState<string | null>(null);
-  const [invoices, setInvoices] = useState<Array<{
-    id: string;
-    amountCents: number;
-    currency: string;
-    created: number;
-    status: string | null;
-    pdfUrl: string | null;
-    hostedUrl: string | null;
-  }>>([]);
 
   const run = async (key: string, fn: () => Promise<unknown>, ok: string) => {
     setBusy(key);
@@ -95,12 +85,12 @@ function CompteInner() {
     }
   };
 
-  // Redirige vers Stripe Checkout (mode setup) pour ajouter/changer la carte.
-  // On garde `busy` posé jusqu'à la redirection (le bouton reste désactivé).
-  const goCardUpdate = async (key: string) => {
+  // Ouvre le Portail Client Stripe (factures, carte, résiliation). Un seul point
+  // de gestion : tout le reste de la gestion vit côté Stripe.
+  const goPortal = async (key: string) => {
     setBusy(key);
     try {
-      const res = await startCardUpdate({});
+      const res = await startBillingPortal({});
       window.location.href = res.url;
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erreur");
@@ -116,13 +106,6 @@ function CompteInner() {
       toast.success("Carte enregistrée ✓");
     }
   }, [params]);
-
-  // Charge les factures si l'utilisateur a un abonnement actif.
-  useEffect(() => {
-    if (sub && "hasSubscription" in sub && sub.hasSubscription) {
-      myInvoices({}).then(setInvoices).catch(() => {});
-    }
-  }, [sub, myInvoices]);
 
   const shell = {
     background: c.bgGrad,
@@ -340,11 +323,11 @@ function CompteInner() {
               </p>
               <div style={{ marginTop: 8, textAlign: "center" }}>
                 <button
-                  onClick={() => goCardUpdate("up-card")}
+                  onClick={() => goPortal("up-card")}
                   disabled={!!busy}
                   style={subLinkStyle}
                 >
-                  {busy === "up-card" ? "Redirection…" : "Payer avec une autre carte"}
+                  {busy === "up-card" ? "Redirection…" : "Changer de carte avant de payer ↗"}
                 </button>
               </div>
             </div>
@@ -370,107 +353,22 @@ function CompteInner() {
             </div>
           )}
 
-          {/* 5 — Actions abonnement */}
-          {sub.cancelAtPeriodEnd ? (
+          {/* 5 — Gestion de l'abonnement = Portail Client Stripe (factures + PDF,
+              moyen de paiement, résiliation/renouvellement). Un seul point d'entrée. */}
+          <div style={{ borderTop: `1px solid ${c.line}`, paddingTop: 18, display: "flex", flexDirection: "column", gap: 8 }}>
             <GlassButton
               c={c}
               kind="solid"
-              onClick={() => run("re", () => reactivateMut({}), "Abonnement réactivé.")}
+              onClick={() => goPortal("portal")}
               disabled={!!busy}
-              style={{ width: "100%", opacity: busy ? 0.6 : 1 }}
+              style={{ width: "100%", opacity: busy === "portal" ? 0.6 : 1 }}
             >
-              {busy === "re" ? "…" : "Réactiver mon abonnement"}
+              {busy === "portal" ? "Redirection…" : "Gérer mon abonnement ↗"}
             </GlassButton>
-          ) : (
-            <GlassButton
-              c={c}
-              kind="ghost"
-              onClick={() => {
-                if (confirm("Résilier ton abonnement à la fin de la période en cours ?"))
-                  run("ca", () => cancelMut({}), "Résiliation programmée à la fin de la période.");
-              }}
-              disabled={!!busy}
-              style={{ width: "100%", opacity: busy ? 0.6 : 1 }}
-            >
-              {busy === "ca" ? "…" : "Résilier mon abonnement"}
-            </GlassButton>
-          )}
-
-          <div style={{ textAlign: "center", display: "flex", gap: 16, justifyContent: "center" }}>
-            <button onClick={() => goCardUpdate("card")} disabled={!!busy} style={subLinkStyle}>
-              {busy === "card" ? "Redirection…" : "Gérer ma carte"}
-            </button>
+            <p style={{ ...mono, fontSize: 9, color: c.faint, textAlign: "center", margin: 0 }}>
+              Factures, moyen de paiement et résiliation sur ton espace sécurisé Stripe.
+            </p>
           </div>
-
-          {/* 6 — Historique factures */}
-          <div style={{ borderTop: `1px solid ${c.line}`, paddingTop: 18 }}>
-            <div style={{ ...mono, fontSize: 10, color: c.muted, marginBottom: 10 }}>◦ Factures</div>
-            {invoices.length === 0 ? (
-              <p style={{ fontSize: 13, color: c.muted, margin: 0 }}>
-                Aucune facture pour le moment.
-              </p>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {invoices.map((inv) => (
-                  <div
-                    key={inv.id}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 10,
-                      fontSize: 13,
-                    }}
-                  >
-                    <span style={{ color: c.muted, flex: 1, minWidth: 0 }}>
-                      {new Date(inv.created).toLocaleDateString("fr-FR", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })}
-                    </span>
-                    <span style={{ ...mono, fontSize: 12, color: c.text, whiteSpace: "nowrap" }}>
-                      {(inv.amountCents / 100).toFixed(2).replace(".", ",")} €
-                    </span>
-                    {inv.status && (
-                      <span style={{ ...mono, fontSize: 10, color: c.muted, whiteSpace: "nowrap" }}>
-                        {inv.status}
-                      </span>
-                    )}
-                    {(inv.pdfUrl ?? inv.hostedUrl) && (
-                      <a
-                        href={(inv.pdfUrl ?? inv.hostedUrl)!}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{
-                          ...mono,
-                          fontSize: 10,
-                          color: ACCENT,
-                          textDecoration: "none",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        Reçu PDF ↗
-                      </a>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* 6b — Portail de facturation Stripe */}
-          <GlassButton
-            c={c}
-            kind="ghost"
-            onClick={() =>
-              startBillingPortal({})
-                .then((r) => { window.location.href = r.url; })
-                .catch((e) => toast.error((e as Error).message))
-            }
-            style={{ width: "100%" }}
-          >
-            Gérer ma facturation ↗
-          </GlassButton>
 
           {/* 7 — Pied */}
           <p style={{ ...mono, fontSize: 9.5, color: c.faint, textAlign: "center", margin: 0 }}>

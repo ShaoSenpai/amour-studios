@@ -81,10 +81,6 @@ export const mySubscription = query({
       currentPeriodEnd: purchase.currentPeriodEnd ?? null,
       cancelAtPeriodEnd: purchase.cancelAtPeriodEnd ?? false,
       canTakeCoaching: purchase.tier === "communaute" && purchase.status !== "canceled",
-      canContinueCoaching:
-        purchase.tier === "coaching" &&
-        (purchase.cancelAtPeriodEnd ?? false) === true &&
-        purchase.status !== "canceled",
       needsFirstRdv,
       nextRdvAt,
       name: user.name ?? null,
@@ -165,12 +161,11 @@ export const reactivateMySubscription = action({
   },
 });
 
-// 3) Upgrade Communauté → Coaching (proration immédiate).
-//    plan="coaching_1m" → cancel_at_period_end:true (1 prélèvement puis stop).
-//    plan="coaching_3m" → cancel_at_period_end:false (récurrent).
+// 3) Upgrade Communauté → Coaching : offre unique 3 mois (179€/mois, cap 90j).
+//    Engagement 3 mois : cancel_at posé sur l'abonnement (fin auto après ~90j).
 export const upgradeMySubscription = action({
-  args: { plan: v.union(v.literal("coaching_1m"), v.literal("coaching_3m")) },
-  handler: async (ctx, { plan }): Promise<{ ok: true; already?: boolean }> => {
+  args: {},
+  handler: async (ctx): Promise<{ ok: true; already?: boolean }> => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Non authentifié");
     const p = await ctx.runQuery(internal.subscriptions._purchaseForUser, { userId });
@@ -189,9 +184,8 @@ export const upgradeMySubscription = action({
     //     prorata des jours Communauté déjà payés (ils sont perdus, c'est voulu).
     //   - `billing_cycle_anchor: "now"` → le cycle de facturation redémarre
     //     maintenant : le mois coaching démarre aujourd'hui et Stripe émet
-    //     immédiatement une facture de 179€ (premier mois plein), puis 179€/mois.
-    //   - `cancel_at_period_end` : true pour 1 mois (1 seul prélèvement puis stop),
-    //     false pour 3 mois (récurrent jusqu'à annulation explicite).
+    //     immédiatement une facture de 179€ (premier mois plein).
+    //   - `cancel_at` (+90j) → engagement 3 mois, l'abonnement se termine seul.
     //   ⚠️ Ne PAS confondre avec l'upsell d'onboarding (`upgradeToCoaching` dans
     //     stripe.ts) qui, lui, débite un +100€ one-time (différentiel 79→179) car
     //     il intervient dans l'heure suivant le paiement Communauté. Le +100€
@@ -202,15 +196,15 @@ export const upgradeMySubscription = action({
     // 402 et NE bascule PAS l'abonnement (pas de coaching impayé/past_due). On
     // capte l'erreur pour un message propre, et `_applyUpgrade` ne tourne donc
     // QUE si le débit des 179€ a réussi. Le débit frappe la default_payment_method
-    // du customer (que Task 2 / `startCardUpdate` permet de changer au préalable).
+    // du customer (que `startCardUpdate` permet de changer au préalable).
     try {
       await stripe.subscriptions.update(p.subscriptionId, {
         items: [{ id: itemId, price: coachingPrice }],
         proration_behavior: "none",
         billing_cycle_anchor: "now",
         payment_behavior: "error_if_incomplete",
-        cancel_at_period_end: plan === "coaching_1m",
-        metadata: { ...(sub.metadata ?? {}), tier: "coaching", duree: plan === "coaching_1m" ? "1mois" : "3mois" },
+        cancel_at: Math.floor(Date.now() / 1000) + 90 * 24 * 60 * 60,
+        metadata: { ...(sub.metadata ?? {}), tier: "coaching", duree: "3mois" },
       });
     } catch (err) {
       console.warn("⚠️ upgrade self-service échec:", err instanceof Error ? err.message : err);
@@ -219,8 +213,9 @@ export const upgradeMySubscription = action({
       );
     }
     await ctx.runMutation(internal.subscriptions._applyUpgrade, { purchaseId: p.purchaseId, userId, coachingPrice });
-    // Patch le purchase pour refléter cancel_at_period_end selon le plan choisi.
-    await ctx.runMutation(internal.stripe.patchPurchase, { purchaseId: p.purchaseId, cancelAtPeriodEnd: plan === "coaching_1m" });
+    // cancel_at (pas cancel_at_period_end) = l'engagement 3 mois ne s'affiche
+    // pas comme « résiliation programmée » ; on remet cancelAtPeriodEnd à false.
+    await ctx.runMutation(internal.stripe.patchPurchase, { purchaseId: p.purchaseId, cancelAtPeriodEnd: false });
     if (p.discordId) {
       await ctx.scheduler.runAfter(0, internal.stripe.assignDiscordRole, { discordId: p.discordId, email: p.email ?? "", tier: "coaching" });
     }

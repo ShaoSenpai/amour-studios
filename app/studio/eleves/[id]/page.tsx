@@ -165,6 +165,45 @@ export default function FichePage({
     }
   );
 
+  // ⚠️ Rules of Hooks : ces useMemo DOIVENT être appelés AVANT tout return
+  // anticipé (detail undefined/null), sinon le nombre de hooks varie entre
+  // renders → React #310 (« rendered fewer hooks than expected »). Ils sont
+  // donc défensifs sur `detail` (peut être undefined pendant le chargement).
+  const bookedLessonIds = useMemo(() => {
+    const s = new Set<string>();
+    for (const sess of detail?.sessions ?? []) {
+      if (sess.status === "scheduled" && sess.curriculum) {
+        s.add(sess.curriculum._id as unknown as string);
+      }
+    }
+    return s;
+  }, [detail]);
+  const nextLessonId = useMemo(() => {
+    const done = new Set<string>();
+    for (const sess of detail?.sessions ?? []) {
+      if (sess.status === "completed" && sess.curriculum) {
+        done.add(sess.curriculum._id as unknown as string);
+      }
+    }
+    const sorted = [...curriculum].sort((a, b) => a.order - b.order);
+    const next = sorted.find((it) => {
+      const idStr = it._id as unknown as string;
+      return !done.has(idStr) && !bookedLessonIds.has(idStr);
+    });
+    return (next?._id ?? null) as Id<"curriculum"> | null;
+  }, [curriculum, detail, bookedLessonIds]);
+  // Set memoized des lessonIds débloqués — évite une nouvelle référence à
+  // chaque render (sinon CurriculumTimeline recompute son state visuel).
+  const unlockedLessonIdsSet = useMemo(
+    () =>
+      new Set(
+        (detail?.user?.unlockedLessonIds ?? []).map(
+          (id) => id as unknown as string
+        )
+      ),
+    [detail]
+  );
+
   if (detail === undefined) {
     return (
       <main style={{ background: c.bgGrad, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -221,40 +260,8 @@ export default function FichePage({
     .filter((s) => s.status === "scheduled")
     .sort((a, b) => a.scheduledAt - b.scheduledAt);
   const past = sessions.filter((s) => s.status !== "scheduled");
-
-  // Prochaine leçon à traiter : 1re leçon du curriculum (par `order`) qui
-  // n'est ni dans doneIds, ni déjà couverte par un RDV scheduled. Sert à
-  // pré-remplir le dialog RDV en mode create → Walid n'a plus à choisir la
-  // leçon à chaque nouveau RDV. Si Walid planifie 3 RDV d'avance, ils se
-  // taggent L1 → L2 → L3 successivement (pas tous sur la même).
-  const bookedLessonIds = useMemo(() => {
-    const s = new Set<string>();
-    for (const sess of sessions) {
-      if (sess.status === "scheduled" && sess.curriculum) {
-        s.add(sess.curriculum._id as unknown as string);
-      }
-    }
-    return s;
-  }, [sessions]);
-  const nextLessonId = useMemo(() => {
-    const sorted = [...curriculum].sort((a, b) => a.order - b.order);
-    const next = sorted.find((it) => {
-      const idStr = it._id as unknown as string;
-      return !doneIds.has(idStr) && !bookedLessonIds.has(idStr);
-    });
-    return (next?._id ?? null) as Id<"curriculum"> | null;
-  }, [curriculum, doneIds, bookedLessonIds]);
-
-  // Set memoized des lessonIds débloqués — évite la nouvelle référence à
-  // chaque render (sinon CurriculumTimeline recompute son state visuel à
-  // chaque tick, et chaque Dot re-render inutilement).
-  const unlockedLessonIdsSet = useMemo(
-    () =>
-      new Set(
-        (user.unlockedLessonIds ?? []).map((id) => id as unknown as string)
-      ),
-    [user.unlockedLessonIds]
-  );
+  // (bookedLessonIds / nextLessonId / unlockedLessonIdsSet sont calculés plus
+  //  haut, AVANT les early returns — cf. Rules of Hooks / React #310.)
 
   const openCreateRdv = () => setRdv({ mode: "create" });
   const openRescheduleRdv = (s: (typeof sessions)[number]) =>

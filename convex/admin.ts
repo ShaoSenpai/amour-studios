@@ -929,6 +929,76 @@ export const _inspectExercises = internalMutation({
   },
 });
 
+// One-off : passer le catalogue coaching à « Module 1 uniquement » (4 exos, tous
+// ouverts). Masque M2/M3 + Tes valeurs (V04) + Viewer idéal (V05) ; ouvre les 4
+// leçons M1 (previewAccess) ; renomme l'exo Différenciation → « Différenciation &
+// Valeurs ». Idempotent. Lancer 1× : npx convex run --prod admin:_setM1OnlyCatalogue '{}'
+export const _setM1OnlyCatalogue = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const modules = await ctx.db.query("modules").collect();
+    const moduleById = new Map(modules.map((m) => [m._id as unknown as string, m]));
+    const lessons = await ctx.db
+      .query("lessons")
+      .filter((q) => q.eq(q.field("deletedAt"), undefined))
+      .collect();
+    const lessonById = new Map(lessons.map((l) => [l._id as unknown as string, l]));
+    const exos = await ctx.db
+      .query("exercises")
+      .filter((q) => q.eq(q.field("deletedAt"), undefined))
+      .collect();
+
+    // Les 4 leçons M1 conservées (par slug). Tout le reste (M2/M3 + tes-valeurs +
+    // ton-viewer-ideal) est masqué.
+    const KEEP_SLUGS = new Set([
+      "vision-board",
+      "ton-positionnement",
+      "veille-concurrentielle",
+      "ta-differenciation",
+    ]);
+
+    let kept = 0,
+      hidden = 0,
+      openedLessons = 0,
+      relabeled = 0;
+    const lessonOpened = new Set<string>();
+
+    for (const x of exos) {
+      const l = lessonById.get(x.lessonId as unknown as string);
+      if (!l) continue;
+      const m = moduleById.get(l.moduleId as unknown as string);
+      if (!m) continue;
+      const slug = (l as { slug?: string }).slug ?? "";
+      const isM1Keep = m.order === 1 && KEEP_SLUGS.has(slug);
+
+      if (isM1Keep) {
+        kept++;
+        if (x.hiddenFromCoaching === true) {
+          await ctx.db.patch(x._id, { hiddenFromCoaching: false });
+        }
+        // Ouvrir la leçon (dispo immédiate — plus de séquentiel dans M1).
+        const lid = l._id as unknown as string;
+        if (!(l as { previewAccess?: boolean }).previewAccess && !lessonOpened.has(lid)) {
+          await ctx.db.patch(l._id, { previewAccess: true });
+          lessonOpened.add(lid);
+          openedLessons++;
+        }
+        // Renommer l'exo Différenciation → « Différenciation & Valeurs » (fusion).
+        if (slug === "ta-differenciation" && x.title !== "Différenciation & Valeurs") {
+          await ctx.db.patch(x._id, { title: "Différenciation & Valeurs" });
+          relabeled++;
+        }
+      } else {
+        if (x.hiddenFromCoaching !== true) {
+          await ctx.db.patch(x._id, { hiddenFromCoaching: true });
+        }
+        hidden++;
+      }
+    }
+    return { kept, hidden, openedLessons, relabeled };
+  },
+});
+
 // One-off : inspecte un user par email + son onboarding.
 export const _inspectUser = internalMutation({
   args: { email: v.string() },

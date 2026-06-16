@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AMOUR STUDIOS — Ma Différenciation</title>
+<title>AMOUR STUDIOS — Différenciation & Valeurs</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap');
@@ -39,11 +39,11 @@ header { padding:40px 60px 0; display:flex; justify-content:space-between; align
 .hero { padding:60px 60px 20px; position:relative; opacity:0; transform:translateY(30px); animation:fdUp .9s ease forwards .3s; }
 .hero-label { font-size:11px; letter-spacing:4px; color:var(--rouge); text-transform:uppercase; margin-bottom:16px; display:flex; align-items:center; gap:12px; }
 .hero-label::after { content:''; width:40px; height:1px; background:var(--rouge); }
-h1 { font-family:'Schibsted Grotesk',sans-serif; font-weight:800; font-size:clamp(64px,10vw,120px); line-height:.88; will-change:transform; }
+h1 { font-family:'Schibsted Grotesk',sans-serif; font-weight:800; font-size:clamp(48px,8vw,100px); line-height:.88; will-change:transform; }
 h1 .w1 { display:block; color:var(--noir); }
 h1 .w2 { display:block; color:var(--rouge); }
 h1 .w3 { display:block; color:var(--warm); font-size:.65em; }
-.hero-sub  { font-family:'Schibsted Grotesk',sans-serif; font-style:italic; font-size:15px; color:var(--muted); margin-top:22px; max-width:480px; line-height:1.65; }
+.hero-sub  { font-family:'Schibsted Grotesk',sans-serif; font-style:italic; font-size:15px; color:var(--muted); margin-top:22px; max-width:520px; line-height:1.65; }
 .hero-deco { position:absolute; right:60px; top:50%; transform:translateY(-50%); font-family:'Schibsted Grotesk',sans-serif; font-size:180px; color:var(--warm); opacity:.12; line-height:1; pointer-events:none; user-select:none; will-change:transform; }
 
 .divider { width:calc(100% - 120px); margin:0 60px; height:1px; background:linear-gradient(to right,var(--noir),transparent); opacity:0; animation:fdIn 1s ease forwards .6s; }
@@ -61,8 +61,8 @@ main { padding:60px 60px 140px; max-width:1000px; margin:0 auto; }
 .section-header { margin-bottom:28px; }
 .card-3d { transform-style:preserve-3d; transition:box-shadow .4s ease,transform .15s ease; will-change:transform; }
 
-/* ── SECTION 01 — 3 CARTES UNICITÉ ──────────────────────────── */
-.trois-cartes { display:grid; grid-template-columns:repeat(3,1fr); gap:3px; }
+/* ── SECTION 01 — 3 CHOSES UNIQUES ──────────────────────────── */
+.trois-cartes { display:grid; grid-template-columns:repeat(3,1fr); gap:3px; margin-bottom:3px; }
 
 .unicite-card { background:var(--cream); position:relative; overflow:hidden; }
 .unicite-card::before { content:''; position:absolute; top:0; left:0; width:100%; height:3px; background:var(--rouge); }
@@ -80,29 +80,8 @@ main { padding:60px 60px 140px; max-width:1000px; margin:0 auto; }
 .unicite-card textarea::placeholder { color:var(--warm); font-style:italic; font-size:12px; }
 .unicite-card:focus-within::before { background:var(--rouge); }
 
-/* ── SECTION 02 — CONCURRENTS ────────────────────────────────── */
-.concurrents-grid { display:grid; grid-template-columns:1fr 1fr; gap:3px; }
-
-.concurrent-item { background:var(--cream); padding:20px 24px; position:relative; transition:background .25s; }
-.concurrent-item::before { content:''; position:absolute; left:0; top:0; width:3px; height:0; background:var(--rouge); transition:height .45s cubic-bezier(.22,.68,0,1.2); }
-.concurrent-item:hover::before,
-.concurrent-item:focus-within::before { height:100%; }
-.concurrent-item:focus-within { background:#fff; }
-.ci-header { display:flex; align-items:center; gap:12px; margin-bottom:10px; }
-.ci-num { width:28px; height:28px; border-radius:50%; background:var(--rouge); color:white; font-family:'Schibsted Grotesk',sans-serif; font-weight:800; font-size:13px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-.ci-title { font-family:'Schibsted Grotesk',sans-serif; font-weight:800; font-size:14px; letter-spacing:1.5px; color:var(--noir); }
-.concurrent-item textarea { width:100%; background:transparent; border:none; outline:none; font-family:'Schibsted Grotesk',sans-serif; font-size:13px; color:var(--noir); resize:none; min-height:48px; line-height:1.7; overflow:hidden; }
-.concurrent-item textarea::placeholder { color:var(--warm); font-style:italic; font-size:12px; }
-
-/* Opportunity block */
-.opportunite-block { background:var(--rouge); padding:24px 28px; margin-top:3px; }
-.op-label { font-family:'Schibsted Grotesk',sans-serif; font-weight:800; font-size:10px; letter-spacing:3px; color:rgba(255,255,255,.5); margin-bottom:8px; }
-.op-title { font-family:'Schibsted Grotesk',sans-serif; font-weight:800; font-size:28px; color:white; margin-bottom:12px; }
-.opportunite-block textarea { width:100%; background:transparent; border:none; border-bottom:1px solid rgba(255,255,255,.25); outline:none; font-family:'Schibsted Grotesk',sans-serif; font-style:italic; font-size:14px; color:white; resize:none; min-height:44px; line-height:1.7; overflow:hidden; }
-.opportunite-block textarea::placeholder { color:rgba(255,255,255,.35); font-style:italic; }
-
-/* ── SECTION 03 — MON ANGLE ──────────────────────────────────── */
-.angle-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:3px; margin-bottom:3px; }
+/* ── SECTION 01 — ANGLES ─────────────────────────────────────── */
+.angle-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:3px; }
 
 .angle-card { background:var(--cream); padding:20px 22px; position:relative; transition:background .25s; }
 .angle-card:nth-child(2) { background:var(--noir); }
@@ -135,16 +114,7 @@ main { padding:60px 60px 140px; max-width:1000px; margin:0 auto; }
 .angle-card textarea::placeholder { color:var(--warm); font-style:italic; font-size:12px; }
 .angle-card:nth-child(2) textarea::placeholder { color:rgba(255,255,255,.22); }
 
-/* Formule block */
-.formule-block { background:var(--noir); padding:28px 32px; display:flex; align-items:center; gap:24px; position:relative; overflow:hidden; }
-.formule-block::after { content:''; position:absolute; bottom:0; left:0; width:0; height:3px; background:var(--rouge); transition:width .8s cubic-bezier(.22,.68,0,1.2); }
-.formule-block:focus-within::after { width:100%; }
-.formule-label { font-family:'Schibsted Grotesk',sans-serif; font-weight:800; font-size:10px; letter-spacing:3px; color:var(--rouge); white-space:nowrap; }
-.formule-text  { flex:1; font-family:'Schibsted Grotesk',sans-serif; font-style:italic; font-size:15px; color:var(--cream); line-height:1.6; }
-.formule-text textarea { width:100%; background:transparent; border:none; outline:none; font-family:'Schibsted Grotesk',sans-serif; font-style:italic; font-size:16px; color:var(--cream); resize:none; min-height:36px; line-height:1.6; overflow:hidden; }
-.formule-text textarea::placeholder { color:rgba(255,255,255,.2); }
-
-/* ── SECTION 04 — POURQUOI MOI ───────────────────────────────── */
+/* ── SECTION 02 — POURQUOI ME SUIVRE ────────────────────────── */
 .pourquoi-wrap { background:var(--noir); padding:52px 48px; position:relative; overflow:hidden; }
 .pourquoi-wrap::before { content:'❝'; position:absolute; top:8px; left:20px; font-size:120px; color:var(--rouge); opacity:.1; font-family:'Schibsted Grotesk',sans-serif; line-height:1; }
 .pourquoi-wrap::after { content:''; position:absolute; bottom:0; left:0; width:0; height:3px; background:var(--rouge); transition:width .8s cubic-bezier(.22,.68,0,1.2); }
@@ -153,8 +123,8 @@ main { padding:60px 60px 140px; max-width:1000px; margin:0 auto; }
 .pourquoi-wrap textarea::placeholder { color:rgba(255,255,255,.18); }
 .pourquoi-hint { font-size:9px; letter-spacing:3px; color:var(--muted); text-align:center; margin-top:18px; text-transform:uppercase; }
 
-/* ── SECTION 05 — CONTENU SIGNATURE ─────────────────────────── */
-.signature-grid { display:grid; grid-template-columns:1fr 1fr; gap:3px; }
+/* ── SECTION 02 — CONTENU SIGNATURE ─────────────────────────── */
+.signature-wrap { display:grid; grid-template-columns:1fr 1fr; gap:3px; }
 
 .sig-card { background:var(--cream); padding:24px; position:relative; overflow:hidden; transition:background .25s; }
 .sig-card::before { content:''; position:absolute; left:0; top:0; width:3px; height:0; background:var(--rouge); transition:height .45s cubic-bezier(.22,.68,0,1.2); }
@@ -178,10 +148,41 @@ main { padding:60px 60px 140px; max-width:1000px; margin:0 auto; }
 .sig-card textarea::placeholder { color:var(--warm); font-style:italic; font-size:12px; }
 .sig-card.dark textarea::placeholder { color:rgba(255,255,255,.2); }
 
-/* Seul toi block */
-.seul-toi { background:var(--rouge); padding:28px 24px; display:flex; flex-direction:column; justify-content:space-between; }
-.st-title  { font-family:'Schibsted Grotesk',sans-serif; font-weight:800; font-size:52px; color:white; line-height:.9; margin-bottom:16px; }
-.st-sub    { font-family:'Schibsted Grotesk',sans-serif; font-style:italic; font-size:12px; color:rgba(255,255,255,.7); line-height:1.5; }
+/* ── SECTION 02 — VALEURS & LIMITES ─────────────────────────── */
+.valeurs-grid { display:grid; grid-template-columns:1fr 1fr; gap:3px; margin-top:3px; }
+
+.valeur-card { background:var(--cream); padding:24px; position:relative; transition:background .25s; }
+.valeur-card::before { content:''; position:absolute; top:0; left:0; width:100%; height:3px; background:var(--rouge); }
+.valeur-card.dark { background:var(--noir); }
+.valeur-card:focus-within { background:#fff; }
+.valeur-card.dark:focus-within { background:#0A0A0A; }
+
+.vc-label { font-family:'Schibsted Grotesk',sans-serif; font-weight:800; font-size:12px; letter-spacing:2px; margin-bottom:6px; }
+.valeur-card:not(.dark) .vc-label { color:var(--rouge); }
+.valeur-card.dark .vc-label { color:var(--rouge); }
+
+.vc-hint { font-family:'Schibsted Grotesk',sans-serif; font-style:italic; font-size:11px; margin-bottom:14px; line-height:1.5; }
+.valeur-card:not(.dark) .vc-hint { color:var(--muted); }
+.valeur-card.dark .vc-hint { color:var(--warm); }
+
+.valeur-card textarea { width:100%; background:transparent; border:none; outline:none; font-family:'Schibsted Grotesk',sans-serif; font-size:13px; resize:none; min-height:68px; line-height:1.75; overflow:hidden; }
+.valeur-card:not(.dark) textarea { color:var(--noir); border-bottom:1px solid var(--warm); }
+.valeur-card.dark textarea { color:rgba(255,255,255,.9); border-bottom:1px solid rgba(255,255,255,.12); }
+.valeur-card textarea::placeholder { color:var(--warm); font-style:italic; font-size:12px; }
+.valeur-card.dark textarea::placeholder { color:rgba(255,255,255,.2); }
+
+.valeur-note { font-family:'Schibsted Grotesk',sans-serif; font-style:italic; font-size:12px; color:var(--muted); margin-top:14px; padding:0 4px; line-height:1.6; }
+
+/* ── SECTION 03 — CLÔTURE (texte, pas d'input) ──────────────── */
+.cloture-block { background:var(--cream); padding:36px 40px; position:relative; overflow:hidden; }
+.cloture-block::before { content:''; position:absolute; top:0; left:0; width:100%; height:3px; background:var(--rouge); }
+.cloture-intro { font-family:'Schibsted Grotesk',sans-serif; font-weight:800; font-size:13px; letter-spacing:2px; color:var(--rouge); margin-bottom:12px; text-transform:uppercase; }
+.cloture-text { font-family:'Schibsted Grotesk',sans-serif; font-size:15px; color:var(--noir); line-height:1.7; margin-bottom:20px; }
+.prochain-label { display:inline-block; font-family:'Schibsted Grotesk',sans-serif; font-size:10px; letter-spacing:3px; color:var(--muted); text-transform:uppercase; border:1px solid var(--warm); padding:5px 12px; margin-bottom:24px; }
+.cloture-devoir { background:var(--noir); padding:24px 28px; position:relative; }
+.cloture-devoir::before { content:''; position:absolute; left:0; top:0; width:3px; height:100%; background:var(--rouge); }
+.devoir-label { font-family:'Schibsted Grotesk',sans-serif; font-weight:800; font-size:9px; letter-spacing:3px; color:var(--rouge); margin-bottom:10px; text-transform:uppercase; }
+.devoir-text { font-family:'Schibsted Grotesk',sans-serif; font-size:14px; color:var(--cream); line-height:1.65; }
 
 /* ── GENERATE ─────────────────────────────────────────────────── */
 .generate-wrap { position:fixed; bottom:40px; right:60px; z-index:500; opacity:0; animation:fdUp .8s ease forwards 1.2s; }
@@ -215,7 +216,7 @@ main { padding:60px 60px 140px; max-width:1000px; margin:0 auto; }
   .hero { padding:40px 24px 20px; }
   .hero-deco { display:none; }
   .divider { width:calc(100% - 48px); margin:0 24px; }
-  .trois-cartes, .angle-grid, .signature-grid, .concurrents-grid { grid-template-columns:1fr; }
+  .trois-cartes, .angle-grid, .signature-wrap, .valeurs-grid { grid-template-columns:1fr; }
   .generate-wrap { bottom:20px; right:20px; }
 }
 /* Contraste : placeholders lisibles sur blocs clairs (DA 2026-06-16) */
@@ -230,17 +231,16 @@ main { padding:60px 60px 140px; max-width:1000px; margin:0 auto; }
 
 <header>
   <div class="logo-tag">AMOUR STUDIOS</div>
-  <div class="mod-tag">MODULE 01 — VIDÉO 06<br>MA DIFFÉRENCIATION</div>
+  <div class="mod-tag">MODULE 01 — DIFFÉRENCIATION & VALEURS</div>
 </header>
 
 <div class="hero">
   <div class="hero-label">Exercice élève</div>
   <h1 id="heroT">
-    <span class="w1">TON</span>
-    <span class="w2">ESPACE</span>
-    <span class="w3">UNIQUE.</span>
+    <span class="w1">DIFFÉRENCIATION &</span>
+    <span class="w2">VALEURS</span>
   </h1>
-  <p class="hero-sub">Personne ne peut faire exactement ce que toi tu fais.<br>Encore faut-il savoir quoi.</p>
+  <p class="hero-sub">Pourquoi toi, et pas un autre. Tes angles, ton contenu signature, tes valeurs.</p>
   <div class="hero-deco" id="heroD">06</div>
 </div>
 
@@ -248,153 +248,122 @@ main { padding:60px 60px 140px; max-width:1000px; margin:0 auto; }
 
 <main>
 
-  <!-- 01 — 3 CHOSES QUI ME RENDENT UNIQUE -->
+  <!-- 01 — POURQUOI TOI ET PAS UN AUTRE ? -->
   <div class="section">
     <div class="section-header">
       <span class="section-number">01</span>
-      <div class="section-title">3 choses qui me rendent unique</div>
-      <p class="section-desc">Parcours, style, personnalité, histoire, vision. Choisis les 3 qui te définissent.</p>
+      <div class="section-title">Pourquoi toi et pas un autre ?</div>
+      <p class="section-desc">Ce qui te rend unique + tes 3 angles de contenu.</p>
     </div>
+
+    <!-- 3 choses uniques -->
+    <p style="font-family:'Schibsted Grotesk',sans-serif;font-weight:800;font-size:10px;letter-spacing:3px;color:var(--rouge);text-transform:uppercase;margin-bottom:10px;">3 choses qui te rendent unique</p>
     <div class="trois-cartes">
       <div class="unicite-card card-3d">
         <div class="uc-num">01</div>
         <div class="uc-label">UNICITÉ</div>
         <div class="uc-hint">Ce que ton parcours t'a donné que les autres n'ont pas.</div>
-        <textarea id="v6_u1" placeholder="ex : J'ai grandi entre deux cultures, ça donne à mon rap une couleur que personne d'autre ne peut reproduire..."></textarea>
+        <textarea id="unique1" placeholder="ex : J'ai grandi entre deux cultures, ça donne à mon art une couleur que personne d'autre ne peut reproduire..."></textarea>
       </div>
       <div class="unicite-card card-3d">
         <div class="uc-num">02</div>
         <div class="uc-label">STYLE</div>
-        <div class="uc-hint">La manière dont tu livres ton art — ton ton, ton univers visuel.</div>
-        <textarea id="v6_u2" placeholder="ex : Mon écriture mélange images concrètes et mélancolie. Je filme tout en un plan séquence..."></textarea>
+        <div class="uc-hint">Ta manière de livrer ton art — ton univers, ton ton.</div>
+        <textarea id="unique2" placeholder="ex : Mon écriture mélange images concrètes et mélancolie. Je filme tout en un plan séquence..."></textarea>
       </div>
       <div class="unicite-card card-3d">
         <div class="uc-num">03</div>
         <div class="uc-label">VISION</div>
         <div class="uc-hint">L'angle sous lequel tu vois les choses — ta signature mentale.</div>
-        <textarea id="v6_u3" placeholder="ex : Je veux montrer que la vraie force vient de la vulnérabilité. Pas du masque..."></textarea>
+        <textarea id="unique3" placeholder="ex : Je veux montrer que la vraie force vient de la vulnérabilité. Pas du masque..."></textarea>
       </div>
     </div>
-  </div>
 
-  <!-- 02 — CE QUE MES CONCURRENTS NE FONT PAS -->
-  <div class="section">
-    <div class="section-header">
-      <span class="section-number">02</span>
-      <div class="section-title">Ce que mes concurrents ne font pas</div>
-      <p class="section-desc">Les angles libres que ta veille t'a permis d'identifier.</p>
-    </div>
-    <div class="concurrents-grid">
-      <div class="concurrent-item card-3d">
-        <div class="ci-header">
-          <div class="ci-num">1</div>
-          <div class="ci-title">GAP REPÉRÉ</div>
-        </div>
-        <textarea id="v6_gap1" placeholder="ex : Aucun ne montre son process créatif en détail, de l'idée au résultat final..."></textarea>
-      </div>
-      <div class="concurrent-item card-3d">
-        <div class="ci-header">
-          <div class="ci-num">2</div>
-          <div class="ci-title">GAP REPÉRÉ</div>
-        </div>
-        <textarea id="v6_gap2" placeholder="ex : Personne ne parle de ses doutes et échecs avec cette franchise-là..."></textarea>
-      </div>
-      <div class="concurrent-item card-3d">
-        <div class="ci-header">
-          <div class="ci-num">3</div>
-          <div class="ci-title">GAP REPÉRÉ</div>
-        </div>
-        <textarea id="v6_gap3" placeholder="ex : Aucun ne crée ce lien direct, intime, entre le live et sa communauté..."></textarea>
-      </div>
-      <div class="concurrent-item card-3d">
-        <div class="ci-header">
-          <div class="ci-num">4</div>
-          <div class="ci-title">GAP REPÉRÉ</div>
-        </div>
-        <textarea id="v6_gap4" placeholder="ex : Personne ne combine ce style visuel avec cette profondeur de texte..."></textarea>
-      </div>
-    </div>
-    <div class="opportunite-block">
-      <div class="op-label">MON OPPORTUNITÉ</div>
-      <div class="op-title">L'ANGLE QUE JE VAIS OCCUPER</div>
-      <textarea id="v6_opportunite" placeholder="Résume en 1–2 phrases l'espace que toi seul peux occuper dans ton écosystème..."></textarea>
-    </div>
-  </div>
-
-  <!-- 03 — MON ANGLE PROPRE -->
-  <div class="section">
-    <div class="section-header">
-      <span class="section-number">03</span>
-      <div class="section-title">Mon angle propre</div>
-      <p class="section-desc">Ta manière de présenter ton art — celle qui t'appartient.</p>
-    </div>
+    <!-- 3 angles -->
+    <p style="font-family:'Schibsted Grotesk',sans-serif;font-weight:800;font-size:10px;letter-spacing:3px;color:var(--rouge);text-transform:uppercase;margin:24px 0 10px;">Tes 3 angles</p>
     <div class="angle-grid">
       <div class="angle-card card-3d">
         <div class="ac-icon">F</div>
         <div class="ac-title">FORMAT</div>
         <div class="ac-hint">La forme que prend ton contenu. Comment tu le livres.</div>
-        <textarea id="v6_format" placeholder="ex : Reels en un seul plan, sessions live non éditées, mini-docs..."></textarea>
+        <textarea id="angle_format" placeholder="ex : Reels en un seul plan, sessions live non éditées, mini-docs..."></textarea>
       </div>
       <div class="angle-card card-3d">
         <div class="ac-icon">T</div>
-        <div class="ac-title">TON</div>
+        <div class="ac-title">TON & ÉNERGIE</div>
         <div class="ac-hint">La voix, l'énergie, l'attitude que tu mets dans chaque contenu.</div>
-        <textarea id="v6_ton" placeholder="ex : Brut, direct, sans fioriture. Jamais de performatif. Toujours du vrai..."></textarea>
+        <textarea id="angle_ton" placeholder="ex : Brut, direct, sans fioriture. Jamais de performatif. Toujours du vrai..."></textarea>
       </div>
       <div class="angle-card card-3d">
         <div class="ac-icon">T</div>
         <div class="ac-title">THÈME</div>
         <div class="ac-hint">Le sujet central ou l'univers que tu explores en boucle.</div>
-        <textarea id="v6_theme" placeholder="ex : La dualité entre le quotidien banal et l'ambition démesurée..."></textarea>
-      </div>
-    </div>
-    <div class="formule-block">
-      <div class="formule-label">MA FORMULE</div>
-      <div class="formule-text">
-        <textarea id="v6_formule" placeholder="Je fais [FORMAT] avec [TON] sur [THÈME]. — Écris ta formule complète ici..."></textarea>
+        <textarea id="angle_theme" placeholder="ex : La dualité entre le quotidien banal et l'ambition démesurée..."></textarea>
       </div>
     </div>
   </div>
 
-  <!-- 04 — POURQUOI ME SUIVRE MOI -->
+  <!-- 02 — CONTENU SIGNATURE & VALEURS -->
   <div class="section">
     <div class="section-header">
-      <span class="section-number">04</span>
-      <div class="section-title">Pourquoi me suivre moi ?</div>
-      <p class="section-desc">En une phrase. Concret et précis. Pas de généralités.</p>
+      <span class="section-number">02</span>
+      <div class="section-title">Contenu signature & Valeurs</div>
+      <p class="section-desc">Ton positionnement en une phrase, ton format signature, et ce qui guide tout.</p>
     </div>
-    <div class="pourquoi-wrap">
-      <textarea id="v6_pourquoi" placeholder="Parce que [toi seul] fais [quoi] pour [qui] d'une manière que personne d'autre ne peut reproduire."></textarea>
+
+    <!-- Pourquoi me suivre -->
+    <p style="font-family:'Schibsted Grotesk',sans-serif;font-weight:800;font-size:10px;letter-spacing:3px;color:var(--rouge);text-transform:uppercase;margin-bottom:10px;">Pourquoi me suivre ?</p>
+    <div class="pourquoi-wrap" style="margin-bottom:3px;">
+      <textarea id="pourquoi_suivre" placeholder="Parce que [toi seul] fais [quoi] pour [qui] d'une manière que personne d'autre ne peut reproduire."></textarea>
       <div class="pourquoi-hint">Une seule phrase — la plus honnête que tu puisses écrire</div>
     </div>
-  </div>
 
-  <!-- 05 — MON CONTENU SIGNATURE -->
-  <div class="section">
-    <div class="section-header">
-      <span class="section-number">05</span>
-      <div class="section-title">Mon contenu signature</div>
-      <p class="section-desc">Un format, un style, un thème récurrent — que seul toi peux faire.</p>
-    </div>
-    <div class="signature-grid">
+    <!-- Contenu signature -->
+    <p style="font-family:'Schibsted Grotesk',sans-serif;font-weight:800;font-size:10px;letter-spacing:3px;color:var(--rouge);text-transform:uppercase;margin:24px 0 10px;">Ton contenu signature</p>
+    <div class="signature-wrap" style="margin-bottom:3px;">
       <div class="sig-card card-3d">
-        <div class="sc-title">LE FORMAT</div>
-        <div class="sc-hint">La série ou le format récurrent qui te représente.</div>
-        <textarea id="v6_sig_format" placeholder="ex : Une série « 1 texte / 1 lieu / 1 prise » — même décor à chaque fois..."></textarea>
-      </div>
-      <div class="sig-card card-3d">
-        <div class="sc-title">LE NOM</div>
+        <div class="sc-title">NOM DU FORMAT</div>
         <div class="sc-hint">Donne un nom à ce format. Il doit t'appartenir.</div>
-        <textarea id="v6_sig_nom" placeholder="ex : « RAW SESSIONS » / « LETTRE À » / « BRUT DE QUARTIER »..."></textarea>
+        <textarea id="signature_nom" placeholder="ex : « RAW SESSIONS » / « LETTRE À » / « BRUT DE QUARTIER »..."></textarea>
       </div>
       <div class="sig-card dark card-3d">
-        <div class="sc-title">POURQUOI SEUL TOI ?</div>
-        <div class="sc-hint">Ce qui rend ce contenu non-copiable, non-remplaçable.</div>
-        <textarea id="v6_sig_pourquoi" placeholder="ex : Parce que c'est mon vécu, ma voix, mon endroit. Impossible à simuler..."></textarea>
+        <div class="sc-title">DESCRIPTION DU FORMAT</div>
+        <div class="sc-hint">La série récurrente qui te représente — ce qu'on voit, ce qu'on ressent.</div>
+        <textarea id="signature_desc" placeholder="ex : Une série « 1 texte / 1 lieu / 1 prise » — même décor à chaque fois, mais jamais le même texte..."></textarea>
       </div>
-      <div class="seul-toi">
-        <div class="st-title">SEUL<br>TOI.</div>
-        <div class="st-sub">Ce contenu n'appartient qu'à toi.<br>Pas copiable. Pas remplaçable.</div>
+    </div>
+
+    <!-- Valeurs et limites -->
+    <p style="font-family:'Schibsted Grotesk',sans-serif;font-weight:800;font-size:10px;letter-spacing:3px;color:var(--rouge);text-transform:uppercase;margin:24px 0 10px;">Valeurs et limites</p>
+    <div class="valeurs-grid">
+      <div class="valeur-card card-3d">
+        <div class="vc-label">CE QUE TU VEUX TRANSMETTRE</div>
+        <div class="vc-hint">Les valeurs, les messages, l'énergie que ton contenu doit incarner.</div>
+        <textarea id="valeurs_transmettre" placeholder="ex : L'authenticité, la vulnérabilité assumée, l'ambition sans excuses, le collectif avant l'ego..."></textarea>
+      </div>
+      <div class="valeur-card dark card-3d">
+        <div class="vc-label">CE QUE TU NE VEUX PAS MONTRER</div>
+        <div class="vc-hint">Tes limites. Ce qui ne t'appartient pas à partager en public.</div>
+        <textarea id="valeurs_eviter" placeholder="ex : Ma vie privée totale, mes conflits personnels, du contenu que je ne ressens pas..."></textarea>
+      </div>
+    </div>
+    <p class="valeur-note">Pas besoin de jouer un personnage que tu n'es pas pour réussir sur les réseaux.</p>
+  </div>
+
+  <!-- 03 — CLÔTURE DU MODULE 1 (texte, pas d'input) -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-number">03</span>
+      <div class="section-title">Clôture du Module 1</div>
+      <p class="section-desc">Ce que tu emportes. Ce qui vient ensuite.</p>
+    </div>
+    <div class="cloture-block">
+      <div class="cloture-intro">Introduction à la forme</div>
+      <p class="cloture-text">Sur les réseaux, c'est la forme qui prime : le script, le hook, le montage. Le fond vient après. Tu connais maintenant ton fond — qui tu es, ce que tu transmets, ce qui te différencie. La prochaine étape, c'est apprendre à le mettre en forme pour que les gens s'arrêtent, regardent, et reviennent.</p>
+      <div class="prochain-label">Prochain call : Module 2 · Les Hooks</div>
+      <div class="cloture-devoir">
+        <div class="devoir-label">À rendre pour la semaine prochaine</div>
+        <p class="devoir-text">Écris 5 choses qui te différencient des autres + note tes 3–4 valeurs fondamentales.</p>
       </div>
     </div>
   </div>
@@ -418,6 +387,15 @@ main { padding:60px 60px 140px; max-width:1000px; margin:0 auto; }
 <div class="footer-line"></div>
 
 <script>
+// ── staticFields MUST be declared BEFORE any init code that calls updateRing() ──
+var staticFields = [
+  'unique1','unique2','unique3',
+  'angle_format','angle_ton','angle_theme',
+  'pourquoi_suivre',
+  'signature_nom','signature_desc',
+  'valeurs_transmettre','valeurs_eviter'
+];
+
 // ── CURSOR ────────────────────────────────────────────────────────
 var cur = document.getElementById('cur');
 var curR = document.getElementById('curR');
@@ -463,15 +441,14 @@ var io=new IntersectionObserver(function(entries){
 document.querySelectorAll('.section').forEach(function(s){ io.observe(s); });
 
 // ── COMPLETION RING ───────────────────────────────────────────────
-var ALL_IDS=['v6_u1','v6_u2','v6_u3','v6_gap1','v6_gap2','v6_gap3','v6_gap4','v6_opportunite','v6_format','v6_ton','v6_theme','v6_formule','v6_pourquoi','v6_sig_format','v6_sig_nom','v6_sig_pourquoi'];
-
-function upRing(){
-  var filled=ALL_IDS.filter(function(id){ var e=document.getElementById(id); return e&&e.value.trim(); }).length;
-  var p=Math.round(filled/ALL_IDS.length*100);
+function updateRing(){
+  var filled=staticFields.filter(function(id){ var e=document.getElementById(id); return e&&e.value.trim(); }).length;
+  var p=Math.round(filled/staticFields.length*100);
   document.getElementById('ringFill').style.strokeDashoffset=113-(p/100)*113;
   document.getElementById('ringLabel').textContent=p+'%';
 }
-ALL_IDS.forEach(function(id){ var e=document.getElementById(id); if(e) e.addEventListener('input',upRing); });
+staticFields.forEach(function(id){ var e=document.getElementById(id); if(e) e.addEventListener('input',updateRing); });
+updateRing();
 
 // ── TOAST ─────────────────────────────────────────────────────────
 function showToast(m){ var t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); setTimeout(function(){ t.classList.remove('show'); },3000); }
@@ -486,8 +463,7 @@ function generatePDF(){
     var W=210,H=297,M=14,CW=182,HDR=18,YS=HDR+8,YX=H-14;
 
     var B=[255,255,255],N=[10,10,10],R=[255,90,31],CR=[244,242,238];
-    var WM=[228,226,220],MU=[106,106,106],WH=[255,255,255],AL=[244,242,238];
-    var GOLD=[255,90,31],TEAL=[255,90,31];
+    var WM=[228,226,220],MU=[106,106,106],WH=[255,255,255];
 
     var pn=1,y=YS;
     function fc(c){ doc.setFillColor(c[0],c[1],c[2]); }
@@ -496,8 +472,8 @@ function generatePDF(){
       fc(B);doc.rect(0,0,W,H,'F');
       fc(N);doc.rect(0,0,W,HDR,'F');
       fc(R);doc.rect(0,H-4,W,4,'F');
-      doc.setFont('helvetica','bold');doc.setFontSize(8);tc(B);doc.text('AMOUR STUDIOS',M,7);
-      doc.setFont('helvetica','normal');doc.setFontSize(7);doc.text('MODULE 01 — VIDÉO 06 — MA DIFFÉRENCIATION',M,13);
+      doc.setFont('helvetica','bold');doc.setFontSize(8);tc(WH);doc.text('AMOUR STUDIOS',M,7);
+      doc.setFont('helvetica','normal');doc.setFontSize(7);doc.text('MODULE 01 — DIFFÉRENCIATION & VALEURS',M,13);
       doc.setFont('helvetica','bold');doc.setFontSize(7);doc.text('PAGE '+pn,W-M,10,{align:'right'});
     }
     function np(){ pn++;doc.addPage();shell();y=YS; }
@@ -513,31 +489,25 @@ function generatePDF(){
       else { y+=7; }
     }
 
-    function contentBlock(label,value,bgColor,accentColor,textColor){
-      var ls=wT(value,CW-10,9);
-      var h=Math.max(lh(ls.length,9)+12,16);
-      need(h+2);
-      fc(bgColor);doc.rect(M,y,CW,h,'F');
-      fc(accentColor);doc.rect(M,y,3,h,'F');
-      doc.setFont('helvetica','bold');doc.setFontSize(6);tc(accentColor);doc.text(label,M+7,y+5);
-      doc.setFont('helvetica','normal');doc.setFontSize(9);tc(textColor);doc.text(ls,M+7,y+11);
-      y+=h+2;
-    }
-
     shell();
 
     // Title
-    doc.setFont('helvetica','bold');doc.setFontSize(36);tc(N);doc.text('TON ESPACE',M,y+12);
-    tc(R);doc.text('UNIQUE.',M,y+24);
+    doc.setFont('helvetica','bold');doc.setFontSize(30);tc(N);doc.text('DIFFÉRENCIATION &',M,y+12);
+    tc(R);doc.text('VALEURS',M,y+24);
     doc.setFont('helvetica','oblique');doc.setFontSize(8.5);tc(MU);
-    doc.text("Personne ne peut faire exactement ce que toi tu fais.",M,y+32);
+    doc.text('Pourquoi toi, et pas un autre. Tes angles, ton contenu signature, tes valeurs.',M,y+32);
     y+=42;
 
-    // ── 01 3 UNICITÉS ────────────────────────────────────────────
-    sLab('01 — 3 CHOSES QUI ME RENDENT UNIQUE','Parcours · Style · Vision');
-    var uniq=[['01 — UNICITÉ',getVal('v6_u1')],['02 — STYLE',getVal('v6_u2')],['03 — VISION',getVal('v6_u3')]];
+    // ── 01 — 3 UNICITÉS ──────────────────────────────────────────
+    sLab('01 — POURQUOI TOI ET PAS UN AUTRE ?','3 choses uniques · 3 angles');
+
+    // 3 unicités
+    var uniq=[
+      ['01 — UNICITÉ',getVal('unique1')],
+      ['02 — STYLE',getVal('unique2')],
+      ['03 — VISION',getVal('unique3')]
+    ];
     var uw=(CW-4)/3;
-    // Calc max row height
     var maxUH=14;
     uniq.forEach(function(u){
       var ls=wT(u[1],uw-8,8.5);
@@ -548,46 +518,21 @@ function generatePDF(){
     need(maxUH);
     uniq.forEach(function(u,i){
       var ux=M+i*(uw+2);
-      var col=[R,WM,TEAL][i];
       fc(i===1?N:CR);doc.rect(ux,y,uw,maxUH,'F');
-      fc(col);doc.rect(ux,y,uw,0.8,'F');
-      doc.setFont('helvetica','bold');doc.setFontSize(6.5);tc(col);doc.text(u[0],ux+4,y+5);
+      fc(R);doc.rect(ux,y,uw,0.8,'F');
+      doc.setFont('helvetica','bold');doc.setFontSize(6.5);tc(R);doc.text(u[0],ux+4,y+5);
       doc.setFont('helvetica','normal');doc.setFontSize(8.5);tc(i===1?CR:N);
       doc.text(wT(u[1],uw-8,8.5),ux+4,y+11);
     });
-    y+=maxUH+2; gap();
+    y+=maxUH+3; gap(4);
 
-    // ── 02 CONCURRENTS ───────────────────────────────────────────
-    sLab('02 — CE QUE MES CONCURRENTS NE FONT PAS','Identifié grâce à ta veille');
-    var gaps=[['GAP 1',getVal('v6_gap1')],['GAP 2',getVal('v6_gap2')],['GAP 3',getVal('v6_gap3')],['GAP 4',getVal('v6_gap4')]];
-    var gw=(CW-2)/2;
-    for(var row=0;row<2;row++){
-      var pair=[gaps[row*2],gaps[row*2+1]];
-      var ch=pair.map(function(g){ var ls=wT(g[1],gw-10,8.5); return Math.max(lh(ls.length,8.5)+12,16); });
-      var adv=Math.max(ch[0],ch[1]);
-      need(adv+2);
-      pair.forEach(function(g,ci){
-        var gx=M+ci*(gw+2);
-        fc(ci===0?CR:AL);doc.rect(gx,y,gw,ch[ci],'F');
-        fc(R);doc.rect(gx,y,2,ch[ci],'F');
-        doc.setFont('helvetica','bold');doc.setFontSize(6);tc(R);doc.text(g[0],gx+6,y+5);
-        doc.setFont('helvetica','normal');doc.setFontSize(8.5);tc(N);doc.text(wT(g[1],gw-10,8.5),gx+6,y+10);
-      });
-      y+=adv+2;
-    }
-    // Opportunité
-    var oppLs=wT(getVal('v6_opportunite'),CW-12,10);
-    var oppH=Math.max(lh(oppLs.length,10)+14,20);
-    need(oppH+2);
-    fc(R);doc.rect(M,y,CW,oppH,'F');
-    doc.setFont('helvetica','bold');doc.setFontSize(7);tc(WH);doc.text('MON OPPORTUNITÉ — L\'ANGLE QUE JE VAIS OCCUPER',M+6,y+6);
-    doc.setFont('helvetica','oblique');doc.setFontSize(10);
-    doc.text(oppLs,M+6,y+13);
-    y+=oppH+2; gap();
-
-    // ── 03 ANGLE ─────────────────────────────────────────────────
-    sLab('03 — MON ANGLE PROPRE','Format · Ton · Thème');
-    var angles=[['F — FORMAT',getVal('v6_format'),R],['T — TON',getVal('v6_ton'),GOLD],['T — THÈME',getVal('v6_theme'),TEAL]];
+    // 3 angles
+    doc.setFont('helvetica','bold');doc.setFontSize(6.5);tc(MU);doc.text('TES 3 ANGLES',M,y);y+=5;
+    var angles=[
+      ['F — FORMAT',getVal('angle_format')],
+      ['T — TON & ÉNERGIE',getVal('angle_ton')],
+      ['T — THÈME',getVal('angle_theme')]
+    ];
     var aw=(CW-4)/3;
     var maxAH=14;
     angles.forEach(function(a){ var ls=wT(a[1],aw-8,8.5); var h=lh(ls.length,8.5)+14; if(h>maxAH) maxAH=h; });
@@ -597,57 +542,92 @@ function generatePDF(){
       var ax=M+i*(aw+2);
       var isDark=i===1;
       fc(isDark?N:CR);doc.rect(ax,y,aw,maxAH,'F');
-      fc(a[2]);doc.rect(ax,y,aw,0.8,'F');
-      doc.setFont('helvetica','bold');doc.setFontSize(7);tc(a[2]);doc.text(a[0],ax+4,y+6);
+      fc(R);doc.rect(ax,y,aw,0.8,'F');
+      doc.setFont('helvetica','bold');doc.setFontSize(7);tc(R);doc.text(a[0],ax+4,y+6);
       doc.setFont('helvetica','normal');doc.setFontSize(8.5);tc(isDark?CR:N);doc.text(wT(a[1],aw-8,8.5),ax+4,y+12);
     });
-    y+=maxAH+2;
-    // Formule
-    var fLs=wT(getVal('v6_formule'),CW-32,11);
-    var fH=Math.max(lh(fLs.length,11)+10,16);
-    need(fH+2);
-    fc(N);doc.rect(M,y,CW,fH,'F');
-    doc.setFont('helvetica','bold');doc.setFontSize(6.5);tc(R);doc.text('MA FORMULE',M+6,y+5);
-    doc.setFont('helvetica','oblique');doc.setFontSize(11);tc(CR);doc.text(fLs,M+26,y+fH/2+2);
-    y+=fH+2; gap();
+    y+=maxAH+2; gap();
 
-    // ── 04 POURQUOI MOI ──────────────────────────────────────────
-    sLab('04 — POURQUOI ME SUIVRE MOI ?','En une phrase. Concret et précis.');
-    var pqLs=wT(getVal('v6_pourquoi'),CW-24,12);
+    // ── 02 — CONTENU SIGNATURE & VALEURS ─────────────────────────
+    sLab('02 — CONTENU SIGNATURE & VALEURS','Positionnement · Format · Valeurs & limites');
+
+    // Pourquoi me suivre
+    var pqLs=wT(getVal('pourquoi_suivre'),CW-24,12);
     var pqH=Math.max(lh(pqLs.length,12,1.6)+16,22);
     need(pqH);
     fc(N);doc.rect(M,y,CW,pqH,'F');
     fc(R);doc.rect(M,y,3,pqH,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(6);tc(R);doc.text('POURQUOI ME SUIVRE ?',M+6,y+5);
     doc.setFont('helvetica','oblique');doc.setFontSize(12);tc(CR);
-    doc.text(pqLs,W/2,y+pqH/2-lh(pqLs.length,12,1.6)/2+4,{align:'center'});
-    y+=pqH+2; gap();
+    doc.text(pqLs,W/2,y+pqH/2-lh(pqLs.length,12,1.6)/2+8,{align:'center'});
+    y+=pqH+3; gap(4);
 
-    // ── 05 CONTENU SIGNATURE ─────────────────────────────────────
-    sLab('05 — MON CONTENU SIGNATURE','Le format que seul toi peux faire.');
-    var sigs=[['LE FORMAT',getVal('v6_sig_format'),CR,false],['LE NOM',getVal('v6_sig_nom'),AL,false],['POURQUOI SEUL TOI',getVal('v6_sig_pourquoi'),N,true]];
-    var sw=(CW-4)/3;
-    var maxSH=14;
-    sigs.forEach(function(s){ var ls=wT(s[1],sw-8,8.5); var h=lh(ls.length,8.5)+14; if(h>maxSH) maxSH=h; });
-    maxSH=Math.max(maxSH,18);
-    need(maxSH);
-    sigs.forEach(function(s,i){
+    // Contenu signature
+    doc.setFont('helvetica','bold');doc.setFontSize(6.5);tc(MU);doc.text('TON CONTENU SIGNATURE',M,y);y+=5;
+    var sigCards=[
+      ['NOM DU FORMAT',getVal('signature_nom'),CR,false],
+      ['DESCRIPTION DU FORMAT',getVal('signature_desc'),N,true]
+    ];
+    var sw=CW/2-1;
+    var sigHs=sigCards.map(function(s){ var ls=wT(s[1],sw-10,8.5); return Math.max(lh(ls.length,8.5)+14,18); });
+    var maxSH=Math.max(sigHs[0],sigHs[1]);
+    need(maxSH+2);
+    sigCards.forEach(function(s,i){
       var sx=M+i*(sw+2);
       fc(s[2]);doc.rect(sx,y,sw,maxSH,'F');
       fc(R);doc.rect(sx,y,2,maxSH,'F');
-      doc.setFont('helvetica','bold');doc.setFontSize(6.5);tc(R);doc.text(s[0],sx+6,y+5);
+      doc.setFont('helvetica','bold');doc.setFontSize(6);tc(R);doc.text(s[0],sx+6,y+5);
       doc.setFont('helvetica','normal');doc.setFontSize(8.5);tc(s[3]?CR:N);doc.text(wT(s[1],sw-10,8.5),sx+6,y+11);
     });
-    y+=maxSH+2;
-    // SEUL TOI
-    need(14);fc(R);doc.rect(M,y,CW,14,'F');
-    doc.setFont('helvetica','bold');doc.setFontSize(20);tc(WH);doc.text('SEUL TOI.',W/2,y+9.5,{align:'center'});
-    doc.setFont('helvetica','oblique');doc.setFontSize(7.5);tc(CR);
-    doc.text('Ce contenu n\'appartient qu\'à toi. Pas copiable. Pas remplaçable.',W/2,y+13,{align:'center'});
+    y+=maxSH+3; gap(4);
+
+    // Valeurs et limites
+    doc.setFont('helvetica','bold');doc.setFontSize(6.5);tc(MU);doc.text('VALEURS ET LIMITES',M,y);y+=5;
+    var valCards=[
+      ['CE QUE TU VEUX TRANSMETTRE',getVal('valeurs_transmettre'),CR,false],
+      ['CE QUE TU NE VEUX PAS MONTRER',getVal('valeurs_eviter'),N,true]
+    ];
+    var vw=CW/2-1;
+    var valHs=valCards.map(function(v){ var ls=wT(v[1],vw-10,8.5); return Math.max(lh(ls.length,8.5)+14,18); });
+    var maxVH=Math.max(valHs[0],valHs[1]);
+    need(maxVH+2);
+    valCards.forEach(function(v,i){
+      var vx=M+i*(vw+2);
+      fc(v[2]);doc.rect(vx,y,vw,maxVH,'F');
+      fc(R);doc.rect(vx,y,2,maxVH,'F');
+      doc.setFont('helvetica','bold');doc.setFontSize(6);tc(R);doc.text(v[0],vx+6,y+5);
+      doc.setFont('helvetica','normal');doc.setFontSize(8.5);tc(v[3]?CR:N);doc.text(wT(v[1],vw-10,8.5),vx+6,y+11);
+    });
+    y+=maxVH+3; gap();
+
+    // ── 03 — CLÔTURE MODULE 1 ────────────────────────────────────
+    sLab('03 — CLÔTURE DU MODULE 1');
+    var clotureIntroLs=wT('Introduction à la forme — Sur les réseaux, c\'est la forme qui prime : le script, le hook, le montage. Le fond vient après.',CW-10,8.5);
+    var clotureH=Math.max(lh(clotureIntroLs.length,8.5,1.5)+8,16);
+    need(clotureH+2);
+    fc(CR);doc.rect(M,y,CW,clotureH,'F');
+    fc(R);doc.rect(M,y,CW,0.8,'F');
+    doc.setFont('helvetica','normal');doc.setFontSize(8.5);tc(N);doc.text(clotureIntroLs,M+4,y+7);
+    y+=clotureH+3;
+
+    need(10);
+    doc.setFont('helvetica','bold');doc.setFontSize(7);tc(MU);
+    doc.text('PROCHAIN CALL : MODULE 2 · LES HOOKS',M,y+5);
+    y+=10; gap(2);
+
+    var devoirLs=wT('Écris 5 choses qui te différencient des autres + note tes 3–4 valeurs fondamentales.',CW-14,9);
+    var devoirH=Math.max(lh(devoirLs.length,9,1.5)+12,18);
+    need(devoirH+2);
+    fc(N);doc.rect(M,y,CW,devoirH,'F');
+    fc(R);doc.rect(M,y,3,devoirH,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(6);tc(R);doc.text('À RENDRE POUR LA SEMAINE PROCHAINE',M+6,y+5);
+    doc.setFont('helvetica','normal');doc.setFontSize(9);tc(CR);doc.text(devoirLs,M+6,y+12);
+    y+=devoirH+4;
 
     doc.setFont('helvetica','normal');doc.setFontSize(6);tc(MU);
-    doc.text('AMOUR STUDIOS — MODULE 01 — VIDÉO 06 — MA DIFFÉRENCIATION',W/2,H-8,{align:'center'});
+    doc.text('AMOUR STUDIOS — MODULE 01 — DIFFÉRENCIATION & VALEURS',W/2,H-8,{align:'center'});
 
-    doc.save('AMOUR_STUDIOS_M01_V06_Differenciation.pdf');
+    doc.save('AMOUR_STUDIOS_M01_V06_Differenciation_Valeurs.pdf');
     showToast('✓ PDF généré !');
   },200);
 }

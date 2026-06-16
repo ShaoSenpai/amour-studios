@@ -45,10 +45,12 @@ function isActiveStatus(status: string): boolean {
   return status === "active" || status === "paid" || status === "past_due";
 }
 
-// Modules in scope pour le catalogue /exos coaching. Les autres modules
-// (Introduction, Mindset, Communauté…) restent en BDD pour la formation
-// legacy mais ne sont JAMAIS exposés côté élève coaching.
-export const COACHING_MODULE_ORDERS = [1, 2, 3] as const;
+// Modules in scope pour le catalogue /exos coaching.
+// 2026-06-16 : produit recentré sur le **Module 1 uniquement** (4 exos). M2/M3
+// (et le reste) ne sont plus exposés. Conséquence directe : le déblocage
+// « module suivant » (maybeAutoUnlockNextModule) devient inerte (aucun module
+// d'ordre 2/3 dans le scope) — le « marquer fait » reste pour la trace dashboard.
+export const COACHING_MODULE_ORDERS = [1] as const;
 
 /** Renvoie la liste TRIÉE des `module.order` accessibles à ce user pour les
  *  exercices coaching. Vide si pas d'accès. */

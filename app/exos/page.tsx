@@ -123,12 +123,6 @@ export default function ExosCatalogPage() {
               )}
             </div>
           </div>
-          <Link
-            href="/compte"
-            style={{ ...mono, fontSize: 10, color: c.muted, textDecoration: "none", whiteSpace: "nowrap" }}
-          >
-            Mon abonnement ›
-          </Link>
         </div>
 
         {/* Modules */}

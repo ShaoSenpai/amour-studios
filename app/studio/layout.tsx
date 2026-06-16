@@ -78,9 +78,13 @@ function StudioShell({
   const c = palette(dark, ACCENT);
   const isMobile = useIsMobile();
   const [userCollapsed, setUserCollapsed] = useState(false);
-  // En mobile, la sidebar passe en mode compact (64px, icônes seules) plutôt
-  // qu'un drawer : le contenu reste lisible sans risque de régression desktop.
-  const collapsed = userCollapsed || isMobile;
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  // Desktop : collapse manuel (rail 64px). Mobile : drawer plein, jamais le rail.
+  const collapsed = !isMobile && userCollapsed;
+  // Ferme le drawer mobile à chaque changement de route.
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     // Non connecté → login. Un non-admin n'est PAS rebondi : il voit l'écran
@@ -160,26 +164,106 @@ function StudioShell({
     <div
       style={{
         display: "flex",
+        flexDirection: isMobile ? "column" : "row",
         minHeight: "100vh",
         background: dark ? "#0B0B0B" : "#F4F2EE",
         color: sideText,
         fontFamily: "'Schibsted Grotesk', system-ui, sans-serif",
       }}
     >
+      {/* Top-bar mobile : burger + logo (collante). */}
+      {isMobile && (
+        <header
+          style={{
+            position: "sticky",
+            top: 0,
+            zIndex: 30,
+            height: 56,
+            flexShrink: 0,
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            padding: "0 14px",
+            background: sideBg,
+            borderBottom: `1px solid ${sideLine}`,
+          }}
+        >
+          <button
+            onClick={() => setMobileNavOpen(true)}
+            aria-label="Ouvrir le menu"
+            style={{
+              width: 38,
+              height: 38,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              border: `1px solid ${sideLine}`,
+              background: "transparent",
+              color: sideText,
+              borderRadius: 10,
+              fontSize: 18,
+              cursor: "pointer",
+            }}
+          >
+            ☰
+          </button>
+          <div
+            style={{
+              width: 26,
+              height: 26,
+              background: ACCENT,
+              color: "#0B0B0B",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontWeight: 600,
+              fontSize: 15,
+              borderRadius: 7,
+              flexShrink: 0,
+            }}
+          >
+            A
+          </div>
+          <div style={{ ...mono, fontSize: 10.5, color: sideText, letterSpacing: "0.04em" }}>
+            AMOUR STUDIOS · OPS
+          </div>
+        </header>
+      )}
+
+      {/* Fond cliquable derrière le drawer mobile. */}
+      {isMobile && mobileNavOpen && (
+        <div
+          onClick={() => setMobileNavOpen(false)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 40,
+            background: "rgba(0,0,0,0.45)",
+            backdropFilter: "blur(2px)",
+            WebkitBackdropFilter: "blur(2px)",
+          }}
+        />
+      )}
+
       <aside
         style={{
-          width: W,
+          width: isMobile ? 248 : W,
           flexShrink: 0,
           background: sideBg,
           color: sideText,
           borderRight: `1px solid ${sideLine}`,
           display: "flex",
           flexDirection: "column",
-          transition: "width var(--dur-instant) var(--ease-spring)",
-          position: "sticky",
+          transition: isMobile
+            ? "transform 0.25s var(--ease-spring)"
+            : "width var(--dur-instant) var(--ease-spring)",
+          position: isMobile ? "fixed" : "sticky",
           top: 0,
+          left: 0,
           height: "100vh",
-          zIndex: 10,
+          zIndex: isMobile ? 50 : 10,
+          transform: isMobile ? (mobileNavOpen ? "translateX(0)" : "translateX(-110%)") : undefined,
+          boxShadow: isMobile && mobileNavOpen ? "0 0 40px rgba(0,0,0,0.4)" : undefined,
         }}
       >
         {/* Logo */}
@@ -369,22 +453,24 @@ function StudioShell({
                 </div>
               </button>
             )}
-            <button
-              onClick={() => setUserCollapsed((v) => !v)}
-              style={{
-                width: 28,
-                height: 28,
-                border: `1px solid ${sideLine}`,
-                background: "transparent",
-                color: sideMuted,
-                cursor: "pointer",
-                borderRadius: 8,
-                fontSize: 13,
-                flexShrink: 0,
-              }}
-            >
-              {collapsed ? "›" : "‹"}
-            </button>
+            {!isMobile && (
+              <button
+                onClick={() => setUserCollapsed((v) => !v)}
+                style={{
+                  width: 28,
+                  height: 28,
+                  border: `1px solid ${sideLine}`,
+                  background: "transparent",
+                  color: sideMuted,
+                  cursor: "pointer",
+                  borderRadius: 8,
+                  fontSize: 13,
+                  flexShrink: 0,
+                }}
+              >
+                {collapsed ? "›" : "‹"}
+              </button>
+            )}
           </div>
         </div>
       </aside>

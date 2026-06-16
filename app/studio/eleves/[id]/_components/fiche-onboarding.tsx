@@ -10,6 +10,7 @@ import {
   ACCENT,
   mono,
   glassBtn,
+  useIsMobile,
   type C,
 } from "../../../_components/glass";
 import { Field, fieldInput, TAP } from "./fiche-shared";
@@ -58,6 +59,7 @@ export function OnboardingBlock({
   onSave: () => void;
   onCancel: () => void;
 }) {
+  const isMobile = useIsMobile();
   const stepMeta = ob?.step ? ONB_STEP_LABEL[ob.step] : null;
   const fullName =
     ob?.firstName || ob?.lastName
@@ -178,7 +180,7 @@ export function OnboardingBlock({
             border: `1px solid ${c.line}`,
             borderRadius: 12,
             display: "grid",
-            gridTemplateColumns: "1fr 1fr",
+            gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
             gap: 12,
           }}
         >

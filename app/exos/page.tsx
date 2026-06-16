@@ -1,9 +1,9 @@
 "use client";
 
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import Link from "next/link";
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import { Loader2, Lock, Check } from "lucide-react";
 import type { FunctionReturnType } from "convex/server";
 
@@ -31,6 +31,40 @@ export default function ExosCatalogPage() {
   const c = palette(dark, ACCENT);
   const summary = useQuery(api.exercises.accessSummary);
   const items = useQuery(api.exercises.listAllWithState);
+  const complete = useMutation(api.exerciseResponses.complete);
+
+  // Complétion auto : l'exo s'ouvre en nouvel onglet et, quand l'élève génère son
+  // PDF, le bridge diffuse "amour:exercise-complete" (BroadcastChannel "amour-exo"
+  // + postMessage). Le catalogue (resté ouvert = opener) le capte et marque l'exo
+  // fait → remonte au dashboard coach. href du bridge = pathname de l'exo (sans ?v=).
+  useEffect(() => {
+    if (!items) return;
+    const byPath = new Map(
+      items.filter((i) => i.exerciseUrl).map((i) => [i.exerciseUrl!.split("?")[0], i._id])
+    );
+    const onComplete = (href?: string) => {
+      if (!href) return;
+      const id = byPath.get(href.split("?")[0]);
+      if (id) void complete({ exerciseId: id }).catch(() => {});
+    };
+    const onMsg = (e: MessageEvent) => {
+      if (e.data?.type === "amour:exercise-complete") onComplete(e.data.href);
+    };
+    window.addEventListener("message", onMsg);
+    let ch: BroadcastChannel | null = null;
+    try {
+      ch = new BroadcastChannel("amour-exo");
+      ch.addEventListener("message", (e) => {
+        if (e.data?.type === "amour:exercise-complete") onComplete(e.data.href);
+      });
+    } catch {
+      // BroadcastChannel indispo → on garde le fallback postMessage (opener).
+    }
+    return () => {
+      window.removeEventListener("message", onMsg);
+      ch?.close();
+    };
+  }, [items, complete]);
 
   // Regroupement par module trié.
   type Group = {
@@ -237,12 +271,31 @@ function ExoRow({
   );
 
   if (isLocked) return content;
+
+  // Exo interactif (a une URL) → ouvre DIRECTEMENT en plein écran (nouvel onglet),
+  // plus de page détail intermédiaire. La complétion remonte via le bridge.
+  if (ex.exerciseUrl) {
+    return (
+      <a
+        href={ex.exerciseUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{ textDecoration: "none", color: "inherit", display: "block" }}
+        onMouseEnter={(e) => (e.currentTarget.style.background = c.chip)}
+        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+      >
+        {content}
+      </a>
+    );
+  }
+
+  // Exo interne (config, sans URL) → page détail (renderer interne).
   return (
     <Link
       href={`/exos/${ex._id}`}
       style={{ textDecoration: "none", color: "inherit", display: "block" }}
-      onMouseEnter={(e) => (e.currentTarget.firstElementChild!.parentElement!.style.background = c.chip)}
-      onMouseLeave={(e) => (e.currentTarget.firstElementChild!.parentElement!.style.background = "transparent")}
+      onMouseEnter={(e) => (e.currentTarget.style.background = c.chip)}
+      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
     >
       {content}
     </Link>

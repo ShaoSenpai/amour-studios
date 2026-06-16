@@ -502,7 +502,31 @@ export default function CalendrierPage() {
                       const height = (durMin / 60) * ROW_HEIGHT;
                       const tone = statusColor(ev.status);
                       const who = ev.student?.discordUsername || ev.student?.name || "—";
-                      const time = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" }).format(dt);
+                      const fmtHm = (d: Date) =>
+                        new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" }).format(d);
+                      const time = fmtHm(dt);
+                      const endTime = ev.endAt ? fmtHm(new Date(ev.endAt)) : null;
+                      const lessonLabel = ev.curriculum ? curriculumLabel(ev.curriculum) : null;
+                      const statusLabel =
+                        ev.status === "scheduled"
+                          ? "À venir"
+                          : ev.status === "completed"
+                          ? "Fait"
+                          : ev.status === "canceled"
+                          ? "Annulé"
+                          : ev.status === "no_show"
+                          ? "No-show"
+                          : ev.status;
+                      // Tooltip (survol) = tout le RDV d'un coup d'œil.
+                      const tooltip = [
+                        `${who} — ${time}${endTime ? `–${endTime}` : ""}`,
+                        lessonLabel ? `Leçon : ${lessonLabel}` : null,
+                        `${Math.round(durMin)} min · ${statusLabel}`,
+                      ]
+                        .filter(Boolean)
+                        .join("\n");
+                      // Bloc court → contenu compact (1 ligne) pour ne rien couper.
+                      const compact = height < 40;
                       const evKey = ev._id as unknown as string;
                       const popoverOpen = activeEvent === evKey;
                       const lateInWeek = dayIdx >= 5;
@@ -517,6 +541,7 @@ export default function CalendrierPage() {
                               setActiveEvent(null);
                             }}
                             onClick={() => setActiveEvent(popoverOpen ? null : evKey)}
+                            title={tooltip}
                             style={{
                               position: "absolute",
                               inset: 0,
@@ -526,23 +551,50 @@ export default function CalendrierPage() {
                               backdropFilter: "blur(20px)",
                               WebkitBackdropFilter: "blur(20px)",
                               borderRadius: 10,
-                              padding: "6px 8px",
+                              padding: compact ? "2px 8px" : "6px 8px",
                               textAlign: "left",
                               fontFamily: "inherit",
                               color: tone.color,
                               overflow: "hidden",
                               display: "flex",
-                              flexDirection: "column",
-                              gap: 2,
+                              flexDirection: compact ? "row" : "column",
+                              alignItems: compact ? "baseline" : "stretch",
+                              gap: compact ? 6 : 2,
                               boxShadow: ev.status === "scheduled" ? `inset 0 1px 0 ${c.inner}` : "none",
                             }}
                           >
-                            <div style={{ ...mono, fontSize: 9, opacity: 0.7 }}>{time}</div>
-                            <div style={{ fontSize: 12, fontWeight: 500, textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap", textDecoration: ev.status === "canceled" ? "line-through" : "none" }}>{who}</div>
-                            {ev.curriculum && (
-                              <div style={{ ...mono, fontSize: 8.5, opacity: 0.6, textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>
-                                {curriculumLabel(ev.curriculum)}
-                              </div>
+                            {compact ? (
+                              // Bloc court : heure + nom sur une ligne, rien de coupé.
+                              <>
+                                <span style={{ ...mono, fontSize: 9, opacity: 0.7, flexShrink: 0 }}>{time}</span>
+                                <span
+                                  style={{
+                                    fontSize: 11.5,
+                                    fontWeight: 500,
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    whiteSpace: "nowrap",
+                                    textDecoration: ev.status === "canceled" ? "line-through" : "none",
+                                  }}
+                                >
+                                  {who}
+                                </span>
+                              </>
+                            ) : (
+                              <>
+                                <div style={{ ...mono, fontSize: 9, opacity: 0.7 }}>
+                                  {time}
+                                  {endTime ? `–${endTime}` : ""}
+                                </div>
+                                <div style={{ fontSize: 12, fontWeight: 500, textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap", textDecoration: ev.status === "canceled" ? "line-through" : "none" }}>
+                                  {who}
+                                </div>
+                                {lessonLabel && height >= 52 && (
+                                  <div style={{ ...mono, fontSize: 8.5, opacity: 0.6, textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>
+                                    {lessonLabel}
+                                  </div>
+                                )}
+                              </>
                             )}
                           </button>
 

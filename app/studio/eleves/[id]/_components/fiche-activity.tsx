@@ -72,7 +72,18 @@ export function ActivityTimeline({
       {events.length === 0 ? (
         <div style={{ ...mono, color: c.faint }}>Aucune activité pour l&apos;instant.</div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column" }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            // Évite que le bloc s'étire à l'infini : au-delà de ~5-6 events on
+            // scrolle à l'intérieur du bloc.
+            maxHeight: 360,
+            overflowY: "auto",
+            marginRight: -6,
+            paddingRight: 6,
+          }}
+        >
           {events.map((ev, i) => {
             const { color, Icon } = eventVisual(ev.type, c);
             const last = i === events.length - 1;

@@ -14,6 +14,7 @@ import {
   Glass,
   glassBtn,
 } from "../studio/_components/glass";
+import { MemberShell } from "@/app/_components/member-shell";
 
 // ============================================================================
 // Layout de l'espace élève /exos.
@@ -60,6 +61,7 @@ export default function ExosLayout({ children }: { children: ReactNode }) {
   // Pas d'accès coaching (et pas admin) → écran "active ton coaching"
   if (!summary.isAdmin && summary.tier !== "coaching") {
     return (
+      <MemberShell>
       <main
         style={{
           background: c.bgGrad,
@@ -156,9 +158,10 @@ export default function ExosLayout({ children }: { children: ReactNode }) {
           </div>
         </Glass>
       </main>
+      </MemberShell>
     );
   }
 
   // Coaching OU admin → on rend la page
-  return <>{children}</>;
+  return <MemberShell>{children}</MemberShell>;
 }

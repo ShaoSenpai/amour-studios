@@ -537,6 +537,31 @@ export const findPurchaseBySubscription = internalQuery({
   },
 });
 
+/** Query interne : user LIÉ à un abonnement (via purchase.userId). Sert au
+ *  webhook quand l'email Stripe ≠ email Discord : `findUserByEmail` rate le user
+ *  (email différent), mais le purchase est lié au bon user → on le récupère ici
+ *  pour (ré)attribuer le rôle + démarrer l'onboarding du BON compte. */
+export const linkedUserForSubscription = internalQuery({
+  args: { stripeSubscriptionId: v.string() },
+  handler: async (ctx, { stripeSubscriptionId }) => {
+    const purchase = await ctx.db
+      .query("purchases")
+      .withIndex("by_subscription", (q) =>
+        q.eq("stripeSubscriptionId", stripeSubscriptionId)
+      )
+      .first();
+    if (!purchase?.userId) return null;
+    const user = await ctx.db.get(purchase.userId);
+    if (!user) return null;
+    return {
+      userId: user._id,
+      discordId: user.discordId ?? null,
+      email: user.email ?? null,
+      tier: purchase.tier ?? null,
+    };
+  },
+});
+
 /**
  * Query interne : déduit le palier d'accès le plus élevé d'un email à partir de
  * ses achats actifs (coaching > communauté). Utilisé par assignDiscordRole quand

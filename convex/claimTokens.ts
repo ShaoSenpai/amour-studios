@@ -202,14 +202,13 @@ export const claimByToken = mutation({
       });
     }
 
-    // Crée l'onboarding directement depuis le tier du purchase LIÉ. Indispensable
-    // quand l'email Stripe ≠ email Discord : `ensureForUser` cherche le purchase
-    // par email et échouerait, laissant l'élève bloqué en « accès limité » à vie.
-    // Ici on a le purchase en main, donc on bypass le matching email.
-    // createForPurchase est idempotent (no-op si l'onboarding existe déjà —
-    // notamment après un rattachement de transfert ci-dessus).
+    // Compte LIÉ → on DÉMARRE l'onboarding et on envoie le lien directement (DM +
+    // email + fallback public). Le membre a payé + lié explicitement son compte
+    // (email Stripe ≠ email Discord géré ici, on a le purchase en main donc on
+    // bypass le matching email) : on NE lui redemande PAS de se présenter, on le
+    // pousse direct sur l'onboarding. Idempotent (avance la row ou la crée).
     if (accessGranted && purchase.tier) {
-      await ctx.scheduler.runAfter(0, internal.onboardings.createForPurchase, {
+      await ctx.scheduler.runAfter(0, internal.onboardings.linkAndStartOnboarding, {
         userId,
         tier: purchase.tier,
       });

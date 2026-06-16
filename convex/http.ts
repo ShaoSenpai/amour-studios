@@ -111,11 +111,10 @@ http.route({
       );
     }
 
-    let body: { offre?: string; duree?: string; email?: string; phone?: string };
+    let body: { offre?: string; email?: string; phone?: string };
     try {
       body = (await request.json()) as {
         offre?: string;
-        duree?: string;
         email?: string;
         phone?: string;
       };
@@ -128,15 +127,14 @@ http.route({
 
     const offre: "communaute" | "coaching" =
       body.offre === "coaching" ? "coaching" : "communaute";
-    const duree: "1mois" | "3mois" | undefined =
-      body.duree === "3mois" ? "3mois" : body.duree === "1mois" ? "1mois" : undefined;
+    // L'offre coaching est UNIQUE (engagement 3 mois) : on n'accepte plus de
+    // `duree` ici. createSubscription force "3mois" pour tout coaching.
     const email = typeof body.email === "string" ? body.email : "";
     const phone = typeof body.phone === "string" ? body.phone : undefined;
 
     try {
       const result = await ctx.runAction(api.stripe.createSubscription, {
         offre,
-        duree,
         email,
         phone,
       });
@@ -297,6 +295,33 @@ http.route({
                 context: "payment_active",
               });
             }
+          }
+        }
+
+        // Email Stripe ≠ email Discord : le purchase peut être LIÉ (claimByToken)
+        // à un user dont l'email diffère → `findUserByEmail` ci-dessus le rate.
+        // On (ré)attribue le rôle + démarre l'onboarding du BON compte lié. On ne
+        // le fait que si l'email du compte lié DIFFÈRE de l'email du paiement
+        // (sinon déjà géré ci-dessus). `linkAndStartOnboarding` est idempotent
+        // (n'envoie le lien qu'une fois).
+        if (status === "active" && tier) {
+          const linked = await ctx.runQuery(
+            internal.stripe.linkedUserForSubscription,
+            { stripeSubscriptionId: sub.id }
+          );
+          if (
+            linked?.discordId &&
+            (linked.email ?? "").toLowerCase() !== email
+          ) {
+            await ctx.runAction(internal.stripe.assignDiscordRole, {
+              discordId: linked.discordId,
+              email: linked.email ?? "",
+              tier,
+            });
+            await ctx.runMutation(internal.onboardings.linkAndStartOnboarding, {
+              userId: linked.userId,
+              tier,
+            });
           }
         }
 

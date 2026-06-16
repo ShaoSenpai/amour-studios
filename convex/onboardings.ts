@@ -74,6 +74,63 @@ export const createForPurchase = internalMutation({
   },
 });
 
+/** Compte LIÉ (claim/activation) → démarre l'onboarding DIRECTEMENT et envoie le
+ *  lien (DM + email + fallback public). Le membre a payé et explicitement lié son
+ *  compte (souvent il s'est déjà présenté pour arriver ici via /lier) : on ne lui
+ *  redemande PAS de se présenter, on le pousse direct sur l'onboarding. Crée la
+ *  row si absente (step link_sent), ou avance awaiting_presentation → link_sent.
+ *  Idempotent : si déjà link_sent ou au-delà, on ne fait que (re)pousser le lien. */
+export const linkAndStartOnboarding = internalMutation({
+  args: { userId: v.id("users"), tier: TIER },
+  handler: async (ctx, { userId, tier }) => {
+    const now = Date.now();
+    let ob = await ctx.db
+      .query("onboardings")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .first();
+    // On n'envoie le lien QUE si on crée la row ou qu'on avance depuis
+    // awaiting_presentation → sûr à appeler en boucle (claim + chaque webhook).
+    let shouldSend = false;
+    if (!ob) {
+      const token = crypto.randomUUID();
+      const id = await ctx.db.insert("onboardings", {
+        userId,
+        tier,
+        step: "link_sent",
+        token,
+        presentedAt: now,
+        linkSentAt: now,
+        createdAt: now,
+        updatedAt: now,
+      });
+      ob = await ctx.db.get(id);
+      shouldSend = true;
+    } else if (ob.step === "awaiting_presentation") {
+      await ctx.db.patch(ob._id, {
+        step: "link_sent",
+        presentedAt: ob.presentedAt ?? now,
+        linkSentAt: now,
+        updatedAt: now,
+      });
+      shouldSend = true;
+    }
+    // Déjà au-delà (link_sent / form_done / rdv_booked / community_ready) → no-op.
+    if (!ob || !shouldSend) return;
+    await logEvent(ctx, {
+      userId,
+      type: "onboarding.linked",
+      title: "Compte lié → onboarding démarré",
+      actor: "system",
+    });
+    await ctx.scheduler.runAfter(0, internal.onboardings.sendLink, {
+      userId,
+      token: ob.token,
+      firstName: ob.firstName ?? null,
+      tier: ob.tier,
+    });
+  },
+});
+
 /** Vérifie qu'un user (qui vient de se logger ou de payer) a bien un
  *  onboarding row. Si purchase actif + tier connu + pas encore d'onboarding,
  *  crée la row. Idempotent. Appelée depuis auth.ts (à la connexion Discord)

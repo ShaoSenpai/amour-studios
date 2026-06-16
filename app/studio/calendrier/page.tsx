@@ -4,7 +4,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { SPRING } from "@/lib/motion";
@@ -132,6 +132,16 @@ export default function CalendrierPage() {
 
   const [view, setView] = useState<CalView>(initView);
   const [anchor, setAnchor] = useState<Date>(() => initAnchor);
+
+  // Mobile : démarrer en vue Jour (1 colonne lisible) au premier rendu, sans
+  // casser le SSR (l'init reste `initView`) ni empêcher l'utilisateur de
+  // rechoisir semaine/mois ensuite. One-shot via une garde useRef.
+  const didInitView = useRef(false);
+  useEffect(() => {
+    if (didInitView.current) return;
+    didInitView.current = true;
+    if (isMobile) setView("day");
+  }, [isMobile]);
 
   // Plage affichée selon la vue : `cols` = colonnes de la grille horaire
   // (1 jour / 7 jours), `monthCells` = 42 cases du mois. `from`/`to` couvrent
@@ -376,7 +386,7 @@ export default function CalendrierPage() {
 
         {/* Controls : navigation + sélecteur de vue */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, gap: 12, flexWrap: "wrap" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
             <div style={{ display: "flex", gap: 4 }}>
               <button onClick={() => shift(-1)} style={navBtn(c)}>‹</button>
               <button onClick={() => shift(1)} style={navBtn(c)}>›</button>
@@ -418,6 +428,7 @@ export default function CalendrierPage() {
               <MonthGrid
                 c={c}
                 dark={dark}
+                isMobile={isMobile}
                 cells={monthCells}
                 sessions={sessions ?? []}
                 monthIndex={monthIndex}
@@ -783,6 +794,7 @@ type MonthSession = {
 function MonthGrid({
   c,
   dark,
+  isMobile,
   cells,
   sessions,
   monthIndex,
@@ -792,6 +804,7 @@ function MonthGrid({
 }: {
   c: C;
   dark: boolean;
+  isMobile: boolean;
   cells: Date[];
   sessions: MonthSession[];
   monthIndex: number;
@@ -804,7 +817,7 @@ function MonthGrid({
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", borderBottom: `1px solid ${c.line}` }}>
         {WEEKDAYS.map((w, i) => (
-          <div key={w} style={{ ...mono, fontSize: 9.5, color: c.muted, padding: "12px", borderLeft: i ? `1px solid ${c.hairline}` : "none" }}>
+          <div key={w} style={{ ...mono, fontSize: isMobile ? 8 : 9.5, color: c.muted, padding: isMobile ? "8px 4px" : "12px", borderLeft: i ? `1px solid ${c.hairline}` : "none" }}>
             {w}
           </div>
         ))}
@@ -828,8 +841,8 @@ function MonthGrid({
                 borderTop: `1px solid ${c.hairline}`,
                 borderLeft: i % 7 ? `1px solid ${c.hairline}` : "none",
                 background: isToday ? (dark ? "rgba(255,90,31,0.06)" : "rgba(255,90,31,0.05)") : "transparent",
-                minHeight: 104,
-                padding: "7px 8px",
+                minHeight: isMobile ? 70 : 104,
+                padding: isMobile ? 4 : "7px 8px",
                 cursor: "pointer",
                 fontFamily: "inherit",
                 color: c.text,
@@ -841,7 +854,7 @@ function MonthGrid({
               }}
             >
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{ ...num, fontSize: 14, fontWeight: 500, color: isToday ? ACCENT : c.text }}>{d.getDate()}</span>
+                <span style={{ ...num, fontSize: isMobile ? 10 : 14, fontWeight: 500, color: isToday ? ACCENT : c.text }}>{d.getDate()}</span>
                 {evs.length > 0 && <span style={{ ...mono, fontSize: 8.5, color: c.faint }}>{evs.length}</span>}
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
@@ -852,7 +865,7 @@ function MonthGrid({
                   return (
                     <div
                       key={ev._id as string}
-                      style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10, background: tone.bg, border: `1px solid ${tone.border}`, color: tone.color, borderRadius: 6, padding: "2px 5px", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", textDecoration: ev.status === "canceled" ? "line-through" : "none" }}
+                      style={{ display: "flex", alignItems: "center", gap: 5, fontSize: isMobile ? 8 : 10, background: tone.bg, border: `1px solid ${tone.border}`, color: tone.color, borderRadius: 6, padding: isMobile ? "1px 3px" : "2px 5px", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", textDecoration: ev.status === "canceled" ? "line-through" : "none" }}
                     >
                       <span style={{ ...mono, fontSize: 8, opacity: 0.8 }}>{t}</span>
                       <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{who}</span>

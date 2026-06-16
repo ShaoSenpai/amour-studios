@@ -149,8 +149,12 @@ async function computeStateForUser(
         lessonAvailable = !!lesson.previewAccess;
         if (!lessonAvailable) lessonLockedReason = "tier_module";
       } else {
+        // Coaching : leçon dispo si 1re du module, OU previewAccess (kill-switch
+        // « ouvert » posé sur les leçons M1 → plus de séquentiel), OU leçon
+        // précédente terminée. Mettre previewAccess=false pour re-gater en séquence.
         lessonAvailable =
           li === 0 ||
+          !!lesson.previewAccess ||
           !!progressMap.get(lessons[li - 1]._id as string)?.lessonCompletedAt;
         if (!lessonAvailable) lessonLockedReason = "previous_lesson";
       }

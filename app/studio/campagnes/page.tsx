@@ -18,8 +18,10 @@ import {
   fmtDateShort,
   fmtTime,
   useIsMobile,
+  SPACE,
   type C,
 } from "../_components/glass";
+import { MobileSheet } from "../_components/mobile-sheet";
 import { useTestMode } from "../_components/test-mode";
 import {
   useTestStore,
@@ -272,7 +274,7 @@ export default function CampagnesPage() {
         background: c.bgGrad,
         minHeight: "100vh",
         color: c.text,
-        padding: isMobile ? 14 : 26,
+        padding: isMobile ? SPACE.md : 26,
         fontFamily: "'Schibsted Grotesk', system-ui, sans-serif",
       }}
     >
@@ -456,7 +458,7 @@ export default function CampagnesPage() {
                 <textarea
                   value={body}
                   onChange={(e) => setBody(e.target.value)}
-                  rows={6}
+                  rows={isMobile ? 4 : 6}
                   placeholder={"Salut {prenom}, …"}
                   style={{ ...inputStyle(c), resize: "vertical", lineHeight: 1.5, minHeight: 120 }}
                 />
@@ -634,6 +636,7 @@ export default function CampagnesPage() {
         <ConfirmDialog
           c={c}
           dark={dark}
+          isMobile={isMobile}
           segmentLabel={selectedSegment.label}
           count={reachable}
           channel={channel}
@@ -646,10 +649,11 @@ export default function CampagnesPage() {
   );
 }
 
-// ── Dialog de confirmation (overlay verre, cohérent rdv-dialog) ──────────────
+// ── Dialog de confirmation (MobileSheet : bottom-sheet mobile / modale desktop) ──
 function ConfirmDialog({
   c,
   dark,
+  isMobile,
   segmentLabel,
   count,
   channel,
@@ -659,6 +663,7 @@ function ConfirmDialog({
 }: {
   c: C;
   dark: boolean;
+  isMobile: boolean;
   segmentLabel: string;
   count: number;
   channel: Channel;
@@ -666,6 +671,72 @@ function ConfirmDialog({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
+  // Corps partagé desktop / mobile.
+  const body = (
+    <>
+      <div style={{ ...mono, color: c.muted }}>Confirmation · envoi réel</div>
+      <div style={{ ...num, fontSize: 26, fontWeight: 500, marginTop: 8, lineHeight: 1.1 }}>
+        Envoyer cette campagne&nbsp;?
+      </div>
+      <div style={{ fontSize: 14, color: c.muted, marginTop: 14, lineHeight: 1.6 }}>
+        Tu vas envoyer un message{" "}
+        <span style={{ color: c.text, fontWeight: 500 }}>
+          {channel === "email" ? "e-mail" : "WhatsApp"}
+        </span>{" "}
+        à <span style={{ color: ACCENT, fontWeight: 600 }}>{count} personne{count > 1 ? "s" : ""}</span> du segment{" "}
+        <span style={{ color: c.text, fontWeight: 500 }}>« {segmentLabel} »</span>.
+      </div>
+      <div
+        style={{
+          ...mono,
+          color: c.faint,
+          fontSize: 10,
+          marginTop: 14,
+          textTransform: "none",
+          letterSpacing: 0,
+          padding: "10px 12px",
+          borderRadius: 12,
+          background: c.chip,
+          border: `1px solid ${c.line}`,
+        }}
+      >
+        Cette action est définitive et envoie de vrais messages.
+      </div>
+    </>
+  );
+
+  if (isMobile) {
+    return (
+      <MobileSheet
+        c={c}
+        dark={dark}
+        isMobile={isMobile}
+        onClose={onCancel}
+        title="Confirmer l'envoi"
+        maxWidth={420}
+        footer={
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>
+            <GlassButton c={c} onClick={onCancel} style={{ flex: 1 }}>
+              Annuler
+            </GlassButton>
+            <GlassButton
+              c={c}
+              kind="solid"
+              onClick={onConfirm}
+              disabled={sending}
+              style={{ flex: 1, opacity: sending ? 0.6 : 1, cursor: sending ? "default" : "pointer" }}
+            >
+              {sending ? "Envoi…" : `Envoyer (${count})`}
+            </GlassButton>
+          </div>
+        }
+      >
+        {body}
+      </MobileSheet>
+    );
+  }
+
+  // Desktop : modale de confirmation d'origine (verbatim, avant migration MobileSheet).
   return (
     <div
       role="presentation"
@@ -706,34 +777,7 @@ function ConfirmDialog({
         }}
       >
         <div style={{ padding: "24px 26px 18px" }}>
-          <div style={{ ...mono, color: c.muted }}>Confirmation · envoi réel</div>
-          <div style={{ ...num, fontSize: 26, fontWeight: 500, marginTop: 8, lineHeight: 1.1 }}>
-            Envoyer cette campagne&nbsp;?
-          </div>
-          <div style={{ fontSize: 14, color: c.muted, marginTop: 14, lineHeight: 1.6 }}>
-            Tu vas envoyer un message{" "}
-            <span style={{ color: c.text, fontWeight: 500 }}>
-              {channel === "email" ? "e-mail" : "WhatsApp"}
-            </span>{" "}
-            à <span style={{ color: ACCENT, fontWeight: 600 }}>{count} personne{count > 1 ? "s" : ""}</span> du segment{" "}
-            <span style={{ color: c.text, fontWeight: 500 }}>« {segmentLabel} »</span>.
-          </div>
-          <div
-            style={{
-              ...mono,
-              color: c.faint,
-              fontSize: 10,
-              marginTop: 14,
-              textTransform: "none",
-              letterSpacing: 0,
-              padding: "10px 12px",
-              borderRadius: 12,
-              background: c.chip,
-              border: `1px solid ${c.line}`,
-            }}
-          >
-            Cette action est définitive et envoie de vrais messages.
-          </div>
+          {body}
         </div>
         <div style={{ padding: "16px 26px", borderTop: `1px solid ${c.line}`, display: "flex", justifyContent: "flex-end", gap: 8 }}>
           <GlassButton c={c} onClick={onCancel}>

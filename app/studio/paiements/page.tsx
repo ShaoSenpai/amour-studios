@@ -19,6 +19,7 @@ import {
   fmtDate,
   fmtDateShort,
   useIsMobile,
+  SPACE,
   type C,
 } from "../_components/glass";
 import { useTestMode } from "../_components/test-mode";
@@ -31,9 +32,9 @@ import { useTestStore, selectPaymentsOverview } from "../_components/test-store"
 
 type Filter = "tous" | "actifs" | "echec" | "annule";
 
-function PayKPI({ c, dark, label, value, delta, note, warn = false }: { c: C; dark: boolean; label: string; value: React.ReactNode; delta?: string; note: string; warn?: boolean }) {
+function PayKPI({ c, dark, label, value, delta, note, warn = false, isMobile = false }: { c: C; dark: boolean; label: string; value: React.ReactNode; delta?: string; note: string; warn?: boolean; isMobile?: boolean }) {
   return (
-    <Glass c={c} dark={dark} pad={22} strong={warn} style={{ display: "flex", flexDirection: "column", gap: 16, minHeight: 160, minWidth: 0 }}>
+    <Glass c={c} dark={dark} pad={22} strong={warn} style={{ display: "flex", flexDirection: "column", gap: 16, minHeight: isMobile ? 120 : 160, minWidth: 0 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6 }}>
         <span style={{ ...mono, color: c.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{label}</span>
         {delta !== undefined && (
@@ -119,18 +120,22 @@ export default function PaiementsPage() {
   const COLS = "minmax(200px, 1.3fr) 140px 100px 120px 130px 130px";
 
   const cardStyle = {
-    display: "flex", flexDirection: "column" as const, gap: 8,
-    padding: 14, borderRadius: 14,
+    display: "flex", flexDirection: "column" as const, gap: SPACE.md,
+    padding: SPACE.lg, borderRadius: 16,
     background: c.chip, border: `1px solid ${c.line}`,
     width: "100%", fontFamily: "inherit", color: c.text, textAlign: "left" as const,
   };
-  const chipStyle = {
-    ...mono, fontSize: 10, padding: "3px 8px", borderRadius: 999,
-    background: c.chip, border: `1px solid ${c.line}`, color: c.muted,
+  // Style UNIQUE pour TOUS les badges d'une carte (offre, statut, montant,
+  // échéance) : même fontSize / padding / hauteur / borderRadius → tailles
+  // cohérentes. Seules les couleurs (bg/color/border) varient selon la sémantique.
+  const badgeBase = {
+    ...mono, fontSize: 11, lineHeight: 1, height: 24, padding: "0 10px",
+    borderRadius: 999, display: "inline-flex", alignItems: "center",
+    gap: 6, whiteSpace: "nowrap" as const, boxSizing: "border-box" as const,
   };
 
   return (
-    <div style={{ background: c.bgGrad, minHeight: "100vh", color: c.text, padding: isMobile ? 14 : 26, fontFamily: "'Schibsted Grotesk', system-ui, sans-serif" }}>
+    <div style={{ background: c.bgGrad, minHeight: "100vh", color: c.text, padding: isMobile ? SPACE.md : 26, fontFamily: "'Schibsted Grotesk', system-ui, sans-serif" }}>
       <div style={{ maxWidth: 1280, margin: "0 auto" }}>
         {/* Hero */}
         <Glass c={c} dark={dark} pad={0} strong style={{ overflow: "hidden", marginBottom: 16 }}>
@@ -149,10 +154,10 @@ export default function PaiementsPage() {
 
         {/* KPI row */}
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(4, minmax(0,1fr))", gap: 16, marginBottom: 16 }}>
-          <PayKPI c={c} dark={dark} label="MRR" value={data.kpis.mrr} note="Revenu mensuel récurrent" />
-          <PayKPI c={c} dark={dark} label="Abonnements actifs" value={data.kpis.actifs} note="Coaching + communauté" />
-          <PayKPI c={c} dark={dark} label="Incidents" value={data.kpis.incidents} note="À traiter" warn />
-          <PayKPI c={c} dark={dark} label="Churn 30j" value={data.kpis.churn30} note="Annulations 30 derniers j" />
+          <PayKPI c={c} dark={dark} isMobile={isMobile} label="MRR" value={data.kpis.mrr} note="Revenu mensuel récurrent" />
+          <PayKPI c={c} dark={dark} isMobile={isMobile} label="Abonnements actifs" value={data.kpis.actifs} note="Coaching + communauté" />
+          <PayKPI c={c} dark={dark} isMobile={isMobile} label="Incidents" value={data.kpis.incidents} note="À traiter" warn />
+          <PayKPI c={c} dark={dark} isMobile={isMobile} label="Churn 30j" value={data.kpis.churn30} note="Annulations 30 derniers j" />
         </div>
 
         {/* Chart + repartition */}
@@ -194,29 +199,64 @@ export default function PaiementsPage() {
 
         {/* Subs table */}
         <Glass c={c} dark={dark} pad={0}>
-          <div style={{ padding: "20px 24px 14px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <div style={{ padding: isMobile ? `${SPACE.lg}px ${SPACE.md}px ${SPACE.sm}px` : "20px 24px 14px", display: "flex", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "center", gap: isMobile ? SPACE.sm : 12, flexWrap: "wrap" }}>
             <div>
               <div style={{ ...mono, color: c.muted }}>Abonnements</div>
               <div style={{ ...num, fontSize: 22, fontWeight: 500, marginTop: 6 }}>{filtered.length} résultats</div>
             </div>
-            <Segmented
-              c={c}
-              value={filter}
-              onChange={setFilter}
-              items={[
-                { id: "tous", label: `Tous · ${subs.length}` },
-                { id: "actifs", label: `Actifs · ${counts.actifs}` },
-                { id: "echec", label: `Échec · ${counts.echec}` },
-                { id: "annule", label: `Annulés · ${counts.annule}` },
-              ]}
-            />
+            {/* Filtre : sur mobile, pleine largeur + scroll horizontal interne
+                (le Segmented ne wrappe pas) → zéro crop, zéro débordement de page.
+                Desktop : Segmented rendu tel quel (inchangé). */}
+            {isMobile ? (
+              <div style={{ width: "100%", maxWidth: "100%", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+                <div style={{ display: "inline-block", minWidth: "100%" }}>
+                  <Segmented
+                    c={c}
+                    value={filter}
+                    onChange={setFilter}
+                    items={[
+                      { id: "tous", label: `Tous · ${subs.length}` },
+                      { id: "actifs", label: `Actifs · ${counts.actifs}` },
+                      { id: "echec", label: `Échec · ${counts.echec}` },
+                      { id: "annule", label: `Annulés · ${counts.annule}` },
+                    ]}
+                  />
+                </div>
+              </div>
+            ) : (
+              <Segmented
+                c={c}
+                value={filter}
+                onChange={setFilter}
+                items={[
+                  { id: "tous", label: `Tous · ${subs.length}` },
+                  { id: "actifs", label: `Actifs · ${counts.actifs}` },
+                  { id: "echec", label: `Échec · ${counts.echec}` },
+                  { id: "annule", label: `Annulés · ${counts.annule}` },
+                ]}
+              />
+            )}
           </div>
 
           {isMobile ? (
-            <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: filtered.length ? "14px 14px" : 0 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: SPACE.md, padding: filtered.length ? SPACE.md : 0 }}>
               {filtered.map((s) => {
                 const si = statusInfo(s.statut);
                 const isHighlighted = highlightId != null && s.id === highlightId;
+                const isCoaching = s.offre.startsWith("Coaching");
+                // Couleurs par badge (sémantique conservée), tailles identiques.
+                const offreColors = isCoaching
+                  ? { bg: dark ? "rgba(255,255,255,0.92)" : "#0B0B0B", color: dark ? "#0B0B0B" : "#FFF", border: "transparent" }
+                  : { bg: "transparent", color: c.muted, border: c.line };
+                const statutColors =
+                  si.tone === "success"
+                    ? { bg: dark ? "rgba(34, 99, 64, 0.5)" : "rgba(34, 99, 64, 0.12)", color: c.successFg, border: "transparent" }
+                    : si.tone === "outline"
+                      ? { bg: "transparent", color: c.muted, border: c.line }
+                      : si.tone === "accent" || si.tone === "warn"
+                        ? { bg: c.accent, color: "#0B0B0B", border: "transparent" }
+                        : { bg: c.chip, color: c.text, border: c.line };
+                const statutDot = si.tone === "success" ? c.successFg : si.tone === "outline" ? c.faint : "#0B0B0B";
                 return (
                   <div
                     key={s.id}
@@ -227,23 +267,26 @@ export default function PaiementsPage() {
                       border: isHighlighted ? `1px solid ${ACCENT}` : `1px solid ${c.line}`,
                     }}
                   >
-                    {/* Identité */}
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-                      <Avatar name={s.who} size={34} dark={dark} />
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ fontSize: 14, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.who}</div>
-                        {s.phone && <div style={{ ...mono, color: c.faint, marginTop: 2 }}>{s.phone}</div>}
+                    {/* Identité — nom mis en avant, infos secondaires dessous */}
+                    <div style={{ display: "flex", alignItems: "center", gap: SPACE.md, minWidth: 0 }}>
+                      <Avatar name={s.who} size={40} dark={dark} />
+                      <div style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: 2 }}>
+                        <div style={{ fontSize: 15.5, fontWeight: 600, lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.who}</div>
+                        {s.phone && <div style={{ ...mono, color: c.faint, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.phone}</div>}
                       </div>
                     </div>
-                    {/* Infos clés en chips */}
-                    <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6 }}>
-                      <Pill c={c} tone={s.offre.startsWith("Coaching") ? "ink" : "outline"}>{s.offre}</Pill>
-                      <Pill c={c} tone={si.tone}>
-                        <span style={{ width: 5, height: 5, borderRadius: 5, background: si.tone === "success" ? c.successFg : si.tone === "outline" ? c.faint : "#0B0B0B" }} />
+                    {/* Badges harmonisés : tailles strictement identiques (badgeBase),
+                        seules les couleurs varient. Alignés, wrap propre. */}
+                    <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: SPACE.sm }}>
+                      <span style={{ ...badgeBase, background: offreColors.bg, color: offreColors.color, border: `1px solid ${offreColors.border}` }}>{s.offre}</span>
+                      <span style={{ ...badgeBase, background: statutColors.bg, color: statutColors.color, border: `1px solid ${statutColors.border}` }}>
+                        <span style={{ width: 5, height: 5, borderRadius: 5, background: statutDot }} />
                         {si.label}
-                      </Pill>
-                      <span style={{ ...num, fontSize: 13, fontWeight: 500 }}>{s.montant}</span>
-                      {s.echeance != null && <span style={chipStyle}>📅 {fmtDateShort(s.echeance)}</span>}
+                      </span>
+                      <span style={{ ...badgeBase, background: c.chip, color: c.text, border: `1px solid ${c.line}` }}>{s.montant}</span>
+                      {s.echeance != null && (
+                        <span style={{ ...badgeBase, background: c.chip, color: c.muted, border: `1px solid ${c.line}` }}>📅 {fmtDateShort(s.echeance)}</span>
+                      )}
                     </div>
                   </div>
                 );
@@ -332,7 +375,7 @@ function AreaChart({ c, data, isMobile }: { c: C; data: number[]; isMobile: bool
         {yTicks.map((t, i) => (
           <g key={i}>
             <line x1={PAD_L} y1={t.y} x2={W - PAD_R} y2={t.y} stroke={c.hairline} strokeWidth="1" strokeDasharray={i === 0 ? "" : "2 3"} />
-            <text x={PAD_L - 8} y={t.y + 3} fontSize="9" fill={c.faint} fontFamily="'DM Mono', monospace" textAnchor="end">
+            <text x={PAD_L - 8} y={t.y + 3} fontSize={isMobile ? 14 : 9} fill={c.faint} fontFamily="'DM Mono', monospace" textAnchor="end">
               {(t.v / 1000).toFixed(0)}K
             </text>
           </g>
@@ -342,11 +385,17 @@ function AreaChart({ c, data, isMobile }: { c: C; data: number[]; isMobile: bool
         {points.map((p, i) => (
           <circle key={i} cx={p[0]} cy={p[1]} r={i === points.length - 1 ? 4 : 0} fill={ACCENT} />
         ))}
-        {monthLabels.map((m, i) => (
-          <text key={i} x={PAD_L + i * stepX} y={H - 10} fontSize="9" fill={i === data.length - 1 ? c.text : c.faint} fontFamily="'DM Mono', monospace" textAnchor="middle" letterSpacing="0.06em">
-            {m}
-          </text>
-        ))}
+        {monthLabels.map((m, i) => {
+          // Sur mobile, le texte agrandi surchargerait l'axe : on n'affiche
+          // qu'un mois sur deux + toujours le mois courant (dernier point).
+          const isLast = i === data.length - 1;
+          if (isMobile && !isLast && i % 2 !== 0) return null;
+          return (
+            <text key={i} x={PAD_L + i * stepX} y={H - 10} fontSize={isMobile ? 14 : 9} fill={isLast ? c.text : c.faint} fontFamily="'DM Mono', monospace" textAnchor="middle" letterSpacing="0.06em">
+              {m}
+            </text>
+          );
+        })}
       </svg>
     </div>
   );

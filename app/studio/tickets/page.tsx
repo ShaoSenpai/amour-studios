@@ -16,6 +16,7 @@ import {
   fmtTime,
   relativeFromNow,
   useIsMobile,
+  SPACE,
   type C,
 } from "../_components/glass";
 
@@ -151,7 +152,18 @@ function TicketCard({ c, dark, t }: { c: C; dark: boolean; t: Ticket }) {
             {who}
           </div>
           {t.email && (
-            <div style={{ ...mono, color: c.faint, marginTop: 2 }}>{t.email}</div>
+            <div
+              style={{
+                ...mono,
+                color: c.faint,
+                marginTop: 2,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {t.email}
+            </div>
           )}
         </div>
       </div>
@@ -233,7 +245,7 @@ export default function TicketsPage() {
         background: c.bgGrad,
         minHeight: "100vh",
         color: c.text,
-        padding: isMobile ? 14 : 26,
+        padding: isMobile ? SPACE.md : 26,
         fontFamily: "'Schibsted Grotesk', system-ui, sans-serif",
       }}
     >

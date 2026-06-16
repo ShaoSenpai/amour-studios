@@ -279,6 +279,8 @@ function OrphanCard({ c, dark, orphan }: { c: C; dark: boolean; orphan: Orphan }
               borderRadius: 14,
               padding: "13px 16px",
               boxShadow: `inset 0 1px 0 ${c.inner}`,
+              maxHeight: isMobile ? 200 : undefined,
+              overflowY: "auto",
             }}
           >
             {summary}

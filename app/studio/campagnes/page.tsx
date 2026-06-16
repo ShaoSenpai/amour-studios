@@ -17,6 +17,7 @@ import {
   GlassButton,
   fmtDateShort,
   fmtTime,
+  useIsMobile,
   type C,
 } from "../_components/glass";
 import { useTestMode } from "../_components/test-mode";
@@ -62,6 +63,7 @@ function renderPreview(body: string): string {
 
 export default function CampagnesPage() {
   const dark = useIsDark();
+  const isMobile = useIsMobile();
   const { testMode } = useTestMode();
   const c = palette(dark, ACCENT);
 
@@ -135,6 +137,32 @@ export default function CampagnesPage() {
   }
 
   const canSend = selectedSegment != null && body.trim().length > 0;
+
+  // Style de carte pour l'historique sur mobile (Pattern 2).
+  const cardStyle = {
+    display: "flex",
+    flexDirection: "column" as const,
+    gap: 8,
+    padding: 14,
+    borderRadius: 14,
+    background: c.chip,
+    border: `1px solid ${c.line}`,
+    width: "100%",
+    fontFamily: "inherit",
+    color: c.text,
+  };
+  const chipStyle = {
+    ...mono,
+    fontSize: 10,
+    padding: "3px 8px",
+    borderRadius: 999,
+    background: c.chip,
+    border: `1px solid ${c.line}`,
+    color: c.muted,
+    textTransform: "none" as const,
+    letterSpacing: 0,
+    whiteSpace: "nowrap" as const,
+  };
 
   // ── Export presse-papier (emails + numéros) ───────────────────────────────
   const handleExport = async () => {
@@ -244,7 +272,7 @@ export default function CampagnesPage() {
         background: c.bgGrad,
         minHeight: "100vh",
         color: c.text,
-        padding: 26,
+        padding: isMobile ? 14 : 26,
         fontFamily: "'Schibsted Grotesk', system-ui, sans-serif",
       }}
     >
@@ -269,7 +297,7 @@ export default function CampagnesPage() {
         </Glass>
 
         {/* Grid principale : segments | composer */}
-        <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1.15fr)", gap: 16, alignItems: "start" }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0,1fr) minmax(0,1.15fr)", gap: 16, alignItems: "start" }}>
           {/* LEFT — Segments + membres */}
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <Glass c={c} dark={dark} pad={0}>
@@ -522,7 +550,41 @@ export default function CampagnesPage() {
                 Aucune campagne envoyée pour l&apos;instant.
               </div>
             )}
-            {(campaigns ?? []).map((cmp, i) => (
+            {isMobile
+              ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: "8px 14px 16px" }}>
+                  {(campaigns ?? []).map((cmp) => (
+                    <div key={cmp._id} style={cardStyle}>
+                      {/* Identité : canal + nom de campagne (objet) */}
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <Pill c={c} tone={cmp.channel === "email" ? "ink" : "outline"}>
+                          {cmp.channel === "email" ? (
+                            <><Mail size={11} /> Email</>
+                          ) : (
+                            <><MessageCircle size={11} /> WhatsApp</>
+                          )}
+                        </Pill>
+                        <div style={{ fontSize: 14, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>
+                          {cmp.subject || <span style={{ color: c.faint }}>(sans objet)</span>}
+                        </div>
+                      </div>
+                      {/* Corps */}
+                      <div style={{ fontSize: 12.5, color: c.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {cmp.body}
+                      </div>
+                      {/* Infos clés en chips : date, segment, taille, statut/canal */}
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                        <span style={chipStyle}>
+                          {fmtDateShort(cmp.createdAt)} · {fmtTime(cmp.createdAt)}
+                        </span>
+                        <span style={chipStyle}>{cmp.segment}</span>
+                        <span style={chipStyle}>{cmp.recipientCount} env.</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+              : (campaigns ?? []).map((cmp, i) => (
               <div
                 key={cmp._id}
                 style={{
@@ -630,7 +692,7 @@ function ConfirmDialog({
         aria-label="Confirmer l'envoi"
         style={{
           width: "100%",
-          maxWidth: 420,
+          maxWidth: "min(420px, calc(100vw - 32px))",
           background: c.glassStrong,
           backgroundImage: c.sheen,
           backgroundBlendMode: dark ? "plus-lighter" : "normal",

@@ -18,6 +18,7 @@ import {
   Check,
   Plus,
   RotateCcw,
+  MoreHorizontal,
 } from "lucide-react";
 import {
   ACCENT,
@@ -143,6 +144,17 @@ export default function FichePage({
 
   // Dialog RDV (create ou reschedule).
   const [rdv, setRdv] = useState<RdvState | null>(null);
+
+  // Onglets mobile (segmented control) — tue le scroll infini de la fiche.
+  // Desktop ignore cet état (tous les blocs s'affichent). Doit rester AVANT
+  // tout early return (Rules of Hooks / React #310).
+  const [tab, setTab] = useState<"infos" | "rdv" | "parcours" | "activite">(
+    "infos"
+  );
+
+  // Menu kebab (actions RDV secondaires) ouvert pour une session donnée — mobile.
+  const [rdvMenuFor, setRdvMenuFor] =
+    useState<Id<"coachingSessions"> | null>(null);
 
   // « Maintenant » figé au montage (sert à trouver la prochaine session).
   const [nowTs] = useState(() => Date.now());
@@ -467,42 +479,127 @@ export default function FichePage({
   //  - « Marquer fait » = action principale, bouton vert plein.
   //  - actions secondaires (reprogrammer / annuler / no-show / éditer /
   //    supprimer) = boutons-icônes. (« Rejoindre le Meet » est en haut à droite.)
-  const scheduledActions = (s: (typeof sessions)[number]) => (
-    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-      <IconBtn c={c} title="Reprogrammer" onClick={() => openRescheduleRdv(s)}>
-        <CalendarClock size={16} />
-      </IconBtn>
-      <IconBtn c={c} title="Annuler" onClick={() => doCancel(s._id)}>
-        <Ban size={16} />
-      </IconBtn>
-      <IconBtn c={c} title="No-show" onClick={() => doCancel(s._id, true)}>
-        <UserX size={16} />
-      </IconBtn>
-      <IconBtn c={c} title="Éditer" onClick={() => startEdit(s)}>
-        <Pencil size={16} />
-      </IconBtn>
-      <IconBtn c={c} title="Supprimer" danger onClick={() => doDelete(s._id)}>
-        <Trash2 size={16} />
-      </IconBtn>
-      {/* Action principale poussée en bas à droite. */}
-      <motion.button
-        {...TAP}
-        onClick={() => doComplete(s._id)}
-        style={{
-          ...glassBtn(c, "solid"),
-          marginLeft: isMobile ? 0 : "auto",
-          background: GREEN,
-          color: "#FFFFFF",
-          boxShadow: `0 8px 24px -8px ${GREEN}99, inset 0 1px 0 rgba(255,255,255,0.25)`,
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 7,
-        }}
-      >
-        <Check size={15} strokeWidth={2.6} /> Marquer fait
-      </motion.button>
-    </div>
+  const completeBtn = (s: (typeof sessions)[number]) => (
+    <motion.button
+      {...TAP}
+      onClick={() => doComplete(s._id)}
+      style={{
+        ...glassBtn(c, "solid"),
+        marginLeft: isMobile ? 0 : "auto",
+        width: isMobile ? "100%" : undefined,
+        background: GREEN,
+        color: "#FFFFFF",
+        boxShadow: `0 8px 24px -8px ${GREEN}99, inset 0 1px 0 rgba(255,255,255,0.25)`,
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 7,
+      }}
+    >
+      <Check size={15} strokeWidth={2.6} /> Marquer fait
+    </motion.button>
   );
+
+  const scheduledActions = (s: (typeof sessions)[number]) => {
+    // Sur mobile : Marquer fait (pleine largeur, primaire) + Reprogrammer
+    // visibles ; le reste (Annuler / No-show / Éditer / Supprimer) derrière un
+    // kebab ⋯ pour ne pas déborder. Desktop : rangée complète inchangée.
+    if (isMobile) {
+      const menuOpen = rdvMenuFor === s._id;
+      return (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {completeBtn(s)}
+          <div style={{ display: "flex", gap: 8, alignItems: "center", position: "relative" }}>
+            <motion.button
+              {...TAP}
+              onClick={() => openRescheduleRdv(s)}
+              style={{ ...glassBtn(c, "ghost"), flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7 }}
+            >
+              <CalendarClock size={16} /> Reprogrammer
+            </motion.button>
+            <IconBtn
+              c={c}
+              title="Plus d'actions"
+              onClick={() => setRdvMenuFor(menuOpen ? null : s._id)}
+            >
+              <MoreHorizontal size={16} />
+            </IconBtn>
+            {menuOpen && (
+              <>
+                {/* Backdrop pour fermer au tap extérieur */}
+                <div
+                  onClick={() => setRdvMenuFor(null)}
+                  style={{ position: "fixed", inset: 0, zIndex: 30 }}
+                />
+                <div
+                  style={{
+                    position: "absolute",
+                    right: 0,
+                    bottom: "calc(100% + 6px)",
+                    zIndex: 31,
+                    minWidth: 180,
+                    background: c.bg,
+                    border: `1px solid ${c.line}`,
+                    borderRadius: 14,
+                    boxShadow: "0 12px 34px rgba(0,0,0,0.28)",
+                    padding: 6,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 2,
+                  }}
+                >
+                  {[
+                    { label: "Annuler", icon: <Ban size={15} />, run: () => doCancel(s._id) },
+                    { label: "No-show", icon: <UserX size={15} />, run: () => doCancel(s._id, true) },
+                    { label: "Éditer", icon: <Pencil size={15} />, run: () => startEdit(s) },
+                  ].map((a) => (
+                    <button
+                      key={a.label}
+                      type="button"
+                      onClick={() => { setRdvMenuFor(null); a.run(); }}
+                      style={{ display: "flex", alignItems: "center", gap: 10, minHeight: 44, padding: "0 12px", borderRadius: 10, border: "none", background: "transparent", color: c.text, fontFamily: "inherit", fontSize: 14, cursor: "pointer", textAlign: "left" }}
+                    >
+                      <span style={{ color: c.muted, display: "inline-flex" }}>{a.icon}</span>
+                      {a.label}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => { setRdvMenuFor(null); doDelete(s._id); }}
+                    style={{ display: "flex", alignItems: "center", gap: 10, minHeight: 44, padding: "0 12px", borderRadius: 10, border: "none", background: "transparent", color: ACCENT, fontFamily: "inherit", fontSize: 14, cursor: "pointer", textAlign: "left" }}
+                  >
+                    <span style={{ display: "inline-flex" }}><Trash2 size={15} /></span>
+                    Supprimer
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      );
+    }
+    return (
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+        <IconBtn c={c} title="Reprogrammer" onClick={() => openRescheduleRdv(s)}>
+          <CalendarClock size={16} />
+        </IconBtn>
+        <IconBtn c={c} title="Annuler" onClick={() => doCancel(s._id)}>
+          <Ban size={16} />
+        </IconBtn>
+        <IconBtn c={c} title="No-show" onClick={() => doCancel(s._id, true)}>
+          <UserX size={16} />
+        </IconBtn>
+        <IconBtn c={c} title="Éditer" onClick={() => startEdit(s)}>
+          <Pencil size={16} />
+        </IconBtn>
+        <IconBtn c={c} title="Supprimer" danger onClick={() => doDelete(s._id)}>
+          <Trash2 size={16} />
+        </IconBtn>
+        {/* Action principale poussée en bas à droite. */}
+        {completeBtn(s)}
+      </div>
+    );
+  };
 
   // Carte d'un RDV à venir (featured = le prochain, plus grand + ombre accent).
   const upcomingCard = (s: (typeof sessions)[number], featured: boolean) => {
@@ -875,8 +972,23 @@ export default function FichePage({
     },
   };
 
+  // Regroupement des blocs en 4 onglets sur mobile (desktop = tous affichés).
+  // À chaque onglet correspondent les ids de BLOCKS à montrer.
+  const TAB_BLOCKS: Record<typeof tab, string[]> = {
+    infos: ["paiement", "discord", "onboarding"],
+    rdv: ["rdv"],
+    parcours: ["parcours", "exercises"],
+    activite: ["notes", "activite"],
+  };
+  const TABS: { key: typeof tab; label: string }[] = [
+    { key: "infos", label: "Infos" },
+    { key: "rdv", label: "RDV" },
+    { key: "parcours", label: "Parcours" },
+    { key: "activite", label: "Activité" },
+  ];
+
   return (
-    <div style={{ background: c.bgGrad, minHeight: "100vh", color: c.text, padding: 26, fontFamily: "'Schibsted Grotesk', system-ui, sans-serif" }}>
+    <div style={{ background: c.bgGrad, minHeight: "100vh", color: c.text, padding: isMobile ? 14 : 26, fontFamily: "'Schibsted Grotesk', system-ui, sans-serif" }}>
       <div style={{ maxWidth: 1280, margin: "0 auto" }}>
         {/* Breadcrumb */}
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
@@ -898,7 +1010,7 @@ export default function FichePage({
         {/* Hero */}
         <Glass c={c} dark={dark} pad={0} strong style={{ overflow: "hidden", marginBottom: 16 }}>
           <div style={{ display: "flex", alignItems: "stretch", flexWrap: "wrap" }}>
-            <div style={{ padding: "28px 30px", display: "flex", alignItems: "center", gap: 20, flex: 1, minWidth: 280 }}>
+            <div style={{ padding: isMobile ? "22px 20px" : "28px 30px", display: "flex", alignItems: "center", gap: isMobile ? 14 : 20, flex: 1, minWidth: isMobile ? "100%" : 280 }}>
               <div style={{ position: "relative" }}>
                 <Avatar name={who} size={88} dark={dark} image={user.image} />
                 <div style={{ position: "absolute", inset: -4, borderRadius: 999, border: `2px solid ${ACCENT}`, pointerEvents: "none" }} />
@@ -914,20 +1026,72 @@ export default function FichePage({
                 </div>
               </div>
             </div>
-            <div style={{ padding: 22, display: "flex", flexDirection: "column", gap: 8, justifyContent: "center", borderLeft: `1px solid ${c.line}`, minWidth: 220 }}>
-              <motion.button {...TAP} onClick={openCreateRdv} style={glassBtn(c, "solid")}>＋ Planifier RDV</motion.button>
+            <div style={{ padding: isMobile ? "0 20px 22px" : 22, display: "flex", flexDirection: "column", gap: 8, justifyContent: "center", borderLeft: isMobile ? "none" : `1px solid ${c.line}`, minWidth: isMobile ? "100%" : 220 }}>
+              <motion.button {...TAP} onClick={openCreateRdv} style={{ ...glassBtn(c, "solid"), width: isMobile ? "100%" : undefined }}>＋ Planifier RDV</motion.button>
               {user.discordId && (
-                <motion.a {...TAP} href={`discord://-/users/${user.discordId}`} style={{ ...glassBtn(c, "ghost"), textAlign: "center", textDecoration: "none" }}>Ouvrir DM Discord</motion.a>
+                <motion.a {...TAP} href={`discord://-/users/${user.discordId}`} style={{ ...glassBtn(c, "ghost"), textAlign: "center", textDecoration: "none", width: isMobile ? "100%" : undefined }}>Ouvrir DM Discord</motion.a>
               )}
             </div>
           </div>
         </Glass>
 
+        {/* Onglets mobile (segmented control) — regroupe les blocs pour tuer
+            le scroll infini. Sticky sous la top-bar du layout. */}
+        {isMobile && (
+          <div
+            style={{
+              position: "sticky",
+              top: 8,
+              zIndex: 5,
+              display: "flex",
+              gap: 4,
+              background: c.chip,
+              padding: 4,
+              borderRadius: 14,
+              border: `1px solid ${c.line}`,
+              marginBottom: 16,
+            }}
+          >
+            {TABS.map((t) => {
+              const active = tab === t.key;
+              return (
+                <button
+                  key={t.key}
+                  type="button"
+                  onClick={() => setTab(t.key)}
+                  style={{
+                    ...mono,
+                    flex: 1,
+                    minWidth: 0,
+                    minHeight: 44,
+                    fontSize: 12,
+                    borderRadius: 11,
+                    border: "none",
+                    cursor: "pointer",
+                    background: active ? c.bg : "transparent",
+                    color: active ? c.text : c.muted,
+                    boxShadow: active ? "0 1px 4px rgba(0,0,0,0.12)" : "none",
+                  }}
+                >
+                  {t.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         {/* Main grid — blocs repliables & réordonnables par colonne (drag) */}
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0,1.55fr) minmax(0,1fr)", gap: 16, alignItems: "start" }}>
-          {(["left", "right"] as const).map((col) => (
-            <SortableColumn key={col} ids={orders[col]} onReorder={(ids) => setOrder(col, ids)}>
-              {orders[col].map((bid) => {
+          {(["left", "right"] as const).map((col) => {
+            // Sur mobile, ne garder que les blocs de l'onglet actif (on filtre
+            // aussi les `values` du Reorder.Group pour rester cohérent).
+            // Desktop : tous les blocs de la colonne, ordre inchangé.
+            const colIds = isMobile
+              ? orders[col].filter((bid) => TAB_BLOCKS[tab].includes(bid))
+              : orders[col];
+            return (
+            <SortableColumn key={col} ids={colIds} onReorder={(ids) => setOrder(col, ids)}>
+              {colIds.map((bid) => {
                 const b = BLOCKS[bid];
                 if (!b) return null;
                 return (
@@ -947,7 +1111,8 @@ export default function FichePage({
                 );
               })}
             </SortableColumn>
-          ))}
+            );
+          })}
         </div>
       </div>
 

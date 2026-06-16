@@ -22,6 +22,7 @@ import {
   Pill,
   GlassButton,
   curriculumLabel,
+  SPACE,
   type C,
 } from "../_components/glass";
 import { useTestMode } from "../_components/test-mode";
@@ -345,7 +346,7 @@ export default function CalendrierPage() {
   }
 
   return (
-    <div style={{ background: c.bgGrad, minHeight: "100vh", color: c.text, padding: 26, fontFamily: "'Schibsted Grotesk', system-ui, sans-serif" }}>
+    <div style={{ background: c.bgGrad, minHeight: "100vh", color: c.text, padding: isMobile ? SPACE.md : 26, fontFamily: "'Schibsted Grotesk', system-ui, sans-serif" }}>
       <div style={{ maxWidth: 1280, margin: "0 auto" }}>
         {/* Hero */}
         <Glass c={c} dark={dark} pad={0} strong style={{ overflow: "hidden", marginBottom: 16 }}>
@@ -384,8 +385,46 @@ export default function CalendrierPage() {
           </div>
         </Glass>
 
-        {/* Controls : navigation + sélecteur de vue */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, gap: 12, flexWrap: "wrap" }}>
+        {/* Controls : navigation + sélecteur de vue. Sur mobile : empilé proprement
+            (nav ‹ › + vue sur une ligne, label de période centré sur la sienne). */}
+        <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "center", marginBottom: 16, gap: 12, flexWrap: "wrap" }}>
+          {isMobile ? (
+            <>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <div style={{ display: "flex", gap: 4 }}>
+                  <button onClick={() => shift(-1)} style={navBtn(c)}>‹</button>
+                  <button onClick={() => shift(1)} style={navBtn(c)}>›</button>
+                </div>
+                {/* Sélecteur de vue (Jour seul sur mobile) */}
+                <div style={{ display: "flex", gap: 4, padding: 4, background: c.chip, borderRadius: 999, border: `1px solid ${c.line}` }}>
+                  {VIEW_LABELS.filter((v) => v.id === "day").map((v) => {
+                    const active = view === v.id;
+                    return (
+                      <button
+                        key={v.id}
+                        onClick={() => setView(v.id)}
+                        style={{
+                          ...mono,
+                          fontSize: 10.5,
+                          padding: "7px 14px",
+                          borderRadius: 999,
+                          cursor: "pointer",
+                          border: "none",
+                          background: active ? ACCENT : "transparent",
+                          color: active ? "#0B0B0B" : c.muted,
+                          fontWeight: 500,
+                        }}
+                      >
+                        {v.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <div style={{ ...num, fontSize: 20, fontWeight: 500, textTransform: "capitalize", textAlign: "center" }}>{rangeLabel}</div>
+            </>
+          ) : (
+          <>
           <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
             <div style={{ display: "flex", gap: 4 }}>
               <button onClick={() => shift(-1)} style={navBtn(c)}>‹</button>
@@ -393,7 +432,7 @@ export default function CalendrierPage() {
             </div>
             <div style={{ ...num, fontSize: 20, fontWeight: 500, textTransform: "capitalize" }}>{rangeLabel}</div>
           </div>
-          {/* Sélecteur Jour / Semaine / Mois */}
+          {/* Sélecteur Jour / Semaine / Mois (desktop : 3 vues inchangées) */}
           <div style={{ display: "flex", gap: 4, padding: 4, background: c.chip, borderRadius: 999, border: `1px solid ${c.line}` }}>
             {VIEW_LABELS.map((v) => {
               const active = view === v.id;
@@ -418,6 +457,8 @@ export default function CalendrierPage() {
               );
             })}
           </div>
+          </>
+          )}
         </div>
 
         {/* Grid + sidebar */}
@@ -649,7 +690,102 @@ export default function CalendrierPage() {
             )}
           </Glass>
 
-          {/* Sidebar */}
+          {/* Agenda mobile : la sidebar RDV disparaît en mobile (grille 1 colonne),
+              on rend donc la même liste agenda SOUS la grille du jour. Même source
+              de données (filteredRdv / rdvFilter) et même item de rendu que la sidebar. */}
+          {isMobile && (
+            <Glass c={c} dark={dark}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12, gap: 8 }}>
+                <div style={{ ...mono, color: c.muted }}>
+                  Rendez-vous <span style={{ color: c.faint }}>· {VIEW_WORD[view]}</span>
+                </div>
+                <span style={{ ...mono, color: c.faint }}>{filteredRdv.length}</span>
+              </div>
+
+              {/* Sélecteur de statut — grille 1fr 1fr sur mobile */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 6 }}>
+                {RDV_FILTERS.map((f) => {
+                  const active = rdvFilter === f.id;
+                  return (
+                    <button
+                      key={f.id}
+                      onClick={() => setRdvFilter(f.id)}
+                      style={{
+                        ...mono,
+                        fontSize: 10.5,
+                        padding: "9px 10px",
+                        borderRadius: 12,
+                        cursor: "pointer",
+                        whiteSpace: "nowrap",
+                        background: active ? f.color : c.chip,
+                        color: active ? "#FFFFFF" : c.muted,
+                        border: `1px solid ${active ? "transparent" : c.line}`,
+                      }}
+                    >
+                      {f.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Liste agenda — même item de rendu que la sidebar desktop. */}
+              <div
+                style={{
+                  maxHeight: 360,
+                  overflowY: "auto",
+                  marginRight: -8,
+                  paddingRight: 8,
+                  scrollbarWidth: "thin",
+                  scrollbarColor: `${c.line} transparent`,
+                }}
+              >
+                <motion.div layout transition={spring}>
+                  <AnimatePresence initial={false} mode="popLayout">
+                    {filteredRdv.length === 0 ? (
+                      <motion.div
+                        key={`empty-m-${rdvFilter}`}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        style={{ ...mono, color: c.faint, padding: "10px 0 2px" }}
+                      >
+                        Aucun RDV {RDV_FILTERS.find((f) => f.id === rdvFilter)?.label.toLowerCase()} cette semaine.
+                      </motion.div>
+                    ) : (
+                      filteredRdv.map((s, i) => {
+                        const who = s.student?.discordUsername || s.student?.name || "—";
+                        return (
+                          <motion.div
+                            key={s._id}
+                            layout
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -8 }}
+                            transition={spring}
+                          >
+                            <button
+                              onClick={() => s.student && router.push(`/studio/eleves/${s.student._id}`)}
+                              style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 0", borderTop: i > 0 ? `1px solid ${c.hairline}` : "none", background: "transparent", border: "none", width: "100%", cursor: "pointer", color: c.text, fontFamily: "inherit", textAlign: "left" }}
+                            >
+                              <Avatar name={who} size={28} dark={dark} image={s.student?.image} />
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontSize: 13.5, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{who}</div>
+                                <div style={{ ...mono, color: c.muted, marginTop: 2 }}>{fmtWhen(s.scheduledAt)}</div>
+                              </div>
+                              <span style={{ color: c.muted, fontSize: 14 }}>›</span>
+                            </button>
+                          </motion.div>
+                        );
+                      })
+                    )}
+                  </AnimatePresence>
+                </motion.div>
+              </div>
+            </Glass>
+          )}
+
+          {/* Sidebar — desktop uniquement (sur mobile l'agenda ci-dessus la remplace). */}
+          {!isMobile && (
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <Glass c={c} dark={dark}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12, gap: 8 }}>
@@ -761,6 +897,7 @@ export default function CalendrierPage() {
               <Legend c={c} dot="transparent" label="Annulé" border={c.line} strike />
             </Glass>
           </div>
+          )}
         </div>
       </div>
 

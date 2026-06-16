@@ -252,7 +252,7 @@ export default function OnboardingTokenPage({
         // le RDV. One-shot : sur reload, le mapping réactif renvoie direct à "rdv".
         // Si la vidéo Mux n'est pas configurée, on saute l'écran (pas d'écran
         // vide qui parlerait d'une vidéo absente) → RDV direct.
-        setStep(QUICKWIN_MUX_PLAYBACK_ID ? "quickwin" : "rdv");
+        setStep("quickwin");
       } else if (shouldShowUpsell(answers)) {
         setStep("upsell");
       } else {
@@ -411,7 +411,30 @@ export default function OnboardingTokenPage({
                 style={{ width: "100%", height: "100%" }}
               />
             </div>
-          ) : null}
+          ) : (
+            // Placeholder tant que la vidéo de bienvenue n'est pas branchée
+            // (env NEXT_PUBLIC_ONBOARDING_QUICKWIN_MUX_PLAYBACK_ID).
+            <div
+              style={{
+                marginTop: 18,
+                borderRadius: 14,
+                border: `1px dashed ${c.line}`,
+                aspectRatio: "16 / 9",
+                background: c.chip,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+              }}
+            >
+              <div style={{ fontSize: 26 }}>🎬</div>
+              <div style={{ ...mono, fontSize: 10, color: c.muted, letterSpacing: "0.08em" }}>
+                VIDÉO DE BIENVENUE
+              </div>
+              <div style={{ ...mono, fontSize: 9, color: c.faint }}>bientôt disponible</div>
+            </div>
+          )}
           <GlassButton
             c={c}
             kind="solid"

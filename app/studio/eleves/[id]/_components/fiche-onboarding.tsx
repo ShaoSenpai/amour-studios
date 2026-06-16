@@ -10,7 +10,6 @@ import {
   ACCENT,
   mono,
   glassBtn,
-  fmtDateShort,
   type C,
 } from "../../../_components/glass";
 import { Field, fieldInput, TAP } from "./fiche-shared";
@@ -188,15 +187,6 @@ export function OnboardingBlock({
         </div>
       )}
 
-      {/* Étapes / dates */}
-      {ob && (ob.presentedAt || ob.linkSentAt || ob.formCompletedAt || ob.rdvBookedAt) && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          {ob.presentedAt && <Field c={c} label="Présenté Discord" value={fmtDateShort(ob.presentedAt)} mono />}
-          {ob.linkSentAt && <Field c={c} label="Lien envoyé" value={fmtDateShort(ob.linkSentAt)} mono />}
-          {ob.formCompletedAt && <Field c={c} label="Formulaire rempli" value={fmtDateShort(ob.formCompletedAt)} mono />}
-          {ob.rdvBookedAt && <Field c={c} label="1er RDV réservé" value={fmtDateShort(ob.rdvBookedAt)} mono />}
-        </div>
-      )}
 
       {/* Note libre admin */}
       <div>

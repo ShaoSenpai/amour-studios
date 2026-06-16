@@ -70,7 +70,7 @@ export default function ClaimPage() {
 function ClaimInner() {
   const search = useSearchParams();
   const router = useRouter();
-  const { signIn } = useAuthActions();
+  const { signIn, signOut } = useAuthActions();
 
   // Extract claim token from URL (supports ?t=, ?session=, ?pi=) or cookie
   const tokenFromUrl = search.get("t");
@@ -134,50 +134,49 @@ function ClaimInner() {
   >("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Auto-claim once the user is authenticated AND the purchase is visible
+  // Claim EXPLICITE — déclenché par le bouton « Lier ce compte » de l'écran de
+  // confirmation. ⚠️ PLUS d'auto-claim silencieux : avant, dès qu'un user était
+  // connecté dans l'app, on liait le paiement à CE compte sans rien demander →
+  // catastrophe quand la session app ≠ le compte Discord voulu (plusieurs comptes,
+  // session admin persistante…). On affiche d'abord le compte cible + « changer ».
+  const doClaim = () => {
+    if (!claimRef || claimState !== "idle") return;
+    setClaimState("claiming");
+    const promise =
+      claimRef.kind === "session"
+        ? claimBySession({ sessionId: claimRef.value })
+        : claimRef.kind === "token"
+        ? claimByToken({ token: claimRef.value })
+        : claimByPi({ paymentIntentId: claimRef.value });
+    promise
+      .then(() => {
+        clearClaimCookie();
+        setClaimState("done");
+        toast.success("Compte activé 🎉 Dernière étape : rejoins le serveur Discord");
+      })
+      .catch((err) => {
+        setClaimState("error");
+        setErrorMsg(err instanceof Error ? err.message : "Erreur inconnue");
+      });
+  };
+
+  // Si le compte connecté a DÉJÀ ce paiement lié → écran "done" direct.
   useEffect(() => {
     if (
       currentUser &&
+      currentUser.purchaseId &&
       purchase &&
-      // Abonnements Stripe = "active" (pas "paid"). On accepte les mêmes statuts
-      // que claimByToken côté backend, sinon la page reste blanche (return null
-      // plus bas) pour un abonné connecté. "paid" = legacy one-shot.
       (purchase.status === "paid" ||
         purchase.status === "active" ||
         purchase.status === "incomplete") &&
       claimRef &&
       claimState === "idle"
     ) {
-      if (currentUser.purchaseId) {
-        clearClaimCookie();
-        setClaimState("done");
-        // On NE redirige plus en silence : l'écran "done" guide explicitement
-        // vers le serveur Discord (rejoindre + présentation), étape obligatoire
-        // pour activer l'accès. Un push direct vers /onboarding/welcome faisait
-        // sauter cette consigne — fatal pour un nouveau client qui n'a pas
-        // encore rejoint le serveur.
-        toast.success("Bienvenue ! Dernière étape : rejoins le serveur Discord");
-        return;
-      }
-      setClaimState("claiming");
-      const promise =
-        claimRef.kind === "session"
-          ? claimBySession({ sessionId: claimRef.value })
-          : claimRef.kind === "token"
-          ? claimByToken({ token: claimRef.value })
-          : claimByPi({ paymentIntentId: claimRef.value });
-      promise
-        .then(() => {
-          clearClaimCookie();
-          setClaimState("done");
-          toast.success("Compte activé 🎉 Dernière étape : rejoins le serveur Discord");
-        })
-        .catch((err) => {
-          setClaimState("error");
-          setErrorMsg(err instanceof Error ? err.message : "Erreur inconnue");
-        });
+      clearClaimCookie();
+      setClaimState("done");
+      toast.success("Bienvenue ! Dernière étape : rejoins le serveur Discord");
     }
-  }, [currentUser, purchase, claimRef, claimBySession, claimByPi, claimByToken, claimState, router]);
+  }, [currentUser, purchase, claimRef, claimState]);
 
   const dark = useIsDark();
   const c = palette(dark, ACCENT);
@@ -298,6 +297,28 @@ function ClaimInner() {
   // User pas encore authentifié → Yes/No Discord
   if (!currentUser) {
     return <HasDiscordScreen claimRef={claimRef!} signIn={signIn} />;
+  }
+
+  // User connecté, paiement prêt, PAS encore lié → CONFIRME le compte cible avant
+  // de lier (anti mauvais-compte : montre à QUI on va lier + « changer de compte »).
+  if (currentUser && purchase && !currentUser.purchaseId && claimState === "idle") {
+    return (
+      <ConfirmAccountScreen
+        c={c}
+        dark={dark}
+        user={currentUser}
+        onConfirm={doClaim}
+        onSwitch={async () => {
+          // On garde le cookie claim (1h) pour reprendre après re-login avec le
+          // bon compte. signOut → currentUser devient null → écran « connexion ».
+          try {
+            await signOut();
+          } catch {
+            toast.error("Impossible de se déconnecter. Réessaie.");
+          }
+        }}
+      />
+    );
   }
 
   // Claim en cours
@@ -463,6 +484,101 @@ function ClaimInner() {
 }
 
 // ─── Sub-screens ──────────────────────────────────────
+
+// Confirme à QUEL compte Discord on va lier le paiement (anti mauvais-compte :
+// la session app peut être un autre compte que celui voulu). Bouton « changer ».
+function ConfirmAccountScreen({
+  c,
+  dark,
+  user,
+  onConfirm,
+  onSwitch,
+}: {
+  c: C;
+  dark: boolean;
+  user: {
+    discordUsername?: string | null;
+    name?: string | null;
+    image?: string | null;
+  };
+  onConfirm: () => void;
+  onSwitch: () => void;
+}) {
+  const name = user.discordUsername || user.name || "ton compte Discord";
+  return (
+    <Screen c={c} dark={dark}>
+      <Header c={c} tag="DERNIÈRE VÉRIF · COMPTE" title="C'est bien ce compte ?" />
+      <p style={{ fontSize: 14.5, color: c.muted, lineHeight: 1.55, marginBottom: 18 }}>
+        Ton paiement va être lié au compte Discord ci-dessous. Vérifie que c&apos;est
+        bien celui que tu utilises pour la communauté :
+      </p>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 14,
+          padding: "14px 16px",
+          borderRadius: 14,
+          background: c.chip,
+          border: `1px solid ${c.line}`,
+          marginBottom: 22,
+        }}
+      >
+        {user.image ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={user.image}
+            alt=""
+            width={44}
+            height={44}
+            style={{ borderRadius: "50%", flexShrink: 0 }}
+          />
+        ) : (
+          <div style={{ width: 44, height: 44, borderRadius: "50%", background: c.line, flexShrink: 0 }} />
+        )}
+        <div style={{ minWidth: 0 }}>
+          <div
+            style={{
+              ...num,
+              fontSize: 17,
+              fontWeight: 600,
+              color: c.text,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {name}
+          </div>
+          <div style={{ ...mono, fontSize: 10, color: c.faint }}>
+            Compte Discord connecté
+          </div>
+        </div>
+      </div>
+      <Button c={c} onClick={onConfirm}>
+        Oui, lier ce compte
+        <ArrowRight size={14} />
+      </Button>
+      <button
+        onClick={onSwitch}
+        style={{
+          ...mono,
+          fontSize: 11,
+          color: c.muted,
+          background: "none",
+          border: "none",
+          cursor: "pointer",
+          marginTop: 16,
+          padding: 0,
+          alignSelf: "flex-start",
+          textDecoration: "underline",
+        }}
+      >
+        Ce n&apos;est pas le bon compte ? Changer de compte
+      </button>
+    </Screen>
+  );
+}
 
 function HasDiscordScreen({
   claimRef,

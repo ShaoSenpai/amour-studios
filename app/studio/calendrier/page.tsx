@@ -96,6 +96,15 @@ const RDV_FILTERS = [
 ];
 type RdvFilter = (typeof RDV_FILTERS)[number]["id"];
 
+// Pastilles de la vue Mois mobile : 1 couleur pleine par statut (les tones
+// glass de statusColor sont trop pâles pour un point de 5px).
+const MONTH_DOT: Record<string, string> = {
+  scheduled: "#3B82F6",
+  completed: "#1FA463",
+  no_show: "#E03131",
+  canceled: "#F97316",
+};
+
 /** ms → "12 mars · 14:30". */
 function fmtWhen(ts: number): string {
   const d = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short" }).format(new Date(ts));
@@ -394,9 +403,10 @@ export default function CalendrierPage() {
                   <button onClick={() => shift(-1)} style={navBtn(c)}>‹</button>
                   <button onClick={() => shift(1)} style={navBtn(c)}>›</button>
                 </div>
-                {/* Sélecteur de vue (Jour seul sur mobile) */}
+                {/* Sélecteur de vue (les 3 vues actives sur mobile ; Jour reste
+                    le défaut au 1er montage via le useEffect didInitView). */}
                 <div style={{ display: "flex", gap: 4, padding: 4, background: c.chip, borderRadius: 999, border: `1px solid ${c.line}` }}>
-                  {VIEW_LABELS.filter((v) => v.id === "day").map((v) => {
+                  {VIEW_LABELS.map((v) => {
                     const active = view === v.id;
                     return (
                       <button
@@ -478,6 +488,18 @@ export default function CalendrierPage() {
                   setAnchor(d);
                   setView("day");
                 }}
+              />
+            ) : isMobile && view === "week" ? (
+              // Vue Semaine sur mobile = agenda vertical (pas la grille horaire 7
+              // colonnes qui déborde à 375px). Une section par jour de la semaine
+              // affichée (cols = from→to), RDV du jour rendus comme dans la sidebar.
+              <WeekAgendaMobile
+                c={c}
+                dark={dark}
+                cols={cols}
+                sessions={sessions ?? []}
+                todayStr={todayStr}
+                onPick={(id) => router.push(`/studio/eleves/${id}`)}
               />
             ) : (
             // En mobile : scroll horizontal seulement en vue semaine (7 colonnes).
@@ -694,7 +716,7 @@ export default function CalendrierPage() {
           {/* Agenda mobile : la sidebar RDV disparaît en mobile (grille 1 colonne),
               on rend donc la même liste agenda SOUS la grille du jour. Même source
               de données (filteredRdv / rdvFilter) et même item de rendu que la sidebar. */}
-          {isMobile && (
+          {isMobile && view !== "week" && (
             <Glass c={c} dark={dark}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12, gap: 8 }}>
                 <div style={{ ...mono, color: c.muted }}>
@@ -921,6 +943,77 @@ export default function CalendrierPage() {
   );
 }
 
+// Vue Semaine sur mobile : agenda vertical. Une section par jour de la semaine
+// (cols), avec un en-tête « Lundi 16 » puis les RDV du jour (même item que la
+// sidebar : Avatar + nom + heure, cliquable). Jour vide → « — » discret.
+// Zéro débordement horizontal (aucun minWidth, tout en 1 colonne).
+type WeekSession = {
+  _id: unknown;
+  scheduledAt: number;
+  status: string;
+  student?: { _id: Id<"users">; discordUsername?: string | null; name?: string | null; image?: string | null } | null;
+};
+function WeekAgendaMobile({
+  c,
+  dark,
+  cols,
+  sessions,
+  todayStr,
+  onPick,
+}: {
+  c: C;
+  dark: boolean;
+  cols: Date[];
+  sessions: WeekSession[];
+  todayStr: string;
+  onPick: (id: Id<"users">) => void;
+}) {
+  const fmtHm = (ts: number) =>
+    new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" }).format(new Date(ts));
+  const statusLabel = (s: string) =>
+    s === "scheduled" ? "À venir" : s === "completed" ? "Fait" : s === "canceled" ? "Annulé" : s === "no_show" ? "No-show" : s;
+  return (
+    <div style={{ padding: SPACE.md }}>
+      {cols.map((d, i) => {
+        const isToday = todayStr === d.toDateString();
+        const dayEvents = sessions
+          .filter((s) => new Date(s.scheduledAt).toDateString() === d.toDateString())
+          .sort((a, b) => a.scheduledAt - b.scheduledAt);
+        const header = new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric" }).format(d);
+        return (
+          <div key={i} style={{ borderTop: i > 0 ? `1px solid ${c.hairline}` : "none", paddingTop: i > 0 ? 12 : 0, marginTop: i > 0 ? 12 : 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: dayEvents.length ? 6 : 2 }}>
+              <span style={{ ...num, fontSize: 14, fontWeight: 500, textTransform: "capitalize", color: isToday ? ACCENT : c.text }}>{header}</span>
+              {dayEvents.length > 0 && <span style={{ ...mono, fontSize: 9.5, color: c.faint }}>{dayEvents.length} RDV</span>}
+            </div>
+            {dayEvents.length === 0 ? (
+              <div style={{ ...mono, fontSize: 11, color: c.faint, paddingBottom: 2 }}>—</div>
+            ) : (
+              dayEvents.map((ev) => {
+                const who = ev.student?.discordUsername || ev.student?.name || "—";
+                return (
+                  <button
+                    key={ev._id as string}
+                    onClick={() => ev.student && onPick(ev.student._id)}
+                    style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", background: "transparent", border: "none", width: "100%", cursor: "pointer", color: c.text, fontFamily: "inherit", textAlign: "left" }}
+                  >
+                    <Avatar name={who} size={28} dark={dark} image={ev.student?.image} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13.5, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textDecoration: ev.status === "canceled" ? "line-through" : "none" }}>{who}</div>
+                      <div style={{ ...mono, color: c.muted, marginTop: 2 }}>{fmtHm(ev.scheduledAt)} · {statusLabel(ev.status)}</div>
+                    </div>
+                    <span style={{ color: c.muted, fontSize: 14 }}>›</span>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // Vue Mois : grille 6×7. Chaque case = un jour (n° + jusqu'à 3 RDV colorés par
 // statut, « +N » au-delà). Clic sur une case → bascule en vue Jour.
 type MonthSession = {
@@ -979,8 +1072,8 @@ function MonthGrid({
                 borderTop: `1px solid ${c.hairline}`,
                 borderLeft: i % 7 ? `1px solid ${c.hairline}` : "none",
                 background: isToday ? (dark ? "rgba(255,90,31,0.06)" : "rgba(255,90,31,0.05)") : "transparent",
-                minHeight: isMobile ? 70 : 104,
-                padding: isMobile ? 4 : "7px 8px",
+                minHeight: isMobile ? 56 : 104,
+                padding: isMobile ? "5px 3px" : "7px 8px",
                 cursor: "pointer",
                 fontFamily: "inherit",
                 color: c.text,
@@ -991,10 +1084,25 @@ function MonthGrid({
                 overflow: "hidden",
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <span style={{ ...num, fontSize: isMobile ? 10 : 14, fontWeight: 500, color: isToday ? ACCENT : c.text }}>{d.getDate()}</span>
-                {evs.length > 0 && <span style={{ ...mono, fontSize: 8.5, color: c.faint }}>{evs.length}</span>}
+              <div style={{ display: "flex", alignItems: isMobile ? "flex-start" : "center", justifyContent: isMobile ? "center" : "space-between" }}>
+                <span style={{ ...num, fontSize: isMobile ? 13 : 14, fontWeight: 500, color: isToday ? ACCENT : c.text }}>{d.getDate()}</span>
+                {!isMobile && evs.length > 0 && <span style={{ ...mono, fontSize: 8.5, color: c.faint }}>{evs.length}</span>}
               </div>
+              {isMobile ? (
+                // Mobile : pastilles (points colorés par statut), pas de texte
+                // d'événement (qui déborderait à ~51px/colonne). Max 3 + « +N ».
+                evs.length > 0 && (
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 3, flexWrap: "wrap", minWidth: 0 }}>
+                    {evs.slice(0, 3).map((ev) => (
+                      <span
+                        key={ev._id as string}
+                        style={{ width: 5, height: 5, borderRadius: 999, background: MONTH_DOT[ev.status] ?? c.muted, opacity: ev.status === "canceled" ? 0.5 : 1, flexShrink: 0 }}
+                      />
+                    ))}
+                    {evs.length > 3 && <span style={{ ...mono, fontSize: 7.5, color: c.faint, lineHeight: 1 }}>+{evs.length - 3}</span>}
+                  </div>
+                )
+              ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 3, minWidth: 0 }}>
                 {evs.slice(0, 3).map((ev) => {
                   const tone = statusColor(ev.status);
@@ -1003,7 +1111,7 @@ function MonthGrid({
                   return (
                     <div
                       key={ev._id as string}
-                      style={{ display: "flex", alignItems: "center", gap: 5, fontSize: isMobile ? 8 : 10, background: tone.bg, border: `1px solid ${tone.border}`, color: tone.color, borderRadius: 6, padding: isMobile ? "1px 3px" : "2px 5px", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", textDecoration: ev.status === "canceled" ? "line-through" : "none" }}
+                      style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10, background: tone.bg, border: `1px solid ${tone.border}`, color: tone.color, borderRadius: 6, padding: "2px 5px", overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", textDecoration: ev.status === "canceled" ? "line-through" : "none" }}
                     >
                       <span style={{ ...mono, fontSize: 8, opacity: 0.8 }}>{t}</span>
                       <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{who}</span>
@@ -1012,6 +1120,7 @@ function MonthGrid({
                 })}
                 {evs.length > 3 && <span style={{ ...mono, fontSize: 8.5, color: c.muted }}>+{evs.length - 3}</span>}
               </div>
+              )}
             </button>
           );
         })}

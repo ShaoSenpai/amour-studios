@@ -256,57 +256,99 @@ main { padding:60px 60px 140px; max-width:1000px; margin:0 auto; }
 .appear-card textarea { max-height:300px; overflow-y:auto; }
 .appear-card textarea::placeholder { color:var(--warm); font-style:italic; }
 
-/* ── LIFESTYLE GRID — INDEPENDENT ────────────────────────────── */
-.lifestyle-grid {
-  display:grid; grid-template-columns:repeat(2,1fr);
-  gap:3px; align-items:start;
-}
-.lifestyle-card {
+/* ── LIEN CARD ───────────────────────────────────────────────── */
+.lien-card {
   background:var(--cream); padding:28px; position:relative; overflow:hidden;
   box-shadow:0 2px 8px rgba(29,29,27,0.07);
-  transition:box-shadow 0.4s ease;
+  transition:box-shadow 0.4s ease; margin-top:3px;
 }
-.lifestyle-card::before {
+.lien-card::before {
   content:''; position:absolute; left:0; top:0;
   width:3px; height:0; background:var(--rouge);
   transition:height 0.45s cubic-bezier(.22,.68,0,1.2);
 }
-.lifestyle-card:hover::before,
-.lifestyle-card:focus-within::before { height:100%; }
-.lifestyle-card .card-title {
-  font-family:'Schibsted Grotesk',sans-serif;font-weight:800; font-size:18px;
-  letter-spacing:2px; color:var(--noir); margin-bottom:14px;
+.lien-card:hover::before,
+.lien-card:focus-within::before { height:100%; }
+.lien-card .card-title {
+  font-family:'Schibsted Grotesk',sans-serif;font-weight:800; font-size:14px;
+  letter-spacing:2px; color:var(--noir); margin-bottom:10px;
 }
-.lifestyle-card textarea {
+.lien-card textarea {
   width:100%; background:transparent; border:none; outline:none;
   font-family:'Schibsted Grotesk',sans-serif; font-size:14px; color:var(--noir);
+  resize:none; min-height:60px; line-height:1.75; overflow:hidden;
+  transition:height 0.25s ease;
+}
+.lien-card textarea { max-height:300px; overflow-y:auto; }
+.lien-card textarea::placeholder { color:var(--warm); font-style:italic; font-size:13px; }
+
+/* ── RYTHME GRID ─────────────────────────────────────────────── */
+.rythme-grid {
+  display:grid; grid-template-columns:repeat(3,1fr);
+  gap:3px; align-items:start; margin-top:3px;
+}
+.rythme-card {
+  background:var(--cream); padding:24px; position:relative; overflow:hidden;
+  box-shadow:0 2px 8px rgba(29,29,27,0.07);
+  transition:box-shadow 0.4s ease;
+}
+.rythme-card::before {
+  content:''; position:absolute; top:0; left:0;
+  width:0; height:3px; background:var(--rouge);
+  transition:width 0.5s cubic-bezier(.22,.68,0,1.2);
+}
+.rythme-card:hover::before { width:100%; }
+.rythme-card .card-title {
+  font-family:'Schibsted Grotesk',sans-serif;font-weight:800; font-size:13px;
+  letter-spacing:2px; color:var(--noir); margin-bottom:12px; line-height:1.4;
+}
+.rythme-card textarea {
+  width:100%; background:transparent; border:none; outline:none;
+  font-family:'Schibsted Grotesk',sans-serif; font-size:13px; color:var(--noir);
   resize:none; min-height:70px; line-height:1.75; overflow:hidden;
   transition:height 0.25s ease;
 }
-.lifestyle-card textarea { max-height:300px; overflow-y:auto; }
-.lifestyle-card textarea::placeholder { color:var(--warm); font-style:italic; font-size:13px; }
+.rythme-card textarea { max-height:300px; overflow-y:auto; }
+.rythme-card textarea::placeholder { color:var(--warm); font-style:italic; font-size:12px; }
 
-/* ── BOUSSOLE ────────────────────────────────────────────────── */
-.boussole-wrap {
+/* ── SUB-LABEL ───────────────────────────────────────────────── */
+.sub-label {
+  font-family:'Schibsted Grotesk',sans-serif;font-weight:800; font-size:11px;
+  letter-spacing:3px; color:var(--muted); text-transform:uppercase;
+  margin-bottom:10px; margin-top:28px;
+}
+
+/* ── GRID TIP ────────────────────────────────────────────────── */
+.grid-tip {
+  margin-top:14px; font-size:12px; color:var(--muted); font-style:italic;
+  padding:10px 14px; border-left:2px solid var(--warm); line-height:1.6;
+}
+
+/* ── PHRASE SOLEIL ───────────────────────────────────────────── */
+.soleil-wrap {
   background:var(--noir); padding:56px 48px; position:relative; overflow:hidden;
   box-shadow:0 24px 80px rgba(29,29,27,0.22);
   transition:box-shadow 0.4s ease;
 }
-.boussole-wrap:hover { box-shadow:0 32px 100px rgba(29,29,27,0.3); }
-.boussole-wrap::before {
-  content:'❝'; position:absolute; top:16px; left:24px;
-  font-size:110px; color:var(--rouge); opacity:0.12;
+.soleil-wrap:hover { box-shadow:0 32px 100px rgba(29,29,27,0.3); }
+.soleil-wrap::before {
+  content:''; position:absolute; top:16px; left:24px;
+  font-size:90px; color:var(--rouge); opacity:0.10;
   font-family:'Schibsted Grotesk',sans-serif; line-height:1;
   transition:opacity 0.4s ease;
 }
-.boussole-wrap:hover::before { opacity:0.22; }
-.boussole-wrap::after {
+.soleil-wrap:hover::before { opacity:0.20; }
+.soleil-wrap::after {
   content:''; position:absolute; bottom:0; left:0;
   width:0; height:3px; background:var(--rouge);
   transition:width 0.8s cubic-bezier(.22,.68,0,1.2);
 }
-.boussole-wrap:focus-within::after { width:100%; }
-.boussole-wrap textarea {
+.soleil-wrap:focus-within::after { width:100%; }
+.soleil-label {
+  font-size:10px; letter-spacing:3px; color:rgba(255,255,255,0.35);
+  text-transform:uppercase; margin-bottom:16px; font-weight:800;
+}
+.soleil-wrap textarea {
   width:100%; background:transparent; border:none;
   border-bottom:1px solid rgba(255,255,255,0.12); outline:none;
   font-family:'Schibsted Grotesk',sans-serif; font-style:italic;
@@ -315,9 +357,32 @@ main { padding:60px 60px 140px; max-width:1000px; margin:0 auto; }
   line-height:1.5; position:relative; z-index:1;
   padding-bottom:20px; overflow:hidden; transition:height 0.25s ease;
 }
-.boussole-wrap textarea { max-height:300px; overflow-y:auto; }
-.boussole-wrap textarea::placeholder { color:rgba(255,255,255,0.16); font-style:italic; }
-.boussole-hint { font-size:10px; letter-spacing:3px; color:var(--muted); text-align:center; margin-top:20px; text-transform:uppercase; }
+.soleil-wrap textarea { max-height:300px; overflow-y:auto; }
+.soleil-wrap textarea::placeholder { color:rgba(255,255,255,0.16); font-style:italic; }
+.soleil-hint { font-size:10px; letter-spacing:3px; color:rgba(255,255,255,0.28); text-align:center; margin-top:20px; text-transform:uppercase; line-height:1.6; }
+
+/* ── FIL ROUGE ───────────────────────────────────────────────── */
+.fil-rouge-wrap {
+  background:var(--cream); border-left:4px solid var(--rouge);
+  padding:32px 36px; position:relative;
+  box-shadow:0 2px 8px rgba(29,29,27,0.07);
+}
+.fil-rouge-eyebrow {
+  font-size:9px; letter-spacing:3px; color:var(--rouge); font-weight:800;
+  text-transform:uppercase; margin-bottom:10px;
+}
+.fil-rouge-text {
+  font-family:'Schibsted Grotesk',sans-serif; font-size:16px; font-weight:700;
+  color:var(--noir); line-height:1.5; margin-bottom:20px;
+}
+.fil-rouge-label {
+  font-size:10px; letter-spacing:3px; color:var(--muted); text-transform:uppercase;
+  font-weight:800; margin-bottom:8px;
+}
+.fil-rouge-box {
+  background:var(--noir); color:var(--cream);
+  padding:16px 22px; font-size:13px; line-height:1.7;
+}
 
 /* ── GENERATE ────────────────────────────────────────────────── */
 .generate-wrap {
@@ -377,7 +442,7 @@ main { padding:60px 60px 140px; max-width:1000px; margin:0 auto; }
   .hero { padding:40px 24px 20px; }
   .divider { width:calc(100% - 48px); margin:0 24px; }
   .hero-deco { display:none; }
-  .time-grid,.artists-grid,.appear-grid,.lifestyle-grid { grid-template-columns:1fr; }
+  .time-grid,.artists-grid,.appear-grid,.rythme-grid { grid-template-columns:1fr; }
   .generate-wrap { bottom:20px; right:20px; }
 }
 /* Contraste : placeholders lisibles sur blocs clairs (DA 2026-06-16) */
@@ -406,58 +471,59 @@ main { padding:60px 60px 140px; max-width:1000px; margin:0 auto; }
 
 <main>
 
-  <!-- 01 -->
+  <!-- 01 — TES OBJECTIFS -->
   <div class="section">
     <div class="section-header">
       <span class="section-number">01</span>
-      <div class="section-title">Où tu veux être</div>
-      <p class="section-desc">Des objectifs concrets. Des dates. Des chiffres réels.</p>
+      <div class="section-title">Tes objectifs</div>
+      <p class="section-desc">Des chiffres concrets. Des noms. Des dates réelles.</p>
     </div>
     <div class="time-grid">
       <div class="time-col card-3d">
         <div class="time-col-header">6 MOIS</div>
-        <div class="time-field"><label>Abonnés</label><input type="text" id="s6_abonnes" placeholder="ex: 5 000"></div>
-        <div class="time-field"><label>Date / Live</label><input type="text" id="s6_live" placeholder="ex: Mars 2025"></div>
-        <div class="time-field"><label>Collaboration</label><input type="text" id="s6_collab" placeholder="ex: Nom de l'artiste"></div>
-        <div class="time-field"><label>Revenus / Mois</label><input type="text" id="s6_revenus" placeholder="ex: 1 500€"></div>
+        <div class="time-field"><label>Abonnés souhaités</label><input type="text" id="s6_abonnes" placeholder="ex: 5 000"></div>
+        <div class="time-field"><label>Dates réalisées</label><input type="text" id="s6_live" placeholder="ex: Mars 2025"></div>
+        <div class="time-field"><label>Collaborations</label><input type="text" id="s6_collab" placeholder="ex: Nom de l'artiste"></div>
+        <div class="time-field"><label>Revenus visés</label><input type="text" id="s6_revenus" placeholder="ex: 1 500€"></div>
       </div>
       <div class="time-col card-3d">
         <div class="time-col-header">1 AN</div>
-        <div class="time-field"><label>Abonnés</label><input type="text" id="s1_abonnes" placeholder="ex: 20 000"></div>
-        <div class="time-field"><label>Date / Live</label><input type="text" id="s1_live" placeholder="ex: Septembre 2025"></div>
-        <div class="time-field"><label>Collaboration</label><input type="text" id="s1_collab" placeholder="ex: Nom de l'artiste"></div>
-        <div class="time-field"><label>Revenus / Mois</label><input type="text" id="s1_revenus" placeholder="ex: 3 000€"></div>
+        <div class="time-field"><label>Abonnés souhaités</label><input type="text" id="s1_abonnes" placeholder="ex: 20 000"></div>
+        <div class="time-field"><label>Dates réalisées</label><input type="text" id="s1_live" placeholder="ex: Septembre 2025"></div>
+        <div class="time-field"><label>Collaborations</label><input type="text" id="s1_collab" placeholder="ex: Nom de l'artiste"></div>
+        <div class="time-field"><label>Revenus visés</label><input type="text" id="s1_revenus" placeholder="ex: 3 000€"></div>
       </div>
       <div class="time-col card-3d">
         <div class="time-col-header">3 ANS</div>
-        <div class="time-field"><label>Abonnés</label><input type="text" id="s3_abonnes" placeholder="ex: 100 000"></div>
-        <div class="time-field"><label>Date / Live</label><input type="text" id="s3_live" placeholder="ex: 2027"></div>
-        <div class="time-field"><label>Collaboration</label><input type="text" id="s3_collab" placeholder="ex: Nom de l'artiste"></div>
-        <div class="time-field"><label>Revenus / Mois</label><input type="text" id="s3_revenus" placeholder="ex: 8 000€"></div>
+        <div class="time-field"><label>Abonnés souhaités</label><input type="text" id="s3_abonnes" placeholder="ex: 100 000"></div>
+        <div class="time-field"><label>Dates réalisées</label><input type="text" id="s3_live" placeholder="ex: 2027"></div>
+        <div class="time-field"><label>Collaborations</label><input type="text" id="s3_collab" placeholder="ex: Nom de l'artiste"></div>
+        <div class="time-field"><label>Revenus visés</label><input type="text" id="s3_revenus" placeholder="ex: 8 000€"></div>
       </div>
     </div>
+    <p class="grid-tip">💡 Tip : l'intermittence comme levier — rejoindre le milieu musical sans forcément faire de la musique.</p>
   </div>
 
-  <!-- 02 -->
+  <!-- 02 — RÉFÉRENCES ET VISIBILITÉ -->
   <div class="section">
     <div class="section-header">
       <span class="section-number">02</span>
-      <div class="section-title">Tes références</div>
+      <div class="section-title">Références et visibilité</div>
       <p class="section-desc">T'admires pas juste leur musique. T'admires leur trajectoire.</p>
     </div>
+
+    <p class="sub-label">Artistes ou créateurs que tu admires</p>
     <div class="artists-grid" id="artistsGrid">
       <!-- Dynamic cards inserted by JS -->
     </div>
     <button class="add-artist-btn" id="addArtistBtn" onclick="addArtistCard()">+ AJOUTER UNE RÉFÉRENCE</button>
-  </div>
 
-  <!-- 03 -->
-  <div class="section">
-    <div class="section-header">
-      <span class="section-number">03</span>
-      <div class="section-title">Où tu veux apparaître</div>
-      <p class="section-desc">Les scènes, médias et playlists où tu veux être présent.</p>
+    <div class="lien-card card-3d" style="margin-top:16px;">
+      <div class="card-title">LE LIEN</div>
+      <textarea id="ref_lien" placeholder="Le lien entre leur univers et ta création de contenu..."></textarea>
     </div>
+
+    <p class="sub-label" style="margin-top:36px;">Où tu veux apparaître</p>
     <div class="appear-grid">
       <div class="appear-card card-3d">
         <div class="card-title">SCÈNES</div>
@@ -475,45 +541,54 @@ main { padding:60px 60px 140px; max-width:1000px; margin:0 auto; }
         <textarea id="app_playlists" placeholder="Liste tes playlists cibles..."></textarea>
       </div>
     </div>
-  </div>
 
-  <!-- 04 -->
-  <div class="section">
-    <div class="section-header">
-      <span class="section-number">04</span>
-      <div class="section-title">Le mode de vie</div>
-      <p class="section-desc">Pense pas petit. C'est ton cap, pas ton plafond.</p>
+    <div class="lien-card card-3d" style="margin-top:3px;">
+      <div class="card-title">LE LIEN</div>
+      <textarea id="app_lien" placeholder="Le lien entre ces médiums et ta création de contenu..."></textarea>
     </div>
-    <div class="lifestyle-grid">
-      <div class="lifestyle-card card-3d">
-        <div class="card-title">REVENUS</div>
-        <textarea id="life_revenus" placeholder="Ce que tu gagnes avec ta musique. Sois précis."></textarea>
+
+    <p class="sub-label" style="margin-top:36px;">Ton rythme de travail</p>
+    <div class="rythme-grid">
+      <div class="rythme-card card-3d">
+        <div class="card-title">AUJOURD'HUI,<br>AVEC HONNÊTETÉ</div>
+        <textarea id="rythme_aujourdhui" placeholder="Décris honnêtement ton rythme actuel..."></textarea>
       </div>
-      <div class="lifestyle-card card-3d">
-        <div class="card-title">LIBERTÉ</div>
-        <textarea id="life_liberte" placeholder="Comment et où tu travailles. Ton rythme."></textarea>
+      <div class="rythme-card card-3d">
+        <div class="card-title">CE QUE TU AIMERAIS<br>DANS UN FUTUR PROCHE</div>
+        <textarea id="rythme_futur" placeholder="À quoi ressemble ton rythme idéal..."></textarea>
       </div>
-      <div class="lifestyle-card card-3d">
-        <div class="card-title">RECONNAISSANCE</div>
-        <textarea id="life_reco" placeholder="Là où tu veux qu'on te connaisse."></textarea>
-      </div>
-      <div class="lifestyle-card card-3d">
-        <div class="card-title">QUOTIDIEN</div>
-        <textarea id="life_quotidien" placeholder="À quoi ressemble une bonne journée."></textarea>
+      <div class="rythme-card card-3d">
+        <div class="card-title">LES AXES<br>À AMÉLIORER</div>
+        <textarea id="rythme_axes" placeholder="Ce que tu veux changer concrètement..."></textarea>
       </div>
     </div>
   </div>
 
-  <!-- 05 -->
+  <!-- 03 — TA PHRASE SOLEIL -->
   <div class="section">
     <div class="section-header">
-      <span class="section-number">05</span>
-      <div class="section-title">Ta phrase boussole</div>
-      <p class="section-desc">Une seule phrase. Celle qui résume pourquoi tu fais tout ça.</p>
+      <span class="section-number">03</span>
+      <div class="section-title">Ta phrase soleil</div>
+      <p class="section-desc">Une phrase positive qui saute aux yeux. Elle te représente en tant que personne et en tant qu'artiste.</p>
     </div>
-    <div class="boussole-wrap">
-      <textarea id="boussole" placeholder="Écris ici ta phrase. Une seule."></textarea>
-      <div class="boussole-hint">Ta boussole — reviens-y quand tu doutes</div>
+    <div class="soleil-wrap">
+      <div class="soleil-label">Ma phrase soleil</div>
+      <textarea id="phrase_soleil" placeholder="Écris ici ta phrase soleil..."></textarea>
+      <div class="soleil-hint">Une phrase positive qui saute aux yeux<br>Elle te représente en tant que personne et en tant qu'artiste</div>
+    </div>
+  </div>
+
+  <!-- FIL ROUGE — static, no input -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-number" style="color:rgba(255,90,31,0.12);">—</span>
+      <div class="section-title">Fil rouge</div>
+    </div>
+    <div class="fil-rouge-wrap">
+      <div class="fil-rouge-eyebrow">Fil rouge</div>
+      <div class="fil-rouge-text">La création de contenu est avant tout un moyen d'obtenir des réseaux et des contacts. Pas une fin en soi.</div>
+      <div class="fil-rouge-label">Prochain call : Le Positionnement</div>
+      <div class="fil-rouge-box">À rendre : Identifier l'angle où tu serais le plus pertinent.</div>
     </div>
   </div>
 
@@ -658,7 +733,15 @@ function deleteArtistCard(idx){
 // ── COMPLETION ───────────────────────────────────────────────────
 // staticFields DOIT être déclaré AVANT l'init (renderArtistCards→updateRing
 // le lit) — sinon ReferenceError TDZ qui casse % + génération PDF.
-const staticFields=['s6_abonnes','s6_live','s6_collab','s6_revenus','s1_abonnes','s1_live','s1_collab','s1_revenus','s3_abonnes','s3_live','s3_collab','s3_revenus','app_scenes','app_medias','app_playlists','life_revenus','life_liberte','life_reco','life_quotidien','boussole'];
+const staticFields=[
+  's6_abonnes','s6_live','s6_collab','s6_revenus',
+  's1_abonnes','s1_live','s1_collab','s1_revenus',
+  's3_abonnes','s3_live','s3_collab','s3_revenus',
+  'ref_lien',
+  'app_scenes','app_medias','app_playlists','app_lien',
+  'rythme_aujourdhui','rythme_futur','rythme_axes',
+  'phrase_soleil'
+];
 
 // Init with 2 default cards
 artistCount=2;
@@ -733,14 +816,13 @@ async function generatePDF(){
   doc.text('Sois précis. Des chiffres, des noms, des dates. Pas des vœux pieux.',M,y+34);
   y+=43;
 
-  // ── 01 OÙ TU VEUX ÊTRE ─────────────────────────────────────────
-  sLabel('01 — OÙ TU VEUX ÊTRE');
+  // ── 01 TES OBJECTIFS ───────────────────────────────────────────
+  sLabel('01 — TES OBJECTIFS');
   const TC=[['6 MOIS','s6'],['1 AN','s1'],['3 ANS','s3']];
   const TF=['abonnes','live','collab','revenus'];
-  const TL=['ABONNÉS','DATE / LIVE','COLLABORATION','REVENUS / MOIS'];
+  const TL=['ABONNÉS SOUHAITÉS','DATES RÉALISÉES','COLLABORATIONS','REVENUS VISÉS'];
   const cw=CW/3, P=3, LBH=5, FSc=8.5;
 
-  // Row heights = max across all 3 cols per field
   const rowH=TF.map((f,fi)=>{
     let mx=LBH+P*2+3;
     TC.forEach(c=>{
@@ -769,10 +851,21 @@ async function generatePDF(){
       fy+=h;
     });
   });
-  y+=gridH; gap();
+  y+=gridH;
+  // Tip
+  need(8);
+  doc.setFont('helvetica','oblique'); doc.setFontSize(7); doc.setTextColor(...muted);
+  doc.text("Tip : l'intermittence comme levier — rejoindre le milieu musical sans forcément faire de la musique.",M,y+5);
+  y+=8; gap();
 
-  // ── 02 TES RÉFÉRENCES — blocs INDÉPENDANTS (dynamique) ─────────
-  sLabel('02 — TES RÉFÉRENCES');
+  // ── 02 RÉFÉRENCES ET VISIBILITÉ ────────────────────────────────
+  sLabel('02 — RÉFÉRENCES ET VISIBILITÉ');
+
+  // Sub-label: artistes
+  need(6);
+  doc.setFont('helvetica','bold'); doc.setFontSize(6); doc.setTextColor(...muted);
+  doc.text('ARTISTES OU CRÉATEURS QUE TU ADMIRES',M,y); y+=5;
+
   const aw=CW/2, NW=14, atw=aw-NW-P*2-2;
   for(let row=0;row<Math.ceil(artistCount/2);row++){
     const ns=[];
@@ -799,13 +892,30 @@ async function generatePDF(){
     });
     y+=adv+2;
   }
-  gap();
+  gap(4);
 
-  // ── 03 OÙ TU VEUX APPARAÎTRE — blocs INDÉPENDANTS ─────────────
-  sLabel('03 — OÙ TU VEUX APPARAÎTRE');
+  // ref_lien
+  {
+    const ls=wrap(val('ref_lien'),CW-8,8);
+    const bh=Math.max(10+lh(ls.length,8)+P*2,14);
+    need(bh+4);
+    doc.setFillColor(...cream); doc.rect(M,y,CW,bh,'F');
+    doc.setFillColor(...rouge); doc.rect(M,y,3,bh,'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(...rouge);
+    doc.text('LE LIEN ENTRE LEUR UNIVERS ET TA CRÉATION DE CONTENU',M+6,y+5);
+    doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(...noir);
+    doc.text(ls,M+6,y+10);
+    y+=bh+4;
+  }
+  gap(4);
+
+  // Sub-label: où apparaître
+  need(6);
+  doc.setFont('helvetica','bold'); doc.setFontSize(6); doc.setTextColor(...muted);
+  doc.text('OÙ TU VEUX APPARAÎTRE',M,y); y+=5;
+
   const AC=[{id:'app_scenes',t:'SCÈNES',h:'Boiler Room, Colors...'},{id:'app_medias',t:'MÉDIAS',h:'Booska-P, Spotify...'},{id:'app_playlists',t:'PLAYLISTS',h:'New Music Friday...'}];
   const apw=CW/3;
-  // Hauteur indépendante par colonne
   const apH=AC.map(a=>{
     const ls=wrap(val(a.id),apw-P*2-2,8);
     return Math.max(16+lh(ls.length,8)+P,24);
@@ -814,7 +924,7 @@ async function generatePDF(){
   need(apAdv);
   AC.forEach((a,i)=>{
     const ax=M+i*apw;
-    const h=apH[i]; // ← indépendant
+    const h=apH[i];
     doc.setFillColor(...cream); doc.rect(ax,y,apw-2,h,'F');
     doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(...noir);
     doc.text(a.t,ax+P,y+6);
@@ -825,45 +935,86 @@ async function generatePDF(){
     const ls=wrap(val(a.id),apw-P*2-2,8);
     doc.text(ls,ax+P,y+18);
   });
-  y+=apAdv; gap();
+  y+=apAdv; gap(3);
 
-  // ── 04 MODE DE VIE — blocs INDÉPENDANTS ───────────────────────
-  sLabel('04 — LE MODE DE VIE');
-  const LC=[{id:'life_revenus',t:'REVENUS'},{id:'life_liberte',t:'LIBERTÉ'},{id:'life_reco',t:'RECONNAISSANCE'},{id:'life_quotidien',t:'QUOTIDIEN'}];
-  const lw=CW/2;
-  for(let row=0;row<2;row++){
-    const pair=[LC[row*2],LC[row*2+1]];
-    const ch=pair.map(l=>{
-      const ls=wrap(val(l.id),lw-14,8);
-      return Math.max(10+lh(ls.length,8)+P*2,18);
-    });
-    const adv=Math.max(...ch);
-    need(adv+2);
-    pair.forEach((l,ci)=>{
-      const lx=M+ci*lw;
-      const h=ch[ci]; // ← indépendant
-      doc.setFillColor(...cream); doc.rect(lx,y,lw-2,h,'F');
-      doc.setFillColor(...rouge); doc.rect(lx,y,3,h,'F');
-      doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(...noir);
-      doc.text(l.t,lx+7,y+7);
-      doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(...muted);
-      const ls=wrap(val(l.id),lw-14,8);
-      doc.text(ls,lx+7,y+14);
-    });
-    y+=adv+2;
+  // app_lien
+  {
+    const ls=wrap(val('app_lien'),CW-8,8);
+    const bh=Math.max(10+lh(ls.length,8)+P*2,14);
+    need(bh+4);
+    doc.setFillColor(...cream); doc.rect(M,y,CW,bh,'F');
+    doc.setFillColor(...rouge); doc.rect(M,y,3,bh,'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(...rouge);
+    doc.text('LE LIEN ENTRE CES MÉDIUMS ET TA CRÉATION DE CONTENU',M+6,y+5);
+    doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(...noir);
+    doc.text(ls,M+6,y+10);
+    y+=bh+4;
   }
-  gap();
+  gap(4);
 
-  // ── 05 PHRASE BOUSSOLE ─────────────────────────────────────────
-  sLabel('05 — TA PHRASE BOUSSOLE');
+  // Rythme de travail
+  need(6);
+  doc.setFont('helvetica','bold'); doc.setFontSize(6); doc.setTextColor(...muted);
+  doc.text('TON RYTHME DE TRAVAIL',M,y); y+=5;
+
+  const RC=[
+    {id:'rythme_aujourdhui',t:"AUJOURD'HUI, AVEC HONNÊTETÉ"},
+    {id:'rythme_futur',t:'CE QUE TU AIMERAIS DANS UN FUTUR PROCHE'},
+    {id:'rythme_axes',t:'LES AXES À AMÉLIORER'}
+  ];
+  const rw=CW/3;
+  const rH=RC.map(r=>{
+    const ls=wrap(val(r.id),rw-P*2-2,8);
+    return Math.max(14+lh(ls.length,8)+P*2,22);
+  });
+  const rAdv=Math.max(...rH);
+  need(rAdv);
+  RC.forEach((r,i)=>{
+    const rx2=M+i*rw;
+    const h=rH[i];
+    doc.setFillColor(...cream); doc.rect(rx2,y,rw-2,h,'F');
+    doc.setFillColor(...rouge); doc.rect(rx2,y,rw-2,2,'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(...noir);
+    doc.text(r.t,rx2+P,y+7,{maxWidth:rw-P*2-2});
+    doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(...muted);
+    const ls=wrap(val(r.id),rw-P*2-2,8);
+    doc.text(ls,rx2+P,y+14);
+  });
+  y+=rAdv; gap();
+
+  // ── 03 TA PHRASE SOLEIL ────────────────────────────────────────
+  sLabel('03 — TA PHRASE SOLEIL');
   doc.setFont('helvetica','oblique'); doc.setFontSize(12);
-  const bls=wrap(val('boussole')||'Ta phrase boussole...',CW-24,12);
+  const bls=wrap(val('phrase_soleil')||'Ta phrase soleil...',CW-24,12);
   const bh=Math.max(lh(bls.length,12,1.6)+18,24);
   need(bh);
   doc.setFillColor(...noir); doc.rect(M,y,CW,bh,'F');
   doc.setTextColor(240,235,227);
   doc.text(bls,W/2,y+bh/2-lh(bls.length,12,1.6)/2+4,{align:'center'});
-  y+=bh+4;
+  y+=bh+4; gap(4);
+
+  // ── FIL ROUGE ──────────────────────────────────────────────────
+  sLabel('FIL ROUGE');
+  {
+    const filText="La création de contenu est avant tout un moyen d'obtenir des réseaux et des contacts. Pas une fin en soi.";
+    const filLs=wrap(filText,CW-8,9);
+    const filH=Math.max(10+lh(filLs.length,9,1.5)+24,28);
+    need(filH);
+    doc.setFillColor(...cream); doc.rect(M,y,CW,filH,'F');
+    doc.setFillColor(...rouge); doc.rect(M,y,4,filH,'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(...noir);
+    doc.text(filLs,M+9,y+8,{lineHeightFactor:1.5});
+    const afterText=y+lh(filLs.length,9,1.5)+10;
+    doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(...muted);
+    doc.text('PROCHAIN CALL : LE POSITIONNEMENT',M+9,afterText+3);
+    const boxY=afterText+8;
+    const boxH=12;
+    need(boxH+2);
+    doc.setFillColor(...noir); doc.rect(M+9,boxY,CW-9,boxH,'F');
+    doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(240,235,227);
+    doc.text("À rendre : Identifier l'angle où tu serais le plus pertinent.",M+13,boxY+7);
+    y+=filH+4;
+  }
 
   doc.setFont('helvetica','normal'); doc.setFontSize(6); doc.setTextColor(...muted);
   doc.text('AMOUR STUDIOS — MODULE 01 — VIDÉO 01 — VISION BOARD',W/2,H-8,{align:'center'});

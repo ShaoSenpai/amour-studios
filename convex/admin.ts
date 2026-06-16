@@ -1203,6 +1203,76 @@ export const resetTestIdentity = internalMutation({
   },
 });
 
+/** Outil de reset E2E (CLI) — repart d'un dashboard vierge pour re-tester le
+ *  tunnel. Supprime purchases / onboardings / coachingSessions / claimTokens /
+ *  events ; délie tous les users ; retire les rôles Discord des comptes NON-admin
+ *  (les admins gardent compte + rôle + accès /studio). NE supprime aucun compte.
+ *
+ *  🔒 GARDE-FOU : refuse de tourner si Stripe n'est PAS en mode test
+ *  (`sk_test…`). Quand tu passeras en LIVE, cet outil se désactive seul → zéro
+ *  risque sur de vraies données. Lancer : `npx convex run admin:resetTestFunnel '{}' --prod`.
+ *  ⚠️ À retirer avant la mise en production définitive. */
+export const resetTestFunnel = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const sk = process.env.STRIPE_SECRET_KEY ?? "";
+    if (!sk.startsWith("sk_test")) {
+      throw new Error(
+        "resetTestFunnel REFUSÉ : Stripe n'est pas en mode test (protection données réelles)."
+      );
+    }
+    const deleted = {
+      purchases: 0,
+      onboardings: 0,
+      coachingSessions: 0,
+      claimTokens: 0,
+      events: 0,
+      usersUnlinked: 0,
+    };
+    for (const p of await ctx.db.query("purchases").collect()) {
+      await ctx.db.delete(p._id);
+      deleted.purchases++;
+    }
+    for (const o of await ctx.db.query("onboardings").collect()) {
+      await ctx.db.delete(o._id);
+      deleted.onboardings++;
+    }
+    for (const s of await ctx.db.query("coachingSessions").collect()) {
+      await ctx.db.delete(s._id);
+      deleted.coachingSessions++;
+    }
+    for (const t of await ctx.db.query("claimTokens").collect()) {
+      await ctx.db.delete(t._id);
+      deleted.claimTokens++;
+    }
+    for (const e of await ctx.db.query("events").collect()) {
+      await ctx.db.delete(e._id);
+      deleted.events++;
+    }
+    const nonAdminDiscordIds = new Set<string>();
+    for (const u of await ctx.db.query("users").collect()) {
+      if (u.purchaseId) {
+        await ctx.db.patch(u._id, { purchaseId: undefined });
+        deleted.usersUnlinked++;
+      }
+      if (u.discordId && u.role !== "admin") nonAdminDiscordIds.add(u.discordId);
+    }
+    for (const did of nonAdminDiscordIds) {
+      await ctx.scheduler.runAfter(0, internal.stripe.removeDiscordRoles, {
+        discordId: did,
+        email: "",
+      });
+      await ctx.scheduler.runAfter(0, internal.stripe.removeOnboardedRole, {
+        discordId: did,
+      });
+      await ctx.scheduler.runAfter(0, internal.admin.forgetPresentationOnBot, {
+        discordId: did,
+      });
+    }
+    return { ok: true as const, deleted, discordRolesCleared: nonAdminDiscordIds.size };
+  },
+});
+
 /** Outil admin (CLI) : pilote le gate « non-onboardé » côté bot Discord.
  *  Cache tous les salons sauf #présente-toi / #sos pour qui n'a pas le rôle
  *  Onboardé. `mode` = preview | apply | revert. Lancer via :

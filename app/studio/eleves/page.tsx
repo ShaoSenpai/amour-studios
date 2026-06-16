@@ -242,7 +242,10 @@ export default function ElevesPage() {
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                     <span style={chip}>{stageLabel(m.coachingStage)}</span>
                     {m.nextSessionAt != null && <span style={chip}>📅 {fmtNextRdv(m.nextSessionAt)}</span>}
-                    <span style={chip}>{si.label}</span>
+                    <Pill c={c} tone={si.tone}>
+                      <span style={{ width: 5, height: 5, borderRadius: 5, background: si.tone === "success" ? c.successFg : si.tone === "outline" ? c.faint : "#0B0B0B" }} />
+                      {si.label}
+                    </Pill>
                   </div>
                 </button>
               );

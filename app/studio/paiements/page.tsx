@@ -162,7 +162,7 @@ export default function PaiementsPage() {
               <div style={{ ...mono, color: c.muted }}>Revenu mensuel · 12 mois</div>
               <div style={{ ...num, fontSize: 36, fontWeight: 500, lineHeight: 1, marginTop: 10 }}>{data.kpis.mrr}</div>
             </div>
-            <AreaChart c={c} data={data.mrrSeries} />
+            <AreaChart c={c} data={data.mrrSeries} isMobile={isMobile} />
           </Glass>
 
           <Glass c={c} dark={dark}>
@@ -243,7 +243,7 @@ export default function PaiementsPage() {
                         {si.label}
                       </Pill>
                       <span style={{ ...num, fontSize: 13, fontWeight: 500 }}>{s.montant}</span>
-                      <span style={chipStyle}>📅 {fmtDateShort(s.echeance)}</span>
+                      {s.echeance != null && <span style={chipStyle}>📅 {fmtDateShort(s.echeance)}</span>}
                     </div>
                   </div>
                 );
@@ -301,7 +301,7 @@ export default function PaiementsPage() {
   );
 }
 
-function AreaChart({ c, data }: { c: C; data: number[] }) {
+function AreaChart({ c, data, isMobile }: { c: C; data: number[]; isMobile: boolean }) {
   const W = 720, H = 200, PAD_L = 50, PAD_R = 16, PAD_T = 16, PAD_B = 32;
   const innerW = W - PAD_L - PAD_R;
   const innerH = H - PAD_T - PAD_B;
@@ -322,7 +322,7 @@ function AreaChart({ c, data }: { c: C; data: number[] }) {
 
   return (
     <div style={{ padding: "8px 24px 20px" }}>
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" preserveAspectRatio="xMidYMid meet" style={{ display: "block", width: "100%", height: "auto" }}>
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={isMobile ? undefined : H} preserveAspectRatio="xMidYMid meet" style={{ display: "block", width: "100%", height: isMobile ? "auto" : undefined }}>
         <defs>
           <linearGradient id="studio-rev-grad" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={ACCENT} stopOpacity="0.35" />

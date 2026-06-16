@@ -198,7 +198,7 @@ export default function LierPage() {
               type="email"
               style={{ ...inputStyle(c), flex: isMobile ? "1 1 100%" : "1 1 240px" }}
             />
-            <GlassButton c={c} kind="solid" onClick={handleSearch} style={{ padding: "11px 20px", fontSize: 12 }}>
+            <GlassButton c={c} kind="solid" onClick={handleSearch} style={{ padding: "11px 20px", fontSize: 12, minHeight: 44 }}>
               Chercher
             </GlassButton>
           </div>
@@ -259,7 +259,7 @@ export default function LierPage() {
                     <span
                       style={{
                         ...mono,
-                        fontSize: 9.5,
+                        fontSize: isMobile ? 11 : 9.5,
                         padding: "3px 9px",
                         borderRadius: 999,
                         background: live ? ACCENT : c.chip,
@@ -280,6 +280,7 @@ export default function LierPage() {
                       style={{
                         padding: "9px 14px",
                         fontSize: 11,
+                        minHeight: 44,
                         opacity: !canLink || linking ? 0.5 : 1,
                         cursor: !canLink || linking ? "not-allowed" : "pointer",
                         flexShrink: 0,

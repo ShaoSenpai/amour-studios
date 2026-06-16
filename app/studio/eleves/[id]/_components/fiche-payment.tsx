@@ -9,8 +9,11 @@ import { toast } from "sonner";
 import {
   mono,
   GlassButton,
+  useIsDark,
+  useIsMobile,
   type C,
 } from "../../../_components/glass";
+import { MobileSheet } from "../../../_components/mobile-sheet";
 import { fieldInput } from "./fiche-shared";
 
 // ============================================================================
@@ -47,6 +50,9 @@ export function PaymentSavSection({
   status: string | null;
   amountCents: number;
 }) {
+  const dark = useIsDark();
+  const isMobile = useIsMobile();
+
   const cancelSub = useAction(api.stripe.cancelSubscription);
   const refundInvoice = useAction(api.stripe.refundLastInvoice);
   const portal = useAction(api.stripe.createCustomerPortalLink);
@@ -272,7 +278,23 @@ export function PaymentSavSection({
       </div>
 
       {modal?.kind === "changeTier" && (
-        <SavModalShell c={c} title="Changer le plan" onClose={closeModal}>
+        <SavModalShell
+          c={c}
+          dark={dark}
+          isMobile={isMobile}
+          title="Changer le plan"
+          onClose={closeModal}
+          footer={
+            <SavActions
+              c={c}
+              isMobile={isMobile}
+              onCancel={closeModal}
+              onConfirm={() => void handleChangeTier()}
+              confirming={busy === "changeTier"}
+              confirmLabel={`Passer en ${tierOther}`}
+            />
+          }
+        >
           <div style={{ fontSize: 13.5, lineHeight: 1.5, color: c.muted }}>
             Faire passer cet abonnement de{" "}
             <strong style={{ color: c.text }}>{currentTier}</strong> à{" "}
@@ -297,18 +319,28 @@ export function PaymentSavSection({
             />
             Appliquer un prorata (recommandé)
           </label>
-          <SavActions
-            c={c}
-            onCancel={closeModal}
-            onConfirm={() => void handleChangeTier()}
-            confirming={busy === "changeTier"}
-            confirmLabel={`Passer en ${tierOther}`}
-          />
         </SavModalShell>
       )}
 
       {modal?.kind === "cancel" && (
-        <SavModalShell c={c} title="Annuler l'abonnement" onClose={closeModal}>
+        <SavModalShell
+          c={c}
+          dark={dark}
+          isMobile={isMobile}
+          title="Annuler l'abonnement"
+          onClose={closeModal}
+          footer={
+            <SavActions
+              c={c}
+              isMobile={isMobile}
+              onCancel={closeModal}
+              onConfirm={() => void handleCancel()}
+              confirming={busy === "cancel"}
+              confirmLabel={cancelImmediate ? "Annuler maintenant" : "Programmer l'annulation"}
+              danger={cancelImmediate}
+            />
+          }
+        >
           <div style={{ fontSize: 13.5, lineHeight: 1.5, color: c.muted }}>
             Choisis le mode d'annulation. La version « fin de période » laisse
             l'accès jusqu'à l'échéance courante.
@@ -385,19 +417,28 @@ export function PaymentSavSection({
             rows={2}
             style={{ ...fieldInput(c), resize: "vertical", marginTop: 12 }}
           />
-          <SavActions
-            c={c}
-            onCancel={closeModal}
-            onConfirm={() => void handleCancel()}
-            confirming={busy === "cancel"}
-            confirmLabel={cancelImmediate ? "Annuler maintenant" : "Programmer l'annulation"}
-            danger={cancelImmediate}
-          />
         </SavModalShell>
       )}
 
       {modal?.kind === "refund" && (
-        <SavModalShell c={c} title="Rembourser la dernière facture" onClose={closeModal}>
+        <SavModalShell
+          c={c}
+          dark={dark}
+          isMobile={isMobile}
+          title="Rembourser la dernière facture"
+          onClose={closeModal}
+          footer={
+            <SavActions
+              c={c}
+              isMobile={isMobile}
+              onCancel={closeModal}
+              onConfirm={() => void handleRefund()}
+              confirming={busy === "refund"}
+              confirmLabel="Rembourser"
+              danger
+            />
+          }
+        >
           <div style={{ fontSize: 13.5, lineHeight: 1.5, color: c.muted }}>
             Laisse le montant vide pour un remboursement intégral.
             Dernier débit connu : <strong style={{ color: c.text }}>{(amountCents / 100).toFixed(2)} €</strong>.
@@ -433,31 +474,32 @@ export function PaymentSavSection({
               <option value="fraudulent">Frauduleux</option>
             </select>
           </div>
-          <SavActions
-            c={c}
-            onCancel={closeModal}
-            onConfirm={() => void handleRefund()}
-            confirming={busy === "refund"}
-            confirmLabel="Rembourser"
-            danger
-          />
         </SavModalShell>
       )}
 
       {modal?.kind === "forceSync" && (
-        <SavModalShell c={c} title="Forcer la re-sync Stripe" onClose={closeModal}>
+        <SavModalShell
+          c={c}
+          dark={dark}
+          isMobile={isMobile}
+          title="Forcer la re-sync Stripe"
+          onClose={closeModal}
+          footer={
+            <SavActions
+              c={c}
+              isMobile={isMobile}
+              onCancel={closeModal}
+              onConfirm={() => void handleForceSync()}
+              confirming={busy === "forceSync"}
+              confirmLabel="Re-sync maintenant"
+            />
+          }
+        >
           <div style={{ fontSize: 13.5, lineHeight: 1.5, color: c.muted }}>
             Récupère l'état actuel côté Stripe et écrase les champs locaux
             (status, période, palier, rôles Discord). À utiliser si un webhook
             a été raté.
           </div>
-          <SavActions
-            c={c}
-            onCancel={closeModal}
-            onConfirm={() => void handleForceSync()}
-            confirming={busy === "forceSync"}
-            confirmLabel="Re-sync maintenant"
-          />
         </SavModalShell>
       )}
     </div>
@@ -466,16 +508,38 @@ export function PaymentSavSection({
 
 function SavModalShell({
   c,
+  dark,
+  isMobile,
   title,
   onClose,
   children,
+  footer,
 }: {
   c: C;
+  dark: boolean;
+  isMobile: boolean;
   title: string;
   onClose: () => void;
   children: React.ReactNode;
+  footer?: React.ReactNode;
 }) {
-  // Modal portal (overlay full-screen + Glass C inline).
+  // Mobile : bottom-sheet (MobileSheet). Desktop : modale d'origine verbatim.
+  if (isMobile) {
+    return (
+      <MobileSheet
+        c={c}
+        dark={dark}
+        isMobile={isMobile}
+        onClose={onClose}
+        title={title}
+        footer={footer}
+      >
+        {children}
+      </MobileSheet>
+    );
+  }
+
+  // --- Desktop : SavModalShell d'origine (overlay full-screen + Glass C inline). ---
   if (typeof window === "undefined") return null;
   return createPortal(
     <div
@@ -533,6 +597,7 @@ function SavModalShell({
           </button>
         </div>
         {children}
+        {footer}
       </div>
     </div>,
     document.body
@@ -541,6 +606,7 @@ function SavModalShell({
 
 function SavActions({
   c,
+  isMobile,
   onCancel,
   onConfirm,
   confirming,
@@ -548,6 +614,7 @@ function SavActions({
   danger = false,
 }: {
   c: C;
+  isMobile: boolean;
   onCancel: () => void;
   onConfirm: () => void;
   confirming: boolean;
@@ -555,7 +622,17 @@ function SavActions({
   danger?: boolean;
 }) {
   return (
-    <div style={{ display: "flex", gap: 8, marginTop: 18, justifyContent: "flex-end" }}>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: isMobile ? "column-reverse" : "row",
+        gap: 8,
+        ...(isMobile
+          ? { width: "100%" }
+          : { marginTop: 18 }),
+        justifyContent: "flex-end",
+      }}
+    >
       <GlassButton
         c={c}
         onClick={onCancel}
@@ -563,6 +640,7 @@ function SavActions({
         style={{
           cursor: confirming ? "default" : "pointer",
           opacity: confirming ? 0.6 : 1,
+          flex: isMobile ? 1 : undefined,
         }}
       >
         Annuler
@@ -575,6 +653,7 @@ function SavActions({
         style={{
           cursor: confirming ? "default" : "pointer",
           opacity: confirming ? 0.7 : 1,
+          flex: isMobile ? 1 : undefined,
           ...(danger
             ? {
                 background: "#E03131",

@@ -992,20 +992,25 @@ export default function FichePage({
     <div style={{ background: c.bgGrad, minHeight: "100vh", color: c.text, padding: isMobile ? 14 : 26, fontFamily: "'Schibsted Grotesk', system-ui, sans-serif" }}>
       <div style={{ maxWidth: 1280, margin: "0 auto" }}>
         {/* Breadcrumb */}
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-          <Link href="/studio/eleves" style={{ ...mono, fontSize: 10.5, padding: "8px 12px", background: c.chip, border: `1px solid ${c.line}`, color: c.text, borderRadius: 999, textDecoration: "none" }}>← Élèves</Link>
-          <span style={{ ...mono, color: c.muted }}>
-            Élèves <span style={{ margin: "0 6px", opacity: 0.5 }}>/</span>
-            <span style={{ color: c.text }}>{who}</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16, flexWrap: isMobile ? "nowrap" : "wrap", minWidth: 0 }}>
+          <Link href="/studio/eleves" style={{ ...mono, fontSize: 10.5, padding: "8px 12px", background: c.chip, border: `1px solid ${c.line}`, color: c.text, borderRadius: 999, textDecoration: "none", flexShrink: 0, whiteSpace: "nowrap" }}>← Élèves</Link>
+          <span style={{ ...mono, color: c.muted, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {!isMobile && <>Élèves <span style={{ margin: "0 6px", opacity: 0.5 }}>/</span></>}
+            <span style={{ color: c.text }}>{!isMobile && who}</span>
+            {isMobile && <span style={{ color: c.text }}><span style={{ margin: "0 6px", opacity: 0.5 }}>/</span>{who}</span>}
           </span>
-          <motion.button
-            {...TAP}
-            onClick={reset}
-            title="Remettre l'ordre et l'affichage des blocs par défaut"
-            style={{ ...mono, fontSize: 10.5, marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 12px", background: c.chip, border: `1px solid ${c.line}`, color: c.muted, borderRadius: 999, cursor: "pointer" }}
-          >
-            <RotateCcw size={13} /> Réinitialiser la disposition
-          </motion.button>
+          {/* « Réinitialiser la disposition » n'a aucun sens sur mobile (drag des
+              blocs désactivé) → masqué. Desktop inchangé. */}
+          {!isMobile && (
+            <motion.button
+              {...TAP}
+              onClick={reset}
+              title="Remettre l'ordre et l'affichage des blocs par défaut"
+              style={{ ...mono, fontSize: 10.5, marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 12px", background: c.chip, border: `1px solid ${c.line}`, color: c.muted, borderRadius: 999, cursor: "pointer" }}
+            >
+              <RotateCcw size={13} /> Réinitialiser la disposition
+            </motion.button>
+          )}
         </div>
 
         {/* Hero */}
@@ -1044,40 +1049,50 @@ export default function FichePage({
               position: "sticky",
               top: `calc(56px + ${SAFE.top} + 8px)`,
               zIndex: 5,
-              display: "flex",
-              gap: 4,
-              background: c.chip,
-              padding: 4,
-              borderRadius: 14,
-              border: `1px solid ${c.line}`,
+              // Fond OPAQUE = couleur de fond de page solide (c.bg, dark #08080C /
+              // clair #E8E3D7) pour occulter le contenu qui défile derrière.
+              background: c.bg,
+              padding: "8px 0",
+              borderBottom: `1px solid ${c.hairline}`,
               marginBottom: 16,
             }}
           >
-            {TABS.map((t) => {
-              const active = tab === t.key;
-              return (
-                <button
-                  key={t.key}
-                  type="button"
-                  onClick={() => setTab(t.key)}
-                  style={{
-                    ...mono,
-                    flex: 1,
-                    minWidth: 0,
-                    minHeight: 44,
-                    fontSize: 12,
-                    borderRadius: 11,
-                    border: "none",
-                    cursor: "pointer",
-                    background: active ? c.bg : "transparent",
-                    color: active ? c.text : c.muted,
-                    boxShadow: active ? "0 1px 4px rgba(0,0,0,0.12)" : "none",
-                  }}
-                >
-                  {t.label}
-                </button>
-              );
-            })}
+            <div
+              style={{
+                display: "flex",
+                gap: 4,
+                background: c.chip,
+                padding: 4,
+                borderRadius: 14,
+                border: `1px solid ${c.line}`,
+              }}
+            >
+              {TABS.map((t) => {
+                const active = tab === t.key;
+                return (
+                  <button
+                    key={t.key}
+                    type="button"
+                    onClick={() => setTab(t.key)}
+                    style={{
+                      ...mono,
+                      flex: 1,
+                      minWidth: 0,
+                      minHeight: 44,
+                      fontSize: 12,
+                      borderRadius: 11,
+                      border: "none",
+                      cursor: "pointer",
+                      background: active ? c.bg : "transparent",
+                      color: active ? c.text : c.muted,
+                      boxShadow: active ? "0 1px 4px rgba(0,0,0,0.12)" : "none",
+                    }}
+                  >
+                    {t.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
 

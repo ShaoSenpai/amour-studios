@@ -2,9 +2,33 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import {
+  LayoutGrid,
+  Users,
+  Calendar,
+  CreditCard,
+  MoreHorizontal,
+  LifeBuoy,
+  Link2,
+  Send,
+  FileText,
+  type LucideIcon,
+} from "lucide-react";
 import { ACCENT, SAFE, TOUCH, mono, type C } from "./glass";
 
 export type TabItem = { href: string; label: string; icon: string; exact: boolean };
+
+// Map href → vraie icône lucide (fallback : glyphe `it.icon` si absent de la map).
+const ICONS: Record<string, LucideIcon> = {
+  "/studio": LayoutGrid,
+  "/studio/eleves": Users,
+  "/studio/calendrier": Calendar,
+  "/studio/paiements": CreditCard,
+  "/studio/tickets": LifeBuoy,
+  "/studio/lier": Link2,
+  "/studio/campagnes": Send,
+  "/studio/transcripts": FileText,
+};
 
 // 4 destinations principales + un onglet « Plus » (sheet). Les `secondary`
 // vont dans le sheet. `active(href, exact)` reprend la logique du layout.
@@ -69,16 +93,21 @@ export function BottomTabBar({
       >
         {primary.map((it) => {
           const active = isActive(it.href, it.exact);
+          const Icon = ICONS[it.href];
           return (
             <Link key={it.href} href={it.href} style={tab(active)}>
-              <span style={{ fontSize: 18, lineHeight: 1, fontFamily: "'DM Mono', monospace" }}>{it.icon}</span>
+              {Icon ? (
+                <Icon size={20} strokeWidth={2} />
+              ) : (
+                <span style={{ fontSize: 18, lineHeight: 1, fontFamily: "'DM Mono', monospace" }}>{it.icon}</span>
+              )}
               <span style={{ ...mono, fontSize: 8.5, letterSpacing: "0.02em" }}>{it.label}</span>
             </Link>
           );
         })}
         <button onClick={() => setMoreOpen(true)} style={tab(anySecondaryActive)}>
-          <span style={{ fontSize: 18, lineHeight: 1, position: "relative" }}>
-            ⋯
+          <span style={{ display: "inline-flex", lineHeight: 1, position: "relative" }}>
+            <MoreHorizontal size={20} strokeWidth={2} />
             {orphanCount > 0 && (
               <span style={{ position: "absolute", top: -4, right: -8, width: 7, height: 7, borderRadius: 7, background: ACCENT }} />
             )}
@@ -112,6 +141,7 @@ export function BottomTabBar({
             {secondary.map((it) => {
               const active = isActive(it.href, it.exact);
               const badge = it.href === "/studio/transcripts" ? orphanCount : 0;
+              const Icon = ICONS[it.href];
               return (
                 <Link
                   key={it.href}
@@ -130,7 +160,9 @@ export function BottomTabBar({
                     fontSize: 15,
                   }}
                 >
-                  <span style={{ fontSize: 16, width: 18, textAlign: "center", color: active ? ACCENT : c.muted, fontFamily: "'DM Mono', monospace" }}>{it.icon}</span>
+                  <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 18, color: active ? ACCENT : c.muted, fontFamily: "'DM Mono', monospace", fontSize: 16, lineHeight: 1 }}>
+                    {Icon ? <Icon size={18} /> : it.icon}
+                  </span>
                   <span style={{ flex: 1 }}>{it.label}</span>
                   {badge > 0 && (
                     <span style={{ ...mono, fontSize: 9.5, minWidth: 18, height: 18, padding: "0 5px", borderRadius: 999, background: ACCENT, color: "#0B0B0B", display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: 600 }}>{badge}</span>

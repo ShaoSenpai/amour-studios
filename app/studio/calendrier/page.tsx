@@ -360,8 +360,7 @@ export default function CalendrierPage() {
                 <span style={{ color: ACCENT, fontWeight: 500 }}>{without?.length ?? 0} élèves sans RDV</span>
               </div>
             </div>
-            <div style={{ padding: 22, display: "flex", gap: 8, alignItems: "center" }}>
-              <GlassButton c={c} onClick={() => setAnchor(new Date())}>↺ Aujourd&apos;hui</GlassButton>
+            <div style={{ padding: isMobile ? SPACE.md : 22, display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
               <GlassButton
                 c={c}
                 disabled={resyncing}
@@ -481,10 +480,12 @@ export default function CalendrierPage() {
                 }}
               />
             ) : (
-            // En mobile : scroll horizontal pour ne pas écraser les 7 colonnes.
-            <div style={{ overflowX: isMobile ? "auto" : "visible" }}>
+            // En mobile : scroll horizontal seulement en vue semaine (7 colonnes).
+            // En vue Jour (1 colonne) on laisse la grille remplir la largeur sans
+            // minWidth, sinon scroll + vide à droite inutiles à 375px.
+            <div style={{ overflowX: isMobile && cols.length > 1 ? "auto" : "visible" }}>
             {/* Day headers */}
-            <div style={{ display: "grid", gridTemplateColumns: `56px repeat(${cols.length}, 1fr)`, minWidth: isMobile ? 700 : undefined, borderBottom: `1px solid ${c.line}` }}>
+            <div style={{ display: "grid", gridTemplateColumns: `56px repeat(${cols.length}, 1fr)`, minWidth: isMobile && cols.length > 1 ? 700 : undefined, borderBottom: `1px solid ${c.line}` }}>
               <div />
               {cols.map((d, i) => {
                 const isToday = todayStr === d.toDateString();
@@ -504,7 +505,7 @@ export default function CalendrierPage() {
             </div>
 
             {/* Body */}
-            <div style={{ position: "relative", display: "grid", gridTemplateColumns: `56px repeat(${cols.length}, 1fr)`, minWidth: isMobile ? 700 : undefined }}>
+            <div style={{ position: "relative", display: "grid", gridTemplateColumns: `56px repeat(${cols.length}, 1fr)`, minWidth: isMobile && cols.length > 1 ? 700 : undefined }}>
               {/* gutter */}
               <div>
                 {hours.map((h) => (

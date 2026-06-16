@@ -148,7 +148,6 @@ export default function AujourdhuiPage() {
               </div>
             </div>
             <div style={{ padding: isMobile ? "0 16px 20px" : 22, display: "flex", flexDirection: isMobile ? "column" : "row", gap: 8, alignItems: isMobile ? "stretch" : "center", width: isMobile ? "100%" : undefined }}>
-              <GlassButton c={c} onClick={() => router.push("/studio/eleves")} style={{ width: isMobile ? "100%" : undefined }}>＋ Note</GlassButton>
               <GlassButton c={c} kind="solid" onClick={() => setRdvOpen(true)} style={{ width: isMobile ? "100%" : undefined }}>＋ Nouveau RDV</GlassButton>
             </div>
           </div>

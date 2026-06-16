@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import {
+  ACCENT,
   mono,
   glassBtn,
   fmtDateShort,
@@ -132,6 +133,43 @@ export function OnboardingBlock({
         )}
       </div>
 
+      {/* Réponses du questionnaire — EN TÊTE (carte orange) pour que Walid
+          prépare son RDV d'un coup d'œil. */}
+      {ob?.answers && ob.answers.length > 0 && (
+        <div
+          style={{
+            padding: 14,
+            background: `${ACCENT}0D`,
+            border: `1px solid ${ACCENT}33`,
+            borderRadius: 12,
+          }}
+        >
+          <div
+            style={{
+              ...mono,
+              color: ACCENT,
+              fontSize: 10,
+              letterSpacing: "0.08em",
+              marginBottom: 12,
+            }}
+          >
+            📋 QUESTIONNAIRE · POUR PRÉPARER LE RDV
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
+            {ob.answers.map((a) => (
+              <div key={a.key}>
+                <div style={{ ...mono, fontSize: 9.5, color: c.muted, marginBottom: 3 }}>
+                  {a.label}
+                </div>
+                <div style={{ fontSize: 13.5, lineHeight: 1.5, color: c.text, whiteSpace: "pre-wrap" }}>
+                  {a.value || "—"}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Coordonnées */}
       {(fullName || ob?.phone) && (
         <div
@@ -157,28 +195,6 @@ export function OnboardingBlock({
           {ob.linkSentAt && <Field c={c} label="Lien envoyé" value={fmtDateShort(ob.linkSentAt)} mono />}
           {ob.formCompletedAt && <Field c={c} label="Formulaire rempli" value={fmtDateShort(ob.formCompletedAt)} mono />}
           {ob.rdvBookedAt && <Field c={c} label="1er RDV réservé" value={fmtDateShort(ob.rdvBookedAt)} mono />}
-        </div>
-      )}
-
-      {/* Réponses du questionnaire */}
-      {ob?.answers && ob.answers.length > 0 && (
-        <div>
-          <div style={{ ...mono, color: c.muted, fontSize: 9.5, marginBottom: 8 }}>
-            Questionnaire ({ob.answers.length} réponses)
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {ob.answers.map((a) => (
-              <div
-                key={a.key}
-                style={{ padding: "10px 12px", background: c.chip, border: `1px solid ${c.hairline}`, borderRadius: 10 }}
-              >
-                <div style={{ ...mono, fontSize: 9.5, color: c.muted, marginBottom: 4 }}>{a.label}</div>
-                <div style={{ fontSize: 13.5, lineHeight: 1.5, color: c.text, whiteSpace: "pre-wrap" }}>
-                  {a.value || "—"}
-                </div>
-              </div>
-            ))}
-          </div>
         </div>
       )}
 

@@ -7,6 +7,7 @@ import {
   Flag,
   StickyNote,
   AlertTriangle,
+  CheckCircle2,
 } from "lucide-react";
 import {
   ACCENT,
@@ -32,11 +33,28 @@ type EventVisual = {
   Icon: React.ComponentType<{ size?: number | string; color?: string; strokeWidth?: number | string }>;
 };
 
+// Jalons « validés » (étape franchie / succès) → VERT + ✓. Le reste : rouge pour
+// les échecs, accent pour les RDV à venir, gris pour l'informatif.
+const VALIDATED_EVENTS = new Set<string>([
+  "onboarding.linked",
+  "onboarding.presented",
+  "onboarding.form_done",
+  "onboarding.rdv_booked",
+  "onboarding.force_complete",
+  "rdv.booked",
+  "payment.paid",
+]);
+
 function eventVisual(type: string, c: C): EventVisual {
+  if (VALIDATED_EVENTS.has(type)) return { color: c.successFg, Icon: CheckCircle2 };
+  if (
+    type === "payment.failed" ||
+    type === "subscription.canceled" ||
+    type === "rdv.canceled"
+  )
+    return { color: "#E5484D", Icon: AlertTriangle };
   if (type.startsWith("rdv.")) return { color: ACCENT, Icon: Calendar };
   if (type === "payment.paid") return { color: c.successFg, Icon: CreditCard };
-  if (type === "payment.failed" || type === "subscription.canceled")
-    return { color: "#E5484D", Icon: AlertTriangle };
   if (type === "stage.changed") return { color: c.text, Icon: Flag };
   if (type === "note.added") return { color: c.muted, Icon: StickyNote };
   return { color: c.muted, Icon: Flag };

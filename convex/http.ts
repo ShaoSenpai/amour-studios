@@ -837,18 +837,22 @@ http.route({
           eventName: se.name,
           fallbackOnboardingToken: fallbackToken ?? undefined,
         });
-        await ctx.runMutation(internal.events.recordEventByEmail, {
-          email,
-          type: "rdv.booked",
-          title: "RDV réservé (Calendly)",
-          actor: "calendly",
-          meta: JSON.stringify({ scheduledAt: start }),
-        });
-        // Si c'est un RDV d'onboarding, met l'onboarding row à "rdv_booked".
+        // Trace CRM : UN SEUL event par RDV (avant : doublon).
+        // - RDV d'onboarding → markRdvBookedByUser logge « 1er RDV réservé
+        //   (onboarding) » + passe l'onboarding à rdv_booked.
+        // - RDV de coaching ultérieur → event générique « RDV réservé (Calendly) ».
         if (res.matched && res.isOnboarding) {
           await ctx.runMutation(internal.onboardings.markRdvBookedByUser, {
             userId: res.userId,
             sessionId: res.sessionId,
+          });
+        } else if (res.matched) {
+          await ctx.runMutation(internal.events.recordEventByEmail, {
+            email,
+            type: "rdv.booked",
+            title: "RDV réservé (Calendly)",
+            actor: "calendly",
+            meta: JSON.stringify({ scheduledAt: start }),
           });
         }
         // Fail-loud : RDV reçu mais aucun compte trouvé (email inconnu ET pas de

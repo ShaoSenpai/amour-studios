@@ -398,39 +398,39 @@ export default function CalendrierPage() {
         <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", justifyContent: "space-between", alignItems: isMobile ? "stretch" : "center", marginBottom: 16, gap: 12, flexWrap: "wrap" }}>
           {isMobile ? (
             <>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                <div style={{ display: "flex", gap: 4 }}>
-                  <button onClick={() => shift(-1)} style={navBtn(c)}>‹</button>
-                  <button onClick={() => shift(1)} style={navBtn(c)}>›</button>
-                </div>
-                {/* Sélecteur de vue (les 3 vues actives sur mobile ; Jour reste
-                    le défaut au 1er montage via le useEffect didInitView). */}
-                <div style={{ display: "flex", gap: 4, padding: 4, background: c.chip, borderRadius: 999, border: `1px solid ${c.line}` }}>
-                  {VIEW_LABELS.map((v) => {
-                    const active = view === v.id;
-                    return (
-                      <button
-                        key={v.id}
-                        onClick={() => setView(v.id)}
-                        style={{
-                          ...mono,
-                          fontSize: 10.5,
-                          padding: "7px 14px",
-                          borderRadius: 999,
-                          cursor: "pointer",
-                          border: "none",
-                          background: active ? ACCENT : "transparent",
-                          color: active ? "#0B0B0B" : c.muted,
-                          fontWeight: 500,
-                        }}
-                      >
-                        {v.label}
-                      </button>
-                    );
-                  })}
-                </div>
+              {/* Nav : flèches de part et d'autre du label de période (pattern
+                  calendrier natif « ‹ Juin 2026 › »). */}
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <button onClick={() => shift(-1)} style={navBtn(c)}>‹</button>
+                <div style={{ ...num, fontSize: 20, fontWeight: 500, textTransform: "capitalize", textAlign: "center", flex: 1, minWidth: 0 }}>{rangeLabel}</div>
+                <button onClick={() => shift(1)} style={navBtn(c)}>›</button>
               </div>
-              <div style={{ ...num, fontSize: 20, fontWeight: 500, textTransform: "capitalize", textAlign: "center" }}>{rangeLabel}</div>
+              {/* Sélecteur de vue (3 vues actives sur mobile ; Jour reste le
+                  défaut au 1er montage via le useEffect didInitView). */}
+              <div style={{ display: "flex", gap: 4, padding: 4, background: c.chip, borderRadius: 999, border: `1px solid ${c.line}`, alignSelf: "center" }}>
+                {VIEW_LABELS.map((v) => {
+                  const active = view === v.id;
+                  return (
+                    <button
+                      key={v.id}
+                      onClick={() => setView(v.id)}
+                      style={{
+                        ...mono,
+                        fontSize: 10.5,
+                        padding: "7px 14px",
+                        borderRadius: 999,
+                        cursor: "pointer",
+                        border: "none",
+                        background: active ? ACCENT : "transparent",
+                        color: active ? "#0B0B0B" : c.muted,
+                        fontWeight: 500,
+                      }}
+                    >
+                      {v.label}
+                    </button>
+                  );
+                })}
+              </div>
             </>
           ) : (
           <>

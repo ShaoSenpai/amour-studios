@@ -12,6 +12,7 @@ import {
   num,
   palette,
   useIsDark,
+  useIsMobile,
   type C,
 } from "../_components/glass";
 import type { Id } from "@/convex/_generated/dataModel";
@@ -76,6 +77,7 @@ function labelStyle(c: C): CSSProperties {
 export default function LierPage() {
   const dark = useIsDark();
   const c = palette(dark, ACCENT);
+  const isMobile = useIsMobile();
 
   const [discordId, setDiscordId] = useState("");
   const [email, setEmail] = useState("");
@@ -134,7 +136,7 @@ export default function LierPage() {
         minHeight: "100vh",
         color: c.text,
         fontFamily: "'Schibsted Grotesk', system-ui, sans-serif",
-        padding: "32px 28px 64px",
+        padding: isMobile ? "20px 16px 48px" : "32px 28px 64px",
       }}
     >
       <div style={{ maxWidth: 760, margin: "0 auto", display: "flex", flexDirection: "column", gap: 18 }}>
@@ -194,7 +196,7 @@ export default function LierPage() {
               }}
               placeholder="client@email.com"
               type="email"
-              style={{ ...inputStyle(c), flex: "1 1 240px" }}
+              style={{ ...inputStyle(c), flex: isMobile ? "1 1 100%" : "1 1 240px" }}
             />
             <GlassButton c={c} kind="solid" onClick={handleSearch} style={{ padding: "11px 20px", fontSize: 12 }}>
               Chercher

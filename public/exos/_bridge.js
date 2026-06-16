@@ -47,11 +47,8 @@
     try { if (window.opener) { window.opener.postMessage(msg, "*"); log("→ opener"); } } catch (e) { log("opener err", e); }
     try { if (channel) { channel.postMessage(msg); log("→ BroadcastChannel"); } } catch (e) { log("channel err", e); }
 
-    // Bandeau visible uniquement en mode standalone (nouvel onglet)
-    if (!isInIframe()) {
-      log("showing return banner");
-      try { showReturnBanner(); } catch (e) { log("banner err", e); }
-    }
+    // Bandeau « XP / Exercice validé » retiré (demande produit 2026-06-16).
+    // La complétion continue de remonter au dashboard via le postMessage ci-dessus.
 
     setTimeout(function () { sent = false; }, 3000);
   }

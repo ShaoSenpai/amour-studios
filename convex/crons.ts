@@ -16,15 +16,14 @@ crons.interval(
   {}
 );
 
-// Sync Fireflies : UNIQUEMENT pendant la fenêtre des RDV (économise le quota
-// quotidien Fireflies — avant, 48 runs/jour saturaient la limite).
-// RDV 16h-20h Paris, durée 1h → le dernier (20h) finit à 21h et son transcript
-// sort ~21h30-22h. On pousse la fenêtre jusqu'à 22h+ Paris pour être sûr.
-// ⚠️ Convex crons = UTC. Paris = UTC+2 (été) / UTC+1 (hiver). La plage UTC
-// 14h-21h30 couvre 16h-23h30 Paris en été et 15h-22h30 en hiver → la fenêtre
-// RDV + 1h + buffer transcript est garantie jusqu'à ≥22h30 Paris toute l'année.
-// `*/30 14-21 * * *` = toutes les 30 min, heures 14-21 UTC (16 runs/jour).
-crons.cron("fireflies-sync", "*/30 14-21 * * *", internal.fireflies.sync, {});
+// Sync Fireflies (résumés de call) par polling. Fenêtre ÉLARGIE le 2026-06-16
+// pour couvrir aussi les RDV du MATIN (avant : 14-21 UTC = après-midi/soir only).
+// ⚠️ Convex crons = UTC. Paris = UTC+2 (été) / UTC+1 (hiver). Plage UTC 6h-21h
+// = 8h-23h Paris (été) / 7h-22h (hiver) → couvre toute la journée de RDV + buffer
+// transcript. `*/30 6-21 * * *` = toutes les 30 min, heures 6-21 UTC (32 runs/j).
+// Quota Fireflies : 48/j saturaient avant ; 32/j reste sous la limite, et un run
+// rate-limité est skippé proprement (pas une panne) → réessai au run suivant.
+crons.cron("fireflies-sync", "*/30 6-21 * * *", internal.fireflies.sync, {});
 
 // Relances onboarding (Phase C) — 7h UTC = 8h Paris hiver / 9h Paris été.
 // Pour chaque onboarding non finalisé, envoie une relance 24h/48h/7j depuis

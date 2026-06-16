@@ -6,15 +6,17 @@
 <title>AMOUR STUDIOS — Vision Board</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap');
 
+/* DA amourstudios.fr — noms de vars conservés (propagation), valeurs alignées
+   sur les tokens du site : ink #0A0A0A, accent orange #FF5A1F, paper/line/white. */
 :root {
-  --beige:  #EAE4DA;
-  --noir:   #1D1D1B;
-  --rouge:  #C63F3E;
-  --muted:  #6A6A68;
-  --warm:   #C8C2B8;
-  --cream:  #F0EBE3;
+  --beige:  #FFFFFF;
+  --noir:   #0A0A0A;
+  --rouge:  #FF5A1F;
+  --muted:  #6A6A6A;
+  --warm:   #E4E2DC;
+  --cream:  #F4F2EE;
 }
 
 *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
@@ -40,7 +42,7 @@
 /* ── GRAIN ───────────────────────────────────────────────────── */
 body {
   background:var(--beige); color:var(--noir);
-  font-family:'DM Sans',sans-serif;
+  font-family:'Schibsted Grotesk',sans-serif;
   min-height:100vh; overflow-x:hidden;
 }
 body::before {
@@ -61,7 +63,7 @@ header {
   animation:fadeDown 0.8s ease forwards 0.1s;
 }
 .logo-tag {
-  font-family:'Bebas Neue',sans-serif; font-size:11px; letter-spacing:3px;
+  font-family:'Schibsted Grotesk',sans-serif;font-weight:800; font-size:11px; letter-spacing:3px;
   color:var(--muted); border:1px solid var(--warm); padding:6px 12px;
 }
 .module-tag { font-size:11px; letter-spacing:2px; color:var(--muted); text-align:right; line-height:1.6; }
@@ -79,21 +81,21 @@ header {
 }
 .hero-label::after { content:''; width:40px; height:1px; background:var(--rouge); }
 h1 {
-  font-family:'Bebas Neue',sans-serif;
+  font-family:'Schibsted Grotesk',sans-serif;font-weight:800;
   font-size:clamp(72px,11vw,130px); line-height:0.88;
   will-change:transform;
 }
 h1 .w1 { display:block; color:var(--noir); }
 h1 .w2 { display:block; color:var(--rouge); }
 .hero-sub {
-  font-family:'Playfair Display',serif; font-style:italic;
+  font-family:'Schibsted Grotesk',sans-serif; font-style:italic;
   font-size:16px; color:var(--muted); margin-top:24px;
   max-width:460px; line-height:1.6;
 }
 .hero-deco {
   position:absolute; right:60px; top:50%;
   transform:translateY(-50%);
-  font-family:'Bebas Neue',sans-serif; font-size:200px;
+  font-family:'Schibsted Grotesk',sans-serif;font-weight:800; font-size:200px;
   color:var(--warm); opacity:0.13; line-height:1;
   pointer-events:none; user-select:none; will-change:transform;
 }
@@ -116,13 +118,13 @@ main { padding:60px 60px 140px; max-width:1000px; margin:0 auto; }
 }
 .section.visible { opacity:1; transform:translateY(0); }
 .section-number {
-  font-family:'Bebas Neue',sans-serif; font-size:90px; line-height:1;
+  font-family:'Schibsted Grotesk',sans-serif;font-weight:800; font-size:90px; line-height:1;
   color:var(--warm); display:block; margin-bottom:-20px;
   transition:color 0.4s ease;
 }
 .section.visible:hover .section-number { color:rgba(198,63,62,0.12); }
 .section-title {
-  font-family:'Bebas Neue',sans-serif; font-size:28px;
+  font-family:'Schibsted Grotesk',sans-serif;font-weight:800; font-size:28px;
   letter-spacing:2px; color:var(--noir);
   position:relative; display:inline-block;
 }
@@ -132,7 +134,7 @@ main { padding:60px 60px 140px; max-width:1000px; margin:0 auto; }
   transition:width 0.6s cubic-bezier(.22,.68,0,1.2);
 }
 .section.visible .section-title::after { width:100%; }
-.section-desc { font-family:'Playfair Display',serif; font-style:italic; font-size:14px; color:var(--muted); margin-top:8px; }
+.section-desc { font-family:'Schibsted Grotesk',sans-serif; font-style:italic; font-size:14px; color:var(--muted); margin-top:8px; }
 .section-header { margin-bottom:28px; }
 
 /* ── 3D CARD ─────────────────────────────────────────────────── */
@@ -147,7 +149,7 @@ main { padding:60px 60px 140px; max-width:1000px; margin:0 auto; }
 .time-col { background:var(--cream); }
 .time-col-header {
   background:var(--noir); color:var(--beige);
-  font-family:'Bebas Neue',sans-serif; font-size:20px; letter-spacing:2px;
+  font-family:'Schibsted Grotesk',sans-serif;font-weight:800; font-size:20px; letter-spacing:2px;
   padding:14px 18px; text-align:center;
   transition:background 0.3s ease;
 }
@@ -160,7 +162,7 @@ main { padding:60px 60px 140px; max-width:1000px; margin:0 auto; }
 }
 .time-field input {
   width:100%; background:transparent; border:none; outline:none;
-  font-family:'DM Sans',sans-serif; font-size:14px; color:var(--noir);
+  font-family:'Schibsted Grotesk',sans-serif; font-size:14px; color:var(--noir);
   padding:3px 16px 12px; transition:background 0.3s ease;
 }
 .time-field input:focus { background:rgba(198,63,62,0.04); }
@@ -185,7 +187,7 @@ main { padding:60px 60px 140px; max-width:1000px; margin:0 auto; }
 .artist-card:hover::before { width:100%; }
 .artist-card:hover { background:#faf8f5; }
 .artist-num {
-  font-family:'Bebas Neue',sans-serif; font-size:52px;
+  font-family:'Schibsted Grotesk',sans-serif;font-weight:800; font-size:52px;
   color:var(--warm); line-height:1; margin-bottom:2px;
   transition:color 0.3s ease;
 }
@@ -193,7 +195,7 @@ main { padding:60px 60px 140px; max-width:1000px; margin:0 auto; }
 .artist-card input {
   width:100%; background:transparent; border:none;
   border-bottom:1px solid var(--warm); outline:none;
-  font-family:'Bebas Neue',sans-serif; font-size:18px; letter-spacing:1px;
+  font-family:'Schibsted Grotesk',sans-serif;font-weight:800; font-size:18px; letter-spacing:1px;
   color:var(--noir); padding:4px 0 8px; margin-bottom:12px;
   transition:border-color 0.3s ease;
 }
@@ -201,7 +203,7 @@ main { padding:60px 60px 140px; max-width:1000px; margin:0 auto; }
 .artist-card input::placeholder { color:var(--warm); }
 .artist-card textarea {
   width:100%; background:transparent; border:none; outline:none;
-  font-family:'DM Sans',sans-serif; font-size:13px; color:var(--muted);
+  font-family:'Schibsted Grotesk',sans-serif; font-size:13px; color:var(--muted);
   resize:none; min-height:50px; line-height:1.7; overflow:hidden;
   transition:height 0.25s ease;
 }
@@ -214,7 +216,7 @@ main { padding:60px 60px 140px; max-width:1000px; margin:0 auto; }
   background:transparent; border:none; color:var(--rouge);
   font-size:16px; cursor:none; padding:4px 8px;
   opacity:0.4; transition:opacity 0.2s, background 0.2s;
-  z-index:2; font-family:'Bebas Neue',sans-serif;
+  z-index:2; font-family:'Schibsted Grotesk',sans-serif;font-weight:800;
 }
 .artist-delete-btn:hover { opacity:1; background:rgba(198,63,62,0.08); }
 
@@ -222,7 +224,7 @@ main { padding:60px 60px 140px; max-width:1000px; margin:0 auto; }
 .add-artist-btn {
   margin-top:6px; background:transparent;
   border:1px dashed var(--warm); color:var(--muted);
-  font-family:'Bebas Neue',sans-serif; font-size:11px;
+  font-family:'Schibsted Grotesk',sans-serif;font-weight:800; font-size:11px;
   letter-spacing:2px; padding:12px 20px; cursor:none;
   width:100%; transition:all 0.3s;
 }
@@ -240,14 +242,14 @@ main { padding:60px 60px 140px; max-width:1000px; margin:0 auto; }
   transition:box-shadow 0.4s ease;
 }
 .appear-card .card-title {
-  font-family:'Bebas Neue',sans-serif; font-size:16px;
+  font-family:'Schibsted Grotesk',sans-serif;font-weight:800; font-size:16px;
   letter-spacing:2px; color:var(--noir); margin-bottom:4px;
 }
 .appear-card .card-hint { font-size:11px; color:var(--muted); font-style:italic; margin-bottom:14px; }
 .appear-card textarea {
   width:100%; background:transparent; border:none;
   border-top:1px solid var(--warm); outline:none;
-  font-family:'DM Sans',sans-serif; font-size:13px; color:var(--noir);
+  font-family:'Schibsted Grotesk',sans-serif; font-size:13px; color:var(--noir);
   resize:none; min-height:80px; padding-top:12px; line-height:1.7;
   overflow:hidden; transition:height 0.25s ease;
 }
@@ -272,12 +274,12 @@ main { padding:60px 60px 140px; max-width:1000px; margin:0 auto; }
 .lifestyle-card:hover::before,
 .lifestyle-card:focus-within::before { height:100%; }
 .lifestyle-card .card-title {
-  font-family:'Bebas Neue',sans-serif; font-size:18px;
+  font-family:'Schibsted Grotesk',sans-serif;font-weight:800; font-size:18px;
   letter-spacing:2px; color:var(--noir); margin-bottom:14px;
 }
 .lifestyle-card textarea {
   width:100%; background:transparent; border:none; outline:none;
-  font-family:'DM Sans',sans-serif; font-size:14px; color:var(--noir);
+  font-family:'Schibsted Grotesk',sans-serif; font-size:14px; color:var(--noir);
   resize:none; min-height:70px; line-height:1.75; overflow:hidden;
   transition:height 0.25s ease;
 }
@@ -294,7 +296,7 @@ main { padding:60px 60px 140px; max-width:1000px; margin:0 auto; }
 .boussole-wrap::before {
   content:'❝'; position:absolute; top:16px; left:24px;
   font-size:110px; color:var(--rouge); opacity:0.12;
-  font-family:'Playfair Display',serif; line-height:1;
+  font-family:'Schibsted Grotesk',sans-serif; line-height:1;
   transition:opacity 0.4s ease;
 }
 .boussole-wrap:hover::before { opacity:0.22; }
@@ -307,7 +309,7 @@ main { padding:60px 60px 140px; max-width:1000px; margin:0 auto; }
 .boussole-wrap textarea {
   width:100%; background:transparent; border:none;
   border-bottom:1px solid rgba(255,255,255,0.12); outline:none;
-  font-family:'Playfair Display',serif; font-style:italic;
+  font-family:'Schibsted Grotesk',sans-serif; font-style:italic;
   font-size:clamp(18px,2.8vw,28px); color:var(--cream);
   resize:none; min-height:70px; text-align:center;
   line-height:1.5; position:relative; z-index:1;
@@ -324,7 +326,7 @@ main { padding:60px 60px 140px; max-width:1000px; margin:0 auto; }
 }
 .generate-btn {
   background:var(--rouge); color:var(--cream); border:none;
-  font-family:'Bebas Neue',sans-serif; font-size:15px; letter-spacing:3px;
+  font-family:'Schibsted Grotesk',sans-serif;font-weight:800; font-size:15px; letter-spacing:3px;
   padding:16px 32px; cursor:none;
   display:flex; align-items:center; gap:14px;
   box-shadow:0 8px 32px rgba(198,63,62,0.28);
@@ -344,7 +346,7 @@ main { padding:60px 60px 140px; max-width:1000px; margin:0 auto; }
 .ring-wrap svg { transform:rotate(-90deg); }
 .ring-bg  { fill:none; stroke:rgba(255,255,255,0.15); stroke-width:3; }
 .ring-fill{ fill:none; stroke:white; stroke-width:3; stroke-linecap:round; stroke-dasharray:113; stroke-dashoffset:113; transition:stroke-dashoffset 0.5s ease; }
-.ring-label { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:'Bebas Neue',sans-serif; font-size:12px; color:white; }
+.ring-label { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:'Schibsted Grotesk',sans-serif;font-weight:800; font-size:12px; color:white; }
 
 /* ── TOAST ───────────────────────────────────────────────────── */
 .toast {
@@ -651,12 +653,14 @@ function deleteArtistCard(idx){
   renderArtistCards();
 }
 
+// ── COMPLETION ───────────────────────────────────────────────────
+// staticFields DOIT être déclaré AVANT l'init (renderArtistCards→updateRing
+// le lit) — sinon ReferenceError TDZ qui casse % + génération PDF.
+const staticFields=['s6_abonnes','s6_live','s6_collab','s6_revenus','s1_abonnes','s1_live','s1_collab','s1_revenus','s3_abonnes','s3_live','s3_collab','s3_revenus','app_scenes','app_medias','app_playlists','life_revenus','life_liberte','life_reco','life_quotidien','boussole'];
+
 // Init with 2 default cards
 artistCount=2;
 renderArtistCards();
-
-// ── COMPLETION ───────────────────────────────────────────────────
-const staticFields=['s6_abonnes','s6_live','s6_collab','s6_revenus','s1_abonnes','s1_live','s1_collab','s1_revenus','s3_abonnes','s3_live','s3_collab','s3_revenus','app_scenes','app_medias','app_playlists','life_revenus','life_liberte','life_reco','life_quotidien','boussole'];
 
 function updateRing(){
   let filled=0, total=staticFields.length;
@@ -692,8 +696,8 @@ async function generatePDF(){
 
   const W=210,H=297,M=14,CW=210-28;
   const HDR=18, YSTART=HDR+8, YMAX=H-14;
-  const beige=[234,228,218],noir=[29,29,27],rouge=[198,63,62];
-  const cream=[240,235,227],warm=[200,194,184],muted=[106,106,104];
+  const beige=[255,255,255],noir=[10,10,10],rouge=[255,90,31];
+  const cream=[244,242,238],warm=[228,226,220],muted=[106,106,106];
 
   let pn=1, y=YSTART;
 

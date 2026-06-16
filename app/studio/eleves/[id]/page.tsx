@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import {
   ACCENT,
+  SAFE,
   palette,
   useIsDark,
   useIsMobile,
@@ -1041,7 +1042,7 @@ export default function FichePage({
           <div
             style={{
               position: "sticky",
-              top: 8,
+              top: `calc(56px + ${SAFE.top} + 8px)`,
               zIndex: 5,
               display: "flex",
               gap: 4,
@@ -1090,7 +1091,7 @@ export default function FichePage({
               ? orders[col].filter((bid) => TAB_BLOCKS[tab].includes(bid))
               : orders[col];
             return (
-            <SortableColumn key={col} ids={colIds} onReorder={(ids) => setOrder(col, ids)}>
+            <SortableColumn key={col} ids={colIds} onReorder={isMobile ? () => {} : (ids) => setOrder(col, ids)}>
               {colIds.map((bid) => {
                 const b = BLOCKS[bid];
                 if (!b) return null;

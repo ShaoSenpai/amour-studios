@@ -5,12 +5,15 @@ import type { NextConfig } from "next";
 // /'unsafe-eval' pour ne pas casser Next/Convex/Stripe et le script de thème inline.
 // assets.calendly.com : widget.js + widget.css + polices du widget inline d'onboarding
 // (sinon le script est bloqué par script-src → Calendly ne s'affiche pas, cf. /onboarding).
+// cdnjs.cloudflare.com : jsPDF chargé par les exos interactifs (public/exos/*) pour
+// générer le PDF — sinon script bloqué → "ça bloque la génération". fonts.googleapis
+// + fonts.gstatic : Google Fonts (Schibsted Grotesk + DM Mono) des exos.
 const CSP = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://assets.calendly.com",
-  "style-src 'self' 'unsafe-inline' https://assets.calendly.com",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://assets.calendly.com https://cdnjs.cloudflare.com",
+  "style-src 'self' 'unsafe-inline' https://assets.calendly.com https://fonts.googleapis.com",
   "img-src 'self' data: https: blob:",
-  "font-src 'self' data: https://assets.calendly.com",
+  "font-src 'self' data: https://assets.calendly.com https://fonts.gstatic.com",
   "connect-src 'self' https: wss:",
   "frame-src *",
   "media-src 'self' https: blob:",

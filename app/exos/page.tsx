@@ -13,9 +13,8 @@ import {
   palette,
   useIsDark,
   mono,
-  num,
-  Glass,
 } from "../studio/_components/glass";
+import { Kicker, BigTitle, EditorialBlock } from "@/app/_components/editorial";
 
 // ============================================================================
 // /exos — catalogue par module pour l'élève coaching.
@@ -78,42 +77,38 @@ export default function ExosCatalogPage() {
   return (
     <div style={{ background: c.bgGrad, minHeight: "100vh", color: c.text, padding: 26, fontFamily: "'Schibsted Grotesk', system-ui, sans-serif" }}>
       <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-        {/* Hero */}
-        <Glass c={c} dark={dark} pad={0} strong style={{ overflow: "hidden", marginBottom: 16 }}>
-          <div style={{ display: "flex", alignItems: "stretch", flexWrap: "wrap" }}>
-            <div style={{ flex: 1, padding: "26px 30px", display: "flex", flexDirection: "column", gap: 10, minWidth: 240 }}>
-              <div style={{ ...mono, color: c.muted }}>Tes exercices · coaching</div>
-              <div style={{ ...num, fontSize: 38, fontWeight: 500, lineHeight: 1 }}>Mes exos</div>
-              <div style={{ fontSize: 14.5, color: c.muted, marginTop: -2 }}>
-                <span style={{ color: c.text, fontWeight: 500 }}>{totalCompleted}/{items.length}</span> terminés
-                {!isAdmin && duree && (
-                  <> · engagement <span style={{ color: c.text }}>{duree === "3mois" ? "3 mois" : "1 mois"}</span></>
-                )}
-              </div>
-            </div>
-            <div style={{ display: "flex", alignItems: "flex-start", padding: "26px 30px" }}>
-              <Link
-                href="/compte"
-                style={{ ...mono, fontSize: 10, color: c.muted, textDecoration: "none", whiteSpace: "nowrap" }}
-              >
-                Mon abonnement ›
-              </Link>
+        {/* Hero éditorial */}
+        <div style={{ marginBottom: 24, display: "flex", alignItems: "flex-end", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+          <div>
+            <Kicker>Mes exercices</Kicker>
+            <BigTitle w1="Mes" w2="Exos" />
+            <div style={{ fontSize: 14.5, color: c.muted, marginTop: 8 }}>
+              <span style={{ color: c.text, fontWeight: 500 }}>{totalCompleted}/{items.length}</span> terminés
+              {!isAdmin && duree && (
+                <> · engagement <span style={{ color: c.text }}>{duree === "3mois" ? "3 mois" : "1 mois"}</span></>
+              )}
             </div>
           </div>
-        </Glass>
+          <Link
+            href="/compte"
+            style={{ ...mono, fontSize: 10, color: c.muted, textDecoration: "none", whiteSpace: "nowrap" }}
+          >
+            Mon abonnement ›
+          </Link>
+        </div>
 
         {/* Modules */}
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {grouped.map((g) => {
             const moduleAccessible = isAdmin || summary.accessibleModules.includes(g.moduleOrder);
             return (
-              <Glass key={g.moduleId} c={c} dark={dark} pad={0}>
+              <EditorialBlock key={g.moduleId} c={c} style={{ padding: 0 }}>
                 <div style={{ padding: "20px 24px", borderBottom: `1px solid ${c.line}`, display: "flex", alignItems: "center", gap: 14, justifyContent: "space-between", flexWrap: "wrap" }}>
                   <div>
                     <div style={{ ...mono, color: c.muted, fontSize: 9.5, letterSpacing: "0.06em" }}>
                       MODULE {g.moduleOrder}{g.moduleBadgeLabel ? ` · ${g.moduleBadgeLabel.toUpperCase()}` : ""}
                     </div>
-                    <div style={{ ...num, fontSize: 22, fontWeight: 500, marginTop: 6 }}>{g.moduleTitle}</div>
+                    <div style={{ fontFamily: "var(--font-grotesk), 'Schibsted Grotesk', sans-serif", fontWeight: 700, fontSize: 22, marginTop: 6, letterSpacing: "-0.01em" }}>{g.moduleTitle}</div>
                   </div>
                   {!moduleAccessible && (
                     <span style={{ ...mono, fontSize: 10, padding: "6px 12px", borderRadius: 999, background: c.chip, border: `1px solid ${c.line}`, color: c.muted, display: "inline-flex", alignItems: "center", gap: 6 }}>
@@ -126,15 +121,15 @@ export default function ExosCatalogPage() {
                 ) : (
                   <LockedReason c={c} duree={duree} moduleOrder={g.moduleOrder} />
                 )}
-              </Glass>
+              </EditorialBlock>
             );
           })}
           {grouped.length === 0 && (
-            <Glass c={c} dark={dark}>
+            <EditorialBlock c={c}>
               <div style={{ ...mono, color: c.faint, padding: "20px 4px" }}>
                 Aucun exercice disponible pour le moment.
               </div>
-            </Glass>
+            </EditorialBlock>
           )}
         </div>
       </div>

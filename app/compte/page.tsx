@@ -13,11 +13,11 @@ import {
   useIsDark,
   mono,
   num,
-  Glass,
   glassBtn,
   GlassButton,
   Avatar,
 } from "../studio/_components/glass";
+import { Kicker, BigTitle, EditorialBlock } from "@/app/_components/editorial";
 
 // ============================================================================
 // /compte — vraie page de gestion d'abonnement (état des lieux + actions).
@@ -130,8 +130,13 @@ function CompteInner() {
     return (
       <main style={shell}>
         <div style={{ width: "100%", maxWidth: 460, display: "flex", flexDirection: "column", gap: 12 }}>
+          {/* Hero éditorial */}
+          <div style={{ marginBottom: 8 }}>
+            <Kicker>Mon compte</Kicker>
+            <BigTitle w1="Mon" w2="Compte" />
+          </div>
           {/* Bloc identité + déconnexion (toujours visible) */}
-          <Glass c={c} dark={dark} style={{ marginBottom: 2 }}>
+          <EditorialBlock c={c} style={{ marginBottom: 2 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <Avatar
                 name={sub?.discordUsername || sub?.name || sub?.email || "?"}
@@ -151,21 +156,19 @@ function CompteInner() {
                 Se déconnecter
               </GlassButton>
             </div>
-          </Glass>
-          <Glass c={c} dark={dark} strong pad={0}>
-            <div style={{ padding: "40px 38px" }}>
-              <div style={{ ...mono, color: c.muted }}>Mon compte</div>
-              <h1 style={{ ...num, fontSize: 30, fontWeight: 500, margin: "10px 0 0" }}>
-                Aucun abonnement actif.
-              </h1>
-              <p style={{ fontSize: 14, color: c.muted, marginTop: 12, lineHeight: 1.55 }}>
-                Tu n&apos;as pas d&apos;abonnement en cours.{" "}
-                <a href="https://amourstudios.fr" style={{ color: ACCENT, textDecoration: "none" }}>
-                  Découvrir les offres ↗
-                </a>
-              </p>
-            </div>
-          </Glass>
+          </EditorialBlock>
+          <EditorialBlock c={c}>
+            <div style={{ ...mono, color: c.muted }}>Mon compte</div>
+            <h1 style={{ ...num, fontSize: 30, fontWeight: 500, margin: "10px 0 0" }}>
+              Aucun abonnement actif.
+            </h1>
+            <p style={{ fontSize: 14, color: c.muted, marginTop: 12, lineHeight: 1.55 }}>
+              Tu n&apos;as pas d&apos;abonnement en cours.{" "}
+              <a href="https://amourstudios.fr" style={{ color: ACCENT, textDecoration: "none" }}>
+                Découvrir les offres ↗
+              </a>
+            </p>
+          </EditorialBlock>
         </div>
       </main>
     );
@@ -174,18 +177,24 @@ function CompteInner() {
   const periodEnd = sub.currentPeriodEnd ? fmtDateFr(sub.currentPeriodEnd) : null;
   const discordRole = isCoaching ? "Coaching" : "Communauté";
 
-  // Encadré réutilisable (border + chip) pour les blocs RDV / upgrade.
+  // Encadré réutilisable (border plate, sans verre) pour les blocs RDV / upgrade.
   const boxStyle = {
     border: `1px solid ${c.line}`,
-    background: c.chip,
+    background: "transparent",
     borderRadius: 12,
     padding: "16px 18px",
   } as const;
 
   return (
     <main style={shell}>
+      {/* Hero éditorial */}
+      <div style={{ width: "100%", maxWidth: 480, marginBottom: 8 }}>
+        <Kicker>Mon compte</Kicker>
+        <BigTitle w1="Mon" w2="Compte" />
+      </div>
+
       {/* Bloc identité + déconnexion (toujours en haut) */}
-      <Glass c={c} dark={dark} style={{ width: "100%", maxWidth: 480, marginBottom: 14 }}>
+      <EditorialBlock c={c} style={{ width: "100%", maxWidth: 480, marginBottom: 14 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <Avatar
             name={sub.discordUsername || sub.name || sub.email || "?"}
@@ -203,9 +212,9 @@ function CompteInner() {
             Se déconnecter
           </GlassButton>
         </div>
-      </Glass>
+      </EditorialBlock>
 
-      <Glass c={c} dark={dark} strong pad={0} style={{ width: "100%", maxWidth: 480 }}>
+      <EditorialBlock c={c} style={{ width: "100%", maxWidth: 480 }}>
         <div style={{ padding: "40px 38px", display: "flex", flexDirection: "column", gap: 22 }}>
           {/* 1 — En-tête état des lieux */}
           <div>
@@ -363,7 +372,7 @@ function CompteInner() {
             </a>
           </p>
         </div>
-      </Glass>
+      </EditorialBlock>
     </main>
   );
 }

@@ -15,6 +15,7 @@ import {
   Sparkline,
   Pill,
   GlassButton,
+  useIsMobile,
   type C,
 } from "./_components/glass";
 import { useTestMode } from "./_components/test-mode";
@@ -87,6 +88,7 @@ export default function AujourdhuiPage() {
   const liveStudents = useQuery(api.coaching.studentsList);
   // Abonnement réactif au store sandbox (re-render à chaque mutation en test).
   useTestStore();
+  const isMobile = useIsMobile();
   const c = palette(dark, ACCENT);
 
   const [rdvOpen, setRdvOpen] = useState(false);
@@ -128,12 +130,12 @@ export default function AujourdhuiPage() {
   const todayISO = toISODate(Date.now());
 
   return (
-    <div style={{ background: c.bgGrad, color: c.text, minHeight: "100vh", fontFamily: "'Schibsted Grotesk', system-ui, sans-serif", padding: 26, position: "relative", overflow: "hidden" }}>
+    <div style={{ background: c.bgGrad, color: c.text, minHeight: "100vh", fontFamily: "'Schibsted Grotesk', system-ui, sans-serif", padding: isMobile ? 14 : 26, position: "relative", overflow: "hidden" }}>
       <div style={{ position: "relative", display: "flex", flexDirection: "column", gap: 16, maxWidth: 1280, margin: "0 auto" }}>
         {/* Hero */}
         <Glass c={c} dark={dark} pad={0} strong style={{ overflow: "hidden" }}>
           <div style={{ display: "flex", alignItems: "stretch", flexWrap: "wrap" }}>
-            <div style={{ flex: 1, padding: "28px 32px", display: "flex", flexDirection: "column", gap: 14, minWidth: 240 }}>
+            <div style={{ flex: 1, padding: isMobile ? "20px 16px" : "28px 32px", display: "flex", flexDirection: "column", gap: 14, minWidth: 240 }}>
               <div style={{ ...mono, color: c.muted, textTransform: "capitalize" }}>{dateStr} · {timeStr}</div>
               <div style={{ ...num, fontSize: 46, fontWeight: 500, lineHeight: 1 }}>Bonjour Papi Amour.</div>
               <div style={{ fontSize: 15, color: c.muted, marginTop: -2 }}>
@@ -150,7 +152,7 @@ export default function AujourdhuiPage() {
         </Glass>
 
         {/* KPI row */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0,1fr))", gap: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(4, minmax(0,1fr))", gap: 16 }}>
           <KPI c={c} dark={dark} label="Coaching actifs" value={d.kpis.coachingActifs.value} delta={d.kpis.coachingActifs.delta} note={d.kpis.coachingActifs.note} onClick={() => router.push("/studio/eleves?tier=coaching")} />
           <KPI c={c} dark={dark} label="Communauté" value={d.kpis.communaute.value} delta={d.kpis.communaute.delta} note={d.kpis.communaute.note} onClick={() => router.push("/studio/eleves?tier=commu")} />
           <KPI c={c} dark={dark} label="Impayés" value={d.kpis.impayes.value} delta={d.kpis.impayes.delta} note={d.kpis.impayes.note} warn featured onClick={() => router.push("/studio/paiements?status=echec")} />
@@ -158,7 +160,7 @@ export default function AujourdhuiPage() {
         </div>
 
         {/* Main grid */}
-        <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.55fr) minmax(0,1fr)", gap: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0,1.55fr) minmax(0,1fr)", gap: 16 }}>
           {/* LEFT */}
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             {/* RDV du jour */}
@@ -210,7 +212,7 @@ export default function AujourdhuiPage() {
             </Glass>
 
             {/* Relances + Alertes */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 16 }}>
               <Glass c={c} dark={dark} pad={0}>
                 <div style={{ padding: "20px 22px 10px" }}>
                   <div style={{ ...mono, color: c.muted }}>À relancer</div>
@@ -297,13 +299,15 @@ export default function AujourdhuiPage() {
                   <div style={{ ...num, fontSize: 22, fontWeight: 500, marginTop: 4 }}>{d.semaineTotal} sessions</div>
                 </div>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 8 }}>
+              <div style={{ overflowX: isMobile ? "auto" : undefined, margin: isMobile ? "0 -6px" : undefined }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 8, minWidth: isMobile ? 440 : undefined }}>
                 {d.rdvSemaine.map((day, i) => (
                   <div key={i} onClick={() => router.push(`/studio/calendrier?date=${toISODate(day.date)}&view=day`)} style={{ background: i === 0 ? ACCENT : c.chip, color: i === 0 ? "#0B0B0B" : c.text, borderRadius: 14, padding: "12px 6px", display: "flex", flexDirection: "column", alignItems: "center", gap: 6, border: `1px solid ${i === 0 ? "transparent" : c.line}`, boxShadow: `inset 0 1px 0 ${i === 0 ? "rgba(255,255,255,0.2)" : c.inner}`, cursor: "pointer" }}>
                     <div style={{ ...mono, fontSize: 9.5, opacity: 0.7 }}>{day.jour}</div>
                     <div style={{ ...num, fontSize: 22, fontWeight: 500 }}>{day.n}</div>
                   </div>
                 ))}
+              </div>
               </div>
             </Glass>
 

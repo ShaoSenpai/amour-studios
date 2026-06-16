@@ -9,6 +9,7 @@ import {
   ACCENT,
   palette,
   useIsDark,
+  useIsMobile,
   mono,
   num,
   Glass,
@@ -47,6 +48,7 @@ function fmtNextRdv(ts: number | null): string {
 
 export default function ElevesPage() {
   const dark = useIsDark();
+  const isMobile = useIsMobile();
   const router = useRouter();
   const { testMode } = useTestMode();
   const liveStudents = useQuery(api.coaching.studentsList);
@@ -123,6 +125,21 @@ export default function ElevesPage() {
 
   const COLS = "minmax(200px, 1.3fr) 110px 110px 1fr 140px 130px 100px 40px";
 
+  const cardStyle = {
+    display: "flex",
+    flexDirection: "column" as const,
+    gap: 8,
+    padding: 14,
+    borderRadius: 14,
+    background: c.chip,
+    border: `1px solid ${c.line}`,
+    width: "100%",
+    fontFamily: "inherit",
+    color: c.text,
+    cursor: "pointer",
+    textAlign: "left" as const,
+  };
+
   return (
     <div style={{ background: c.bgGrad, minHeight: "100vh", color: c.text, padding: 26, fontFamily: "'Schibsted Grotesk', system-ui, sans-serif" }}>
       <div style={{ maxWidth: 1280, margin: "0 auto" }}>
@@ -181,7 +198,7 @@ export default function ElevesPage() {
               ]}
             />
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, background: c.chip, padding: "7px 12px", borderRadius: 999, border: `1px solid ${c.line}`, minWidth: 240 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, background: c.chip, padding: "7px 12px", borderRadius: 999, border: `1px solid ${c.line}`, minWidth: 240, flex: isMobile ? "1 1 100%" : undefined }}>
             <span style={{ color: c.muted, fontSize: 13 }}>⌕</span>
             <input
               value={query}
@@ -195,7 +212,51 @@ export default function ElevesPage() {
           </div>
         </Glass>
 
-        {/* Table */}
+        {/* Liste — cartes empilées sur mobile, tableau sur desktop */}
+        {isMobile ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {filtered.map((m) => {
+              const who = m.discordUsername || m.name || "—";
+              const offre = m.tier === "coaching" ? "Coaching" : m.tier === "communaute" ? "Communauté" : "—";
+              const si = m.status ? statusInfo(m.status) : { label: "—", tone: "outline" as const };
+              const chip = {
+                ...mono,
+                fontSize: 10,
+                padding: "3px 8px",
+                borderRadius: 999,
+                background: c.chip,
+                border: `1px solid ${c.line}`,
+                color: c.muted,
+              };
+              return (
+                <button key={m._id} type="button" onClick={() => router.push(`/studio/eleves/${m._id}`)} style={cardStyle}>
+                  {/* Identité */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <Avatar name={who} size={34} dark={dark} image={m.image} />
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 14, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{who}</div>
+                      <div style={{ ...mono, fontSize: 10, color: c.muted }}>{offre}</div>
+                    </div>
+                  </div>
+                  {/* Infos clés en chips */}
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    <span style={chip}>{stageLabel(m.coachingStage)}</span>
+                    {m.nextSessionAt != null && <span style={chip}>📅 {fmtNextRdv(m.nextSessionAt)}</span>}
+                    <Pill c={c} tone={si.tone}>
+                      <span style={{ width: 5, height: 5, borderRadius: 5, background: si.tone === "success" ? c.successFg : si.tone === "outline" ? c.faint : "#0B0B0B" }} />
+                      {si.label}
+                    </Pill>
+                  </div>
+                </button>
+              );
+            })}
+            {filtered.length === 0 && (
+              <div style={{ padding: "40px 22px", textAlign: "center", color: c.muted, fontSize: 14 }}>
+                Aucun élève ne correspond aux filtres.
+              </div>
+            )}
+          </div>
+        ) : (
         <Glass c={c} dark={dark} pad={0}>
           <div style={{ display: "grid", gridTemplateColumns: COLS, gap: 14, padding: "14px 22px", borderBottom: `1px solid ${c.line}`, ...mono, color: c.faint }}>
             <button
@@ -277,6 +338,7 @@ export default function ElevesPage() {
             </div>
           )}
         </Glass>
+        )}
       </div>
     </div>
   );

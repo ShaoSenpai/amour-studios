@@ -18,6 +18,7 @@ import {
   statusInfo,
   fmtDate,
   fmtDateShort,
+  useIsMobile,
   type C,
 } from "../_components/glass";
 import { useTestMode } from "../_components/test-mode";
@@ -49,6 +50,7 @@ function PayKPI({ c, dark, label, value, delta, note, warn = false }: { c: C; da
 
 export default function PaiementsPage() {
   const dark = useIsDark();
+  const isMobile = useIsMobile();
   const { testMode } = useTestMode();
   const c = palette(dark, ACCENT);
   const live = useQuery(api.coaching.paymentsOverview);
@@ -116,8 +118,19 @@ export default function PaiementsPage() {
 
   const COLS = "minmax(200px, 1.3fr) 140px 100px 120px 130px 130px";
 
+  const cardStyle = {
+    display: "flex", flexDirection: "column" as const, gap: 8,
+    padding: 14, borderRadius: 14,
+    background: c.chip, border: `1px solid ${c.line}`,
+    width: "100%", fontFamily: "inherit", color: c.text, textAlign: "left" as const,
+  };
+  const chipStyle = {
+    ...mono, fontSize: 10, padding: "3px 8px", borderRadius: 999,
+    background: c.chip, border: `1px solid ${c.line}`, color: c.muted,
+  };
+
   return (
-    <div style={{ background: c.bgGrad, minHeight: "100vh", color: c.text, padding: 26, fontFamily: "'Schibsted Grotesk', system-ui, sans-serif" }}>
+    <div style={{ background: c.bgGrad, minHeight: "100vh", color: c.text, padding: isMobile ? 14 : 26, fontFamily: "'Schibsted Grotesk', system-ui, sans-serif" }}>
       <div style={{ maxWidth: 1280, margin: "0 auto" }}>
         {/* Hero */}
         <Glass c={c} dark={dark} pad={0} strong style={{ overflow: "hidden", marginBottom: 16 }}>
@@ -135,7 +148,7 @@ export default function PaiementsPage() {
         </Glass>
 
         {/* KPI row */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0,1fr))", gap: 16, marginBottom: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(4, minmax(0,1fr))", gap: 16, marginBottom: 16 }}>
           <PayKPI c={c} dark={dark} label="MRR" value={data.kpis.mrr} note="Revenu mensuel récurrent" />
           <PayKPI c={c} dark={dark} label="Abonnements actifs" value={data.kpis.actifs} note="Coaching + communauté" />
           <PayKPI c={c} dark={dark} label="Incidents" value={data.kpis.incidents} note="À traiter" warn />
@@ -143,13 +156,13 @@ export default function PaiementsPage() {
         </div>
 
         {/* Chart + repartition */}
-        <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.6fr) minmax(0,1fr)", gap: 16, marginBottom: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0,1.6fr) minmax(0,1fr)", gap: 16, marginBottom: 16 }}>
           <Glass c={c} dark={dark} pad={0}>
             <div style={{ padding: "22px 26px 8px" }}>
               <div style={{ ...mono, color: c.muted }}>Revenu mensuel · 12 mois</div>
               <div style={{ ...num, fontSize: 36, fontWeight: 500, lineHeight: 1, marginTop: 10 }}>{data.kpis.mrr}</div>
             </div>
-            <AreaChart c={c} data={data.mrrSeries} />
+            <AreaChart c={c} data={data.mrrSeries} isMobile={isMobile} />
           </Glass>
 
           <Glass c={c} dark={dark}>
@@ -199,42 +212,83 @@ export default function PaiementsPage() {
             />
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: COLS, gap: 14, padding: "12px 24px", borderBottom: `1px solid ${c.line}`, borderTop: `1px solid ${c.line}`, ...mono, color: c.faint }}>
-            <div>Élève</div>
-            <div>Offre</div>
-            <div style={{ textAlign: "right" }}>Montant</div>
-            <div>Statut</div>
-            <div>Échéance</div>
-            <div>Depuis</div>
-          </div>
-
-          {filtered.map((s, i) => {
-            const si = statusInfo(s.statut);
-            const isHighlighted = highlightId != null && s.id === highlightId;
-            return (
-              <div key={s.id} ref={isHighlighted ? highlightRef : undefined} style={{ display: "grid", gridTemplateColumns: COLS, gap: 14, padding: "14px 24px", borderBottom: i < filtered.length - 1 ? `1px solid ${c.hairline}` : "none", alignItems: "center", background: isHighlighted ? `${ACCENT}1A` : "transparent", boxShadow: isHighlighted ? `inset 0 0 0 1px ${ACCENT}` : "none", borderRadius: isHighlighted ? 12 : 0 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
-                  <Avatar name={s.who} size={30} dark={dark} />
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: 14, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.who}</div>
-                    {s.phone && <div style={{ ...mono, color: c.faint, marginTop: 2 }}>{s.phone}</div>}
+          {isMobile ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: filtered.length ? "14px 14px" : 0 }}>
+              {filtered.map((s) => {
+                const si = statusInfo(s.statut);
+                const isHighlighted = highlightId != null && s.id === highlightId;
+                return (
+                  <div
+                    key={s.id}
+                    ref={isHighlighted ? highlightRef : undefined}
+                    style={{
+                      ...cardStyle,
+                      background: isHighlighted ? `${ACCENT}1A` : c.chip,
+                      border: isHighlighted ? `1px solid ${ACCENT}` : `1px solid ${c.line}`,
+                    }}
+                  >
+                    {/* Identité */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+                      <Avatar name={s.who} size={34} dark={dark} />
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: 14, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.who}</div>
+                        {s.phone && <div style={{ ...mono, color: c.faint, marginTop: 2 }}>{s.phone}</div>}
+                      </div>
+                    </div>
+                    {/* Infos clés en chips */}
+                    <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6 }}>
+                      <Pill c={c} tone={s.offre.startsWith("Coaching") ? "ink" : "outline"}>{s.offre}</Pill>
+                      <Pill c={c} tone={si.tone}>
+                        <span style={{ width: 5, height: 5, borderRadius: 5, background: si.tone === "success" ? c.successFg : si.tone === "outline" ? c.faint : "#0B0B0B" }} />
+                        {si.label}
+                      </Pill>
+                      <span style={{ ...num, fontSize: 13, fontWeight: 500 }}>{s.montant}</span>
+                      {s.echeance != null && <span style={chipStyle}>📅 {fmtDateShort(s.echeance)}</span>}
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <Pill c={c} tone={s.offre.startsWith("Coaching") ? "ink" : "outline"}>{s.offre}</Pill>
-                </div>
-                <div style={{ ...num, fontSize: 14, fontWeight: 500, textAlign: "right" }}>{s.montant}</div>
-                <div>
-                  <Pill c={c} tone={si.tone}>
-                    <span style={{ width: 5, height: 5, borderRadius: 5, background: si.tone === "success" ? c.successFg : si.tone === "outline" ? c.faint : "#0B0B0B" }} />
-                    {si.label}
-                  </Pill>
-                </div>
-                <div style={{ ...num, fontSize: 13, color: s.echeance ? c.text : c.faint }}>{fmtDateShort(s.echeance)}</div>
-                <div style={{ ...mono, color: c.muted }}>{fmtDate(s.depuis)}</div>
+                );
+              })}
+            </div>
+          ) : (
+            <>
+              <div style={{ display: "grid", gridTemplateColumns: COLS, gap: 14, padding: "12px 24px", borderBottom: `1px solid ${c.line}`, borderTop: `1px solid ${c.line}`, ...mono, color: c.faint }}>
+                <div>Élève</div>
+                <div>Offre</div>
+                <div style={{ textAlign: "right" }}>Montant</div>
+                <div>Statut</div>
+                <div>Échéance</div>
+                <div>Depuis</div>
               </div>
-            );
-          })}
+
+              {filtered.map((s, i) => {
+                const si = statusInfo(s.statut);
+                const isHighlighted = highlightId != null && s.id === highlightId;
+                return (
+                  <div key={s.id} ref={isHighlighted ? highlightRef : undefined} style={{ display: "grid", gridTemplateColumns: COLS, gap: 14, padding: "14px 24px", borderBottom: i < filtered.length - 1 ? `1px solid ${c.hairline}` : "none", alignItems: "center", background: isHighlighted ? `${ACCENT}1A` : "transparent", boxShadow: isHighlighted ? `inset 0 0 0 1px ${ACCENT}` : "none", borderRadius: isHighlighted ? 12 : 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+                      <Avatar name={s.who} size={30} dark={dark} />
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: 14, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.who}</div>
+                        {s.phone && <div style={{ ...mono, color: c.faint, marginTop: 2 }}>{s.phone}</div>}
+                      </div>
+                    </div>
+                    <div>
+                      <Pill c={c} tone={s.offre.startsWith("Coaching") ? "ink" : "outline"}>{s.offre}</Pill>
+                    </div>
+                    <div style={{ ...num, fontSize: 14, fontWeight: 500, textAlign: "right" }}>{s.montant}</div>
+                    <div>
+                      <Pill c={c} tone={si.tone}>
+                        <span style={{ width: 5, height: 5, borderRadius: 5, background: si.tone === "success" ? c.successFg : si.tone === "outline" ? c.faint : "#0B0B0B" }} />
+                        {si.label}
+                      </Pill>
+                    </div>
+                    <div style={{ ...num, fontSize: 13, color: s.echeance ? c.text : c.faint }}>{fmtDateShort(s.echeance)}</div>
+                    <div style={{ ...mono, color: c.muted }}>{fmtDate(s.depuis)}</div>
+                  </div>
+                );
+              })}
+            </>
+          )}
 
           {filtered.length === 0 && (
             <div style={{ padding: "40px 22px", textAlign: "center", color: c.muted, fontSize: 14 }}>
@@ -247,7 +301,7 @@ export default function PaiementsPage() {
   );
 }
 
-function AreaChart({ c, data }: { c: C; data: number[] }) {
+function AreaChart({ c, data, isMobile }: { c: C; data: number[]; isMobile: boolean }) {
   const W = 720, H = 200, PAD_L = 50, PAD_R = 16, PAD_T = 16, PAD_B = 32;
   const innerW = W - PAD_L - PAD_R;
   const innerH = H - PAD_T - PAD_B;
@@ -268,7 +322,7 @@ function AreaChart({ c, data }: { c: C; data: number[] }) {
 
   return (
     <div style={{ padding: "8px 24px 20px" }}>
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={H} preserveAspectRatio="xMidYMid meet">
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" height={isMobile ? undefined : H} preserveAspectRatio="xMidYMid meet" style={{ display: "block", width: "100%", height: isMobile ? "auto" : undefined }}>
         <defs>
           <linearGradient id="studio-rev-grad" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={ACCENT} stopOpacity="0.35" />

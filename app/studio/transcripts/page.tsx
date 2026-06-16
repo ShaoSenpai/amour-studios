@@ -48,6 +48,7 @@ function sessionStatusInfo(status: string): { label: string; tone: PillTone } {
 export default function TranscriptsPage() {
   const dark = useIsDark();
   const c = palette(dark, ACCENT);
+  const isMobile = useIsMobile();
   const orphans = useQuery(api.fireflies.listOrphans, {});
 
   // ── Loading ─────────────────────────────────────────────────────────────
@@ -73,7 +74,7 @@ export default function TranscriptsPage() {
         background: c.bgGrad,
         minHeight: "100vh",
         color: c.text,
-        padding: 26,
+        padding: isMobile ? 14 : 26,
         fontFamily: "'Schibsted Grotesk', system-ui, sans-serif",
       }}
     >

@@ -490,7 +490,7 @@ export default function FichePage({
         onClick={() => doComplete(s._id)}
         style={{
           ...glassBtn(c, "solid"),
-          marginLeft: "auto",
+          marginLeft: isMobile ? 0 : "auto",
           background: GREEN,
           color: "#FFFFFF",
           boxShadow: `0 8px 24px -8px ${GREEN}99, inset 0 1px 0 rgba(255,255,255,0.25)`,
@@ -527,7 +527,7 @@ export default function FichePage({
           renderEditForm(s)
         ) : (
           <>
-            <div style={{ display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 18, alignItems: "stretch" }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "auto 1fr auto", gap: 18, alignItems: "stretch" }}>
               <div>
                 <div style={{ ...num, fontSize: featured ? 30 : 22, fontWeight: 500, lineHeight: 1 }}>{fmtTime(s.scheduledAt)}</div>
                 <div style={{ ...mono, color: c.muted, marginTop: 5 }}>{fmtDateShort(s.scheduledAt)}</div>
@@ -721,7 +721,7 @@ export default function FichePage({
           <div style={{ ...num, fontSize: 32, fontWeight: 500, lineHeight: 1 }}>
             {montant}&nbsp;€<span style={{ color: c.muted, fontSize: 16 }}> /mois</span>
           </div>
-          <div style={{ marginTop: 18, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div style={{ marginTop: 18, display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
             <Field c={c} label="Offre" value={offreLabel} />
             <Field c={c} label="Engagement" value={tier === "coaching" ? "3 mois" : "—"} />
             <Field c={c} label="Prochaine échéance" value={fmtDate(purchase?.currentPeriodEnd)} />
@@ -754,7 +754,7 @@ export default function FichePage({
       headerRight: user.discordUsername ? <Pill c={c} tone="outline">@{user.discordUsername}</Pill> : undefined,
       body: (
         <>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
             <Field c={c} label="Ancienneté" value={user.createdAt ? relativeFromNow(user.createdAt).replace("il y a ", "") : "—"} />
             <Field c={c} label="Rôle" value={user.role === "admin" ? "Admin" : tier === "coaching" ? "Élève coaching" : "Membre"} />
           </div>

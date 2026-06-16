@@ -15,6 +15,7 @@ import {
   fmtDate,
   fmtTime,
   relativeFromNow,
+  useIsMobile,
   type C,
 } from "../_components/glass";
 
@@ -117,9 +118,94 @@ function TicketRow({
   );
 }
 
+function TicketCard({ c, dark, t }: { c: C; dark: boolean; t: Ticket }) {
+  const who = displayName(t);
+  const isOpen = t.status === "open";
+  const cardStyle = {
+    display: "flex",
+    flexDirection: "column" as const,
+    gap: 8,
+    padding: 14,
+    borderRadius: 14,
+    background: c.chip,
+    border: `1px solid ${c.line}`,
+    width: "100%",
+    fontFamily: "inherit",
+    color: c.text,
+  };
+  return (
+    <div style={cardStyle}>
+      {/* Identité (Élève) */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+        <Avatar name={who} size={34} dark={dark} />
+        <div style={{ minWidth: 0 }}>
+          <div
+            style={{
+              fontSize: 14,
+              fontWeight: 500,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {who}
+          </div>
+          {t.email && (
+            <div style={{ ...mono, color: c.faint, marginTop: 2 }}>{t.email}</div>
+          )}
+        </div>
+      </div>
+
+      {/* Infos clés en chips : statut, activité, ouvert le */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+        <Pill c={c} tone={isOpen ? "warn" : "outline"}>
+          <span
+            style={{
+              width: 5,
+              height: 5,
+              borderRadius: 5,
+              background: isOpen ? "#0B0B0B" : c.faint,
+            }}
+          />
+          {isOpen ? "Ouvert" : "Fermé"}
+        </Pill>
+        <span
+          style={{
+            ...mono,
+            fontSize: 10,
+            padding: "3px 8px",
+            borderRadius: 999,
+            background: c.chip,
+            border: `1px solid ${c.line}`,
+            color: c.muted,
+          }}
+        >
+          {isOpen
+            ? `ouvert ${relativeFromNow(t.openedAt)}`
+            : `fermé ${fmtDate(t.closedAt)} · ${fmtTime(t.closedAt)}`}
+        </span>
+        <span
+          style={{
+            ...mono,
+            fontSize: 10,
+            padding: "3px 8px",
+            borderRadius: 999,
+            background: c.chip,
+            border: `1px solid ${c.line}`,
+            color: c.muted,
+          }}
+        >
+          Ouvert le {fmtDate(t.openedAt)}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export default function TicketsPage() {
   const dark = useIsDark();
   const c = palette(dark, ACCENT);
+  const isMobile = useIsMobile();
   const data = useQuery(api.tickets.listTickets);
 
   if (data === undefined) {
@@ -147,7 +233,7 @@ export default function TicketsPage() {
         background: c.bgGrad,
         minHeight: "100vh",
         color: c.text,
-        padding: 26,
+        padding: isMobile ? 14 : 26,
         fontFamily: "'Schibsted Grotesk', system-ui, sans-serif",
       }}
     >
@@ -191,28 +277,37 @@ export default function TicketsPage() {
               {open.length} en cours
             </div>
           </div>
-          {open.length > 0 && (
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "minmax(180px, 1.4fr) 120px minmax(160px, 1fr) 150px",
-                gap: 14,
-                padding: "12px 24px",
-                borderBottom: `1px solid ${c.line}`,
-                borderTop: `1px solid ${c.line}`,
-                ...mono,
-                color: c.faint,
-              }}
-            >
-              <div>Élève</div>
-              <div>Statut</div>
-              <div>Activité</div>
-              <div style={{ textAlign: "right" }}>Ouvert le</div>
-            </div>
-          )}
-          {open.map((t, i) => (
-            <TicketRow key={t.id} c={c} dark={dark} t={t} last={i === open.length - 1} />
-          ))}
+          {open.length > 0 &&
+            (isMobile ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: "0 14px 14px" }}>
+                {open.map((t) => (
+                  <TicketCard key={t.id} c={c} dark={dark} t={t} />
+                ))}
+              </div>
+            ) : (
+              <>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "minmax(180px, 1.4fr) 120px minmax(160px, 1fr) 150px",
+                    gap: 14,
+                    padding: "12px 24px",
+                    borderBottom: `1px solid ${c.line}`,
+                    borderTop: `1px solid ${c.line}`,
+                    ...mono,
+                    color: c.faint,
+                  }}
+                >
+                  <div>Élève</div>
+                  <div>Statut</div>
+                  <div>Activité</div>
+                  <div style={{ textAlign: "right" }}>Ouvert le</div>
+                </div>
+                {open.map((t, i) => (
+                  <TicketRow key={t.id} c={c} dark={dark} t={t} last={i === open.length - 1} />
+                ))}
+              </>
+            ))}
           {open.length === 0 && (
             <div style={{ padding: "40px 22px", textAlign: "center", color: c.muted, fontSize: 14 }}>
               Aucun ticket ouvert. 🎉
@@ -228,28 +323,37 @@ export default function TicketsPage() {
               {closed.length} ticket{closed.length > 1 ? "s" : ""}
             </div>
           </div>
-          {closed.length > 0 && (
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "minmax(180px, 1.4fr) 120px minmax(160px, 1fr) 150px",
-                gap: 14,
-                padding: "12px 24px",
-                borderBottom: `1px solid ${c.line}`,
-                borderTop: `1px solid ${c.line}`,
-                ...mono,
-                color: c.faint,
-              }}
-            >
-              <div>Élève</div>
-              <div>Statut</div>
-              <div>Activité</div>
-              <div style={{ textAlign: "right" }}>Ouvert le</div>
-            </div>
-          )}
-          {closed.map((t, i) => (
-            <TicketRow key={t.id} c={c} dark={dark} t={t} last={i === closed.length - 1} />
-          ))}
+          {closed.length > 0 &&
+            (isMobile ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: "0 14px 14px" }}>
+                {closed.map((t) => (
+                  <TicketCard key={t.id} c={c} dark={dark} t={t} />
+                ))}
+              </div>
+            ) : (
+              <>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "minmax(180px, 1.4fr) 120px minmax(160px, 1fr) 150px",
+                    gap: 14,
+                    padding: "12px 24px",
+                    borderBottom: `1px solid ${c.line}`,
+                    borderTop: `1px solid ${c.line}`,
+                    ...mono,
+                    color: c.faint,
+                  }}
+                >
+                  <div>Élève</div>
+                  <div>Statut</div>
+                  <div>Activité</div>
+                  <div style={{ textAlign: "right" }}>Ouvert le</div>
+                </div>
+                {closed.map((t, i) => (
+                  <TicketRow key={t.id} c={c} dark={dark} t={t} last={i === closed.length - 1} />
+                ))}
+              </>
+            ))}
           {closed.length === 0 && (
             <div style={{ padding: "40px 22px", textAlign: "center", color: c.muted, fontSize: 14 }}>
               Aucun ticket fermé pour l&apos;instant.

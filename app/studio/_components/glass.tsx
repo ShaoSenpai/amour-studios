@@ -22,6 +22,19 @@ import { createPortal } from "react-dom";
 export const ACCENT = "#FF5A1F";
 export const R = 22;
 
+// ── Système mobile : cibles tactiles, safe-area iOS, échelle d'espacement ──
+/** Hauteur/largeur mini d'une cible tactile (WCAG 2.5.5). */
+export const TOUCH = { min: 44, comfortable: 48 } as const;
+/** Encoches iOS (notch + home indicator) + gestures Android. */
+export const SAFE = {
+  top: "env(safe-area-inset-top, 0px)",
+  bottom: "env(safe-area-inset-bottom, 0px)",
+  left: "env(safe-area-inset-left, 0px)",
+  right: "env(safe-area-inset-right, 0px)",
+} as const;
+/** Échelle d'espacement (grille 4px) pour un mobile aéré mais pas chargé. */
+export const SPACE = { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 24 } as const;
+
 /** Suit l'attribut data-theme du <html> (cf. components/layout/theme-toggle). */
 // Cache module-level : après le 1er mount, on mémorise le thème pour éviter le
 // flash clair→sombre à chaque navigation, SANS réintroduire le mismatch.
@@ -299,7 +312,11 @@ export function glassBtn(c: C, kind: "solid" | "ghost" | "ink" = "ghost"): CSSPr
     fontSize: 11,
     letterSpacing: "0.06em",
     textTransform: "uppercase",
-    padding: "11px 16px",
+    padding: "12px 16px",
+    minHeight: TOUCH.min,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
     borderRadius: 14,
     border: "none",
     cursor: "pointer",
@@ -485,7 +502,13 @@ export function FilterSelect<T extends string>({
     if (!open || !btnRef.current) return;
     const update = () => {
       const r = btnRef.current!.getBoundingClientRect();
-      setRect({ top: r.bottom + 6, left: r.left });
+      const MENU_W = 200; // ~ largeur du menu (minWidth 180 + marge)
+      const left = Math.max(8, Math.min(r.left, window.innerWidth - MENU_W - 8));
+      // Si pas la place en dessous, ouvrir au-dessus.
+      const below = r.bottom + 6;
+      const tooLow = below + 260 > window.innerHeight;
+      const top = tooLow ? Math.max(8, r.top - 6 - 260) : below;
+      setRect({ top, left });
     };
     update();
     window.addEventListener("scroll", update, true);
@@ -554,6 +577,9 @@ export function FilterSelect<T extends string>({
                 ? "0 20px 40px rgba(0,0,0,0.6)"
                 : "0 20px 40px rgba(0,0,0,0.15)",
               minWidth: 180,
+              maxWidth: "calc(100vw - 16px)",
+              maxHeight: "min(320px, 60vh)",
+              overflowY: "auto",
               padding: 4,
             }}
           >

@@ -72,6 +72,11 @@ export const mySubscription = query({
       nextRdvAt = next?.scheduledAt ?? null;
     }
 
+    // canResumeCoaching : un coaché dont l'engagement 3 mois s'est terminé
+    // (status "canceled" après cancel_at) peut reprendre en mensuel. Distinct de
+    // canTakeCoaching (upsell Communauté→Coaching).
+    const canResumeCoaching = isCoaching && purchase.status === "canceled";
+
     return {
       authed: true as const,
       hasSubscription: true as const,
@@ -81,6 +86,7 @@ export const mySubscription = query({
       currentPeriodEnd: purchase.currentPeriodEnd ?? null,
       cancelAtPeriodEnd: purchase.cancelAtPeriodEnd ?? false,
       canTakeCoaching: purchase.tier === "communaute" && purchase.status !== "canceled",
+      canResumeCoaching,
       needsFirstRdv,
       nextRdvAt,
       name: user.name ?? null,
@@ -219,6 +225,61 @@ export const upgradeMySubscription = action({
     if (p.discordId) {
       await ctx.scheduler.runAfter(0, internal.stripe.assignDiscordRole, { discordId: p.discordId, email: p.email ?? "", tier: "coaching" });
     }
+    return { ok: true };
+  },
+});
+
+// 3b) Reprendre le coaching en MENSUEL (récurrent, sans engagement) après la fin
+//     de l'engagement 3 mois (status "canceled"). Un abo Stripe annulé n'est PAS
+//     réactivable → on en crée un NOUVEAU sur le customer existant. Le webhook
+//     `customer.subscription.created` (recordSubscription) rattache le purchase à
+//     l'user par email, rétablit l'accès /exos et le rôle Discord — même chemin
+//     éprouvé qu'un nouvel abonnement. Pas de cancel_at → mensuel sans fin.
+export const resumeCoachingMonthly = action({
+  args: {},
+  handler: async (ctx): Promise<{ ok: true } | { error: string }> => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return { error: "not_authed" };
+    const p = await ctx.runQuery(internal.subscriptions._purchaseForUser, { userId });
+    if (!p) return { error: "no_subscription" };
+    // Déjà coaching actif → succès idempotent.
+    if (p.tier === "coaching" && (p.status === "active" || p.status === "past_due")) {
+      return { ok: true };
+    }
+    const rl = await ctx.runMutation(internal.rateLimit.checkAndIncrement, { key: `resumeCoaching:${userId}`, max: 5 });
+    if (!rl.allowed) return { error: "rate_limited" };
+
+    const stripe = await stripeClient();
+    // Customer récupéré depuis l'ancien abonnement (annulé mais retrievable),
+    // même pattern que startCardUpdate.
+    const oldSub = await stripe.subscriptions.retrieve(p.subscriptionId);
+    const customer = typeof oldSub.customer === "string" ? oldSub.customer : oldSub.customer?.id;
+    if (!customer) return { error: "no_customer" };
+
+    const coachingPrice = priceForTier("coaching");
+    const email = (p.email ?? "").toLowerCase();
+    try {
+      // error_if_incomplete = ATOMIQUE : si la carte par défaut est refusée ou
+      // exige une 3DS, Stripe lève une erreur et NE crée pas d'abo bancal.
+      await stripe.subscriptions.create({
+        customer,
+        items: [{ price: coachingPrice }],
+        payment_behavior: "error_if_incomplete",
+        payment_settings: {
+          save_default_payment_method: "on_subscription",
+          payment_method_types: ["card"],
+        },
+        // duree "3mois" = palier accès complet (M1+M2/M3), PAS un engagement ici
+        // (aucun cancel_at) → mensuel récurrent. tier+email pilotent recordSubscription.
+        metadata: { tier: "coaching", duree: "3mois", email, resume: "monthly" },
+      });
+    } catch (err) {
+      console.warn("⚠️ resumeCoachingMonthly échec:", err instanceof Error ? err.message : err);
+      return { error: "payment_failed" };
+    }
+    await ctx.runMutation(internal.subscriptions._logSelfService, {
+      userId, type: "subscription.resume_coaching", title: "Reprise du coaching (mensuel)",
+    });
     return { ok: true };
   },
 });

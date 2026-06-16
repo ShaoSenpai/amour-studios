@@ -69,6 +69,7 @@ function CompteInner() {
   // On garde seulement l'upsell custom (passer au coaching) côté /compte.
   const upgradeMut = useAction(api.subscriptions.upgradeMySubscription);
   const startBillingPortal = useAction(api.subscriptions.startBillingPortal);
+  const resumeMut = useAction(api.subscriptions.resumeCoachingMonthly);
 
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -290,6 +291,49 @@ function CompteInner() {
               <p style={{ ...mono, fontSize: 10, color: c.muted, margin: "8px 0 0", textAlign: "center" }}>
                 Engagement 3 mois, puis arrêt automatique. Pour changer de carte, passe par
                 « Gérer mon abonnement ».
+              </p>
+            </div>
+          )}
+
+          {/* 4b — Continuer le coaching en MENSUEL (engagement 3 mois terminé). */}
+          {sub.canResumeCoaching && (
+            <div style={boxStyle}>
+              <div style={{ ...mono, fontSize: 10, color: ACCENT }}>CONTINUER LE COACHING</div>
+              <p style={{ fontSize: 13.5, color: c.muted, margin: "8px 0 14px", lineHeight: 1.5 }}>
+                Ton accompagnement de 3 mois est terminé. Reprends-le en{" "}
+                <strong style={{ color: c.text }}>mensuel — 179€/mois</strong>, sans engagement,
+                résiliable quand tu veux.
+              </p>
+              <GlassButton
+                c={c}
+                kind="solid"
+                disabled={!!busy}
+                style={{ width: "100%", opacity: busy ? 0.6 : 1 }}
+                onClick={async () => {
+                  setBusy("resume");
+                  try {
+                    const r = await resumeMut({});
+                    if ("error" in r) {
+                      toast.error(
+                        r.error === "payment_failed"
+                          ? "Paiement refusé. Mets à jour ta carte via « Gérer mon abonnement », puis réessaie."
+                          : "Impossible de reprendre pour l'instant. Réessaie ou contacte le support."
+                      );
+                      setBusy(null);
+                    } else {
+                      toast.success("🧡 Coaching réactivé !");
+                      setTimeout(() => window.location.reload(), 800);
+                    }
+                  } catch {
+                    toast.error("Erreur. Réessaie.");
+                    setBusy(null);
+                  }
+                }}
+              >
+                {busy === "resume" ? "Réactivation…" : "Continuer mon coaching · 179€/mois"}
+              </GlassButton>
+              <p style={{ ...mono, fontSize: 10, color: c.muted, margin: "8px 0 0", textAlign: "center" }}>
+                Mensuel récurrent, sans engagement. Résiliable via « Gérer mon abonnement ».
               </p>
             </div>
           )}

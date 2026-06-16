@@ -999,6 +999,32 @@ export const _setM1OnlyCatalogue = internalMutation({
   },
 });
 
+// Anti-cache : appose/maj un `?v=<version>` sur l'exerciseUrl de tous les exos.
+// Le catalogue /exos linke exerciseUrl → un nouveau `?v=` force le navigateur (et
+// les élèves) à recharger la version à jour de l'HTML (sinon onglet en cache après
+// une MAJ de contenu/DA). Idempotent. Bumper la version à chaque MAJ de contenu exo.
+// Lancer : npx convex run --prod admin:_bumpExoCacheVersion '{"version":"20260616"}'
+export const _bumpExoCacheVersion = internalMutation({
+  args: { version: v.string() },
+  handler: async (ctx, { version }) => {
+    const exos = await ctx.db
+      .query("exercises")
+      .filter((q) => q.eq(q.field("deletedAt"), undefined))
+      .collect();
+    let updated = 0;
+    for (const x of exos) {
+      if (!x.exerciseUrl) continue;
+      const base = x.exerciseUrl.split("?")[0];
+      const next = `${base}?v=${version}`;
+      if (x.exerciseUrl !== next) {
+        await ctx.db.patch(x._id, { exerciseUrl: next });
+        updated++;
+      }
+    }
+    return { updated };
+  },
+});
+
 // One-off : inspecte un user par email + son onboarding.
 export const _inspectUser = internalMutation({
   args: { email: v.string() },

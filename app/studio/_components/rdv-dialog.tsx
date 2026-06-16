@@ -13,11 +13,13 @@ import {
   ACCENT,
   palette,
   useIsDark,
+  useIsMobile,
   mono,
   num,
   glassBtn,
   type C,
 } from "./glass";
+import { MobileSheet } from "./mobile-sheet";
 import { useTestMode } from "./test-mode";
 import { testStore, selectCurriculum } from "./test-store";
 
@@ -125,6 +127,7 @@ export function RdvDialog(props: RdvDialogProps) {
 function RdvForm({ onClose, mode, userId, students, initial }: RdvDialogProps) {
   const dark = useIsDark();
   const c = palette(dark, ACCENT);
+  const isMobile = useIsMobile();
   const { testMode } = useTestMode();
   const spring = useAppSpring(SPRING);
   const springSnappy = useAppSpring(SPRING_SNAPPY);
@@ -295,6 +298,213 @@ function RdvForm({ onClose, mode, userId, students, initial }: RdvDialogProps) {
   const title = mode === "create" ? "Nouveau rendez-vous" : "Reprogrammer";
   const kicker = mode === "create" ? "Planifier · RDV" : "Agenda · reprogrammer";
 
+  // ── Corps des champs (partagé desktop ↔ mobile) ──────────────────────────
+  // Les grilles Date|Heure et Module|Leçon passent à une colonne sur mobile,
+  // restent en deux colonnes sur desktop (valeur d'origine). Le textarea passe
+  // de 3 → 2 lignes sur mobile.
+  const body = (
+    <>
+      {showStudentSelect && (
+        <Field label="Élève" c={c}>
+          <select
+            value={selectedUser}
+            onChange={(e) => setSelectedUser(e.target.value)}
+            style={inputStyle(c)}
+          >
+            <option value="">— Sélectionner —</option>
+            {(students ?? []).map((s) => (
+              <option key={s._id as unknown as string} value={s._id as unknown as string}>
+                {s.label}
+              </option>
+            ))}
+          </select>
+        </Field>
+      )}
+
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
+        <Field label="Date" c={c}>
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            style={inputStyle(c)}
+          />
+        </Field>
+        <Field label="Heure" c={c}>
+          <input
+            type="time"
+            value={time}
+            onChange={(e) => setTime(e.target.value)}
+            style={inputStyle(c)}
+          />
+        </Field>
+      </div>
+
+      <Field label="Durée" c={c}>
+        <div style={{ display: "flex", gap: 8 }}>
+          {DUREES.map((d) => {
+            const active = duree === d;
+            return (
+              <button
+                key={d}
+                onClick={() => setDuree(d)}
+                style={{
+                  ...mono,
+                  flex: 1,
+                  fontSize: 11,
+                  padding: "10px 0",
+                  borderRadius: 12,
+                  cursor: "pointer",
+                  background: active ? ACCENT : c.chip,
+                  color: active ? "#0B0B0B" : c.text,
+                  border: `1px solid ${active ? "transparent" : c.line}`,
+                  fontWeight: 500,
+                }}
+              >
+                {d} min
+              </button>
+            );
+          })}
+        </div>
+      </Field>
+
+      <Field label="Type" c={c}>
+        <div style={{ display: "flex", gap: 8 }}>
+          {TYPES.map((t) => {
+            const active = type === t.id;
+            return (
+              <button
+                key={t.id}
+                onClick={() => setType(t.id)}
+                style={{
+                  ...mono,
+                  flex: 1,
+                  fontSize: 10.5,
+                  padding: "10px 0",
+                  borderRadius: 12,
+                  cursor: "pointer",
+                  background: active ? (dark ? "rgba(255,255,255,0.92)" : "#0B0B0B") : c.chip,
+                  color: active ? (dark ? "#0B0B0B" : "#FFF") : c.text,
+                  border: `1px solid ${active ? "transparent" : c.line}`,
+                  fontWeight: 500,
+                }}
+              >
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+      </Field>
+
+      {/* Tag curriculum (optionnel) : Module → Leçon en cascade. */}
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12 }}>
+        <Field label="Module (optionnel)" c={c}>
+          <select
+            value={moduleNoStr}
+            onChange={(e) => {
+              setModuleNoStr(e.target.value);
+              setCurItemId(""); // changer de module réinitialise la leçon
+            }}
+            style={inputStyle(c)}
+          >
+            <option value="">— Aucun —</option>
+            {modules.map((m) => (
+              <option key={m.moduleNo} value={String(m.moduleNo)}>
+                Module {m.moduleNo} — {m.moduleTitle}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Leçon (optionnel)" c={c}>
+          <select
+            value={curItemId}
+            onChange={(e) => setCurItemId(e.target.value)}
+            disabled={!moduleNoStr}
+            style={{ ...inputStyle(c), opacity: moduleNoStr ? 1 : 0.55 }}
+          >
+            <option value="">— Aucune —</option>
+            {lessons.map((l) => (
+              <option
+                key={l._id as unknown as string}
+                value={l._id as unknown as string}
+              >
+                {String(l.lessonNo).padStart(2, "0")} - {l.lessonTitle}
+              </option>
+            ))}
+          </select>
+        </Field>
+      </div>
+
+      {mode === "create" && (
+        <Field label="Note (optionnel)" c={c}>
+          <textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            rows={isMobile ? 2 : 3}
+            placeholder="Sujet du RDV, contexte…"
+            style={{ ...inputStyle(c), resize: "vertical", lineHeight: 1.5 }}
+          />
+        </Field>
+      )}
+    </>
+  );
+
+  // ── Boutons d'action (partagés). `flex: 1` ajouté seulement sur mobile pour
+  // remplir la largeur du footer du bottom-sheet ; sur desktop, footer aligné
+  // à droite comme à l'origine.
+  const actions = (
+    <>
+      <motion.button
+        whileTap={{ scale: 0.96 }}
+        whileHover={{ scale: 1.03 }}
+        transition={spring}
+        onClick={onClose}
+        style={{ ...glassBtn(c, "ghost"), ...(isMobile ? { flex: 1 } : {}) }}
+      >
+        Annuler
+      </motion.button>
+      <motion.button
+        whileTap={{ scale: 0.96 }}
+        whileHover={{ scale: submitting ? 1 : 1.03 }}
+        transition={spring}
+        onClick={() => void handleSubmit()}
+        disabled={submitting}
+        style={{ ...glassBtn(c, "solid"), ...(isMobile ? { flex: 1 } : {}), opacity: submitting ? 0.6 : 1, cursor: submitting ? "default" : "pointer" }}
+      >
+        {mode === "create" ? "Créer le RDV" : "Reprogrammer"}
+      </motion.button>
+    </>
+  );
+
+  // ── Mobile : bottom-sheet. Le sheet gère portail/Échap/clic-fond + header
+  // (poignée + titre) et footer sticky autour d'un corps scrollable. ──────────
+  if (isMobile) {
+    const sheetTitle = (
+      <div>
+        <div style={{ ...mono, color: c.muted }}>{kicker}</div>
+        <div style={{ fontSize: 20, fontWeight: 600, marginTop: 4, lineHeight: 1.15 }}>
+          {title}
+        </div>
+      </div>
+    );
+    return (
+      <MobileSheet
+        c={c}
+        dark={dark}
+        isMobile
+        onClose={onClose}
+        maxWidth={440}
+        title={sheetTitle}
+        footer={actions}
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>{body}</div>
+      </MobileSheet>
+    );
+  }
+
+  // ── Desktop : modale d'origine (verbatim HEAD). Overlay fixe + panneau verre
+  // centré (maxWidth 440) + bouton × + footer aligné à droite. ───────────────
+  //
   // Rendu via portail sur document.body : sinon le `position: fixed` de
   // l'overlay est capturé par un ancêtre transformé (transitions framer-motion
   // de la page) et le modal se centre sur la page entière → il tombe « en bas »
@@ -392,148 +602,7 @@ function RdvForm({ onClose, mode, userId, students, initial }: RdvDialogProps) {
 
         {/* Body */}
         <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 16, overflowY: "auto" }}>
-          {showStudentSelect && (
-            <Field label="Élève" c={c}>
-              <select
-                value={selectedUser}
-                onChange={(e) => setSelectedUser(e.target.value)}
-                style={inputStyle(c)}
-              >
-                <option value="">— Sélectionner —</option>
-                {(students ?? []).map((s) => (
-                  <option key={s._id as unknown as string} value={s._id as unknown as string}>
-                    {s.label}
-                  </option>
-                ))}
-              </select>
-            </Field>
-          )}
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <Field label="Date" c={c}>
-              <input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                style={inputStyle(c)}
-              />
-            </Field>
-            <Field label="Heure" c={c}>
-              <input
-                type="time"
-                value={time}
-                onChange={(e) => setTime(e.target.value)}
-                style={inputStyle(c)}
-              />
-            </Field>
-          </div>
-
-          <Field label="Durée" c={c}>
-            <div style={{ display: "flex", gap: 8 }}>
-              {DUREES.map((d) => {
-                const active = duree === d;
-                return (
-                  <button
-                    key={d}
-                    onClick={() => setDuree(d)}
-                    style={{
-                      ...mono,
-                      flex: 1,
-                      fontSize: 11,
-                      padding: "10px 0",
-                      borderRadius: 12,
-                      cursor: "pointer",
-                      background: active ? ACCENT : c.chip,
-                      color: active ? "#0B0B0B" : c.text,
-                      border: `1px solid ${active ? "transparent" : c.line}`,
-                      fontWeight: 500,
-                    }}
-                  >
-                    {d} min
-                  </button>
-                );
-              })}
-            </div>
-          </Field>
-
-          <Field label="Type" c={c}>
-            <div style={{ display: "flex", gap: 8 }}>
-              {TYPES.map((t) => {
-                const active = type === t.id;
-                return (
-                  <button
-                    key={t.id}
-                    onClick={() => setType(t.id)}
-                    style={{
-                      ...mono,
-                      flex: 1,
-                      fontSize: 10.5,
-                      padding: "10px 0",
-                      borderRadius: 12,
-                      cursor: "pointer",
-                      background: active ? (dark ? "rgba(255,255,255,0.92)" : "#0B0B0B") : c.chip,
-                      color: active ? (dark ? "#0B0B0B" : "#FFF") : c.text,
-                      border: `1px solid ${active ? "transparent" : c.line}`,
-                      fontWeight: 500,
-                    }}
-                  >
-                    {t.label}
-                  </button>
-                );
-              })}
-            </div>
-          </Field>
-
-          {/* Tag curriculum (optionnel) : Module → Leçon en cascade. */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <Field label="Module (optionnel)" c={c}>
-              <select
-                value={moduleNoStr}
-                onChange={(e) => {
-                  setModuleNoStr(e.target.value);
-                  setCurItemId(""); // changer de module réinitialise la leçon
-                }}
-                style={inputStyle(c)}
-              >
-                <option value="">— Aucun —</option>
-                {modules.map((m) => (
-                  <option key={m.moduleNo} value={String(m.moduleNo)}>
-                    Module {m.moduleNo} — {m.moduleTitle}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Leçon (optionnel)" c={c}>
-              <select
-                value={curItemId}
-                onChange={(e) => setCurItemId(e.target.value)}
-                disabled={!moduleNoStr}
-                style={{ ...inputStyle(c), opacity: moduleNoStr ? 1 : 0.55 }}
-              >
-                <option value="">— Aucune —</option>
-                {lessons.map((l) => (
-                  <option
-                    key={l._id as unknown as string}
-                    value={l._id as unknown as string}
-                  >
-                    {String(l.lessonNo).padStart(2, "0")} - {l.lessonTitle}
-                  </option>
-                ))}
-              </select>
-            </Field>
-          </div>
-
-          {mode === "create" && (
-            <Field label="Note (optionnel)" c={c}>
-              <textarea
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                rows={3}
-                placeholder="Sujet du RDV, contexte…"
-                style={{ ...inputStyle(c), resize: "vertical", lineHeight: 1.5 }}
-              />
-            </Field>
-          )}
+          {body}
         </div>
 
         {/* Footer */}
@@ -546,25 +615,7 @@ function RdvForm({ onClose, mode, userId, students, initial }: RdvDialogProps) {
             gap: 8,
           }}
         >
-          <motion.button
-            whileTap={{ scale: 0.96 }}
-            whileHover={{ scale: 1.03 }}
-            transition={spring}
-            onClick={onClose}
-            style={glassBtn(c, "ghost")}
-          >
-            Annuler
-          </motion.button>
-          <motion.button
-            whileTap={{ scale: 0.96 }}
-            whileHover={{ scale: submitting ? 1 : 1.03 }}
-            transition={spring}
-            onClick={() => void handleSubmit()}
-            disabled={submitting}
-            style={{ ...glassBtn(c, "solid"), opacity: submitting ? 0.6 : 1, cursor: submitting ? "default" : "pointer" }}
-          >
-            {mode === "create" ? "Créer le RDV" : "Reprogrammer"}
-          </motion.button>
+          {actions}
         </div>
       </motion.div>
     </motion.div>

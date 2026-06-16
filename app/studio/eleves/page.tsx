@@ -78,13 +78,15 @@ export default function ElevesPage() {
   const [etape, setEtape] = useState<EtapeFilter>(initEtape);
   const [status, setStatus] = useState<StatusFilter>(initStatus);
   const [query, setQuery] = useState(searchParams.get("q") ?? "");
+  // Tri par date d'inscription : "desc" = plus récents en haut (défaut).
+  const [sortDir, setSortDir] = useState<"desc" | "asc">("desc");
 
   const students = testMode ? selectStudentsList() : liveStudents;
 
   const live = useMemo(() => students ?? [], [students]);
 
   const filtered = useMemo(() => {
-    return live.filter((m) => {
+    const list = live.filter((m) => {
       const isActive = m.status === "active" || m.status === "paid";
       if (seg === "coaching" && m.tier !== "coaching") return false;
       if (seg === "commu" && m.tier !== "communaute") return false;
@@ -99,7 +101,13 @@ export default function ElevesPage() {
       }
       return true;
     });
-  }, [live, seg, etape, status, query]);
+    // Tri par date d'inscription (createdAt). Défaut "desc" = plus récents en haut.
+    return list.sort((a, b) => {
+      const av = a.createdAt ?? 0;
+      const bv = b.createdAt ?? 0;
+      return sortDir === "desc" ? bv - av : av - bv;
+    });
+  }, [live, seg, etape, status, query, sortDir]);
 
   const nCoaching = live.filter((m) => m.tier === "coaching").length;
   const nCommu = live.filter((m) => m.tier === "communaute").length;
@@ -190,7 +198,29 @@ export default function ElevesPage() {
         {/* Table */}
         <Glass c={c} dark={dark} pad={0}>
           <div style={{ display: "grid", gridTemplateColumns: COLS, gap: 14, padding: "14px 22px", borderBottom: `1px solid ${c.line}`, ...mono, color: c.faint }}>
-            <div>Élève</div>
+            <button
+              onClick={() => setSortDir((d) => (d === "desc" ? "asc" : "desc"))}
+              title={`Trier par date d'inscription (${sortDir === "desc" ? "plus récents en haut" : "plus anciens en haut"})`}
+              style={{
+                ...mono,
+                color: c.faint,
+                background: "none",
+                border: "none",
+                padding: 0,
+                cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
+                font: "inherit",
+                letterSpacing: "inherit",
+                textTransform: "inherit",
+              }}
+            >
+              Élève
+              <span style={{ color: ACCENT, fontSize: 11 }}>
+                {sortDir === "desc" ? "↓" : "↑"}
+              </span>
+            </button>
             <div>Offre</div>
             <div>Paiement</div>
             <div>Étape</div>

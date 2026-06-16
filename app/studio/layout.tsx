@@ -15,7 +15,10 @@ import {
   mono,
   Avatar,
   GlassButton,
+  TOUCH,
+  SAFE,
 } from "./_components/glass";
+import { BottomTabBar } from "./_components/bottom-tab-bar";
 import {
   TestModeProvider,
   TestModeToggle,
@@ -78,13 +81,8 @@ function StudioShell({
   const c = palette(dark, ACCENT);
   const isMobile = useIsMobile();
   const [userCollapsed, setUserCollapsed] = useState(false);
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  // Desktop : collapse manuel (rail 64px). Mobile : drawer plein, jamais le rail.
+  // Desktop : collapse manuel (rail 64px). Mobile : nav via la bottom tab bar.
   const collapsed = !isMobile && userCollapsed;
-  // Ferme le drawer mobile à chaque changement de route.
-  useEffect(() => {
-    setMobileNavOpen(false);
-  }, [pathname]);
 
   useEffect(() => {
     // Non connecté → login. Un non-admin n'est PAS rebondi : il voit l'écran
@@ -158,6 +156,13 @@ function StudioShell({
   const isActive = (item: (typeof NAV)[number]) =>
     item.exact ? pathname === item.href : pathname.startsWith(item.href);
 
+  // Split nav pour la bottom tab bar mobile : 4 destinations principales +
+  // « Plus » (sheet) pour le reste.
+  const PRIMARY = NAV.filter((n) =>
+    ["/studio", "/studio/eleves", "/studio/calendrier", "/studio/paiements"].includes(n.href),
+  );
+  const SECONDARY = NAV.filter((n) => !PRIMARY.includes(n));
+
   const coachName = me.discordUsername || me.name || "Coach";
 
   return (
@@ -171,42 +176,23 @@ function StudioShell({
         fontFamily: "'Schibsted Grotesk', system-ui, sans-serif",
       }}
     >
-      {/* Top-bar mobile : burger + logo (collante). */}
+      {/* Top-bar mobile : logo + titre (collante, safe-area notch). */}
       {isMobile && (
         <header
           style={{
             position: "sticky",
             top: 0,
             zIndex: 30,
-            height: 56,
+            height: `calc(56px + ${SAFE.top})`,
             flexShrink: 0,
             display: "flex",
             alignItems: "center",
             gap: 12,
-            padding: "0 14px",
+            padding: `${SAFE.top} 14px 0`,
             background: sideBg,
             borderBottom: `1px solid ${sideLine}`,
           }}
         >
-          <button
-            onClick={() => setMobileNavOpen(true)}
-            aria-label="Ouvrir le menu"
-            style={{
-              width: 38,
-              height: 38,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              border: `1px solid ${sideLine}`,
-              background: "transparent",
-              color: sideText,
-              borderRadius: 10,
-              fontSize: 18,
-              cursor: "pointer",
-            }}
-          >
-            ☰
-          </button>
           <div
             style={{
               width: 26,
@@ -230,40 +216,23 @@ function StudioShell({
         </header>
       )}
 
-      {/* Fond cliquable derrière le drawer mobile. */}
-      {isMobile && mobileNavOpen && (
-        <div
-          onClick={() => setMobileNavOpen(false)}
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 40,
-            background: "rgba(0,0,0,0.45)",
-            backdropFilter: "blur(2px)",
-            WebkitBackdropFilter: "blur(2px)",
-          }}
-        />
-      )}
-
+      {/* Rail/sidebar desktop uniquement (mobile = bottom tab bar). */}
+      {!isMobile && (
       <aside
         style={{
-          width: isMobile ? 248 : W,
+          width: W,
           flexShrink: 0,
           background: sideBg,
           color: sideText,
           borderRight: `1px solid ${sideLine}`,
           display: "flex",
           flexDirection: "column",
-          transition: isMobile
-            ? "transform 0.25s var(--ease-spring)"
-            : "width var(--dur-instant) var(--ease-spring)",
-          position: isMobile ? "fixed" : "sticky",
+          transition: "width var(--dur-instant) var(--ease-spring)",
+          position: "sticky",
           top: 0,
           left: 0,
           height: "100vh",
-          zIndex: isMobile ? 50 : 10,
-          transform: isMobile ? (mobileNavOpen ? "translateX(0)" : "translateX(-110%)") : undefined,
-          boxShadow: isMobile && mobileNavOpen ? "0 0 40px rgba(0,0,0,0.4)" : undefined,
+          zIndex: 10,
         }}
       >
         {/* Logo */}
@@ -474,10 +443,81 @@ function StudioShell({
           </div>
         </div>
       </aside>
+      )}
 
-      <main style={{ flex: 1, minWidth: 0 }}>
+      <main
+        style={{
+          flex: 1,
+          minWidth: 0,
+          paddingBottom: isMobile
+            ? `calc(${TOUCH.comfortable}px + ${SAFE.bottom} + 8px)`
+            : undefined,
+        }}
+      >
         <PageTransition>{children}</PageTransition>
       </main>
+
+      {isMobile && (
+        <BottomTabBar
+          c={c}
+          dark={dark}
+          primary={PRIMARY}
+          secondary={SECONDARY}
+          orphanCount={orphanCount}
+          isActive={(href, exact) => (exact ? pathname === href : pathname.startsWith(href))}
+          footer={
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <button
+                onClick={() => {
+                  const next =
+                    document.documentElement.getAttribute("data-theme") === "dark"
+                      ? "light"
+                      : "dark";
+                  if (next === "dark")
+                    document.documentElement.setAttribute("data-theme", "dark");
+                  else document.documentElement.removeAttribute("data-theme");
+                  try {
+                    localStorage.setItem("amour-theme", next);
+                  } catch {}
+                }}
+                style={{
+                  ...mono,
+                  fontSize: 12,
+                  minHeight: 44,
+                  padding: "0 12px",
+                  background: "transparent",
+                  border: `1px solid ${dark ? "rgba(255,255,255,0.08)" : "rgba(11,11,11,0.08)"}`,
+                  color: c.text,
+                  borderRadius: 12,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
+                {dark ? "☼ Clair" : "☾ Sombre"}
+              </button>
+              <button
+                onClick={() => void signOut().then(() => router.replace("/studio/login"))}
+                style={{
+                  ...mono,
+                  fontSize: 12,
+                  minHeight: 44,
+                  padding: "0 12px",
+                  background: "transparent",
+                  border: `1px solid ${dark ? "rgba(255,255,255,0.08)" : "rgba(11,11,11,0.08)"}`,
+                  color: c.text,
+                  borderRadius: 12,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
+                Se déconnecter
+              </button>
+            </div>
+          }
+        />
+      )}
     </div>
   );
 }

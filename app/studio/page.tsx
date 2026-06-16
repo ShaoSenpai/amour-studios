@@ -16,6 +16,7 @@ import {
   Pill,
   GlassButton,
   useIsMobile,
+  SPACE,
   type C,
 } from "./_components/glass";
 import { useTestMode } from "./_components/test-mode";
@@ -42,6 +43,7 @@ function KPI({
   note,
   warn = false,
   featured = false,
+  isMobile = false,
   onClick,
 }: {
   c: C;
@@ -52,6 +54,7 @@ function KPI({
   note: string;
   warn?: boolean;
   featured?: boolean;
+  isMobile?: boolean;
   onClick?: () => void;
 }) {
   const deltaStyle: CSSProperties = {
@@ -66,7 +69,7 @@ function KPI({
     border: warn ? "none" : `1px solid ${c.line}`,
   };
   return (
-    <Glass c={c} dark={dark} strong={featured} pad={22} onClick={onClick} style={{ display: "flex", flexDirection: "column", gap: 18, minHeight: 168, minWidth: 0, cursor: onClick ? "pointer" : "default" }}>
+    <Glass c={c} dark={dark} strong={featured} pad={22} onClick={onClick} style={{ display: "flex", flexDirection: "column", gap: 18, minHeight: isMobile ? 120 : 168, minWidth: 0, cursor: onClick ? "pointer" : "default" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6 }}>
         <span style={{ ...mono, color: c.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{label}</span>
         <span style={deltaStyle}>
@@ -130,8 +133,8 @@ export default function AujourdhuiPage() {
   const todayISO = toISODate(Date.now());
 
   return (
-    <div style={{ background: c.bgGrad, color: c.text, minHeight: "100vh", fontFamily: "'Schibsted Grotesk', system-ui, sans-serif", padding: isMobile ? 14 : 26, position: "relative", overflow: "hidden" }}>
-      <div style={{ position: "relative", display: "flex", flexDirection: "column", gap: 16, maxWidth: 1280, margin: "0 auto" }}>
+    <div style={{ background: c.bgGrad, color: c.text, minHeight: "100vh", fontFamily: "'Schibsted Grotesk', system-ui, sans-serif", padding: isMobile ? SPACE.md : 26, position: "relative", overflow: "hidden" }}>
+      <div style={{ position: "relative", display: "flex", flexDirection: "column", gap: isMobile ? SPACE.md : 16, maxWidth: 1280, margin: "0 auto" }}>
         {/* Hero */}
         <Glass c={c} dark={dark} pad={0} strong style={{ overflow: "hidden" }}>
           <div style={{ display: "flex", alignItems: "stretch", flexWrap: "wrap" }}>
@@ -144,25 +147,25 @@ export default function AujourdhuiPage() {
                 <span onClick={() => router.push("/studio/eleves?status=incident")} style={{ color: c.text, cursor: "pointer" }}> {d.relances.length} élèves à relancer</span>.
               </div>
             </div>
-            <div style={{ padding: 22, display: "flex", gap: 8, alignItems: "center" }}>
-              <GlassButton c={c} onClick={() => router.push("/studio/eleves")}>＋ Note</GlassButton>
-              <GlassButton c={c} kind="solid" onClick={() => setRdvOpen(true)}>＋ Nouveau RDV</GlassButton>
+            <div style={{ padding: isMobile ? "0 16px 20px" : 22, display: "flex", flexDirection: isMobile ? "column" : "row", gap: 8, alignItems: isMobile ? "stretch" : "center", width: isMobile ? "100%" : undefined }}>
+              <GlassButton c={c} onClick={() => router.push("/studio/eleves")} style={{ width: isMobile ? "100%" : undefined }}>＋ Note</GlassButton>
+              <GlassButton c={c} kind="solid" onClick={() => setRdvOpen(true)} style={{ width: isMobile ? "100%" : undefined }}>＋ Nouveau RDV</GlassButton>
             </div>
           </div>
         </Glass>
 
         {/* KPI row */}
-        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(4, minmax(0,1fr))", gap: 16 }}>
-          <KPI c={c} dark={dark} label="Coaching actifs" value={d.kpis.coachingActifs.value} delta={d.kpis.coachingActifs.delta} note={d.kpis.coachingActifs.note} onClick={() => router.push("/studio/eleves?tier=coaching")} />
-          <KPI c={c} dark={dark} label="Communauté" value={d.kpis.communaute.value} delta={d.kpis.communaute.delta} note={d.kpis.communaute.note} onClick={() => router.push("/studio/eleves?tier=commu")} />
-          <KPI c={c} dark={dark} label="Impayés" value={d.kpis.impayes.value} delta={d.kpis.impayes.delta} note={d.kpis.impayes.note} warn featured onClick={() => router.push("/studio/paiements?status=echec")} />
-          <KPI c={c} dark={dark} label="MRR" value={d.kpis.mrr.value} delta={d.kpis.mrr.delta} note={d.kpis.mrr.note} onClick={() => router.push("/studio/paiements")} />
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(4, minmax(0,1fr))", gap: isMobile ? SPACE.md : 16 }}>
+          <KPI c={c} dark={dark} isMobile={isMobile} label="Coaching actifs" value={d.kpis.coachingActifs.value} delta={d.kpis.coachingActifs.delta} note={d.kpis.coachingActifs.note} onClick={() => router.push("/studio/eleves?tier=coaching")} />
+          <KPI c={c} dark={dark} isMobile={isMobile} label="Communauté" value={d.kpis.communaute.value} delta={d.kpis.communaute.delta} note={d.kpis.communaute.note} onClick={() => router.push("/studio/eleves?tier=commu")} />
+          <KPI c={c} dark={dark} isMobile={isMobile} label="Impayés" value={d.kpis.impayes.value} delta={d.kpis.impayes.delta} note={d.kpis.impayes.note} warn featured onClick={() => router.push("/studio/paiements?status=echec")} />
+          <KPI c={c} dark={dark} isMobile={isMobile} label="MRR" value={d.kpis.mrr.value} delta={d.kpis.mrr.delta} note={d.kpis.mrr.note} onClick={() => router.push("/studio/paiements")} />
         </div>
 
         {/* Main grid */}
-        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0,1.55fr) minmax(0,1fr)", gap: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "minmax(0,1.55fr) minmax(0,1fr)", gap: isMobile ? SPACE.md : 16 }}>
           {/* LEFT */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? SPACE.md : 16 }}>
             {/* RDV du jour */}
             <Glass c={c} dark={dark} pad={0}>
               <div style={{ padding: "20px 24px 14px", display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 12, flexWrap: "wrap" }}>
@@ -182,29 +185,53 @@ export default function AujourdhuiPage() {
                 )}
                 {d.rdvJour.map((r, i) => {
                   const isNext = i === 0;
+                  const actionBtn = (
+                    <button
+                      onClick={() => router.push(`/studio/eleves/${r.userId}`)}
+                      style={{ ...mono, fontSize: 10.5, padding: "9px 14px", borderRadius: 999, border: `1px solid ${isNext ? "transparent" : c.line}`, background: isNext ? ACCENT : c.chip, color: isNext ? "#0B0B0B" : c.text, whiteSpace: "nowrap", cursor: "pointer", fontFamily: "'DM Mono', ui-monospace, monospace" }}
+                    >
+                      {isNext ? "Démarrer →" : "Ouvrir →"}
+                    </button>
+                  );
                   return (
-                    <div key={i} style={{ display: "grid", gridTemplateColumns: "82px 1fr auto auto", gap: 14, alignItems: "center", padding: "14px", marginTop: i === 0 ? 0 : 4, background: isNext ? c.glass : "transparent", borderRadius: 16, border: isNext ? `1px solid ${c.line}` : "1px solid transparent", boxShadow: isNext ? `inset 0 1px 0 ${c.inner}` : "none" }}>
+                    <div key={i} style={{ display: "grid", gridTemplateColumns: isMobile ? "auto 1fr" : "82px 1fr auto auto", gap: isMobile ? 12 : 14, alignItems: "center", padding: "14px", marginTop: i === 0 ? 0 : 4, background: isNext ? c.glass : "transparent", borderRadius: 16, border: isNext ? `1px solid ${c.line}` : "1px solid transparent", boxShadow: isNext ? `inset 0 1px 0 ${c.inner}` : "none" }}>
                       <div>
                         <div style={{ ...num, fontSize: 22, fontWeight: 500, lineHeight: 1, whiteSpace: "nowrap" }}>{r.h}</div>
                         <div style={{ ...mono, marginTop: 4, color: c.muted }}>{r.dur}</div>
                       </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
-                        <div style={{ position: "relative" }}>
-                          <Avatar name={r.who} size={38} dark={dark} />
-                          {isNext && <div style={{ position: "absolute", inset: -3, borderRadius: 999, border: `2px solid ${ACCENT}`, pointerEvents: "none" }} />}
+                      {isMobile ? (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 10, minWidth: 0 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+                            <div style={{ position: "relative", flexShrink: 0 }}>
+                              <Avatar name={r.who} size={32} dark={dark} />
+                              {isNext && <div style={{ position: "absolute", inset: -3, borderRadius: 999, border: `2px solid ${ACCENT}`, pointerEvents: "none" }} />}
+                            </div>
+                            <div style={{ minWidth: 0, flex: 1 }}>
+                              <div style={{ fontSize: 15, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.who}</div>
+                              <div style={{ ...mono, marginTop: 3, color: c.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.tag}</div>
+                            </div>
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+                            {r.flag && <Pill c={c} tone="accent">{r.flag}</Pill>}
+                            {actionBtn}
+                          </div>
                         </div>
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ fontSize: 15, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.who}</div>
-                          <div style={{ ...mono, marginTop: 3, color: c.muted }}>{r.tag}</div>
-                        </div>
-                      </div>
-                      <div>{r.flag && <Pill c={c} tone="accent">{r.flag}</Pill>}</div>
-                      <button
-                        onClick={() => router.push(`/studio/eleves/${r.userId}`)}
-                        style={{ ...mono, fontSize: 10.5, padding: "9px 14px", borderRadius: 999, border: `1px solid ${isNext ? "transparent" : c.line}`, background: isNext ? ACCENT : c.chip, color: isNext ? "#0B0B0B" : c.text, whiteSpace: "nowrap", cursor: "pointer", fontFamily: "'DM Mono', ui-monospace, monospace" }}
-                      >
-                        {isNext ? "Démarrer →" : "Ouvrir →"}
-                      </button>
+                      ) : (
+                        <>
+                          <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+                            <div style={{ position: "relative" }}>
+                              <Avatar name={r.who} size={38} dark={dark} />
+                              {isNext && <div style={{ position: "absolute", inset: -3, borderRadius: 999, border: `2px solid ${ACCENT}`, pointerEvents: "none" }} />}
+                            </div>
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ fontSize: 15, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.who}</div>
+                              <div style={{ ...mono, marginTop: 3, color: c.muted }}>{r.tag}</div>
+                            </div>
+                          </div>
+                          <div>{r.flag && <Pill c={c} tone="accent">{r.flag}</Pill>}</div>
+                          {actionBtn}
+                        </>
+                      )}
                     </div>
                   );
                 })}
@@ -212,7 +239,7 @@ export default function AujourdhuiPage() {
             </Glass>
 
             {/* Relances + Alertes */}
-            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 16 }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? SPACE.md : 16 }}>
               <Glass c={c} dark={dark} pad={0}>
                 <div style={{ padding: "20px 22px 10px" }}>
                   <div style={{ ...mono, color: c.muted }}>À relancer</div>
@@ -225,7 +252,7 @@ export default function AujourdhuiPage() {
                         <Avatar name={r.who} size={30} dark={dark} />
                         <div style={{ minWidth: 0 }}>
                           <div style={{ fontSize: 13.5, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.who}</div>
-                          <div style={{ ...mono, color: c.muted, marginTop: 2 }}>{r.etape} · {r.last}</div>
+                          <div style={{ ...mono, color: c.muted, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.etape} · {r.last}</div>
                         </div>
                       </div>
                       <button
@@ -233,7 +260,7 @@ export default function AujourdhuiPage() {
                           if (r.discordId) window.open(`https://discord.com/users/${r.discordId}`, "_blank", "noopener,noreferrer");
                           else if (r.userId) router.push(`/studio/eleves/${r.userId}`);
                         }}
-                        style={{ ...mono, fontSize: 10, padding: "6px 10px", borderRadius: 999, background: "transparent", border: `1px solid ${c.line}`, color: c.muted, cursor: "pointer" }}
+                        style={{ ...mono, fontSize: 10, padding: "6px 10px", borderRadius: 999, background: "transparent", border: `1px solid ${c.line}`, color: c.muted, cursor: "pointer", flexShrink: 0 }}
                       >
                         DM
                       </button>
@@ -259,7 +286,7 @@ export default function AujourdhuiPage() {
                     >
                       <div style={{ minWidth: 0 }}>
                         <div style={{ fontSize: 13.5, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.who}</div>
-                        <div style={{ ...mono, color: c.muted, marginTop: 2 }}>{a.type}</div>
+                        <div style={{ ...mono, color: c.muted, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.type}</div>
                       </div>
                       <div style={{ ...num, fontSize: 14, whiteSpace: "nowrap" }}>{a.montant}</div>
                     </div>
@@ -273,7 +300,7 @@ export default function AujourdhuiPage() {
           </div>
 
           {/* RIGHT */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? SPACE.md : 16 }}>
             {/* MRR */}
             <Glass c={c} dark={dark} pad={0} style={{ overflow: "hidden" }}>
               <div style={{ padding: "24px 26px 0" }}>
@@ -299,8 +326,18 @@ export default function AujourdhuiPage() {
                   <div style={{ ...num, fontSize: 22, fontWeight: 500, marginTop: 4 }}>{d.semaineTotal} sessions</div>
                 </div>
               </div>
-              <div style={{ overflowX: isMobile ? "auto" : undefined, margin: isMobile ? "0 -6px" : undefined }}>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 8, minWidth: isMobile ? 440 : undefined }}>
+              {isMobile ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {d.rdvSemaine.map((day, i) => (
+                    <button key={i} onClick={() => router.push(`/studio/calendrier?date=${toISODate(day.date)}&view=day`)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, minHeight: 48, padding: "0 14px", borderRadius: 12, background: i === 0 ? ACCENT : c.chip, color: i === 0 ? "#0B0B0B" : c.text, border: `1px solid ${i === 0 ? "transparent" : c.line}`, fontFamily: "inherit", width: "100%", cursor: "pointer" }}>
+                      <span style={{ ...mono, fontSize: 12, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{day.jour}</span>
+                      <span style={{ ...mono, fontSize: 11, flexShrink: 0, color: i === 0 ? "#0B0B0B" : day.n ? ACCENT : c.faint }}>{day.n ? `${day.n} RDV` : "—"}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+              <div style={{ overflowX: undefined, margin: undefined }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 8, minWidth: undefined }}>
                 {d.rdvSemaine.map((day, i) => (
                   <div key={i} onClick={() => router.push(`/studio/calendrier?date=${toISODate(day.date)}&view=day`)} style={{ background: i === 0 ? ACCENT : c.chip, color: i === 0 ? "#0B0B0B" : c.text, borderRadius: 14, padding: "12px 6px", display: "flex", flexDirection: "column", alignItems: "center", gap: 6, border: `1px solid ${i === 0 ? "transparent" : c.line}`, boxShadow: `inset 0 1px 0 ${i === 0 ? "rgba(255,255,255,0.2)" : c.inner}`, cursor: "pointer" }}>
                     <div style={{ ...mono, fontSize: 9.5, opacity: 0.7 }}>{day.jour}</div>
@@ -309,6 +346,7 @@ export default function AujourdhuiPage() {
                 ))}
               </div>
               </div>
+              )}
             </Glass>
 
             {/* Onboarding */}
@@ -323,10 +361,10 @@ export default function AujourdhuiPage() {
                   <div key={i} onClick={() => { if (o.userId) router.push(`/studio/eleves/${o.userId}`); }} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 6px", borderTop: i > 0 ? `1px solid ${c.hairline}` : "none", cursor: o.userId ? "pointer" : "default", borderRadius: 10 }}>
                     <Avatar name={o.who} size={28} dark={dark} />
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13.5, fontWeight: 500 }}>{o.who}</div>
-                      <div style={{ ...mono, color: c.muted, marginTop: 2 }}>{o.etape}</div>
+                      <div style={{ fontSize: 13.5, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.who}</div>
+                      <div style={{ ...mono, color: c.muted, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{o.etape}</div>
                     </div>
-                    <div style={{ ...mono, color: c.faint }}>+{o.depuis}</div>
+                    <div style={{ ...mono, color: c.faint, flexShrink: 0 }}>+{o.depuis}</div>
                   </div>
                 ))}
               </div>

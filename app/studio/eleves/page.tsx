@@ -162,49 +162,56 @@ export default function ElevesPage() {
           </div>
         </Glass>
 
-        {/* Filter bar */}
-        <Glass c={c} dark={dark} pad={14} style={{ marginBottom: 16, display: "flex", flexWrap: "wrap", gap: 14, alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
-            <Segmented
-              c={c}
-              value={seg}
-              onChange={setSeg}
-              items={[
-                { id: "tous", label: `Tous · ${live.length}` },
-                { id: "coaching", label: "Coaching" },
-                { id: "commu", label: "Communauté" },
-              ]}
-            />
-            <div style={{ width: 1, height: 22, background: c.line }} />
-            <FilterSelect
-              c={c}
-              label="Étape"
-              value={etape}
-              onChange={setEtape}
-              options={[
-                { id: "toutes", label: "Toutes" },
-                ...STAGES.map((s) => ({ id: s, label: STAGE_LABELS[s] })),
-              ]}
-            />
-            <FilterSelect
-              c={c}
-              label="Paiement"
-              value={status}
-              onChange={setStatus}
-              options={[
-                { id: "tous", label: "Tous" },
-                { id: "ok", label: "À jour" },
-                { id: "incident", label: "Incidents" },
-              ]}
-            />
+        {/* Filter bar — empilée en lignes nettes sur mobile, en ligne sur desktop */}
+        <Glass c={c} dark={dark} pad={14} style={{ marginBottom: 16, display: "flex", flexDirection: isMobile ? "column" : "row", flexWrap: isMobile ? "nowrap" : "wrap", gap: isMobile ? 10 : 14, alignItems: isMobile ? "stretch" : "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: isMobile ? 10 : 14, alignItems: isMobile ? "stretch" : "center", flexWrap: isMobile ? "nowrap" : "wrap" }}>
+            {/* Ligne 1 : segment tier (pleine largeur sur mobile) */}
+            <div style={isMobile ? { display: "flex", width: "100%" } : undefined}>
+              <Segmented
+                c={c}
+                value={seg}
+                onChange={setSeg}
+                items={[
+                  { id: "tous", label: `Tous · ${live.length}` },
+                  { id: "coaching", label: "Coaching" },
+                  { id: "commu", label: "Communauté" },
+                ]}
+              />
+            </div>
+            {!isMobile && <div style={{ width: 1, height: 22, background: c.line }} />}
+            {/* Ligne 2 : les 2 filtres côte à côte */}
+            <div style={{ display: "flex", gap: isMobile ? 8 : 14, alignItems: "center" }}>
+              <FilterSelect
+                c={c}
+                label="Étape"
+                value={etape}
+                onChange={setEtape}
+                options={[
+                  { id: "toutes", label: "Toutes" },
+                  ...STAGES.map((s) => ({ id: s, label: STAGE_LABELS[s] })),
+                ]}
+              />
+              <FilterSelect
+                c={c}
+                label="Paiement"
+                value={status}
+                onChange={setStatus}
+                options={[
+                  { id: "tous", label: "Tous" },
+                  { id: "ok", label: "À jour" },
+                  { id: "incident", label: "Incidents" },
+                ]}
+              />
+            </div>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, background: c.chip, padding: "7px 12px", borderRadius: 999, border: `1px solid ${c.line}`, minWidth: 240, flex: isMobile ? "1 1 100%" : undefined }}>
+          {/* Ligne 3 : recherche (pleine largeur sur mobile) */}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, background: c.chip, padding: "7px 12px", borderRadius: 999, border: `1px solid ${c.line}`, minWidth: isMobile ? 0 : 240, width: isMobile ? "100%" : undefined }}>
             <span style={{ color: c.muted, fontSize: 13 }}>⌕</span>
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Rechercher par pseudo Discord…"
-              style={{ background: "transparent", border: "none", color: c.text, outline: "none", flex: 1, fontFamily: "inherit", fontSize: 13 }}
+              placeholder={isMobile ? "Pseudo…" : "Rechercher par pseudo Discord…"}
+              style={{ background: "transparent", border: "none", color: c.text, outline: "none", flex: 1, minWidth: 0, fontFamily: "inherit", fontSize: 13 }}
             />
             {query && (
               <button onClick={() => setQuery("")} style={{ background: "transparent", border: "none", color: c.muted, cursor: "pointer" }}>×</button>
@@ -215,6 +222,30 @@ export default function ElevesPage() {
         {/* Liste — cartes empilées sur mobile, tableau sur desktop */}
         {isMobile ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {/* Tri accessible en mode cartes (l'en-tête de tri du tableau est masqué sur mobile) */}
+            <button
+              type="button"
+              onClick={() => setSortDir((d) => (d === "desc" ? "asc" : "desc"))}
+              style={{
+                ...mono,
+                fontSize: 12,
+                minHeight: 44,
+                padding: "0 14px",
+                background: c.chip,
+                border: `1px solid ${c.line}`,
+                borderRadius: 12,
+                color: c.muted,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 8,
+                width: "100%",
+              }}
+            >
+              <span>Plus récents</span>
+              <span style={{ color: ACCENT, fontSize: 13 }}>{sortDir === "desc" ? "↓" : "↑"}</span>
+            </button>
             {filtered.map((m) => {
               const who = m.discordUsername || m.name || "—";
               const offre = m.tier === "coaching" ? "Coaching" : m.tier === "communaute" ? "Communauté" : "—";

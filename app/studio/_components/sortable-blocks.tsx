@@ -185,6 +185,7 @@ export function CollapsibleBlock({
             style={{
               ...mono,
               flex: 1,
+              minWidth: 0,
               display: "flex",
               alignItems: "center",
               gap: 10,
@@ -196,7 +197,7 @@ export function CollapsibleBlock({
               textAlign: "left",
             }}
           >
-            <span>{title}</span>
+            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{title}</span>
             {count != null && (
               <span style={{ color: c.faint }}>{count}</span>
             )}

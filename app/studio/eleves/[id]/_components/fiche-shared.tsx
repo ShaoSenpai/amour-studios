@@ -88,7 +88,12 @@ export function StatusSelect({ c, dark, value, onChange }: { c: C; dark: boolean
     if (!open || !btnRef.current) return;
     const update = () => {
       const r = btnRef.current!.getBoundingClientRect();
-      setRect({ top: r.bottom + 6, left: r.left });
+      const MENU_W = 180;
+      const left = Math.max(8, Math.min(r.left, window.innerWidth - MENU_W - 8));
+      const below = r.bottom + 6;
+      const tooLow = below + 240 > window.innerHeight;
+      const top = tooLow ? Math.max(8, r.top - 6 - 240) : below;
+      setRect({ top, left });
     };
     update();
     window.addEventListener("scroll", update, true);
@@ -154,6 +159,9 @@ export function StatusSelect({ c, dark, value, onChange }: { c: C; dark: boolean
               flexDirection: "column",
               gap: 4,
               minWidth: 150,
+              maxWidth: "calc(100vw - 16px)",
+              maxHeight: "min(300px, 60vh)",
+              overflowY: "auto",
             }}
           >
             {STATUS_ORDER.map((st) => {
@@ -188,9 +196,49 @@ export function StatusSelect({ c, dark, value, onChange }: { c: C; dark: boolean
   );
 }
 
+// Parse le résumé Fireflies brut ("overview\n\nActions :\n**Nom**\nligne (mm:ss)…")
+// en { overview, groups:[{person, items:[{text,time}]}] } pour un rendu structuré.
+function parseFirefliesSummary(raw: string): {
+  overview: string;
+  groups: { person: string; items: { text: string; time?: string }[] }[];
+} {
+  const text = (raw || "").trim();
+  const m = text.search(/\n?\s*Actions\s*:/i);
+  let overview = (m >= 0 ? text.slice(0, m) : text).replace(/\*\*/g, "").trim();
+  const actionsBlock = m >= 0 ? text.slice(m).replace(/^\n?\s*Actions\s*:/i, "").trim() : "";
+
+  const groups: { person: string; items: { text: string; time?: string }[] }[] = [];
+  if (actionsBlock) {
+    let cur: { person: string; items: { text: string; time?: string }[] } | null = null;
+    for (const rawLine of actionsBlock.split("\n")) {
+      const line = rawLine.trim();
+      if (!line) continue;
+      const pm = line.match(/^\*\*\s*(.+?)\s*\*\*$/);
+      if (pm) {
+        cur = { person: pm[1].trim(), items: [] };
+        groups.push(cur);
+        continue;
+      }
+      let t = line.replace(/^[-•*]\s+/, "");
+      let time: string | undefined;
+      const tm = t.match(/\s*\((\d{1,2}:\d{2}(?::\d{2})?)\)\s*$/);
+      if (tm) {
+        time = tm[1];
+        t = t.slice(0, tm.index).trim();
+      }
+      if (!cur) {
+        cur = { person: "", items: [] };
+        groups.push(cur);
+      }
+      cur.items.push({ text: t.replace(/\*\*/g, ""), time });
+    }
+  }
+  return { overview, groups };
+}
+
 // Bloc « Résumé du call · Fireflies » — résumé auto distinct des notes du coach.
-// Glass léger, encadré subtil, retours à la ligne préservés. Lien transcript
-// optionnel (accent #FF5A1F).
+// Parsé en sections (Résumé + Actions par personne avec timestamps), corps
+// scrollable (maxHeight) pour ne pas envahir la fiche. Lien transcript optionnel.
 export function FirefliesSummary({
   c,
   aiSummary,
@@ -200,6 +248,18 @@ export function FirefliesSummary({
   aiSummary: string;
   transcriptUrl?: string;
 }) {
+  const { overview, groups } = parseFirefliesSummary(aiSummary);
+  const empty = !overview && groups.length === 0;
+  const miniLabel: React.CSSProperties = {
+    ...mono,
+    fontSize: 9,
+    color: c.faint,
+    textTransform: "uppercase",
+    letterSpacing: "0.06em",
+    display: "block",
+    marginBottom: 6,
+  };
+
   return (
     <div
       style={{
@@ -217,7 +277,7 @@ export function FirefliesSummary({
           justifyContent: "space-between",
           alignItems: "center",
           gap: 8,
-          marginBottom: 8,
+          marginBottom: 10,
         }}
       >
         <span style={{ ...mono, fontSize: 9.5, color: ACCENT }}>
@@ -234,8 +294,81 @@ export function FirefliesSummary({
           </a>
         )}
       </div>
-      <div style={{ fontSize: 13, lineHeight: 1.55, color: c.muted, whiteSpace: "pre-wrap" }}>
-        {aiSummary}
+
+      <div
+        style={{
+          maxHeight: 300,
+          overflowY: "auto",
+          paddingRight: 6,
+          display: "flex",
+          flexDirection: "column",
+          gap: 14,
+        }}
+      >
+        {empty && (
+          <div style={{ fontSize: 13, color: c.muted }}>Résumé indisponible.</div>
+        )}
+
+        {overview && (
+          <div>
+            <span style={miniLabel}>Résumé</span>
+            <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: c.muted, whiteSpace: "pre-line" }}>
+              {overview}
+            </p>
+          </div>
+        )}
+
+        {groups.length > 0 && (
+          <div>
+            <span style={miniLabel}>Actions</span>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {groups.map((g, gi) => (
+                <div key={gi}>
+                  {g.person && (
+                    <div style={{ fontSize: 12.5, fontWeight: 700, color: c.text, marginBottom: 5 }}>
+                      {g.person}
+                    </div>
+                  )}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    {g.items.map((it, ii) => (
+                      <div key={ii} style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+                        <span
+                          style={{
+                            width: 5,
+                            height: 5,
+                            borderRadius: "50%",
+                            background: ACCENT,
+                            flexShrink: 0,
+                            marginTop: 7,
+                          }}
+                        />
+                        <span style={{ flex: 1, fontSize: 12.5, lineHeight: 1.5, color: c.muted }}>
+                          {it.text}
+                          {it.time && (
+                            <span
+                              style={{
+                                ...mono,
+                                fontSize: 9,
+                                color: c.faint,
+                                marginLeft: 6,
+                                padding: "1px 5px",
+                                borderRadius: 5,
+                                background: c.chip,
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              {it.time}
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

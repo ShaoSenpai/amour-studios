@@ -24,7 +24,6 @@ import { Kicker, BigTitle, EditorialBlock } from "@/app/_components/editorial";
 // termine le module précédent…). L'admin voit tout sans gate.
 // ============================================================================
 
-type Status = "available" | "completed" | "locked" | "locked_module";
 
 export default function ExosCatalogPage() {
   const dark = useIsDark();
@@ -176,20 +175,12 @@ function ExosList({
   c: C;
   exos: ExoItem[];
 }) {
-  // Tri : disponibles en premier, puis completed, puis locked.
-  const sorted = useMemo(() => {
-    const order: Record<Status, number> = {
-      available: 0,
-      completed: 1,
-      locked: 2,
-      locked_module: 3,
-    };
-    return [...exos].sort((a, b) => {
-      const so = order[a.state as Status] - order[b.state as Status];
-      if (so !== 0) return so;
-      return a.lessonOrder - b.lessonOrder;
-    });
-  }, [exos]);
+  // Ordre pédagogique FIXE = ordre des leçons (= l'ordre de Walid), peu importe
+  // l'état (terminé/dispo). Vision Board → Positionnement → Veille → Diff & Valeurs.
+  const sorted = useMemo(
+    () => [...exos].sort((a, b) => a.lessonOrder - b.lessonOrder),
+    [exos]
+  );
 
   return (
     <div style={{ padding: "8px 0" }}>

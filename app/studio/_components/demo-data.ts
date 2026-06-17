@@ -202,7 +202,7 @@ export const studentsList: StudentsList = listMembers.map((m): Student => {
     name: m.name ?? null,
     discordUsername: m.discordUsername ?? null,
     image: m.image ?? null,
-    createdAt: m.createdAt ?? null,
+    createdAt: m.createdAt ?? Date.now(),
     lastActiveAt: m.lastActiveAt ?? null,
     coachingStage: m.coachingStage ?? null,
     tier: m.purchase?.tier ?? null,
@@ -462,6 +462,7 @@ function sub(opts: {
 }): Sub {
   return {
     id: pid(`p_${opts.key}`),
+    eleveId: null,
     who: opts.who,
     offre: opts.offre,
     montant: `${opts.montant} €`,

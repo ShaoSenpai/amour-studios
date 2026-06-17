@@ -1419,6 +1419,7 @@ export function selectPaymentsOverview(): Payments {
       const incident = s.status === "past_due" || s.status === "canceled";
       return {
         id: pid(`p_${s._id as unknown as string}`),
+        eleveId: s._id,
         who: s.discordUsername || s.name || "—",
         offre,
         montant: `${s.tier === "coaching" ? 179 : 79} €`,

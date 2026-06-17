@@ -5,7 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { useQuery } from "convex/react";
 import { Loader2 } from "lucide-react";
 import { api } from "@/convex/_generated/api";
-import { palette, mono, ACCENT, useIsDark } from "@/app/studio/_components/glass";
+import { palette, mono, ACCENT, useIsDark, useIsMobile } from "@/app/studio/_components/glass";
 
 const NAV = [
   { href: "/exos", label: "Exercices" },
@@ -20,6 +20,7 @@ export function MemberShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const dark = useIsDark();
+  const isMobile = useIsMobile();
   const c = palette(dark, ACCENT);
 
   useEffect(() => {
@@ -41,15 +42,23 @@ export function MemberShell({ children }: { children: React.ReactNode }) {
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          gap: 12,
-          padding: "16px clamp(16px,5vw,48px)",
+          gap: 10,
+          padding: isMobile ? "12px 16px" : "16px clamp(16px,5vw,48px)",
           borderBottom: `1px solid ${c.line}`,
           position: "sticky",
           top: 0,
           zIndex: 50,
-          background: dark ? "rgba(8,8,12,0.82)" : "rgba(232,227,215,0.82)",
-          backdropFilter: "blur(20px) saturate(140%)",
-          WebkitBackdropFilter: "blur(20px) saturate(140%)",
+          // Sur mobile : fond quasi-opaque (le backdrop-filter sur un header
+          // sticky scintille/laisse des artefacts au scroll sur Safari iOS).
+          background: isMobile
+            ? (dark ? "rgba(8,8,12,0.97)" : "rgba(232,227,215,0.97)")
+            : (dark ? "rgba(8,8,12,0.82)" : "rgba(232,227,215,0.82)"),
+          ...(isMobile
+            ? {}
+            : {
+                backdropFilter: "blur(20px) saturate(140%)",
+                WebkitBackdropFilter: "blur(20px) saturate(140%)",
+              }),
           color: c.text,
         }}
       >
@@ -60,11 +69,17 @@ export function MemberShell({ children }: { children: React.ReactNode }) {
             letterSpacing: "-0.02em",
             textTransform: "uppercase",
             fontSize: 15,
+            // Le logo cède la place au nav s'il manque de largeur (jamais l'inverse).
+            minWidth: 0,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            flexShrink: 1,
           }}
         >
           Amour<span style={{ color: ACCENT }}>studios</span>
         </span>
-        <nav style={{ display: "flex", gap: 8 }}>
+        <nav style={{ display: "flex", gap: 6, flexShrink: 0 }}>
           {NAV.map((n) => {
             const active = pathname === n.href || pathname.startsWith(n.href + "/");
             return (
@@ -75,7 +90,11 @@ export function MemberShell({ children }: { children: React.ReactNode }) {
                   ...mono,
                   fontSize: 10.5,
                   textDecoration: "none",
-                  padding: "8px 14px",
+                  padding: isMobile ? "9px 12px" : "8px 14px",
+                  minHeight: 38,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  whiteSpace: "nowrap",
                   borderRadius: 999,
                   color: active ? c.textOnAccent : c.muted,
                   background: active ? ACCENT : c.chip,

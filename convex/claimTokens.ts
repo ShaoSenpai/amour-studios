@@ -21,6 +21,23 @@ import type { Doc } from "./_generated/dataModel";
 const TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 jours
 
 /**
+ * Masque un email pour un retour PUBLIC non authentifié : garde la 1re lettre
+ * du local-part + le domaine intact (`dermovium@gmail.com` → `d***@gmail.com`).
+ * Empêche la fuite de l'email client complet via un lien /claim partagé/loggé,
+ * tout en gardant assez d'info pour une confirmation visuelle « c'est mon
+ * paiement ». Robuste aux entrées malformées (pas de `@`, local-part vide).
+ */
+function maskEmail(email?: string): string | undefined {
+  if (!email) return undefined;
+  const trimmed = email.trim();
+  const at = trimmed.lastIndexOf("@");
+  if (at <= 0) return "***"; // pas d'@ ou local-part vide → on ne révèle rien
+  const local = trimmed.slice(0, at);
+  const domain = trimmed.slice(at + 1);
+  return `${local[0]}***@${domain}`;
+}
+
+/**
  * Interne : crée un claim token pour un PaymentIntent donné.
  * Appelé depuis `stripe.createSubscription` (action).
  */
@@ -67,7 +84,9 @@ export const purchaseForToken = query({
     return {
       _id: purchase._id,
       status: purchase.status,
-      email: purchase.email,
+      // PII : on ne renvoie JAMAIS l'email en clair sur cette query PUBLIQUE
+      // non authentifiée (un lien /claim partagé/loggé l'exposerait). Masqué.
+      email: maskEmail(purchase.email),
       hasUser: !!purchase.userId,
       alreadyClaimedByMe: false, // renseigné côté mutation
     };

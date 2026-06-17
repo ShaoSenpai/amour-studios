@@ -181,10 +181,16 @@ async function computeStateForUser(
           state = "available";
         }
 
+        // FIX #7 — ne pas exposer le livrable payant (`exerciseUrl`) tant que
+        // l'exo n'est pas réellement accessible à ce user. « Accessible » =
+        // même critère que le gating ci-dessus : admin OU (module accessible
+        // ET leçon débloquée dans la séquence).
+        const accessible = isAdmin || (moduleAccessible && lessonAvailable);
+
         result.push({
           _id: ex._id,
           title: ex.title,
-          exerciseUrl: ex.exerciseUrl,
+          exerciseUrl: accessible ? ex.exerciseUrl : undefined,
           config: ex.config,
           lessonId: lesson._id,
           lessonTitle: lesson.title,
@@ -342,8 +348,16 @@ export const getExerciseForUser = query({
           .first()
       : null;
 
+    // FIX #7 — l'objet `exercise` complet contient le livrable payant
+    // (`exerciseUrl` = lien outil externe, et `config`). On ne l'expose que si
+    // `allowed` (variable de gating déjà calculée). Sinon on renvoie l'exo
+    // sans ces champs.
+    const exercise: Doc<"exercises"> = allowed
+      ? ex
+      : { ...ex, exerciseUrl: undefined, config: undefined };
+
     return {
-      exercise: ex,
+      exercise,
       lesson: { _id: lesson._id, title: lesson.title, order: lesson.order },
       module: {
         _id: mod._id,

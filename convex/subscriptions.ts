@@ -19,7 +19,13 @@ export const mySubscription = query({
     const user = await ctx.db.get(userId);
     if (!user) return { authed: false as const };
     let purchase = user.purchaseId ? await ctx.db.get(user.purchaseId) : null;
-    if ((!purchase || !purchase.stripeSubscriptionId) && user.email) {
+    // Même logique que _purchaseForUser : on bascule sur l'abo actif le plus
+    // récent (by_email) dès que l'achat lié est absent OU n'est plus actif (ex.
+    // reprise coaching après résiliation → nouvel abo). Sinon /compte resterait
+    // figé sur l'ancien abo annulé (et ré-afficherait le bouton « Continuer »).
+    const ACTIVE = ["active", "past_due", "paid"];
+    const linkedStale = !purchase || !purchase.stripeSubscriptionId || !ACTIVE.includes(purchase.status);
+    if (linkedStale && user.email) {
       const list = await ctx.db.query("purchases")
         .withIndex("by_email", (q) => q.eq("email", user.email!.toLowerCase())).collect();
       purchase = list
@@ -104,7 +110,9 @@ export const _purchaseForUser = internalQuery({
     const user = await ctx.db.get(userId);
     if (!user) return null;
     let purchase = user.purchaseId ? await ctx.db.get(user.purchaseId) : null;
-    if ((!purchase || !purchase.stripeSubscriptionId) && user.email) {
+    const ACTIVE = ["active", "past_due", "paid"];
+    const linkedStale = !purchase || !purchase.stripeSubscriptionId || !ACTIVE.includes(purchase.status);
+    if (linkedStale && user.email) {
       const list = await ctx.db.query("purchases")
         .withIndex("by_email", (q) => q.eq("email", user.email!.toLowerCase())).collect();
       purchase = list
@@ -272,7 +280,7 @@ export const resumeCoachingMonthly = action({
         // duree "3mois" = palier accès complet (M1+M2/M3), PAS un engagement ici
         // (aucun cancel_at) → mensuel récurrent. tier+email pilotent recordSubscription.
         metadata: { tier: "coaching", duree: "3mois", email, resume: "monthly" },
-      });
+      }, { idempotencyKey: `resume-coaching:${userId}` });
     } catch (err) {
       console.warn("⚠️ resumeCoachingMonthly échec:", err instanceof Error ? err.message : err);
       return { error: "payment_failed" };

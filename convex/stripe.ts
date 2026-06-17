@@ -321,32 +321,45 @@ export const upgradeToCoaching = action({
       );
     }
 
-    // 8) Bascule l'abonnement sur le price coaching, sans proration + cap 3 mois.
-    const itemId = sub.items.data[0]?.id;
-    if (!itemId) throw new Error("Subscription Stripe sans item.");
-    await stripe.subscriptions.update(subId, {
-      items: [{ id: itemId, price: coachingPriceId }],
-      proration_behavior: "none",
-      cancel_at: Math.floor(Date.now() / 1000) + 90 * 24 * 60 * 60,
-      metadata: { ...(sub.metadata ?? {}), tier: "coaching", duree: "3mois" },
-    });
+    // Le PI +130€ est déjà encaissé (étape 7). Les étapes 8 et 9 (bascule
+    // Stripe + application Convex) sont protégées : si l'une throw APRÈS le
+    // débit, on alerte le staff et on renvoie un message clair plutôt que de
+    // laisser le client débité sans accès, en silence.
+    try {
+      // 8) Bascule l'abonnement sur le price coaching, sans proration + cap 3 mois.
+      const itemId = sub.items.data[0]?.id;
+      if (!itemId) throw new Error("Subscription Stripe sans item.");
+      await stripe.subscriptions.update(subId, {
+        items: [{ id: itemId, price: coachingPriceId }],
+        proration_behavior: "none",
+        cancel_at: Math.floor(Date.now() / 1000) + 90 * 24 * 60 * 60,
+        metadata: { ...(sub.metadata ?? {}), tier: "coaching", duree: "3mois" },
+      });
 
-    // 9) Applique l'upgrade côté Convex (purchase + onboarding + rôle Discord).
-    if (data.purchaseId) {
-      await ctx.runMutation(internal.onboardings._applyUpgradePurchase, {
-        purchaseId: data.purchaseId,
-        stripePriceId: coachingPriceId,
+      // 9) Applique l'upgrade côté Convex (purchase + onboarding + rôle Discord).
+      if (data.purchaseId) {
+        await ctx.runMutation(internal.onboardings._applyUpgradePurchase, {
+          purchaseId: data.purchaseId,
+          stripePriceId: coachingPriceId,
+        });
+      }
+      await ctx.runMutation(internal.onboardings._applyUpgradeOnboarding, {
+        onboardingId: data.onboardingId,
       });
-    }
-    await ctx.runMutation(internal.onboardings._applyUpgradeOnboarding, {
-      onboardingId: data.onboardingId,
-    });
-    if (data.discordId) {
-      await ctx.scheduler.runAfter(0, internal.stripe.assignDiscordRole, {
-        discordId: data.discordId,
-        email: data.email ?? "",
-        tier: "coaching",
+      if (data.discordId) {
+        await ctx.scheduler.runAfter(0, internal.stripe.assignDiscordRole, {
+          discordId: data.discordId,
+          email: data.email ?? "",
+          tier: "coaching",
+        });
+      }
+    } catch (err) {
+      await ctx.runAction(internal.discord.postAlertToStaff, {
+        content: `⚠️ Upsell coaching : 130€ DÉBITÉS mais bascule échouée — userId=${data.userId} email=${data.email ?? "?"} PI=${pi.id}. À régulariser à la main. Erreur: ${err instanceof Error ? err.message : String(err)}`,
       });
+      throw new Error(
+        "Paiement bien reçu, mais l'activation automatique a échoué. Le support a été prévenu et régularise ton accès très vite."
+      );
     }
 
     // Reçu brandé AMOUR du +100€ (en plus du reçu officiel Stripe via
@@ -362,8 +375,8 @@ export const upgradeToCoaching = action({
       await ctx.scheduler.runAfter(0, internal.emails.sendPaymentReceipt, {
         to: data.email,
         firstName: data.firstName ?? "",
-        offerLabel: "Upgrade Coaching (+100€)",
-        amountCents: 10000,
+        offerLabel: "Upgrade Communauté → Coaching",
+        amountCents: 13000,
         currency: "eur",
         paidAt: pi.created * 1000,
         cardLast4,
@@ -482,8 +495,15 @@ export const recordSubscription = internalMutation({
           .query("users")
           .withIndex("email", (q) => q.eq("email", args.email))
           .first();
-        if (linkUser && !linkUser.purchaseId) {
-          await ctx.db.patch(linkUser._id, { purchaseId: existing._id });
+        if (linkUser) {
+          let repoint = !linkUser.purchaseId;
+          if (linkUser.purchaseId) {
+            const cur = await ctx.db.get(linkUser.purchaseId);
+            if (!cur || !["active", "past_due", "paid"].includes(cur.status))
+              repoint = true;
+          }
+          if (repoint)
+            await ctx.db.patch(linkUser._id, { purchaseId: existing._id });
         }
       }
       return existing._id;
@@ -509,13 +529,21 @@ export const recordSubscription = internalMutation({
       paidAt: args.status === "active" ? now : undefined,
     });
 
-    // Lier au user si déjà existant (sinon le /claim le fera).
+    // Lier au user si déjà existant (sinon le /claim le fera). On repointe
+    // aussi si le purchase actuel du user n'est plus actif (cas reprise après
+    // résiliation : sans ça, le nouvel abo n'est jamais lié → /compte bloqué).
     const user = await ctx.db
       .query("users")
       .withIndex("email", (q) => q.eq("email", args.email))
       .first();
-    if (user && !user.purchaseId) {
-      await ctx.db.patch(user._id, { purchaseId });
+    if (user) {
+      let repoint = !user.purchaseId;
+      if (user.purchaseId) {
+        const cur = await ctx.db.get(user.purchaseId);
+        if (!cur || !["active", "past_due", "paid"].includes(cur.status))
+          repoint = true;
+      }
+      if (repoint) await ctx.db.patch(user._id, { purchaseId });
     }
 
     return purchaseId;

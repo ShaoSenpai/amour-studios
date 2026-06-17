@@ -366,6 +366,32 @@ http.route({
           }
         }
 
+        // Email Stripe ≠ email Discord : compte LIÉ via /claim → `findUserByEmail`
+        // ci-dessus le rate (email différent) et l'ex-abonné garde Membre/Coaching/
+        // Onboardé. Filet RETRAIT symétrique du filet d'attribution du handler
+        // subscription.updated : on retire les rôles du BON compte lié, mais
+        // SEULEMENT si son email diffère de celui du paiement (sinon déjà géré).
+        const linked = await ctx.runQuery(
+          internal.stripe.linkedUserForSubscription,
+          { stripeSubscriptionId: sub.id }
+        );
+        if (
+          linked?.discordId &&
+          (linked.email ?? "").toLowerCase() !== email
+        ) {
+          await ctx.runAction(internal.stripe.removeDiscordRoles, {
+            discordId: linked.discordId,
+            email: linked.email ?? "",
+          });
+          await ctx.runAction(internal.stripe.removeOnboardedRole, {
+            discordId: linked.discordId,
+          });
+          await ctx.runAction(internal.onboardings.sendStatusDm, {
+            userId: linked.userId,
+            context: "payment_canceled",
+          });
+        }
+
         // Hook relance (Phase 3) : fin d'un engagement coaching 3 mois → proposer
         // de renouveler (email Resend + ping Discord). Logique à brancher Phase 3.
         if (meta.tier === "coaching" && meta.duree === "3mois") {
@@ -461,6 +487,7 @@ http.route({
         const charge = event.data.object as unknown as {
           id: string;
           customer?: string | null;
+          amount: number;
           amount_refunded: number;
           currency: string;
           payment_intent?: string | null;
@@ -469,16 +496,23 @@ http.route({
         const email = (charge.billing_details?.email ?? "").trim().toLowerCase();
         const amountEur = (charge.amount_refunded / 100).toFixed(2);
         const cur = charge.currency.toUpperCase();
+        // Un remboursement PARTIEL (geste commercial) ne doit PAS couper l'accès
+        // d'un client encore actif. On ne retire rôles + Onboardé + DM « accès
+        // coupé » QUE si le remboursement est TOTAL. L'audit/event reste TOUJOURS
+        // enregistré (partiel comme total).
+        const fullyRefunded =
+          typeof charge.amount === "number" &&
+          charge.amount_refunded >= charge.amount;
 
         if (email) {
           const user = await ctx.runQuery(internal.stripe.findUserByEmail, { email });
-          if (user?.discordId) {
+          if (user?.discordId && fullyRefunded) {
             // Retire les rôles (idempotent côté bot : no_role si déjà parti).
             await ctx.runAction(internal.stripe.removeDiscordRoles, {
               discordId: user.discordId,
               email,
             });
-            // Retire aussi le rôle « Onboardé » (remboursement = accès coupé).
+            // Retire aussi le rôle « Onboardé » (remboursement TOTAL = accès coupé).
             await ctx.runAction(internal.stripe.removeOnboardedRole, {
               discordId: user.discordId,
             });
@@ -495,6 +529,7 @@ http.route({
             to: email,
             amount: charge.amount_refunded,
             currency: charge.currency,
+            accessRemoved: fullyRefunded,
           });
           // Audit trail
           await ctx.runMutation(internal.events.recordEventByEmail, {
@@ -512,8 +547,10 @@ http.route({
         // Alerte Walid
         await ctx.runAction(internal.discord.postAlertToStaff, {
           content:
-            `💸 **Refund effectué** — ${email || "email inconnu"} · ${amountEur} ${cur}\n` +
-            `Rôles Discord retirés automatiquement.`,
+            `💸 **Refund ${fullyRefunded ? "TOTAL" : "partiel"}** — ${email || "email inconnu"} · ${amountEur} ${cur}\n` +
+            (fullyRefunded
+              ? `Rôles Discord retirés automatiquement.`
+              : `Remboursement partiel : accès Discord CONSERVÉ.`),
         });
         console.log(`💸 Charge refunded for ${email || "(no email)"} — ${amountEur} ${cur}`);
         break;
@@ -529,7 +566,12 @@ http.route({
           parent?: { subscription_details?: { subscription?: string | null } } | null;
           amount_paid?: number;
           currency?: string;
-          lines?: { data?: Array<{ period?: { end?: number } }> };
+          lines?: {
+            data?: Array<{
+              period?: { end?: number };
+              price?: { id?: string } | null;
+            }>;
+          };
           invoice_pdf?: string | null;
           hosted_invoice_url?: string | null;
           charge?: string | null;
@@ -546,11 +588,21 @@ http.route({
         }
 
         const periodEndSec = invoice.lines?.data?.[0]?.period?.end;
+        // Dérive le tier depuis le price ID de la ligne de facture. Sans ça, si le
+        // purchase n'avait pas encore de tier, recordSubscription le laisse
+        // undefined → assignDiscordRole (gardé par `if (purchase?.tier)`) est sauté
+        // → coaché payant SANS rôle. On passe tier + stripePriceId. Si le tier ne
+        // se dérive pas, on laisse undefined (recordSubscription n'écrase pas un
+        // champ connu avec undefined → pas de régression).
+        const invoicePriceId = invoice.lines?.data?.[0]?.price?.id ?? undefined;
+        const invoiceTier = tierFromPriceId(invoicePriceId);
         await ctx.runMutation(internal.stripe.recordSubscription, {
           email: email || "",
           stripeSubscriptionId: subId,
           stripeCustomerId:
             typeof invoice.customer === "string" ? invoice.customer : undefined,
+          stripePriceId: invoicePriceId,
+          tier: invoiceTier,
           status: "active",
           amount: invoice.amount_paid,
           currency: invoice.currency,

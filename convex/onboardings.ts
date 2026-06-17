@@ -381,6 +381,14 @@ export const submitAnswers = mutation({
       .withIndex("by_token", (q) => q.eq("token", token))
       .first();
     if (!ob) throw new Error("Lien onboarding invalide.");
+    // Garde idempotence (FIX #9) : si l'onboarding est DÉJÀ dans un état final
+    // (community_ready pour le 79€, rdv_booked pour le coaching), un rejeu du
+    // token (token-only, mutation publique) ne doit PAS ré-écrire les réponses,
+    // re-`grantOnboarded`, ni RÉ-OUVRIR la fenêtre d'upsell +100€
+    // (`upgradeOfferExpiresAt = now+1h`). On retourne tôt sans effet de bord.
+    if (ob.step === "community_ready" || ob.step === "rdv_booked") {
+      return { ok: true, already: true };
+    }
     const now = Date.now();
     // Capture l'étape AVANT patch (le doc `ob` pourrait être muté en mémoire) :
     // c'est elle qui détermine si on déclenche le DM boussole coaching.
@@ -1241,16 +1249,19 @@ export const runDailyRelances = internalAction({
       if (!anchor) continue;
       const elapsed = now - anchor;
 
-      // Détermine le niveau le plus haut "dû" et pas encore envoyé.
-      // On évalue dans l'ordre 7j → 48h → 24h pour envoyer au max un niveau
-      // par run (le plus pertinent), tout en restant idempotent.
+      // Détermine le palier le plus BAS (le plus ancien) dû et pas encore
+      // envoyé (FIX #10). On évalue dans l'ordre 24h → 48h → 7j pour ne JAMAIS
+      // sauter directement au « dernier rappel » 7j si le 24h/48h n'ont pas
+      // encore été envoyés : un onboarding découvert tardivement reçoit d'abord
+      // 24h, PUIS 48h, PUIS 7j au fil des runs quotidiens (max un niveau par
+      // run), tout en restant idempotent (marquage par palier conservé).
       let level: RelanceLevel | null = null;
-      if (elapsed >= D7 && ob.relance7dAt === undefined) {
-        level = 7;
+      if (elapsed >= H24 && ob.relance24hAt === undefined) {
+        level = 24;
       } else if (elapsed >= H48 && ob.relance48hAt === undefined) {
         level = 48;
-      } else if (elapsed >= H24 && ob.relance24hAt === undefined) {
-        level = 24;
+      } else if (elapsed >= D7 && ob.relance7dAt === undefined) {
+        level = 7;
       }
       if (level === null) continue;
 

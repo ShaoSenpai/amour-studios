@@ -453,8 +453,11 @@ export const sendPaymentReceipt = internalAction({
 // ─── Email — Refund effectué (charge.refunded) ────────────────────────
 
 export const sendRefundNotice = internalAction({
-  args: { to: v.string(), amount: v.number(), currency: v.string() },
-  handler: async (ctx, { to, amount, currency }) => {
+  // accessRemoved : true = remboursement TOTAL → accès coupé ; false/absent =
+  // remboursement PARTIEL (geste commercial) → l'accès reste actif. Sans ce flag,
+  // l'email affirmait à tort « accès retiré » même sur un remboursement partiel.
+  args: { to: v.string(), amount: v.number(), currency: v.string(), accessRemoved: v.optional(v.boolean()) },
+  handler: async (ctx, { to, amount, currency, accessRemoved }) => {
     if (!to) return { ok: false as const, reason: "no_email" as const };
     const eur = (amount / 100).toFixed(2);
     const cur = currency.toUpperCase();
@@ -467,7 +470,12 @@ export const sendRefundNotice = internalAction({
           `On vient de te rembourser <strong>${eur} ${cur}</strong> sur la carte utilisée pour ton abonnement AMOUR STUDIOS.`,
           { mb: 14 }
         )}
-        ${para(`Ton accès Discord a été retiré automatiquement.`, { size: 15, mb: 14 })}
+        ${para(
+          accessRemoved
+            ? `Ton accès Discord a été retiré automatiquement.`
+            : `Il s'agit d'un remboursement partiel : <strong>ton accès reste actif</strong>, rien ne change pour ton abonnement.`,
+          { size: 15, mb: 14 }
+        )}
         ${para(
           `Si c'est une erreur ou si tu veux reprendre, réponds à ce mail ou écris à <a href="mailto:contact@amourstudios.fr" style="color:${ORANGE};">contact@amourstudios.fr</a>.`,
           { size: 15, mb: 0 }

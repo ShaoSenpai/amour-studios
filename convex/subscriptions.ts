@@ -217,6 +217,9 @@ export const upgradeMySubscription = action({
         proration_behavior: "none",
         billing_cycle_anchor: "now",
         payment_behavior: "error_if_incomplete",
+        // ⚠️ Retire le coupon d'entrée Communauté (-30€) : sinon 179 − 30 = 149€
+        // au lieu de 179€ plein pour le coaching.
+        discounts: [],
         cancel_at: Math.floor(Date.now() / 1000) + 90 * 24 * 60 * 60,
         metadata: { ...(sub.metadata ?? {}), tier: "coaching", duree: "3mois" },
       });

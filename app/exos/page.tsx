@@ -3,7 +3,7 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import Link from "next/link";
-import { useMemo, useEffect } from "react";
+import { useMemo, useEffect, useRef, useCallback } from "react";
 import { Loader2, Lock, Check } from "lucide-react";
 import type { FunctionReturnType } from "convex/server";
 
@@ -33,37 +33,84 @@ export default function ExosCatalogPage() {
   const complete = useMutation(api.exerciseResponses.complete);
 
   // Complétion auto : l'exo s'ouvre en nouvel onglet et, quand l'élève génère son
-  // PDF, le bridge diffuse "amour:exercise-complete" (BroadcastChannel "amour-exo"
-  // + postMessage). Le catalogue (resté ouvert = opener) le capte et marque l'exo
-  // fait → remonte au dashboard coach. href du bridge = pathname de l'exo (sans ?v=).
-  useEffect(() => {
-    if (!items) return;
-    const byPath = new Map(
-      items.filter((i) => i.exerciseUrl).map((i) => [i.exerciseUrl!.split("?")[0], i._id])
-    );
-    const onComplete = (href?: string) => {
+  // PDF, le bridge signale "amour:exercise-complete" sur des canaux same-origin :
+  // BroadcastChannel "amour-exo" + postMessage (live, catalogue ouvert) ET
+  // localStorage "amour-exo-pending" (rejeu si le catalogue était fermé pendant
+  // l'exo, ou navigateur sans BroadcastChannel). href du bridge = pathname (sans ?v=).
+  const byPathRef = useRef<Map<string, ExoItem["_id"]>>(new Map());
+
+  const completeHref = useCallback(
+    (href?: string) => {
       if (!href) return;
-      const id = byPath.get(href.split("?")[0]);
+      const id = byPathRef.current.get(String(href).split("?")[0]);
       if (id) void complete({ exerciseId: id }).catch(() => {});
-    };
+    },
+    [complete]
+  );
+
+  // Rejoue les complétions persistées (onglet catalogue fermé pendant l'exo, ou
+  // message tombé pendant un re-render). complete() est idempotent côté serveur.
+  const flushPending = useCallback(() => {
+    try {
+      const raw = localStorage.getItem("amour-exo-pending");
+      if (!raw) return;
+      const arr = JSON.parse(raw) as unknown;
+      if (!Array.isArray(arr) || arr.length === 0) return;
+      const remaining: string[] = [];
+      for (const href of arr) {
+        const id = byPathRef.current.get(String(href).split("?")[0]);
+        if (id) void complete({ exerciseId: id }).catch(() => {});
+        else remaining.push(String(href)); // pas encore dans le catalogue chargé → on garde
+      }
+      if (remaining.length) localStorage.setItem("amour-exo-pending", JSON.stringify(remaining));
+      else localStorage.removeItem("amour-exo-pending");
+    } catch {
+      /* localStorage indispo → no-op */
+    }
+  }, [complete]);
+
+  // Table href→id rafraîchie quand le catalogue change, SANS re-monter les listeners.
+  useEffect(() => {
+    byPathRef.current = new Map(
+      (items ?? [])
+        .filter((i) => i.exerciseUrl)
+        .map((i) => [i.exerciseUrl!.split("?")[0], i._id] as const)
+    );
+    flushPending(); // le catalogue vient de charger → rejoue une complétion en attente
+  }, [items, flushPending]);
+
+  // Écoute la complétion (live + rejeu). Montée UNE seule fois (deps stables).
+  useEffect(() => {
     const onMsg = (e: MessageEvent) => {
-      if (e.data?.type === "amour:exercise-complete") onComplete(e.data.href);
+      if (e.origin !== window.location.origin) return; // sécurité : même origine uniquement
+      if (e.data?.type === "amour:exercise-complete") completeHref(e.data.href);
+    };
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === "amour-exo-pending") flushPending();
+    };
+    const onVisible = () => {
+      if (document.visibilityState === "visible") flushPending();
     };
     window.addEventListener("message", onMsg);
+    window.addEventListener("storage", onStorage);
+    document.addEventListener("visibilitychange", onVisible);
     let ch: BroadcastChannel | null = null;
     try {
       ch = new BroadcastChannel("amour-exo");
       ch.addEventListener("message", (e) => {
-        if (e.data?.type === "amour:exercise-complete") onComplete(e.data.href);
+        // BroadcastChannel est same-origin par spec → pas de contrôle d'origine ici.
+        if (e.data?.type === "amour:exercise-complete") completeHref(e.data.href);
       });
     } catch {
-      // BroadcastChannel indispo → on garde le fallback postMessage (opener).
+      /* BroadcastChannel indispo → message + rejeu localStorage prennent le relais */
     }
     return () => {
       window.removeEventListener("message", onMsg);
+      window.removeEventListener("storage", onStorage);
+      document.removeEventListener("visibilitychange", onVisible);
       ch?.close();
     };
-  }, [items, complete]);
+  }, [completeHref, flushPending]);
 
   // Regroupement par module trié.
   type Group = {

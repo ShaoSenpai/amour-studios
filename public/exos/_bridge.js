@@ -8,10 +8,12 @@
  *    - <a download="*.ics|pdf|csv"> click (1 exo Google Agenda)
  *    - window.AmourExoComplete() manuel
  *
- * 2. Poste l'event sur 3 canaux (redondance selon le contexte) :
+ * 2. Signale la complétion sur 4 canaux same-origin (redondance + rejeu) :
  *    - window.parent.postMessage (cas iframe dans le panneau Exos)
  *    - window.opener.postMessage (cas nouvel onglet, rel sans noopener)
  *    - BroadcastChannel "amour-exo" (cas rel=noopener, cross-tab same-origin)
+ *    - localStorage "amour-exo-pending" (rejeu si l'onglet catalogue était fermé
+ *      pendant l'exo, ou navigateur sans BroadcastChannel)
  *
  * 3. Affiche un bandeau "Retour à la leçon" en top de la page exo
  *    (mode standalone/nouvel onglet uniquement — caché en iframe).
@@ -46,6 +48,21 @@
     try { if (window.parent && window.parent !== window) { window.parent.postMessage(msg, "*"); log("→ parent"); } } catch (e) { log("parent err", e); }
     try { if (window.opener) { window.opener.postMessage(msg, "*"); log("→ opener"); } } catch (e) { log("opener err", e); }
     try { if (channel) { channel.postMessage(msg); log("→ BroadcastChannel"); } } catch (e) { log("channel err", e); }
+
+    // Persistance pour rejeu : si l'onglet catalogue est fermé pendant l'exo (ou
+    // pas de BroadcastChannel), le catalogue rattrape la complétion à son retour
+    // (storage event / mount / focus). Idempotent côté serveur.
+    try {
+      var KEY = "amour-exo-pending";
+      var raw = localStorage.getItem(KEY);
+      var arr = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(arr)) arr = [];
+      if (arr.indexOf(msg.href) === -1) {
+        arr.push(msg.href);
+        localStorage.setItem(KEY, JSON.stringify(arr));
+        log("→ localStorage pending");
+      }
+    } catch (e) { log("localStorage err", e); }
 
     // Bandeau « XP / Exercice validé » retiré (demande produit 2026-06-16).
     // La complétion continue de remonter au dashboard via le postMessage ci-dessus.
@@ -88,26 +105,11 @@
     return origClick.apply(this, arguments);
   };
 
-  // ── Belt-and-suspenders : hook click sur boutons à texte "PDF"/"Générer" ─
-  // Si jsPDF save n'est pas interceptée (autre méthode), on déclenche quand
-  // même notifyComplete après 300ms (le téléchargement s'est probablement lancé)
-  document.addEventListener("click", function (e) {
-    var t = e.target;
-    while (t && t !== document.body) {
-      if (t.tagName === "BUTTON" || t.tagName === "A") {
-        var txt = (t.innerText || t.textContent || "").toUpperCase();
-        if (/GÉNÉRER|GENERER|TÉLÉCHARGER|TELECHARGER|PDF|EXPORTER/.test(txt) &&
-            !/ANNULER|RETOUR/.test(txt)) {
-          log("completion button clicked, arming fallback: " + txt.substring(0, 40));
-          setTimeout(function () {
-            if (!sent) { log("fallback notify (button-click)"); notifyComplete("button"); }
-          }, 800);
-          return;
-        }
-      }
-      t = t.parentNode;
-    }
-  }, true);
+  // NOTE : pas de fallback "clic sur bouton dont le texte contient PDF/Générer".
+  // Il validait l'exo même sans PDF produit (brouillon, génération annulée) → faux
+  // positifs + auto-unlock prématuré. La complétion = PDF RÉELLEMENT généré, captée
+  // de façon fiable par le hook jsPDF.save ci-dessus (+ téléchargement .ics/.pdf/.csv).
+  // Un exo sans jsPDF peut appeler window.AmourExoComplete() explicitement.
 
   // ── Banner retour à la leçon (standalone mode) ────────────────────────────
   function getReturnUrl() {

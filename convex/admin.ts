@@ -1014,8 +1014,12 @@ export const _bumpExoCacheVersion = internalMutation({
     let updated = 0;
     for (const x of exos) {
       if (!x.exerciseUrl) continue;
-      const base = x.exerciseUrl.split("?")[0];
-      const next = `${base}?v=${version}`;
+      // Préserve d'éventuels autres params : on ne remplace QUE `v` (avant on
+      // écrasait toute la query string avec split("?")[0]).
+      const [base, query] = x.exerciseUrl.split("?");
+      const params = new URLSearchParams(query || "");
+      params.set("v", version);
+      const next = `${base}?${params.toString()}`;
       if (x.exerciseUrl !== next) {
         await ctx.db.patch(x._id, { exerciseUrl: next });
         updated++;

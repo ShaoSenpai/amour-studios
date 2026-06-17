@@ -529,7 +529,10 @@ export const studentsList = query({
           name: u.name ?? null,
           discordUsername: u.discordUsername ?? null,
           image: u.image ?? null,
-          createdAt: u.createdAt ?? null,
+          // Date d'inscription : `createdAt` custom souvent absent (comptes Discord
+          // OAuth) → fallback sur `_creationTime` (toujours posé) pour que le tri
+          // « dernier inscrit en haut » soit fiable.
+          createdAt: u.createdAt ?? u._creationTime,
           lastActiveAt: u.lastActiveAt ?? null,
           coachingStage: u.coachingStage ?? null,
           tier: purchase?.tier ?? null,
@@ -996,6 +999,9 @@ export const paymentsOverview = query({
         const u = userByPurchase.get(p._id as unknown as string);
         return {
           id: p._id,
+          // _id de l'élève lié (pour ouvrir sa fiche depuis Paiements). null si le
+          // paiement n'est rattaché à aucun compte (achat non lié).
+          eleveId: u?._id ?? null,
           who: u?.discordUsername || u?.name || p.email?.split("@")[0] || "—",
           offre:
             p.tier === "coaching"

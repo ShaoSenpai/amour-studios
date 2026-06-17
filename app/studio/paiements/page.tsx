@@ -3,7 +3,7 @@
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useMemo, useState, useEffect, useRef } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import {
   ACCENT,
@@ -59,6 +59,7 @@ export default function PaiementsPage() {
   // Deep-link : ?status= pré-règle le filtre, ?highlight=<purchaseId> surligne
   // et scrolle la ligne concernée (depuis le dashboard « Aujourd'hui »).
   const searchParams = useSearchParams();
+  const router = useRouter();
   const initFilter = ((): Filter => {
     const s = searchParams.get("status");
     if (s === "echec" || s === "past_due") return "echec";
@@ -261,10 +262,13 @@ export default function PaiementsPage() {
                   <div
                     key={s.id}
                     ref={isHighlighted ? highlightRef : undefined}
+                    onClick={() => { if (s.eleveId) router.push(`/studio/eleves/${s.eleveId}`); }}
+                    title={s.eleveId ? "Ouvrir la fiche élève" : "Paiement non lié à un compte"}
                     style={{
                       ...cardStyle,
                       background: isHighlighted ? `${ACCENT}1A` : c.chip,
                       border: isHighlighted ? `1px solid ${ACCENT}` : `1px solid ${c.line}`,
+                      cursor: s.eleveId ? "pointer" : "default",
                     }}
                   >
                     {/* Identité — nom mis en avant, infos secondaires dessous */}
@@ -307,7 +311,7 @@ export default function PaiementsPage() {
                 const si = statusInfo(s.statut);
                 const isHighlighted = highlightId != null && s.id === highlightId;
                 return (
-                  <div key={s.id} ref={isHighlighted ? highlightRef : undefined} style={{ display: "grid", gridTemplateColumns: COLS, gap: 14, padding: "14px 24px", borderBottom: i < filtered.length - 1 ? `1px solid ${c.hairline}` : "none", alignItems: "center", background: isHighlighted ? `${ACCENT}1A` : "transparent", boxShadow: isHighlighted ? `inset 0 0 0 1px ${ACCENT}` : "none", borderRadius: isHighlighted ? 12 : 0 }}>
+                  <div key={s.id} ref={isHighlighted ? highlightRef : undefined} onClick={() => { if (s.eleveId) router.push(`/studio/eleves/${s.eleveId}`); }} title={s.eleveId ? "Ouvrir la fiche élève" : "Paiement non lié à un compte"} style={{ display: "grid", gridTemplateColumns: COLS, gap: 14, padding: "14px 24px", borderBottom: i < filtered.length - 1 ? `1px solid ${c.hairline}` : "none", alignItems: "center", background: isHighlighted ? `${ACCENT}1A` : "transparent", boxShadow: isHighlighted ? `inset 0 0 0 1px ${ACCENT}` : "none", borderRadius: isHighlighted ? 12 : 0, cursor: s.eleveId ? "pointer" : "default" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
                       <Avatar name={s.who} size={30} dark={dark} />
                       <div style={{ minWidth: 0 }}>

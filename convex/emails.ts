@@ -5,6 +5,11 @@ import { internal } from "./_generated/api";
 
 // ============================================================================
 // Amour Studios — Emails (via Resend)
+//
+// DA alignée sur amourstudios.fr : paper #F4F2EE, ink #0A0A0A, orange #FF5A1F,
+// Schibsted Grotesk + DM Mono, boutons éditoriaux (mono MAJ, coins droits, →).
+// Rendu robuste multi-clients : layout 100% en <table> (pas de flex/grid, que
+// Gmail/Outlook ignorent), boutons « bulletproof », couleurs en solide.
 // ============================================================================
 
 const RESEND_ENDPOINT = "https://api.resend.com/emails";
@@ -93,40 +98,6 @@ function stripHtml(html: string): string {
     .trim();
 }
 
-// ─── Shared email layout (DA actuelle — accent FF5A1F, Schibsted Grotesk) ─
-
-function layout({
-  title,
-  children,
-}: {
-  title: string;
-  children: string;
-}) {
-  return `<!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>${escape(title)}</title>
-</head>
-<body style="margin:0;padding:0;background:#E8E3D7;color:#0B0B0B;font-family:'Schibsted Grotesk',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:15px;line-height:1.55;">
-  <div style="max-width:560px;margin:0 auto;padding:40px 24px;">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:36px;">
-      <span style="display:inline-block;width:30px;height:30px;background:#FF5A1F;color:#0B0B0B;border-radius:8px;font-weight:600;font-size:17px;line-height:30px;text-align:center;letter-spacing:-0.02em;">A</span>
-      <span style="font-weight:500;font-size:18px;letter-spacing:-0.01em;">AMOUR STUDIOS</span>
-    </div>
-    ${children}
-    <div style="margin-top:48px;padding-top:24px;border-top:1px solid rgba(11,11,11,0.10);font-size:12px;color:rgba(11,11,11,0.55);">
-      <span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:0.06em;text-transform:uppercase;">Coaching artistes musique</span><br>
-      <a href="https://amourstudios.fr" style="color:rgba(11,11,11,0.55);text-decoration:underline;text-underline-offset:3px;">amourstudios.fr</a>
-      &nbsp;·&nbsp;
-      <a href="mailto:contact@amourstudios.fr" style="color:rgba(11,11,11,0.55);text-decoration:underline;text-underline-offset:3px;">contact@amourstudios.fr</a>
-    </div>
-  </div>
-</body>
-</html>`;
-}
-
 function escape(s: string): string {
   return s
     .replace(/&/g, "&amp;")
@@ -134,6 +105,161 @@ function escape(s: string): string {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+// ─── Design tokens (source = amourstudios.fr) ────────────────────────────────
+const PAPER = "#F4F2EE"; // fond
+const INK = "#0A0A0A"; // texte principal
+const INK_SOFT = "#3A3A3A"; // texte secondaire
+const MUTED = "#6A6A6A"; // labels / footer
+const ORANGE = "#FF5A1F"; // accent
+const LINE = "#E4E2DC"; // filets
+const PANEL = "#FFFFFF"; // encarts
+const SANS =
+  "'Schibsted Grotesk',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+const MONO = "'DM Mono',ui-monospace,Menlo,Consolas,monospace";
+
+// ─── Kit de composants email (tous renvoient du HTML inline, table-safe) ─────
+
+/** Label mono en capitales (motif éditorial « ◦ … » du site). */
+function kicker(label: string): string {
+  return `<p style="margin:0 0 16px;font-family:${MONO};font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:${MUTED};">◦&nbsp;&nbsp;${label}</p>`;
+}
+
+/** Titre principal Schibsted, tracking serré. */
+function h1(text: string, size = 34): string {
+  return `<h1 class="as-h1" style="margin:0 0 18px;font-family:${SANS};font-size:${size}px;line-height:1.08;font-weight:600;letter-spacing:-0.02em;color:${INK};">${text}</h1>`;
+}
+
+/** Paragraphe courant. */
+function para(
+  html: string,
+  {
+    color = INK,
+    size = 16,
+    mb = 22,
+    mt = 0,
+  }: { color?: string; size?: number; mb?: number; mt?: number } = {}
+): string {
+  return `<p style="margin:${mt}px 0 ${mb}px;font-family:${SANS};font-size:${size}px;line-height:1.6;color:${color};">${html}</p>`;
+}
+
+/** Bouton « bulletproof » : table + <a>, coins droits, mono MAJ, flèche. */
+function button({
+  href,
+  label,
+  bg = ORANGE,
+  fg = "#FFFFFF",
+  mb = 28,
+}: {
+  href: string;
+  label: string;
+  bg?: string;
+  fg?: string;
+  mb?: number;
+}): string {
+  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 ${mb}px;">
+    <tr><td bgcolor="${bg}" style="border-radius:2px;">
+      <a href="${href}" target="_blank" style="display:inline-block;padding:15px 26px;font-family:${MONO};font-size:12px;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;color:${fg};text-decoration:none;">${label}&nbsp;&nbsp;→</a>
+    </td></tr>
+  </table>`;
+}
+
+/** Encart blanc à liseré orange (bord gauche). Outlook-safe (bordure sur td). */
+function panel(inner: string, { mb = 28 }: { mb?: number } = {}): string {
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 ${mb}px;">
+    <tr><td style="background:${PANEL};border-left:3px solid ${ORANGE};border-radius:0 8px 8px 0;padding:18px 22px;">${inner}</td></tr>
+  </table>`;
+}
+
+/** Petit badge plein (motif .opt-badge du site). Texte sombre sur fond accent. */
+function badge(label: string, bg = ORANGE, fg = INK): string {
+  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px;"><tr><td bgcolor="${bg}" style="padding:6px 11px;font-family:${MONO};font-size:10px;letter-spacing:0.14em;text-transform:uppercase;font-weight:500;color:${fg};">${label}</td></tr></table>`;
+}
+
+/** Ligne d'étape numérotée (table 2 colonnes). */
+function stepRow(num: string, html: string, last = false): string {
+  const pb = last ? "0" : "16px";
+  return `<tr>
+    <td valign="top" style="width:30px;padding:0 0 ${pb};font-family:${MONO};font-size:13px;font-weight:500;color:${ORANGE};">${num}</td>
+    <td valign="top" style="padding:0 0 ${pb};font-family:${SANS};font-size:15px;line-height:1.5;color:${INK};">${html}</td>
+  </tr>`;
+}
+
+/** Ligne label/valeur (récap paiement). */
+function kvRow(label: string, value: string, last = false): string {
+  const border = last ? "none" : `1px solid ${LINE}`;
+  return `<tr>
+    <td style="padding:11px 0;border-bottom:${border};font-family:${SANS};font-size:14px;color:${MUTED};">${escape(label)}</td>
+    <td align="right" style="padding:11px 0;border-bottom:${border};font-family:${SANS};font-size:14px;font-weight:600;color:${INK};">${escape(value)}</td>
+  </tr>`;
+}
+
+/** Lien direct (repli si le bouton ne marche pas). */
+function directLink(url: string, label = "Lien direct"): string {
+  return `<p style="margin:26px 0 0;font-family:${MONO};font-size:11px;color:${MUTED};">${label} : <a href="${url}" style="color:${MUTED};word-break:break-all;">${url}</a></p>`;
+}
+
+// ─── Layout partagé (100% table, fonts Google + repli système) ────────────────
+
+function layout({ title, children }: { title: string; children: string }): string {
+  return `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html lang="fr" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="color-scheme" content="light only">
+<meta name="supported-color-schemes" content="light only">
+<title>${escape(title)}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  body{margin:0;padding:0;width:100%!important;background:${PAPER};-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;}
+  table{border-collapse:collapse;}
+  img{border:0;line-height:100%;outline:none;text-decoration:none;}
+  a{color:${ORANGE};}
+  @media only screen and (max-width:600px){
+    .as-wrap{width:100%!important;}
+    .as-pad{padding-left:20px!important;padding-right:20px!important;}
+    .as-h1{font-size:28px!important;}
+  }
+</style>
+</head>
+<body style="margin:0;padding:0;background:${PAPER};">
+  <div style="display:none;max-height:0;overflow:hidden;mso-hide:all;opacity:0;">${escape(title)}</div>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${PAPER};">
+    <tr><td align="center" style="padding:36px 12px;">
+      <table role="presentation" class="as-wrap" width="560" cellpadding="0" cellspacing="0" border="0" style="width:560px;max-width:560px;">
+        <tr><td class="as-pad" style="padding:0 8px 32px;">
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td valign="middle" style="padding-right:11px;">
+                <div style="width:34px;height:34px;background:${ORANGE};border-radius:9px;text-align:center;font-family:${SANS};font-weight:800;font-size:15px;line-height:34px;color:#FFFFFF;letter-spacing:-0.04em;">AS</div>
+              </td>
+              <td valign="middle" style="font-family:${SANS};font-weight:600;font-size:17px;letter-spacing:-0.01em;color:${INK};">AMOUR STUDIOS</td>
+            </tr>
+          </table>
+        </td></tr>
+        <tr><td class="as-pad" style="padding:0 8px;">
+          ${children}
+        </td></tr>
+        <tr><td class="as-pad" style="padding:40px 8px 0;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+            <tr><td style="border-top:1px solid ${LINE};padding-top:22px;font-family:${MONO};font-size:10px;letter-spacing:0.06em;text-transform:uppercase;color:${MUTED};line-height:1.7;">
+              Coaching artistes musique<br>
+              <a href="https://amourstudios.fr" style="color:${MUTED};text-decoration:underline;text-underline-offset:3px;">amourstudios.fr</a>
+              &nbsp;·&nbsp;
+              <a href="mailto:contact@amourstudios.fr" style="color:${MUTED};text-decoration:underline;text-underline-offset:3px;">contact@amourstudios.fr</a>
+            </td></tr>
+          </table>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
 }
 
 // ─── Email 1 — Confirmation paiement (lien /claim → /onboarding) ──────
@@ -154,61 +280,38 @@ function claimEmailHtml({
   const tierPrice = tier === "coaching" ? "179€/mois" : "79€/mois";
   const tierNeedsRdv = tier === "coaching";
 
+  const steps = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+    ${stepRow(
+      "01",
+      `<strong>Active</strong> en cliquant le bouton ci-dessus + connecte-toi avec ton compte Discord.`
+    )}
+    ${stepRow(
+      "02",
+      `<strong>Présente-toi</strong> dans le channel <strong>#🎤・présente-toi</strong> du Discord.<br><span style="color:${MUTED};font-size:13.5px;">C'est obligatoire — c'est ce qui débloque la suite (et anime le serveur 🔥).</span>`
+    )}
+    ${stepRow(
+      "03",
+      `Tu reçois un <strong>DM Discord + email</strong> avec ton lien d'onboarding.<br><span style="color:${MUTED};font-size:13.5px;">Questionnaire rapide${
+        tierNeedsRdv ? " + réservation de ton 1er RDV avec Walid" : ""
+      } → accès complet débloqué.</span>`,
+      true
+    )}
+  </table>`;
+
   const body = `
-    <p style="font-family:ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:0.10em;text-transform:uppercase;color:rgba(11,11,11,0.55);margin:0 0 14px;">
-      ◦ Paiement validé · ${tierLabel} ${tierPrice}
-    </p>
-    <h1 style="font-size:38px;line-height:1.05;font-weight:500;letter-spacing:-0.025em;margin:0 0 18px;color:#0B0B0B;">
-      Bienvenue${firstName ? `, ${escape(firstName)}` : ""} 👋
-    </h1>
-    <p style="color:#0B0B0B;margin:0 0 28px;font-size:16px;">
-      Ton accès <strong>${tierLabel}</strong> est confirmé. Pour qu'on
-      t'ouvre la porte du Discord, il te reste <strong>3 étapes</strong> simples.
-    </p>
-
-    <!-- CTA principal -->
-    <a href="${claimUrl}" style="display:inline-block;background:#FF5A1F;color:#FFFFFF;padding:15px 28px;border-radius:999px;font-size:14px;font-weight:500;text-decoration:none;letter-spacing:-0.005em;margin:0 0 32px;">
-      Activer mon accès →
-    </a>
-
-    <!-- Les 3 étapes -->
-    <div style="margin:0 0 28px;padding:22px 24px;background:rgba(255,255,255,0.55);border-left:3px solid #FF5A1F;border-radius:0 12px 12px 0;">
-      <p style="font-family:ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:rgba(11,11,11,0.55);margin:0 0 14px;">◦ Ta route</p>
-
-      <div style="margin-bottom:14px;display:flex;gap:10px;align-items:baseline;">
-        <span style="color:#FF5A1F;font-weight:500;font-size:13px;font-family:ui-monospace,Menlo,monospace;">01</span>
-        <span><strong>Active</strong> en cliquant le bouton ci-dessus + connecte-toi avec ton compte Discord.</span>
-      </div>
-
-      <div style="margin-bottom:14px;display:flex;gap:10px;align-items:baseline;">
-        <span style="color:#FF5A1F;font-weight:500;font-size:13px;font-family:ui-monospace,Menlo,monospace;">02</span>
-        <span>
-          <strong>Présente-toi</strong> dans le channel <strong>#🎤・présente-toi</strong> du Discord.<br>
-          <span style="color:rgba(11,11,11,0.65);font-size:13.5px;">
-            C'est obligatoire — c'est ce qui débloque la suite (et anime le serveur 🔥).
-          </span>
-        </span>
-      </div>
-
-      <div style="display:flex;gap:10px;align-items:baseline;">
-        <span style="color:#FF5A1F;font-weight:500;font-size:13px;font-family:ui-monospace,Menlo,monospace;">03</span>
-        <span>
-          Tu reçois un <strong>DM Discord + email</strong> avec ton lien d'onboarding<br>
-          <span style="color:rgba(11,11,11,0.65);font-size:13.5px;">
-            Questionnaire rapide${tierNeedsRdv ? " + réservation de ton 1er RDV avec Walid" : ""} → accès complet débloqué.
-          </span>
-        </span>
-      </div>
-    </div>
-
-    <p style="color:rgba(11,11,11,0.65);font-size:13.5px;margin:0 0 14px;">
-      💡 <strong>Avant ta présentation</strong>, tu vois déjà tous les channels mais tu ne peux
-      pas écrire dedans — c'est volontaire, ça force chacun à faire connaissance.
-    </p>
-
-    <p style="color:rgba(11,11,11,0.55);font-size:12.5px;margin:28px 0 0;font-family:ui-monospace,Menlo,monospace;">
-      Lien direct : <a href="${claimUrl}" style="color:rgba(11,11,11,0.65);word-break:break-all;">${claimUrl}</a>
-    </p>
+    ${kicker(`Paiement validé · ${tierLabel} ${tierPrice}`)}
+    ${h1(`Bienvenue${firstName ? `, ${escape(firstName)}` : ""} 👋`, 38)}
+    ${para(
+      `Ton accès <strong>${tierLabel}</strong> est confirmé. Pour qu'on t'ouvre la porte du Discord, il te reste <strong>3 étapes</strong> simples.`,
+      { mb: 28 }
+    )}
+    ${button({ href: claimUrl, label: "Activer mon accès" })}
+    ${panel(`${kicker("Ta route")}${steps}`)}
+    ${para(
+      `💡 <strong>Avant ta présentation</strong>, tu vois déjà tous les channels mais tu ne peux pas écrire dedans — c'est volontaire, ça force chacun à faire connaissance.`,
+      { color: INK_SOFT, size: 13.5, mb: 0 }
+    )}
+    ${directLink(claimUrl)}
   `;
   return layout({
     title: `Bienvenue chez AMOUR STUDIOS — ${tierLabel}`,
@@ -286,40 +389,30 @@ function receiptEmailHtml({
   cardLast4?: string;
   receiptPdfUrl?: string;
 }) {
-  const row = (label: string, value: string) => `
-    <div style="display:flex;justify-content:space-between;gap:16px;padding:10px 0;border-bottom:1px solid rgba(11,11,11,0.08);">
-      <span style="color:rgba(11,11,11,0.55);font-size:13.5px;">${escape(label)}</span>
-      <span style="font-weight:500;font-size:14px;text-align:right;">${escape(value)}</span>
-    </div>`;
+  const rows = [
+    kvRow("Offre", offerLabel),
+    kvRow("Montant", formatEur(amountCents, currency)),
+    kvRow("Date", formatDateFr(paidAt), !cardLast4),
+  ];
+  if (cardLast4) rows.push(kvRow("Moyen de paiement", `Carte •••• ${cardLast4}`, true));
+  const recap = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${rows.join(
+    ""
+  )}</table>`;
+
   const body = `
-    <p style="font-family:ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:0.10em;text-transform:uppercase;color:rgba(11,11,11,0.55);margin:0 0 14px;">
-      ◦ Paiement reçu
-    </p>
-    <h1 style="font-size:34px;line-height:1.05;font-weight:500;letter-spacing:-0.025em;margin:0 0 18px;color:#0B0B0B;">
-      Merci${firstName ? `, ${escape(firstName)}` : ""} 🧾
-    </h1>
-    <p style="color:#0B0B0B;margin:0 0 28px;font-size:16px;">
-      Voici le récapitulatif de ton paiement AMOUR STUDIOS.
-    </p>
-
-    <div style="margin:0 0 28px;padding:20px 24px;background:rgba(255,255,255,0.55);border-left:3px solid #FF5A1F;border-radius:0 12px 12px 0;">
-      ${row("Offre", offerLabel)}
-      ${row("Montant", formatEur(amountCents, currency))}
-      ${row("Date", formatDateFr(paidAt))}
-      ${cardLast4 ? row("Moyen de paiement", `Carte •••• ${cardLast4}`) : ""}
-    </div>
-
+    ${kicker("Paiement reçu")}
+    ${h1(`Merci${firstName ? `, ${escape(firstName)}` : ""} 🧾`, 32)}
+    ${para(`Voici le récapitulatif de ton paiement AMOUR STUDIOS.`, { mb: 28 })}
+    ${panel(recap)}
     ${
       receiptPdfUrl
-        ? `<a href="${receiptPdfUrl}" style="display:inline-block;background:#FF5A1F;color:#FFFFFF;padding:13px 24px;border-radius:999px;font-size:14px;font-weight:500;text-decoration:none;margin:0 0 28px;">
-            Télécharger le reçu (PDF) →
-          </a>`
+        ? button({ href: receiptPdfUrl, label: "Télécharger le reçu (PDF)" })
         : ""
     }
-
-    <p style="color:rgba(11,11,11,0.65);font-size:13.5px;margin:0;">
-      Une question sur ce paiement ? Réponds simplement à cet email, on est là.
-    </p>
+    ${para(
+      `Une question sur ce paiement ? Réponds simplement à cet email, on est là.`,
+      { color: INK_SOFT, size: 14, mb: 0 }
+    )}
   `;
   return layout({ title: `Reçu AMOUR STUDIOS — ${offerLabel}`, children: body });
 }
@@ -368,22 +461,17 @@ export const sendRefundNotice = internalAction({
     const html = layout({
       title: "Remboursement effectué",
       children: `
-        <p style="font-family:ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:0.10em;text-transform:uppercase;color:rgba(11,11,11,0.55);margin:0 0 14px;">
-          ◦ Remboursement · ${eur} ${cur}
-        </p>
-        <h1 style="font-size:32px;line-height:1.05;font-weight:500;letter-spacing:-0.02em;margin:0 0 18px;color:#0B0B0B;">
-          Remboursement effectué
-        </h1>
-        <p style="color:#0B0B0B;margin:0 0 14px;font-size:16px;">
-          On vient de te rembourser <strong>${eur} ${cur}</strong> sur la carte utilisée pour ton abonnement AMOUR STUDIOS.
-        </p>
-        <p style="color:#0B0B0B;margin:0 0 14px;font-size:15px;">
-          Ton accès Discord a été retiré automatiquement.
-        </p>
-        <p style="color:#0B0B0B;margin:0 0 14px;font-size:15px;">
-          Si c'est une erreur ou si tu veux reprendre, réponds à ce mail ou écris à
-          <a href="mailto:contact@amourstudios.fr" style="color:#FF5A1F;">contact@amourstudios.fr</a>.
-        </p>
+        ${kicker(`Remboursement · ${eur} ${cur}`)}
+        ${h1("Remboursement effectué", 32)}
+        ${para(
+          `On vient de te rembourser <strong>${eur} ${cur}</strong> sur la carte utilisée pour ton abonnement AMOUR STUDIOS.`,
+          { mb: 14 }
+        )}
+        ${para(`Ton accès Discord a été retiré automatiquement.`, { size: 15, mb: 14 })}
+        ${para(
+          `Si c'est une erreur ou si tu veux reprendre, réponds à ce mail ou écris à <a href="mailto:contact@amourstudios.fr" style="color:${ORANGE};">contact@amourstudios.fr</a>.`,
+          { size: 15, mb: 0 }
+        )}
       `,
     });
     const res = await sendViaResend({
@@ -404,30 +492,26 @@ export const sendPaymentFailedNotice = internalAction({
     const html = layout({
       title: "Ton paiement a échoué",
       children: `
-        <p style="font-family:ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:0.10em;text-transform:uppercase;color:rgba(11,11,11,0.55);margin:0 0 14px;">
-          ◦ Paiement échoué · action recommandée
-        </p>
-        <h1 style="font-size:32px;line-height:1.05;font-weight:500;letter-spacing:-0.02em;margin:0 0 18px;color:#0B0B0B;">
-          Petit souci avec ta CB
-        </h1>
-        <p style="color:#0B0B0B;margin:0 0 14px;font-size:16px;">
-          Ton dernier paiement AMOUR STUDIOS vient d'échouer. Ça peut être :
-        </p>
-        <ul style="color:#0B0B0B;margin:0 0 18px;padding-left:20px;font-size:15px;">
+        ${kicker("Paiement échoué · action recommandée")}
+        ${h1("Petit souci avec ta CB", 32)}
+        ${para(`Ton dernier paiement AMOUR STUDIOS vient d'échouer. Ça peut être :`, { mb: 14 })}
+        <ul style="margin:0 0 18px;padding-left:20px;font-family:${SANS};font-size:15px;line-height:1.7;color:${INK};">
           <li>une carte expirée</li>
           <li>un plafond atteint</li>
           <li>une CB bloquée temporairement</li>
         </ul>
-        <p style="color:#0B0B0B;margin:0 0 14px;font-size:15px;">
-          Stripe va automatiquement réessayer <strong>plusieurs fois dans les prochains jours</strong>. Mais le plus simple est de mettre ta CB à jour.
-        </p>
-        <p style="color:#0B0B0B;margin:0 0 14px;font-size:15px;">
-          Réponds à ce mail si tu veux qu'on t'aide. Ou écris à
-          <a href="mailto:contact@amourstudios.fr" style="color:#FF5A1F;">contact@amourstudios.fr</a>.
-        </p>
-        <p style="color:rgba(11,11,11,0.55);font-size:12.5px;margin:24px 0 0;">
-          Si plusieurs tentatives échouent, ton abonnement sera automatiquement annulé.
-        </p>
+        ${para(
+          `Stripe va automatiquement réessayer <strong>plusieurs fois dans les prochains jours</strong>. Mais le plus simple est de mettre ta CB à jour.`,
+          { size: 15, mb: 14 }
+        )}
+        ${para(
+          `Réponds à ce mail si tu veux qu'on t'aide. Ou écris à <a href="mailto:contact@amourstudios.fr" style="color:${ORANGE};">contact@amourstudios.fr</a>.`,
+          { size: 15, mb: 14 }
+        )}
+        ${para(
+          `Si plusieurs tentatives échouent, ton abonnement sera automatiquement annulé.`,
+          { color: MUTED, size: 12.5, mb: 0 }
+        )}
       `,
     });
     const res = await sendViaResend({
@@ -450,21 +534,13 @@ function broadcastEmailHtml({
   body: string;
   accent: string;
 }) {
-  // On convertit les sauts de ligne en <br> pour que le markdown-like marche
+  // body en texte brut → échappé + sauts de ligne convertis en <br>.
   const safeBody = escape(body).replace(/\n/g, "<br>");
   const html = `
-    <div style="display:inline-block;background:${accent};color:#0D0B08;padding:4px 10px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;margin:0 0 20px;">
-      ◦ Nouveauté Amour Studios
-    </div>
-    <h1 style="font-family:'Instrument Serif',Georgia,serif;font-size:40px;line-height:1;font-weight:400;letter-spacing:-1.5px;margin:0 0 24px;color:#F0E9DB;">
-      ${escape(title)}
-    </h1>
-    <div style="color:rgba(240,233,219,0.85);margin:0 0 28px;font-size:14px;line-height:1.7;">
-      ${safeBody}
-    </div>
-    <a href="${APP_URL}/dashboard" style="display:inline-block;background:${accent};color:#0D0B08;padding:14px 24px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;font-weight:600;text-decoration:none;">
-      Ouvrir la formation →
-    </a>
+    ${badge("Nouveauté Amour Studios", accent || ORANGE)}
+    ${h1(escape(title), 36)}
+    ${para(safeBody, { color: INK_SOFT, size: 15, mb: 28 })}
+    ${button({ href: `${APP_URL}/`, label: "Ouvrir mon espace" })}
   `;
   return layout({ title, children: html });
 }
@@ -504,7 +580,7 @@ export const broadcastEmail = mutation({
         to: batch,
         title: title.trim(),
         body: body.trim(),
-        accent: accent ?? "#FF6B1F",
+        accent: accent ?? ORANGE,
       });
     }
 
@@ -533,18 +609,15 @@ export const sendBroadcastBatch = internalAction({
 });
 
 // ─── Email 3 — Campagne CRM (Brique E) ─────────────────────────────
-// Email de campagne propre, sans le CTA « Ouvrir la formation ». Le corps
-// est rendu en <br> (saut de ligne) après échappement HTML. Réutilise layout().
+// Email de campagne propre, sans CTA. Le corps est rendu en <br> (saut de
+// ligne) après échappement HTML. Réutilise layout().
 
 export function campaignEmailHtml(body: string): string {
   const safeBody = escape(body).replace(/\n/g, "<br>");
-  const html = `
-    <div style="color:rgba(240,233,219,0.85);margin:0;font-size:14px;line-height:1.7;">
-      ${safeBody}
-    </div>
-  `;
-  // Le titre du layout = (à défaut d'objet explicite) « Amour Studios ».
-  return layout({ title: "Amour Studios", children: html });
+  return layout({
+    title: "Amour Studios",
+    children: para(safeBody, { color: INK_SOFT, size: 15, mb: 0 }),
+  });
 }
 
 /**
@@ -581,31 +654,18 @@ function onboardingLinkEmailHtml({
     tier === "coaching"
       ? "On a vu ta présentation sur le Discord 🙌 Prochaine étape : 3 étapes pour débloquer ton accès complet — questionnaire (~5 min) puis réservation de ton 1er appel avec Walid."
       : "On a vu ta présentation sur le Discord 🙌 Dernière étape pour débloquer ton accès complet : 2-3 petites questions (~2 min).";
-  const cta = tier === "coaching" ? "Commencer l'onboarding →" : "Compléter mon profil →";
+  const cta = tier === "coaching" ? "Commencer l'onboarding" : "Compléter mon profil";
   const unlockLabel =
     tier === "coaching"
       ? "⚠ Tant que le RDV n'est pas réservé, ton accès Discord reste limité (lecture seule)."
       : "⚠ Tant que le questionnaire n'est pas complété, ton accès communauté reste verrouillé.";
   const body = `
-    <p style="font-family:ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:0.10em;text-transform:uppercase;color:rgba(11,11,11,0.55);margin:0 0 14px;">
-      ◦ Ton lien d'onboarding · obligatoire
-    </p>
-    <h1 style="font-size:36px;line-height:1.05;font-weight:500;letter-spacing:-0.025em;margin:0 0 18px;color:#0B0B0B;">
-      ${hello} 👋
-    </h1>
-    <p style="color:#0B0B0B;margin:0 0 22px;font-size:16px;">${intro}</p>
-
-    <a href="${link}" style="display:inline-block;background:#FF5A1F;color:#FFFFFF;padding:15px 28px;border-radius:999px;font-size:14px;font-weight:500;text-decoration:none;letter-spacing:-0.005em;margin:0 0 22px;">
-      ${cta}
-    </a>
-
-    <div style="margin:0 0 20px;padding:14px 18px;background:rgba(255,90,31,0.10);border-left:3px solid #FF5A1F;border-radius:0 10px 10px 0;">
-      <p style="color:#0B0B0B;font-size:14px;margin:0;line-height:1.5;">${unlockLabel}</p>
-    </div>
-
-    <p style="color:rgba(11,11,11,0.55);font-size:12.5px;margin:24px 0 0;font-family:ui-monospace,Menlo,monospace;">
-      Lien direct : <a href="${link}" style="color:rgba(11,11,11,0.65);word-break:break-all;">${link}</a>
-    </p>
+    ${kicker("Ton lien d'onboarding · obligatoire")}
+    ${h1(`${hello} 👋`, 36)}
+    ${para(escape(intro), { mb: 22 })}
+    ${button({ href: link, label: cta })}
+    ${panel(para(unlockLabel, { size: 14, mb: 0 }))}
+    ${directLink(link)}
   `;
   return layout({ title: "Ton onboarding · AMOUR STUDIOS", children: body });
 }
@@ -670,7 +730,7 @@ function copyForScenario(
   // côté wrappers 24h/48h/7d).
   if (scenario === "presentation") {
     return {
-      ctaLabel: DISCORD_INVITE_URL ? "Rejoindre Discord et me présenter →" : "Aller sur Discord →",
+      ctaLabel: DISCORD_INVITE_URL ? "Rejoindre Discord et me présenter" : "Aller sur Discord",
       ctaHref: DISCORD_INVITE_URL || link,
       hookLine: "Ta présentation Discord n'est toujours pas faite.",
       bodyLine:
@@ -679,13 +739,13 @@ function copyForScenario(
           : "C'est la 1ère étape obligatoire pour ouvrir ton accès communauté. Un message dans <strong>#🎤・présente-toi</strong> et on t'envoie ton lien dans la foulée.",
       warningLine: "Tant que tu n'as pas posté ta présentation, tu vois les channels mais tu ne peux pas écrire.",
       optionalDiscord: DISCORD_INVITE_URL
-        ? `<p style="color:rgba(11,11,11,0.55);font-size:12.5px;margin:18px 0 0;">Lien Discord : <a href="${DISCORD_INVITE_URL}" style="color:rgba(11,11,11,0.65);">${DISCORD_INVITE_URL}</a></p>`
+        ? directLink(DISCORD_INVITE_URL, "Lien Discord")
         : "",
     };
   }
   if (scenario === "questionnaire") {
     return {
-      ctaLabel: "Terminer mon questionnaire →",
+      ctaLabel: "Terminer mon questionnaire",
       ctaHref: link,
       hookLine: "Ton questionnaire d'onboarding n'est pas fini.",
       bodyLine:
@@ -701,7 +761,7 @@ function copyForScenario(
   }
   // rdv (coaching only)
   return {
-    ctaLabel: "Réserver mon 1er RDV →",
+    ctaLabel: "Réserver mon 1er RDV",
     ctaHref: link,
     hookLine: "Tu n'as pas encore réservé ton 1er appel avec Walid.",
     bodyLine:
@@ -718,20 +778,20 @@ function relanceTone(
 ): { tag: string; heading: string; sign: string } {
   if (level === 24) {
     return {
-      tag: "◦ Petit rappel · 24h",
+      tag: "Petit rappel · 24h",
       heading: `${helloLine(firstName)} 👋`,
       sign: "À tout de suite,<br>L'équipe AMOUR STUDIOS",
     };
   }
   if (level === 48) {
     return {
-      tag: "◦ Relance · 48h",
+      tag: "Relance · 48h",
       heading: `${helloLine(firstName)},`,
       sign: "On t'attend,<br>L'équipe AMOUR STUDIOS",
     };
   }
   return {
-    tag: "◦ Dernier rappel · 7 jours",
+    tag: "Dernier rappel · 7 jours",
     heading: `${helloLine(firstName)},`,
     sign: "Walid · AMOUR STUDIOS",
   };
@@ -753,8 +813,7 @@ function relanceEmailHtml({
   const tone = relanceTone(level, firstName);
   const copy = copyForScenario(scenario, tier, link);
 
-  // Intensité visuelle : 24h doux (cream highlight), 48h ferme, 7j stricte
-  // (avertissement plus appuyé).
+  // Intensité du message selon le level : 24h doux, 48h ferme, 7j strict.
   const closingByLevel =
     level === 24
       ? "Rien de grave, on te relance juste avant que ça file."
@@ -763,40 +822,16 @@ function relanceEmailHtml({
       : "Ça fait 7 jours. Si tu n'avances pas, on devra fermer ton onboarding et libérer ta place. Préviens-nous si tu as un blocage.";
 
   const body = `
-    <p style="font-family:ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:0.10em;text-transform:uppercase;color:rgba(11,11,11,0.55);margin:0 0 14px;">
-      ${tone.tag}
-    </p>
-    <h1 style="font-size:34px;line-height:1.05;font-weight:500;letter-spacing:-0.025em;margin:0 0 18px;color:#0B0B0B;">
-      ${tone.heading}
-    </h1>
-    <p style="color:#0B0B0B;margin:0 0 18px;font-size:16px;">
-      <strong>${copy.hookLine}</strong>
-    </p>
-    <p style="color:#0B0B0B;margin:0 0 24px;font-size:15px;">
-      ${copy.bodyLine}
-    </p>
-
-    <a href="${copy.ctaHref}" style="display:inline-block;background:#FF5A1F;color:#FFFFFF;padding:15px 28px;border-radius:999px;font-size:14px;font-weight:500;text-decoration:none;letter-spacing:-0.005em;margin:0 0 24px;">
-      ${copy.ctaLabel}
-    </a>
-
-    <div style="margin:0 0 20px;padding:14px 18px;background:rgba(255,90,31,0.10);border-left:3px solid #FF5A1F;border-radius:0 10px 10px 0;">
-      <p style="color:#0B0B0B;font-size:14px;margin:0;line-height:1.5;">${copy.warningLine}</p>
-    </div>
-
-    <p style="color:rgba(11,11,11,0.7);font-size:14px;margin:0 0 12px;">
-      ${closingByLevel}
-    </p>
-
+    ${kicker(tone.tag)}
+    ${h1(tone.heading, 32)}
+    ${para(`<strong>${copy.hookLine}</strong>`, { mb: 18 })}
+    ${para(copy.bodyLine, { size: 15, mb: 24 })}
+    ${button({ href: copy.ctaHref, label: copy.ctaLabel })}
+    ${panel(para(copy.warningLine, { size: 14, mb: 0 }))}
+    ${para(closingByLevel, { color: INK_SOFT, size: 14, mb: 0 })}
     ${copy.optionalDiscord}
-
-    <p style="color:rgba(11,11,11,0.55);font-size:12.5px;margin:24px 0 0;font-family:ui-monospace,Menlo,monospace;">
-      Lien direct : <a href="${link}" style="color:rgba(11,11,11,0.65);word-break:break-all;">${link}</a>
-    </p>
-
-    <p style="color:rgba(11,11,11,0.55);font-size:13.5px;margin:26px 0 0;">
-      ${tone.sign}
-    </p>
+    ${directLink(link)}
+    ${para(tone.sign, { color: MUTED, size: 13.5, mb: 0, mt: 22 })}
   `;
   return layout({ title: "Onboarding · AMOUR STUDIOS", children: body });
 }
@@ -897,24 +932,24 @@ function walidAlertHtml({
       ? "Bloqué à : questionnaire onboarding (étape 2)"
       : "Bloqué à : réservation 1er RDV (étape 3)";
   const tierLabel = tier === "coaching" ? "Coaching 179€" : "Communauté 79€";
+  const detail = `
+    ${para(`<strong>Tier :</strong> ${tierLabel}`, { size: 14, mb: 6 })}
+    ${para(escape(scenarioLabel), { size: 14, mb: studentEmail ? 6 : 0 })}
+    ${studentEmail ? para(`<strong>Email :</strong> ${escape(studentEmail)}`, { size: 14, mb: 0 }) : ""}
+  `;
   const body = `
-    <p style="font-family:ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:0.10em;text-transform:uppercase;color:rgba(11,11,11,0.55);margin:0 0 14px;">
-      ◦ Élève bloqué · intervention manuelle
-    </p>
-    <h1 style="font-size:30px;line-height:1.1;font-weight:500;letter-spacing:-0.02em;margin:0 0 18px;color:#0B0B0B;">
-      ${escape(studentName)} stagne depuis ${daysBlocked}j
-    </h1>
-    <p style="color:#0B0B0B;margin:0 0 14px;font-size:15px;">
-      Les 3 relances auto sont envoyées. Si tu veux le récupérer, prends 5 min pour lui passer un WhatsApp ou un DM Discord direct.
-    </p>
-    <div style="margin:0 0 20px;padding:14px 18px;background:rgba(255,255,255,0.55);border-left:3px solid #FF5A1F;border-radius:0 10px 10px 0;">
-      <p style="color:#0B0B0B;font-size:14px;margin:0 0 6px;line-height:1.5;"><strong>Tier :</strong> ${tierLabel}</p>
-      <p style="color:#0B0B0B;font-size:14px;margin:0 0 6px;line-height:1.5;">${scenarioLabel}</p>
-      ${studentEmail ? `<p style="color:#0B0B0B;font-size:14px;margin:0;line-height:1.5;"><strong>Email :</strong> ${escape(studentEmail)}</p>` : ""}
-    </div>
-    <p style="color:rgba(11,11,11,0.6);font-size:13.5px;margin:0;">
-      Tu peux aussi le retrouver dans /studio &gt; Onboardings en attente.
-    </p>
+    ${kicker("Élève bloqué · intervention manuelle")}
+    ${h1(`${escape(studentName)} stagne depuis ${daysBlocked}j`, 30)}
+    ${para(
+      `Les 3 relances auto sont envoyées. Si tu veux le récupérer, prends 5 min pour lui passer un WhatsApp ou un DM Discord direct.`,
+      { size: 15, mb: 20 }
+    )}
+    ${panel(detail)}
+    ${para(`Tu peux aussi le retrouver dans /studio &gt; Onboardings en attente.`, {
+      color: MUTED,
+      size: 13.5,
+      mb: 0,
+    })}
   `;
   return layout({ title: "Élève bloqué — AMOUR STUDIOS", children: body });
 }

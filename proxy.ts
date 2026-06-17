@@ -74,5 +74,11 @@ export const config = {
     "/((?!.+\\.[\\w]+$|_next).*)",
     "/",
     "/(api|trpc)(.*)",
+    // ⚠️ Sécurité contenu : les fichiers d'exo (`/exos/**/*.html` + `_bridge.js`)
+    // ont une extension → sinon EXCLUS par le pattern ci-dessus et servis en
+    // statique SANS auth (n'importe qui avec l'URL ouvrait le contenu coaching).
+    // On les fait entrer dans le matcher pour que la règle `isStudentRoute`
+    // (auth requise) s'applique aussi aux fichiers, pas seulement à la page.
+    "/exos/:path*",
   ],
 };

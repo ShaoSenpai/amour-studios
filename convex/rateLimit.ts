@@ -43,3 +43,13 @@ export const checkAndIncrement = internalMutation({
     return { allowed: true, count: existing.count + 1 };
   },
 });
+
+/** Outil : vide tous les compteurs de rate-limit (débloque un test bloqué). */
+export const _clearAll = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const rows = await ctx.db.query("rateLimits").collect();
+    for (const r of rows) await ctx.db.delete(r._id);
+    return { cleared: rows.length };
+  },
+});

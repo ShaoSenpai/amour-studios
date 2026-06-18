@@ -42,41 +42,133 @@ const QUICKWIN_MUX_PLAYBACK_ID =
   process.env.NEXT_PUBLIC_ONBOARDING_QUICKWIN_MUX_PLAYBACK_ID ?? "";
 const MuxPlayer = dynamic(() => import("@mux/mux-player-react"), { ssr: false });
 
-// Questions du questionnaire — coaching 179€ (10 questions).
-const COACHING_QUESTIONS = [
-  { key: "artist_name", label: "Ton nom d'artiste / pseudo ?", placeholder: "ex. SHAOSENPAI" },
-  { key: "style", label: "Style musical principal + 2-3 artistes de référence", placeholder: "ex. Trap mélodique — refs : Werenoi, Tiakola, Niska" },
-  { key: "level", label: "Où en es-tu ?", placeholder: "Je débute / J'ai déjà sorti des morceaux / Je suis pro" },
-  { key: "platform", label: "Plateforme principale aujourd'hui", placeholder: "Instagram / TikTok / YouTube / Spotify / autre" },
-  { key: "links", label: "Tes comptes (liens Insta, TikTok, autres)", placeholder: "https://instagram.com/… , https://tiktok.com/@…" },
-  { key: "followers", label: "Combien d'abonnés au total environ ?", placeholder: "ex. ~2k toutes plateformes confondues" },
-  { key: "goal_3m", label: "Ton objectif à 3 mois ?", placeholder: "ex. atteindre 10k abonnés Instagram + 1 collab" },
-  { key: "goal_1y", label: "Ton objectif à 1 an ?", placeholder: "ex. signer en label / vivre de ma musique" },
-  { key: "blocker", label: "Qu'est-ce qui te bloque le plus aujourd'hui ?", placeholder: "ex. créer du contenu régulier, manque de visibilité…" },
-  { key: "expectations", label: "Qu'attends-tu concrètement de ton coaching avec Walid ?", placeholder: "ex. structurer ma stratégie, débloquer mon contenu…" },
+// Questions du questionnaire — coaching 179€ (pré-call Walid).
+const COACHING_QUESTIONS: readonly OnboardingQuestion[] = [
+  { key: "artist_name", label: "Ton nom d'artiste", type: "text", placeholder: "ex. SHAOSENPAI" },
+  { key: "instagram", label: "Lien Instagram", type: "text", placeholder: "https://instagram.com/…" },
+  {
+    key: "music_link",
+    label: "Lien YouTube / SoundCloud / Spotify (si applicable)",
+    type: "text",
+    placeholder: "https://…",
+    hint: "Walid écoute avant le call. Ça lui permet d'arriver avec un regard concret sur ton travail.",
+  },
+  {
+    key: "time_on_project",
+    label: "Depuis combien de temps tu es sur ton projet ?",
+    type: "select",
+    options: ["Moins d'1 an", "1 à 3 ans", "3 à 5 ans", "Plus de 5 ans"],
+  },
+  {
+    key: "social_mastery",
+    label: "À quel point tu maîtrises les réseaux sociaux pour promouvoir ta musique ?",
+    type: "scale",
+    min: 1,
+    max: 10,
+    minLabel: "Je ne sais pas par où commencer",
+    maxLabel: "Je gère tout seul",
+    hint: "Ça permet à Walid de calibrer le niveau de la conversation sur la partie visibilité.",
+  },
+  {
+    key: "situation",
+    label: "Où en es-tu aujourd'hui ?",
+    rows: 5,
+    placeholder: "Ce que tu sors, ta fréquence, ton audience, ton setup…",
+    hint: "Décris ta situation actuelle : ce que tu sors, ta fréquence, ton audience, ton setup. Pas besoin de te vendre, sois factuel.",
+  },
+  {
+    key: "goal_6m",
+    label: "Quel est ton objectif principal sur les 6 prochains mois ?",
+    rows: 3,
+    placeholder: "ex. sortir un EP de 5 sons d'ici septembre, 10K streams/mois…",
+    hint: "Un objectif concret, pas une ambition vague. Exemple : sortir un EP de 5 sons d'ici septembre, atteindre 10K streams par mois.",
+  },
+  {
+    key: "blockers",
+    label: "Qu'est-ce qui te bloque le plus en ce moment ?",
+    type: "multi",
+    other: true,
+    options: [
+      "Le temps que j'y consacre",
+      "La qualité de ma production",
+      "Mon identité artistique / mon son",
+      "La distribution et la visibilité",
+      "La motivation et la régularité",
+      "Le business (monétisation, deals, etc.)",
+    ],
+    hint: "Ça permet à Walid d'aller direct sur ce qui compte pour toi.",
+  },
+  {
+    key: "commitment",
+    label: "À quel point tu es prêt à investir du temps et de l'énergie dans cet accompagnement ?",
+    type: "scale",
+    min: 1,
+    max: 10,
+    minLabel: "Je teste",
+    maxLabel: "Je suis à fond",
+    hint: "Une question d'honnêteté. Le coaching fonctionne si tu es dans le bon état d'esprit pour le faire.",
+  },
 ] as const;
 
-// Questions communauté 79€ (6 questions — 3 ouvertes + 3 signal upsell).
-type CommunityQuestion =
-  | { key: string; label: string; placeholder: string; type?: "textarea" }
-  | { key: string; label: string; type: "select"; options: readonly string[]; placeholder?: string }
-  | { key: string; label: string; type: "scale"; min: number; max: number; minLabel: string; maxLabel: string };
+// Questions communauté 79€ (6 questions). Chaque question a une micro-justification
+// (hint) expliquant à quoi sert la réponse. Les valeurs multi-select sont stockées
+// comme une string (options jointes par " · ") pour respecter le contrat answers
+// { key, label, value:string } côté Convex (pas de changement de schéma).
+const MULTI_SEP = " · ";
+type OnboardingQuestion =
+  | { key: string; label: string; hint?: string; placeholder?: string; type?: "textarea" | "text"; rows?: number }
+  | { key: string; label: string; hint?: string; type: "select"; options: readonly string[]; other?: boolean; placeholder?: string }
+  | { key: string; label: string; hint?: string; type: "multi"; options: readonly string[]; other?: boolean }
+  | { key: string; label: string; hint?: string; type: "scale"; min: number; max: number; minLabel: string; maxLabel: string };
 
-const COMMUNITY_QUESTIONS: readonly CommunityQuestion[] = [
-  { key: "source", label: "D'où viens-tu ?", placeholder: "Insta / TikTok / YouTube / bouche-à-oreille / pub / autre" },
-  { key: "project", label: "Ton projet / style en 2 lignes", placeholder: "ex. artiste rap mélodique, je sors mon 1er EP en septembre" },
-  { key: "expectations", label: "Qu'attends-tu de la communauté ?", placeholder: "ex. du feedback, échanger avec d'autres artistes, motivation" },
+const COMMUNITY_QUESTIONS: readonly OnboardingQuestion[] = [
+  {
+    key: "location",
+    label: "D'où viens-tu ?",
+    type: "text",
+    placeholder: "Ville, pays",
+    hint: "Pour qu'on sache où tu es basé, et qu'on puisse créer des connexions locales.",
+  },
+  {
+    key: "project",
+    label: "Ton projet / style en 2 lignes",
+    placeholder: "Ce que tu fais, comment tu sonnes…",
+    hint: "C'est ce qu'on utilisera pour te présenter aux autres membres.",
+  },
+  {
+    key: "seeking",
+    label: "Qu'est-ce que tu viens chercher ici ?",
+    type: "multi",
+    other: true,
+    options: [
+      "Du feedback sur mon travail",
+      "Des connexions avec d'autres artistes",
+      "De la motivation et de l'accountability",
+      "Des ressources et des techniques",
+      "Trouver des collaborations",
+    ],
+    hint: "Ça nous sert à prioriser ce qu'on construit pour toi dans la communauté.",
+  },
   {
     key: "time_per_week",
     label: "Combien de temps tu mets par semaine sur ta musique ?",
     type: "select",
-    options: ["Moins de 5h", "5-10h", "10-20h", "Plus de 20h"],
+    options: ["Moins de 5h", "5 à 10h", "10 à 20h", "Plus de 20h"],
+    hint: "Pas de jugement. Ça nous aide à calibrer ce qu'on te propose.",
   },
   {
     key: "objective_6m",
     label: "Ton objectif principal sur les 6 prochains mois ?",
     type: "select",
-    options: ["Grossir mon audience", "Sortir mon 1er projet", "Vivre de ma musique", "Autre"],
+    other: true,
+    options: [
+      "Sortir mon 1er projet",
+      "Sortir un projet (pas le premier)",
+      "Faire croître mon audience",
+      "Vivre de ma musique",
+      "Améliorer ma technique",
+    ],
+    hint: "Pour qu'on sache où t'aider en priorité.",
   },
   {
     key: "stuck_level",
@@ -86,6 +178,7 @@ const COMMUNITY_QUESTIONS: readonly CommunityQuestion[] = [
     max: 10,
     minLabel: "Pas du tout",
     maxLabel: "Énormément",
+    hint: "Si tu te sens vraiment bloqué, on pourra te proposer un accompagnement plus direct.",
   },
 ] as const;
 
@@ -241,11 +334,25 @@ export default function OnboardingTokenPage({
     }
     setBusy(true);
     try {
-      const arr = questions.map((q) => ({
-        key: q.key,
-        label: q.label,
-        value: (answers[q.key] ?? "").trim(),
-      }));
+      const arr = questions.map((q) => {
+        const cq = q as OnboardingQuestion;
+        let value = (answers[q.key] ?? "").trim();
+        // Question avec option "Autre" : on remplace "Autre" par le texte précisé.
+        if ("other" in cq && cq.other) {
+          const otherTxt = (answers[`${q.key}__other`] ?? "").trim();
+          if (otherTxt) {
+            if (cq.type === "multi") {
+              value = value
+                .split(MULTI_SEP)
+                .map((v) => (v === "Autre" ? `Autre : ${otherTxt}` : v))
+                .join(MULTI_SEP);
+            } else if (value === "Autre") {
+              value = `Autre : ${otherTxt}`;
+            }
+          }
+        }
+        return { key: q.key, label: q.label, value };
+      });
       await submitAnswers({ token, answers: arr, finalize: true });
       if (tier === "coaching") {
         // Interstitiel « quick win » (vidéo de félicitation/préparation) avant
@@ -503,33 +610,104 @@ export default function OnboardingTokenPage({
             </h1>
             <p style={{ fontSize: 13.5, color: c.muted, marginTop: 8 }}>
               {tier === "coaching"
-                ? "Pour que Walid arrive à ton 1er appel avec déjà du contexte sur toi (~5 min). Étape obligatoire."
-                : "Pour qu'on te connaisse mieux (~2 min). Dernière étape — après ça, ton accès Discord complet est débloqué."}
+                ? "Ces questions permettent à Walid de préparer ton premier call. Plus tes réponses sont précises, plus le call sera utile. Prends 5 minutes pour y répondre sérieusement."
+                : "2 minutes pour qu'on sache qui tu es. Ces infos servent à te présenter à la communauté et à personnaliser ton expérience."}
             </p>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {questions.map((q) => {
-              const cq = q as CommunityQuestion;
+              const cq = q as OnboardingQuestion;
+              const hint = "hint" in cq ? cq.hint : undefined;
+              const rows = (cq as { rows?: number }).rows ?? 2;
+
+              // Menu déroulant (single-select), option "Autre" facultative.
               if ("type" in cq && cq.type === "select") {
+                // Le menu natif déroulant ignore parfois color-scheme (popup blanc
+                // + texte clair du select = invisible). On force un fond + une
+                // couleur SOLIDES sur chaque <option> (respectés par Chrome/FF).
+                const optStyle: React.CSSProperties = {
+                  background: c.dark ? "#15151B" : "#FFFFFF",
+                  color: c.dark ? "#F5F2EC" : "#0B0B0B",
+                };
+                const opts = cq.other ? [...cq.options, "Autre"] : cq.options;
                 return (
-                  <Field key={q.key} c={c} label={q.label}>
+                  <Field key={q.key} c={c} label={q.label} hint={hint}>
                     <select
                       value={answers[q.key] ?? ""}
                       onChange={(e) => setAnswers((a) => ({ ...a, [q.key]: e.target.value }))}
                       style={{ ...inputStyle(c), appearance: "none", cursor: "pointer" }}
                     >
-                      <option value="" disabled>Choisis…</option>
-                      {cq.options.map((opt) => (
-                        <option key={opt} value={opt}>{opt}</option>
+                      <option value="" disabled style={optStyle}>Choisis…</option>
+                      {opts.map((opt) => (
+                        <option key={opt} value={opt} style={optStyle}>{opt}</option>
                       ))}
                     </select>
+                    {cq.other && answers[q.key] === "Autre" && (
+                      <input
+                        value={answers[`${q.key}__other`] ?? ""}
+                        onChange={(e) => setAnswers((a) => ({ ...a, [`${q.key}__other`]: e.target.value }))}
+                        style={{ ...inputStyle(c), marginTop: 8 }}
+                        placeholder="Précise…"
+                      />
+                    )}
                   </Field>
                 );
               }
+
+              // Multi-select (chips à cocher), option "Autre" facultative.
+              if ("type" in cq && cq.type === "multi") {
+                const opts = cq.other ? [...cq.options, "Autre"] : cq.options;
+                const selected = (answers[q.key] ?? "").split(MULTI_SEP).filter(Boolean);
+                const toggle = (opt: string) => {
+                  const set = new Set(selected);
+                  if (set.has(opt)) set.delete(opt);
+                  else set.add(opt);
+                  setAnswers((a) => ({ ...a, [q.key]: Array.from(set).join(MULTI_SEP) }));
+                };
+                return (
+                  <Field key={q.key} c={c} label={q.label} hint={hint}>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                      {opts.map((opt) => {
+                        const active = selected.includes(opt);
+                        return (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => toggle(opt)}
+                            style={{
+                              padding: "9px 13px",
+                              background: active ? ACCENT : c.chip,
+                              color: active ? "#0B0B0B" : c.text,
+                              border: `1px solid ${active ? ACCENT : c.line}`,
+                              borderRadius: 999,
+                              fontFamily: "inherit",
+                              fontSize: 13,
+                              fontWeight: active ? 600 : 400,
+                              cursor: "pointer",
+                              transition: "background 150ms ease",
+                            }}
+                          >
+                            {opt}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {cq.other && selected.includes("Autre") && (
+                      <input
+                        value={answers[`${q.key}__other`] ?? ""}
+                        onChange={(e) => setAnswers((a) => ({ ...a, [`${q.key}__other`]: e.target.value }))}
+                        style={{ ...inputStyle(c), marginTop: 8 }}
+                        placeholder="Précise…"
+                      />
+                    )}
+                  </Field>
+                );
+              }
+
               if ("type" in cq && cq.type === "scale") {
                 const cur = parseInt(answers[q.key] ?? "", 10);
                 return (
-                  <Field key={q.key} c={c} label={q.label}>
+                  <Field key={q.key} c={c} label={q.label} hint={hint}>
                     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                       <div style={{ display: "flex", gap: 4 }}>
                         {Array.from({ length: cq.max - cq.min + 1 }, (_, i) => cq.min + i).map((n) => {
@@ -566,11 +744,25 @@ export default function OnboardingTokenPage({
                   </Field>
                 );
               }
+
+              // Texte court (input 1 ligne) ou texte libre (textarea 2 lignes).
               const placeholder = "placeholder" in cq ? cq.placeholder : "";
+              if ("type" in cq && cq.type === "text") {
+                return (
+                  <Field key={q.key} c={c} label={q.label} hint={hint}>
+                    <input
+                      value={answers[q.key] ?? ""}
+                      onChange={(e) => setAnswers((a) => ({ ...a, [q.key]: e.target.value }))}
+                      style={inputStyle(c)}
+                      placeholder={placeholder}
+                    />
+                  </Field>
+                );
+              }
               return (
-                <Field key={q.key} c={c} label={q.label}>
+                <Field key={q.key} c={c} label={q.label} hint={hint}>
                   <textarea
-                    rows={2}
+                    rows={rows}
                     value={answers[q.key] ?? ""}
                     onChange={(e) => setAnswers((a) => ({ ...a, [q.key]: e.target.value }))}
                     style={{ ...inputStyle(c), resize: "vertical", lineHeight: 1.5 }}
@@ -951,16 +1143,21 @@ function StepBar({ c, current, total }: { c: C; current: number; total: number }
 function Field({
   c,
   label,
+  hint,
   children,
 }: {
   c: C;
   label: string;
+  hint?: string;
   children: React.ReactNode;
 }) {
   return (
     <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
       <span style={{ ...mono, fontSize: 9.5, color: c.muted }}>{label}</span>
       {children}
+      {hint && (
+        <span style={{ fontSize: 11, color: c.faint, lineHeight: 1.45 }}>{hint}</span>
+      )}
     </label>
   );
 }

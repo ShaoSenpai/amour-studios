@@ -33,7 +33,7 @@ const CALENDLY_URL =
 
 const DISCORD_INVITE =
   process.env.NEXT_PUBLIC_DISCORD_INVITE_URL ??
-  "https://discord.gg/78v8PSgjxx";
+  "https://discord.gg/x9humyUMnJ";
 
 // Vidéo « quick win » de l'écran post-questionnaire (coaching). Lecteur Mux
 // chargé côté client uniquement (web component → pas de SSR). Si le playback ID

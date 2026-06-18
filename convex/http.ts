@@ -966,42 +966,6 @@ http.route({
   }),
 });
 
-// ── Webhook Discord présentation ────────────────────────────────────────────
-// Le bot écoute le channel #presentations. À chaque post valide d'un membre,
-// il POST ici avec son discordId → on marque l'onboarding "presented" et on
-// envoie le lien (email + DM Discord). Auth : Bearer DISCORD_BOT_ENDPOINT_SECRET
-// (le bot connaît déjà ce secret pour /sync-roles).
-http.route({
-  path: "/webhooks/discord/presentation",
-  method: "POST",
-  handler: httpAction(async (ctx, request) => {
-    const expected = process.env.DISCORD_BOT_ENDPOINT_SECRET;
-    if (!expected) {
-      return new Response("Not configured", { status: 500 });
-    }
-    const auth = request.headers.get("Authorization") ?? "";
-    if (auth !== `Bearer ${expected}`) {
-      return new Response("Unauthorized", { status: 401 });
-    }
-    let body: { discordId?: string } = {};
-    try {
-      body = (await request.json()) as { discordId?: string };
-    } catch {
-      return new Response("Bad JSON", { status: 400 });
-    }
-    const discordId = (body.discordId ?? "").trim();
-    if (!discordId) return new Response("discordId required", { status: 400 });
-
-    const res = await ctx.runMutation(
-      internal.onboardings.markPresentedByDiscordId,
-      { discordId }
-    );
-    return new Response(JSON.stringify(res), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
-  }),
-});
 
 // ── Webhook Discord « S'onboarder » ─────────────────────────────────────────
 // Le membre clique le bouton « S'onboarder » dans son salon privé → le bot POST

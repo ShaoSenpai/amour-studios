@@ -648,6 +648,13 @@ export const assignDiscordRole = internalAction({
     attempt: v.optional(v.number()),
   },
   handler: async (ctx, { discordId, email, tier, attempt }) => {
+    // Garde : un ID Discord est un snowflake numérique. Si on reçoit un pseudo
+    // (ex. compte fantôme créé par un outil admin avec un pseudo tapé à la main),
+    // le bot retournerait 404 en boucle → on no-op proprement.
+    if (!/^\d{15,25}$/.test((discordId ?? "").trim())) {
+      console.warn(`assignDiscordRole: discordId non numérique ignoré (${discordId})`);
+      return;
+    }
     const botEndpoint = process.env.DISCORD_BOT_ENDPOINT;
     const botSecret = process.env.DISCORD_BOT_ENDPOINT_SECRET;
     if (!botEndpoint || !botSecret) {

@@ -345,7 +345,7 @@ function ClaimInner() {
   // Succès → guidage vers le serveur Discord (étape obligatoire d'activation).
   if (claimState === "done") {
     const discordInvite =
-      process.env.NEXT_PUBLIC_DISCORD_INVITE_URL ?? "https://discord.gg/78v8PSgjxx";
+      process.env.NEXT_PUBLIC_DISCORD_INVITE_URL ?? "https://discord.gg/x9humyUMnJ";
     return (
       <Screen c={c} dark={dark}>
         <Header
@@ -589,7 +589,7 @@ function HasDiscordScreen({
 }) {
   const [choice, setChoice] = useState<"yes" | "no" | null>(null);
   const discordInvite =
-    process.env.NEXT_PUBLIC_DISCORD_INVITE_URL ?? "https://discord.gg/78v8PSgjxx";
+    process.env.NEXT_PUBLIC_DISCORD_INVITE_URL ?? "https://discord.gg/x9humyUMnJ";
   const dark = useIsDark();
   const c = palette(dark, ACCENT);
 

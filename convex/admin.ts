@@ -10,10 +10,23 @@ import { requireAdmin } from "./lib/auth";
 import { internal } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
 import { logEvent } from "./lib/events";
+import { linkPurchaseToUser } from "./lib/linking";
+import { ensureClaim } from "./claimTokens";
+
+// Base de l'app (pour construire les liens d'activation /claim).
+const APP_URL = "https://amour-studios.vercel.app";
 
 // ============================================================================
 // Amour Studios — Admin queries & mutations
 // ============================================================================
+
+// Un ID Discord = snowflake numérique. Refuse un pseudo tapé à la main (source
+// des comptes fantômes que le bot ne retrouve jamais).
+const NUMERIC_ID_MSG =
+  "Ça ressemble à un pseudo. Mets l'identifiant NUMÉRIQUE Discord (Discord → Paramètres → Avancés → Mode développeur → clic droit sur le profil → Copier l'identifiant).";
+function assertNumericDiscordId(id: string) {
+  if (!/^\d{15,25}$/.test(id.trim())) throw new Error(NUMERIC_ID_MSG);
+}
 
 /**
  * Retourne TOUS les users (admins inclus) avec état onboarding + purchase.
@@ -238,6 +251,7 @@ export const adminLinkDiscordToPurchase = mutation({
     await requireAdmin(ctx);
     const trimmedDiscordId = discordId.trim();
     if (!trimmedDiscordId) throw new Error("Discord ID requis");
+    assertNumericDiscordId(trimmedDiscordId);
 
     const purchase = await ctx.db.get(purchaseId);
     if (!purchase) throw new Error("Paiement introuvable");
@@ -312,6 +326,78 @@ export const adminLinkDiscordToPurchase = mutation({
 });
 
 /**
+ * SAV — Recherche de MEMBRES (déjà connectés via Discord OAuth) pour le picker
+ * « Lier à un membre ». Filtre en mémoire (volume users faible) sur nom /
+ * pseudo Discord / email. Ne renvoie que des comptes avec un discordId réel.
+ */
+export const searchLinkableMembers = query({
+  args: { q: v.string() },
+  handler: async (ctx, { q }) => {
+    await requireAdmin(ctx);
+    const needle = q.trim().toLowerCase();
+    if (needle.length < 2) return [];
+    const all = await ctx.db.query("users").collect();
+    return all
+      .filter((u) => {
+        if (u.deletedAt) return false;
+        const hay = [u.name, u.discordUsername, u.email]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        return hay.includes(needle);
+      })
+      .slice(0, 12)
+      .map((u) => ({
+        userId: u._id,
+        name: u.name ?? null,
+        discordUsername: u.discordUsername ?? null,
+        email: u.email ?? null,
+        hasDiscord: /^\d{15,25}$/.test((u.discordId ?? "").trim()),
+        hasPurchase: !!u.purchaseId,
+      }));
+  },
+});
+
+/**
+ * SAV — Lie un paiement à un MEMBRE EXISTANT (choisi dans le picker), via le
+ * primitif partagé `linkPurchaseToUser` (transfert + rôles + onboarding).
+ * Aucun ID tapé à la main : on passe par un userId déjà résolu.
+ */
+export const adminLinkPurchaseToUser = mutation({
+  args: { purchaseId: v.id("purchases"), userId: v.id("users") },
+  handler: async (ctx, { purchaseId, userId }) => {
+    await requireAdmin(ctx);
+    const purchase = await ctx.db.get(purchaseId);
+    if (!purchase) throw new Error("Paiement introuvable");
+    const user = await ctx.db.get(userId);
+    if (!user) throw new Error("Membre introuvable");
+    const { transferred } = await linkPurchaseToUser(ctx, purchase, userId);
+    return { ok: true as const, transferred, tier: purchase.tier ?? null };
+  },
+});
+
+/**
+ * SAV — Renvoie le lien d'activation + le code de liaison d'un paiement (à
+ * copier/envoyer au client). Génère token+code si absents.
+ */
+export const adminGetClaimLink = mutation({
+  args: { purchaseId: v.id("purchases") },
+  handler: async (ctx, { purchaseId }) => {
+    await requireAdmin(ctx);
+    const purchase = await ctx.db.get(purchaseId);
+    if (!purchase) throw new Error("Paiement introuvable");
+    const pi = purchase.stripePaymentIntentId;
+    if (!pi) throw new Error("Paiement sans PaymentIntent — lien impossible");
+    const { token, code } = await ensureClaim(ctx, pi, purchase.email);
+    return {
+      claimUrl: `${APP_URL}/claim?t=${encodeURIComponent(token)}`,
+      code,
+      displayCode: `AMR-${code}`,
+    };
+  },
+});
+
+/**
  * SAV — Recherche de paiements pour l'UI « Lier un compte ».
  * Avec email → match `by_email`. Sans → les ~15 plus récents (createdAt desc).
  */
@@ -367,6 +453,7 @@ export const addMember = mutation({
 
     if (mode === "email" && !trimmedEmail) throw new Error("Email requis");
     if (mode === "discordId" && !trimmedDiscordId) throw new Error("Discord ID requis");
+    if (mode === "discordId" && trimmedDiscordId) assertNumericDiscordId(trimmedDiscordId);
 
     // Match user existant par mode choisi
     const existing =
@@ -477,6 +564,7 @@ export const grantCompAccess = mutation({
     const e = email.trim().toLowerCase();
     if (!e) throw new Error("Email requis");
     const did = discordId?.trim() || undefined;
+    if (did) assertNumericDiscordId(did);
 
     // User existant ? (par email, puis par discordId)
     let user = await ctx.db
@@ -1125,6 +1213,47 @@ export const _bumpExoCacheVersion = internalMutation({
       }
     }
     return { updated };
+  },
+});
+
+// SAV : retire un mauvais lien paiement↔user (ex. user créé avec un discordId
+// invalide = un pseudo au lieu de l'ID numérique). PRÉSERVE le purchase et le
+// claimToken (le client pourra re-claim proprement) ; supprime le user fautif +
+// ses onboardings et libère purchase.userId.
+export const cleanBrokenLink = internalMutation({
+  args: { purchaseId: v.id("purchases"), deleteUserId: v.optional(v.id("users")) },
+  handler: async (ctx, { purchaseId, deleteUserId }) => {
+    const p = await ctx.db.get(purchaseId);
+    if (!p) throw new Error("purchase introuvable");
+    const targetUserId = deleteUserId ?? p.userId ?? null;
+    // Libère le purchase (le rend re-claimable).
+    await ctx.db.patch(purchaseId, { userId: undefined });
+    let deletedUser = false;
+    let deletedOnboardings = 0;
+    if (targetUserId) {
+      const u = await ctx.db.get(targetUserId);
+      if (u) {
+        const obs = await ctx.db
+          .query("onboardings")
+          .withIndex("by_user", (q) => q.eq("userId", targetUserId))
+          .collect();
+        for (const ob of obs) {
+          await ctx.db.delete(ob._id);
+          deletedOnboardings++;
+        }
+        await ctx.db.delete(targetUserId);
+        deletedUser = true;
+      }
+    }
+    return {
+      ok: true,
+      purchaseId,
+      purchaseStatus: p.status,
+      purchaseEmail: p.email,
+      deletedUser,
+      deletedUserId: targetUserId,
+      deletedOnboardings,
+    };
   },
 });
 

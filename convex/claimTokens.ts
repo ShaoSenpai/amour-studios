@@ -8,8 +8,10 @@ import {
 } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { logEvent } from "./lib/events";
-import type { Doc } from "./_generated/dataModel";
+import { linkPurchaseToUser } from "./lib/linking";
+import { rateLimit } from "./rateLimit";
+import type { GenericMutationCtx } from "convex/server";
+import type { DataModel } from "./_generated/dataModel";
 
 // ============================================================================
 // Claim tokens — clé secrète à usage unique liée à un PaymentIntent.
@@ -19,6 +21,34 @@ import type { Doc } from "./_generated/dataModel";
 // ============================================================================
 
 const TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 jours
+
+// Code court de liaison : 6 chars base32 sans caractères ambigus (pas de I/O/0/1/L).
+const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // 30 chars
+function genCode(): string {
+  const a = new Uint8Array(6);
+  crypto.getRandomValues(a);
+  return Array.from(a, (b) => CODE_ALPHABET[b % CODE_ALPHABET.length]).join("");
+}
+/** Normalise la saisie utilisateur : "amr-7k3qxm" / "AMR 7K3QXM" → "7K3QXM". */
+function normalizeCode(input: string): string {
+  let s = (input || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (s.length > 6 && s.startsWith("AMR")) s = s.slice(3); // retire le préfixe d'affichage
+  return s;
+}
+/** Génère un code unique (anti-collision via l'index by_code). */
+async function generateUniqueCode(
+  ctx: GenericMutationCtx<DataModel>
+): Promise<string> {
+  for (let i = 0; i < 8; i++) {
+    const code = genCode();
+    const existing = await ctx.db
+      .query("claimTokens")
+      .withIndex("by_code", (q) => q.eq("code", code))
+      .first();
+    if (!existing) return code;
+  }
+  return genCode() + genCode().slice(0, 2); // fallback très improbable
+}
 
 /**
  * Masque un email pour un retour PUBLIC non authentifié : garde la 1re lettre
@@ -49,8 +79,10 @@ export const create = internalMutation({
   },
   handler: async (ctx, { token, paymentIntentId, email }) => {
     const now = Date.now();
+    const code = await generateUniqueCode(ctx);
     return await ctx.db.insert("claimTokens", {
       token,
+      code,
       paymentIntentId,
       email: email || undefined,
       expiresAt: now + TOKEN_TTL_MS,
@@ -135,121 +167,109 @@ export const claimByToken = mutation({
     if (!linkable) {
       throw new Error(`Ce paiement n'est pas valide (statut : ${purchase.status})`);
     }
-    // ── TRANSFERT (re-liaison multi-compte) ─────────────────────────────────
-    // Le purchase est déjà lié à un AUTRE user que celui qui claim aujourd'hui.
-    // C'est le scénario « compte Discord non lié » : le client avait lié son
-    // paiement à un 1er compte (supprimé/recréé, mauvais compte à l'OAuth…),
-    // puis se présente avec un 2e. Le TOKEN, envoyé à l'EMAIL DU PAIEMENT,
-    // prouve la légitimité → on autorise le transfert vers le user courant.
-    //
-    // On capture l'ancien compte AVANT de repointer pour pouvoir lui retirer
-    // ses rôles Discord (il ne doit plus avoir accès via ce paiement).
-    const isTransfer = !!purchase.userId && purchase.userId !== userId;
-    let oldUser: Doc<"users"> | null = null;
-    if (isTransfer) {
-      oldUser = await ctx.db.get(purchase.userId!);
-      // Délie l'ancien user du purchase (un user = au plus 1 purchaseId).
-      if (oldUser && oldUser.purchaseId === purchase._id) {
-        await ctx.db.patch(oldUser._id, { purchaseId: undefined });
-      }
-    }
+    // Liaison fiable au compte AUTHENTIFIÉ (transfert multi-compte géré, rôles
+    // Discord + onboarding) via le primitif partagé. Le TOKEN, envoyé à l'email
+    // du paiement, prouve la légitimité → on lie même si email Stripe ≠ Discord.
+    const { transferred } = await linkPurchaseToUser(ctx, purchase, userId);
 
-    // Link purchase ↔ user courant. En transfert on repointe explicitement
-    // purchase.userId (il pointait vers l'ancien) ; sinon (cas nominal non lié)
-    // on ne pose que si absent — comportement historique inchangé.
-    if (isTransfer || !purchase.userId) {
-      await ctx.db.patch(purchase._id, { userId });
-    }
-    const user = await ctx.db.get(userId);
-    if (user && !user.purchaseId) {
-      await ctx.db.patch(userId, { purchaseId: purchase._id });
-    }
-
-    // En transfert : rattache l'onboarding au nouveau user. On repointe la row
-    // de l'ANCIEN user vers le nouveau (préserve la progression : prénom,
-    // réponses, étape) UNIQUEMENT si le nouveau user n'a pas déjà la sienne.
-    // Si les deux en ont une, on garde celle du nouveau (createForPurchase plus
-    // bas est idempotent et ne créera rien). Si aucun n'en a, createForPurchase
-    // la créera.
-    if (isTransfer && oldUser) {
-      const newUserOb = await ctx.db
-        .query("onboardings")
-        .withIndex("by_user", (q) => q.eq("userId", userId))
-        .first();
-      const oldUserOb = await ctx.db
-        .query("onboardings")
-        .withIndex("by_user", (q) => q.eq("userId", oldUser._id))
-        .first();
-      if (!newUserOb && oldUserOb) {
-        await ctx.db.patch(oldUserOb._id, {
-          userId,
-          updatedAt: Date.now(),
-        });
-      }
-    }
-
-    // Burn le token (single-use)
+    // Burn le token (single-use).
     await ctx.db.patch(claim._id, {
       claimedAt: Date.now(),
       claimedByUserId: userId,
     });
 
-    // Schedule Discord role assignment selon le palier (fail-silent).
-    // Uniquement si l'accès est effectif (paid/active). Si "incomplete", le
-    // webhook invoice.paid attribuera le rôle dès la confirmation du paiement.
-    const accessGranted =
-      purchase.status === "paid" || purchase.status === "active";
+    return { ok: true, purchaseId: purchase._id, transferred };
+  },
+});
 
-    // En transfert : retire d'abord les rôles de l'ANCIEN compte Discord (il ne
-    // doit plus profiter de ce paiement) — rôles palier + Onboardé. Fail-silent
-    // côté actions. On ne le fait que si l'ancien compte avait un discordId.
-    if (isTransfer && oldUser?.discordId) {
-      await ctx.scheduler.runAfter(0, internal.stripe.removeDiscordRoles, {
-        discordId: oldUser.discordId,
-        email: oldUser.email ?? "",
-      });
-      await ctx.scheduler.runAfter(0, internal.stripe.removeOnboardedRole, {
-        discordId: oldUser.discordId,
-      });
+/**
+ * Query publique : retourne le purchase associé à un CODE de liaison (masqué).
+ * Miroir de purchaseForToken, pour l'écran in-app « Lier mon paiement ».
+ */
+export const purchaseForCode = query({
+  args: { code: v.string() },
+  handler: async (ctx, { code }) => {
+    const norm = normalizeCode(code);
+    if (norm.length < 4) return null;
+    const claim = await ctx.db
+      .query("claimTokens")
+      .withIndex("by_code", (q) => q.eq("code", norm))
+      .first();
+    if (!claim) return null;
+    if (claim.expiresAt < Date.now()) return { expired: true } as const;
+    const purchase = await ctx.db
+      .query("purchases")
+      .withIndex("by_payment_intent", (q) =>
+        q.eq("stripePaymentIntentId", claim.paymentIntentId)
+      )
+      .first();
+    if (!purchase) return null;
+    return {
+      _id: purchase._id,
+      status: purchase.status,
+      tier: purchase.tier ?? null,
+      email: maskEmail(purchase.email),
+      hasUser: !!purchase.userId,
+    };
+  },
+});
+
+/**
+ * Mutation authentifiée : lie le paiement (résolu par CODE) au MEMBRE CONNECTÉ.
+ * C'est la voie sûre & pratique : l'identité = le compte Discord OAuth courant,
+ * la preuve = le code court. Marche quel que soit l'email du paiement.
+ * Rate-limit (anti brute-force du code court) : 10 essais / 60s par user.
+ */
+export const linkByCode = mutation({
+  args: { code: v.string() },
+  handler: async (ctx, { code }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Non authentifié");
+    const norm = normalizeCode(code);
+    if (norm.length < 4) throw new Error("Code invalide");
+
+    const rl = await rateLimit(ctx, `linkByCode:${userId}`, 10);
+    if (!rl.allowed) {
+      throw new Error("Trop d'essais. Réessaie dans une minute.");
     }
 
-    if (accessGranted && user?.discordId && user?.email) {
-      await ctx.scheduler.runAfter(0, internal.stripe.assignDiscordRole, {
-        discordId: user.discordId,
-        email: user.email,
-        tier: purchase.tier ?? undefined,
-      });
+    const claim = await ctx.db
+      .query("claimTokens")
+      .withIndex("by_code", (q) => q.eq("code", norm))
+      .first();
+    if (!claim) throw new Error("Code invalide ou expiré");
+    if (claim.expiresAt < Date.now()) {
+      throw new Error("Ce code a expiré. Demande-en un nouveau.");
+    }
+    if (claim.claimedAt && claim.claimedByUserId !== userId) {
+      throw new Error("Ce code a déjà été utilisé sur un autre compte");
     }
 
-    // Compte LIÉ → on DÉMARRE l'onboarding et on envoie le lien directement (DM +
-    // email + fallback public). Le membre a payé + lié explicitement son compte
-    // (email Stripe ≠ email Discord géré ici, on a le purchase en main donc on
-    // bypass le matching email) : on NE lui redemande PAS de se présenter, on le
-    // pousse direct sur l'onboarding. Idempotent (avance la row ou la crée).
-    if (accessGranted && purchase.tier) {
-      await ctx.scheduler.runAfter(0, internal.onboardings.linkAndStartOnboarding, {
-        userId,
-        tier: purchase.tier,
-      });
+    const purchase = await ctx.db
+      .query("purchases")
+      .withIndex("by_payment_intent", (q) =>
+        q.eq("stripePaymentIntentId", claim.paymentIntentId)
+      )
+      .first();
+    if (!purchase) {
+      throw new Error("Paiement introuvable — le webhook Stripe n'est peut-être pas encore arrivé");
+    }
+    const linkable =
+      purchase.status === "paid" ||
+      purchase.status === "active" ||
+      purchase.status === "incomplete";
+    if (!linkable) {
+      throw new Error(`Ce paiement n'est pas valide (statut : ${purchase.status})`);
     }
 
-    // Trace CRM du transfert (post-patch, dans la même transaction).
-    if (isTransfer) {
-      await logEvent(ctx, {
-        userId,
-        type: "purchase.transferred",
-        title: "Paiement transféré vers un nouveau compte (récup self-service)",
-        actor: "system",
-        meta: {
-          purchaseId: purchase._id,
-          fromUserId: oldUser?._id ?? null,
-          fromDiscordId: oldUser?.discordId ?? null,
-          toDiscordId: user?.discordId ?? null,
-        },
-      });
-    }
+    const { transferred } = await linkPurchaseToUser(ctx, purchase, userId);
 
-    return { ok: true, purchaseId: purchase._id, transferred: isTransfer };
+    await ctx.db.patch(claim._id, {
+      claimedAt: Date.now(),
+      claimedByUserId: userId,
+    });
+
+    return { ok: true, purchaseId: purchase._id, transferred };
   },
 });
 
@@ -259,32 +279,66 @@ export const claimByToken = mutation({
  * Utilisé par le cron de relance des paiements non activés (le 1er token a pu
  * expirer avant que l'élève ne crée son compte).
  */
+/**
+ * Garantit un claim (token + code) VALIDE pour un PaymentIntent. Réutilise le
+ * token existant s'il est encore valide/non utilisé (en lui posant un code s'il
+ * manque), sinon en crée un neuf. Fonction simple → appelable depuis n'importe
+ * quelle mutation (refreshForPaymentIntent, admin adminGetClaimLink).
+ */
+export async function ensureClaim(
+  ctx: GenericMutationCtx<DataModel>,
+  paymentIntentId: string,
+  email?: string
+): Promise<{ token: string; code: string }> {
+  const now = Date.now();
+  const existing = await ctx.db
+    .query("claimTokens")
+    .withIndex("by_payment_intent", (q) =>
+      q.eq("paymentIntentId", paymentIntentId)
+    )
+    .first();
+  if (existing && !existing.claimedAt && existing.expiresAt > now) {
+    let code = existing.code;
+    if (!code) {
+      code = await generateUniqueCode(ctx);
+      await ctx.db.patch(existing._id, { code });
+    }
+    return { token: existing.token, code };
+  }
+  const array = new Uint8Array(32);
+  crypto.getRandomValues(array);
+  const token = Array.from(array, (b) => b.toString(16).padStart(2, "0")).join("");
+  const code = await generateUniqueCode(ctx);
+  await ctx.db.insert("claimTokens", {
+    token,
+    code,
+    paymentIntentId,
+    email: email || existing?.email || undefined,
+    expiresAt: now + TOKEN_TTL_MS,
+    createdAt: now,
+  });
+  return { token, code };
+}
+
 export const refreshForPaymentIntent = internalMutation({
   args: { paymentIntentId: v.string(), email: v.optional(v.string()) },
-  handler: async (ctx, { paymentIntentId, email }) => {
-    const now = Date.now();
-    const existing = await ctx.db
-      .query("claimTokens")
-      .withIndex("by_payment_intent", (q) =>
-        q.eq("paymentIntentId", paymentIntentId)
-      )
-      .first();
-    // Token encore valide et non utilisé → on le réutilise.
-    if (existing && !existing.claimedAt && existing.expiresAt > now) {
-      return existing.token;
+  handler: async (ctx, { paymentIntentId, email }) =>
+    (await ensureClaim(ctx, paymentIntentId, email)).token,
+});
+
+/** One-shot : attribue un `code` aux claimTokens existants qui n'en ont pas. */
+export const backfillCodes = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const rows = await ctx.db.query("claimTokens").collect();
+    let filled = 0;
+    for (const r of rows) {
+      if (!r.code) {
+        await ctx.db.patch(r._id, { code: await generateUniqueCode(ctx) });
+        filled++;
+      }
     }
-    // Sinon on en génère un neuf.
-    const array = new Uint8Array(32);
-    crypto.getRandomValues(array);
-    const token = Array.from(array, (b) => b.toString(16).padStart(2, "0")).join("");
-    await ctx.db.insert("claimTokens", {
-      token,
-      paymentIntentId,
-      email: email || existing?.email || undefined,
-      expiresAt: now + TOKEN_TTL_MS,
-      createdAt: now,
-    });
-    return token;
+    return { total: rows.length, filled };
   },
 });
 

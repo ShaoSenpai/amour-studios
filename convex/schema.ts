@@ -151,6 +151,9 @@ export default defineSchema({
   // à usage unique. Sécurise le flux /claim contre le hijack de PI ID.
   claimTokens: defineTable({
     token: v.string(),
+    // Code court lisible (6 chars base32 sans ambiguïté), affiché AMR-XXXXXX,
+    // pour la liaison in-app « j'ai payé, lie mon compte ». Stocké normalisé.
+    code: v.optional(v.string()),
     paymentIntentId: v.string(),
     email: v.optional(v.string()),
     expiresAt: v.number(),
@@ -159,6 +162,7 @@ export default defineSchema({
     createdAt: v.number(),
   })
     .index("by_token", ["token"])
+    .index("by_code", ["code"])
     .index("by_payment_intent", ["paymentIntentId"]),
 
   // Journal d'événements / trace CRM — « qui a fait quoi, quand » par profil.

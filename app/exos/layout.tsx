@@ -15,6 +15,7 @@ import {
   glassBtn,
 } from "../studio/_components/glass";
 import { MemberShell } from "@/app/_components/member-shell";
+import { LinkPayment } from "@/app/_components/link-payment";
 
 // ============================================================================
 // Layout de l'espace élève /exos.
@@ -142,6 +143,9 @@ export default function ExosLayout({ children }: { children: ReactNode }) {
                 Voir l&apos;offre coaching →
               </a>
             )}
+            <div style={{ borderTop: `1px solid ${c.line}`, paddingTop: 16 }}>
+              <LinkPayment />
+            </div>
             <a
               href="/studio"
               style={{

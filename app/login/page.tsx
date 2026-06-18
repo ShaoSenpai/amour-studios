@@ -54,7 +54,7 @@ function LoginInner() {
   const c = palette(dark, ACCENT);
 
   const discordInvite =
-    process.env.NEXT_PUBLIC_DISCORD_INVITE_URL ?? "https://discord.gg/78v8PSgjxx";
+    process.env.NEXT_PUBLIC_DISCORD_INVITE_URL ?? "https://discord.gg/x9humyUMnJ";
 
   useEffect(() => {
     if (hasError) {

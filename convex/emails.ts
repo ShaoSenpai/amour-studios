@@ -717,7 +717,7 @@ type RelanceTier = "coaching" | "communaute";
 const DISCORD_INVITE_URL =
   process.env.NEXT_PUBLIC_DISCORD_INVITE_URL ??
   process.env.DISCORD_INVITE_URL ??
-  "https://discord.gg/78v8PSgjxx";
+  "https://discord.gg/x9humyUMnJ";
 
 function helloLine(firstName: string | null): string {
   return firstName ? `Salut ${escape(firstName)}` : "Salut";

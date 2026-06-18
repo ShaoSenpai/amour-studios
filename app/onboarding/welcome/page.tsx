@@ -29,7 +29,7 @@ import {
 // ============================================================================
 
 const DISCORD_INVITE =
-  process.env.NEXT_PUBLIC_DISCORD_INVITE_URL ?? "https://discord.gg/78v8PSgjxx";
+  process.env.NEXT_PUBLIC_DISCORD_INVITE_URL ?? "https://discord.gg/x9humyUMnJ";
 
 export default function OnboardingWelcomePage() {
   const dark = useIsDark();

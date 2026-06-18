@@ -92,6 +92,16 @@ export default function LierPage() {
 
   const linkMutation = useMutation(api.admin.adminLinkDiscordToPurchase);
 
+  // Voies fiables : copier le lien/code d'activation, ou lier à un membre existant.
+  const getClaimLink = useMutation(api.admin.adminGetClaimLink);
+  const linkToMember = useMutation(api.admin.adminLinkPurchaseToUser);
+  const [pickerFor, setPickerFor] = useState<Id<"purchases"> | null>(null);
+  const [memberQuery, setMemberQuery] = useState("");
+  const members = useQuery(
+    api.admin.searchLinkableMembers,
+    pickerFor && memberQuery.trim().length >= 2 ? { q: memberQuery.trim() } : "skip"
+  );
+
   // Offrir un accès gratuit (comp).
   const giftMutation = useMutation(api.admin.grantCompAccess);
   const [giftEmail, setGiftEmail] = useState("");
@@ -134,6 +144,37 @@ export default function LierPage() {
       toast.error(err instanceof Error ? err.message : "Erreur de liaison.");
     } finally {
       setLinkingId(null);
+    }
+  };
+
+  const handleCopyLink = async (row: PurchaseRow) => {
+    try {
+      const res = await getClaimLink({ purchaseId: row.purchaseId });
+      try {
+        await navigator.clipboard.writeText(res.claimUrl);
+        toast.success(`Lien copié · code ${res.displayCode}`, { duration: 9000 });
+      } catch {
+        // Clipboard refusé → on affiche au moins le lien + code.
+        toast.success(`Code ${res.displayCode} · ${res.claimUrl}`, { duration: 12000 });
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erreur.");
+    }
+  };
+
+  const handleLinkMember = async (row: PurchaseRow, userId: Id<"users">) => {
+    try {
+      const res = await linkToMember({ purchaseId: row.purchaseId, userId });
+      if (res?.ok) {
+        toast.success(
+          res.transferred ? "Paiement transféré au membre." : "Paiement lié au membre.",
+          { duration: 6000 }
+        );
+        setPickerFor(null);
+        setMemberQuery("");
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erreur.");
     }
   };
 
@@ -326,70 +367,159 @@ export default function LierPage() {
               rows.map((row) => {
                 const live = isLive(row.status);
                 const linking = linkingId === row.purchaseId;
+                const picking = pickerFor === row.purchaseId;
                 return (
                   <div
                     key={row.purchaseId}
                     style={{
                       display: "flex",
-                      alignItems: "center",
-                      gap: 12,
+                      flexDirection: "column",
+                      gap: 10,
                       padding: "12px 4px",
                       borderTop: `1px solid ${c.hairline}`,
-                      flexWrap: "wrap",
                     }}
                   >
-                    <div style={{ minWidth: 0, flex: "1 1 200px" }}>
-                      <div
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                      <div style={{ minWidth: 0, flex: "1 1 200px" }}>
+                        <div
+                          style={{
+                            ...num,
+                            fontSize: 15,
+                            fontWeight: 500,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {row.email}
+                        </div>
+                        <div style={{ ...mono, fontSize: 9.5, color: c.faint, marginTop: 3 }}>
+                          {tierLabel(row.tier)} · {STATUS_LABEL[row.status] ?? row.status}
+                          {row.hasUser ? " · déjà lié" : ""}
+                        </div>
+                      </div>
+                      <span
                         style={{
-                          ...num,
-                          fontSize: 15,
-                          fontWeight: 500,
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
+                          ...mono,
+                          fontSize: isMobile ? 11 : 9.5,
+                          padding: "3px 9px",
+                          borderRadius: 999,
+                          background: live ? ACCENT : c.chip,
+                          color: live ? "#0B0B0B" : c.muted,
+                          border: live ? "none" : `1px solid ${c.line}`,
                           whiteSpace: "nowrap",
+                          flexShrink: 0,
                         }}
                       >
-                        {row.email}
-                      </div>
-                      <div style={{ ...mono, fontSize: 9.5, color: c.faint, marginTop: 3 }}>
-                        {tierLabel(row.tier)} · {STATUS_LABEL[row.status] ?? row.status}
-                        {row.hasUser ? " · déjà lié" : ""}
-                      </div>
+                        {STATUS_LABEL[row.status] ?? row.status}
+                      </span>
                     </div>
 
-                    {/* Statut chip */}
-                    <span
-                      style={{
-                        ...mono,
-                        fontSize: isMobile ? 11 : 9.5,
-                        padding: "3px 9px",
-                        borderRadius: 999,
-                        background: live ? ACCENT : c.chip,
-                        color: live ? "#0B0B0B" : c.muted,
-                        border: live ? "none" : `1px solid ${c.line}`,
-                        whiteSpace: "nowrap",
-                        flexShrink: 0,
+                    {/* Actions FIABLES : code/lien + picker membre. (ID Discord = secours) */}
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      <GlassButton
+                        c={c}
+                        kind="solid"
+                        onClick={() => handleCopyLink(row)}
+                        style={{ padding: "9px 14px", fontSize: 11, minHeight: 40 }}
+                      >
+                        Copier le lien + code
+                      </GlassButton>
+                      <GlassButton
+                        c={c}
+                        kind="ink"
+                        onClick={() => {
+                          setPickerFor(picking ? null : row.purchaseId);
+                          setMemberQuery("");
+                        }}
+                        style={{ padding: "9px 14px", fontSize: 11, minHeight: 40 }}
+                      >
+                        {picking ? "Fermer" : "Lier à un membre…"}
+                      </GlassButton>
+                      <GlassButton
+                        c={c}
+                        kind="ghost"
+                        onClick={() => handleLink(row)}
+                        disabled={!canLink || linking}
+                        style={{
+                          padding: "9px 14px",
+                          fontSize: 11,
+                          minHeight: 40,
+                          opacity: !canLink || linking ? 0.5 : 1,
+                          cursor: !canLink || linking ? "not-allowed" : "pointer",
                       }}
                     >
-                      {STATUS_LABEL[row.status] ?? row.status}
-                    </span>
+                        {linking ? "Liaison…" : "Lier à ce Discord ID"}
+                      </GlassButton>
+                    </div>
 
-                    <GlassButton
-                      c={c}
-                      kind={canLink ? "ink" : "ghost"}
-                      onClick={() => handleLink(row)}
-                      disabled={!canLink || linking}
-                      style={{
-                        padding: "9px 14px",
-                        fontSize: 11,
-                        minHeight: 44,
-                        opacity: !canLink || linking ? 0.5 : 1,
-                        cursor: !canLink || linking ? "not-allowed" : "pointer",
-                        flexShrink: 0,
-                      }}
-                    >
-                      {linking ? "Liaison…" : "Lier à ce Discord ID"}
-                    </GlassButton>
+                    {/* Picker membre (recommandé) */}
+                    {picking && (
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 8,
+                          padding: "10px 12px",
+                          borderRadius: 12,
+                          background: c.chip,
+                          border: `1px solid ${c.line}`,
+                        }}
+                      >
+                        <input
+                          value={memberQuery}
+                          onChange={(e) => setMemberQuery(e.target.value)}
+                          placeholder="Chercher un membre (pseudo Discord, nom, email)…"
+                          autoFocus
+                          style={inputStyle(c)}
+                        />
+                        {memberQuery.trim().length < 2 && (
+                          <div style={{ ...mono, fontSize: 9.5, color: c.faint }}>
+                            Tape au moins 2 caractères.
+                          </div>
+                        )}
+                        {members && members.length === 0 && memberQuery.trim().length >= 2 && (
+                          <div style={{ ...mono, fontSize: 9.5, color: c.faint }}>
+                            Aucun membre. (Il doit s&apos;être déjà connecté avec Discord.)
+                          </div>
+                        )}
+                        {members &&
+                          members.map((m) => (
+                            <button
+                              key={m.userId}
+                              type="button"
+                              onClick={() => handleLinkMember(row, m.userId)}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                gap: 10,
+                                padding: "9px 11px",
+                                borderRadius: 10,
+                                border: `1px solid ${c.line}`,
+                                background: "transparent",
+                                color: c.text,
+                                cursor: "pointer",
+                                textAlign: "left",
+                              }}
+                            >
+                              <span style={{ minWidth: 0 }}>
+                                <span style={{ fontSize: 13, fontWeight: 500 }}>
+                                  {m.discordUsername ?? m.name ?? "—"}
+                                </span>
+                                <span style={{ ...mono, fontSize: 9, color: c.faint, display: "block", marginTop: 2 }}>
+                                  {m.email ?? "sans email"}
+                                  {m.hasPurchase ? " · a déjà un paiement" : ""}
+                                  {!m.hasDiscord ? " · ⚠ pas d'ID Discord" : ""}
+                                </span>
+                              </span>
+                              <span style={{ ...mono, fontSize: 10, color: ACCENT, flexShrink: 0 }}>
+                                Lier →
+                              </span>
+                            </button>
+                          ))}
+                      </div>
+                    )}
                   </div>
                 );
               })}

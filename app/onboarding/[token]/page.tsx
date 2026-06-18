@@ -33,7 +33,7 @@ const CALENDLY_URL =
 
 const DISCORD_INVITE =
   process.env.NEXT_PUBLIC_DISCORD_INVITE_URL ??
-  "https://discord.gg/amourstudios";
+  "https://discord.gg/78v8PSgjxx";
 
 // Vidéo « quick win » de l'écran post-questionnaire (coaching). Lecteur Mux
 // chargé côté client uniquement (web component → pas de SSR). Si le playback ID
@@ -42,50 +42,43 @@ const QUICKWIN_MUX_PLAYBACK_ID =
   process.env.NEXT_PUBLIC_ONBOARDING_QUICKWIN_MUX_PLAYBACK_ID ?? "";
 const MuxPlayer = dynamic(() => import("@mux/mux-player-react"), { ssr: false });
 
-// Questions du questionnaire — coaching 179€ (pré-call Walid).
+// Questions du questionnaire — coaching 179€ (pré-call Walid). Wizard 1 question/écran.
 const COACHING_QUESTIONS: readonly OnboardingQuestion[] = [
   { key: "artist_name", label: "Ton nom d'artiste", type: "text", placeholder: "ex. SHAOSENPAI" },
-  { key: "instagram", label: "Lien Instagram", type: "text", placeholder: "https://instagram.com/…" },
-  {
-    key: "music_link",
-    label: "Lien YouTube / SoundCloud / Spotify (si applicable)",
-    type: "text",
-    placeholder: "https://…",
-    hint: "Walid écoute avant le call. Ça lui permet d'arriver avec un regard concret sur ton travail.",
-  },
+  { key: "instagram", label: "Ton Instagram", type: "text", placeholder: "@pseudo ou lien" },
+  { key: "music_link", label: "YouTube / SoundCloud / Spotify", type: "text", placeholder: "lien (si tu en as un)", optional: true },
   {
     key: "time_on_project",
-    label: "Depuis combien de temps tu es sur ton projet ?",
+    label: "Depuis quand sur ton projet ?",
     type: "select",
     options: ["Moins d'1 an", "1 à 3 ans", "3 à 5 ans", "Plus de 5 ans"],
   },
   {
     key: "social_mastery",
-    label: "À quel point tu maîtrises les réseaux sociaux pour promouvoir ta musique ?",
+    label: "Tu maîtrises les réseaux pour ta musique ?",
     type: "scale",
     min: 1,
     max: 10,
-    minLabel: "Je ne sais pas par où commencer",
-    maxLabel: "Je gère tout seul",
-    hint: "Ça permet à Walid de calibrer le niveau de la conversation sur la partie visibilité.",
+    minLabel: "Je débute",
+    maxLabel: "Je gère seul",
   },
   {
     key: "situation",
     label: "Où en es-tu aujourd'hui ?",
     rows: 5,
     placeholder: "Ce que tu sors, ta fréquence, ton audience, ton setup…",
-    hint: "Décris ta situation actuelle : ce que tu sors, ta fréquence, ton audience, ton setup. Pas besoin de te vendre, sois factuel.",
+    hint: "Sois factuel, pas besoin de te vendre.",
   },
   {
     key: "goal_6m",
-    label: "Quel est ton objectif principal sur les 6 prochains mois ?",
+    label: "Ton objectif sur 6 mois ?",
     rows: 3,
-    placeholder: "ex. sortir un EP de 5 sons d'ici septembre, 10K streams/mois…",
-    hint: "Un objectif concret, pas une ambition vague. Exemple : sortir un EP de 5 sons d'ici septembre, atteindre 10K streams par mois.",
+    placeholder: "ex. un EP de 5 sons d'ici septembre",
+    hint: "Un objectif concret, pas une ambition vague.",
   },
   {
     key: "blockers",
-    label: "Qu'est-ce qui te bloque le plus en ce moment ?",
+    label: "Qu'est-ce qui te bloque le plus ?",
     type: "multi",
     other: true,
     options: [
@@ -96,17 +89,15 @@ const COACHING_QUESTIONS: readonly OnboardingQuestion[] = [
       "La motivation et la régularité",
       "Le business (monétisation, deals, etc.)",
     ],
-    hint: "Ça permet à Walid d'aller direct sur ce qui compte pour toi.",
   },
   {
     key: "commitment",
-    label: "À quel point tu es prêt à investir du temps et de l'énergie dans cet accompagnement ?",
+    label: "T'es prêt à t'investir à fond ?",
     type: "scale",
     min: 1,
     max: 10,
     minLabel: "Je teste",
-    maxLabel: "Je suis à fond",
-    hint: "Une question d'honnêteté. Le coaching fonctionne si tu es dans le bon état d'esprit pour le faire.",
+    maxLabel: "À fond",
   },
 ] as const;
 
@@ -116,28 +107,17 @@ const COACHING_QUESTIONS: readonly OnboardingQuestion[] = [
 // { key, label, value:string } côté Convex (pas de changement de schéma).
 const MULTI_SEP = " · ";
 type OnboardingQuestion =
-  | { key: string; label: string; hint?: string; placeholder?: string; type?: "textarea" | "text"; rows?: number }
+  | { key: string; label: string; hint?: string; placeholder?: string; type?: "textarea" | "text"; rows?: number; optional?: boolean }
   | { key: string; label: string; hint?: string; type: "select"; options: readonly string[]; other?: boolean; placeholder?: string }
   | { key: string; label: string; hint?: string; type: "multi"; options: readonly string[]; other?: boolean }
   | { key: string; label: string; hint?: string; type: "scale"; min: number; max: number; minLabel: string; maxLabel: string };
 
 const COMMUNITY_QUESTIONS: readonly OnboardingQuestion[] = [
-  {
-    key: "location",
-    label: "D'où viens-tu ?",
-    type: "text",
-    placeholder: "Ville, pays",
-    hint: "Pour qu'on sache où tu es basé, et qu'on puisse créer des connexions locales.",
-  },
-  {
-    key: "project",
-    label: "Ton projet / style en 2 lignes",
-    placeholder: "Ce que tu fais, comment tu sonnes…",
-    hint: "C'est ce qu'on utilisera pour te présenter aux autres membres.",
-  },
+  { key: "location", label: "D'où viens-tu ?", type: "text", placeholder: "Ville, pays" },
+  { key: "project", label: "Ton projet / style en 2 lignes", rows: 2, placeholder: "Ce que tu fais, comment tu sonnes…" },
   {
     key: "seeking",
-    label: "Qu'est-ce que tu viens chercher ici ?",
+    label: "Qu'est-ce que tu viens chercher ?",
     type: "multi",
     other: true,
     options: [
@@ -147,18 +127,16 @@ const COMMUNITY_QUESTIONS: readonly OnboardingQuestion[] = [
       "Des ressources et des techniques",
       "Trouver des collaborations",
     ],
-    hint: "Ça nous sert à prioriser ce qu'on construit pour toi dans la communauté.",
   },
   {
     key: "time_per_week",
-    label: "Combien de temps tu mets par semaine sur ta musique ?",
+    label: "Temps par semaine sur ta musique ?",
     type: "select",
     options: ["Moins de 5h", "5 à 10h", "10 à 20h", "Plus de 20h"],
-    hint: "Pas de jugement. Ça nous aide à calibrer ce qu'on te propose.",
   },
   {
     key: "objective_6m",
-    label: "Ton objectif principal sur les 6 prochains mois ?",
+    label: "Ton objectif sur 6 mois ?",
     type: "select",
     other: true,
     options: [
@@ -168,17 +146,15 @@ const COMMUNITY_QUESTIONS: readonly OnboardingQuestion[] = [
       "Vivre de ma musique",
       "Améliorer ma technique",
     ],
-    hint: "Pour qu'on sache où t'aider en priorité.",
   },
   {
     key: "stuck_level",
-    label: "À quel point tu te sens bloqué dans ta progression ?",
+    label: "Tu te sens bloqué dans ta progression ?",
     type: "scale",
     min: 1,
     max: 10,
     minLabel: "Pas du tout",
     maxLabel: "Énormément",
-    hint: "Si tu te sens vraiment bloqué, on pourra te proposer un accompagnement plus direct.",
   },
 ] as const;
 
@@ -218,6 +194,8 @@ export default function OnboardingTokenPage({
   const [phone, setPhone] = useState("");
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+  // Wizard : index de la question affichée (1 question par écran).
+  const [qIndex, setQIndex] = useState(0);
   // Upsell : masquage local ("Non merci") + état d'activation du débit.
   const [upsellDismissed, setUpsellDismissed] = useState(false);
   const [upgrading, setUpgrading] = useState(false);
@@ -265,6 +243,7 @@ export default function OnboardingTokenPage({
     } else if (data.step === "form_done" && data.tier === "coaching") {
       setStep("rdv");
     } else if (data.firstName && data.lastName && data.phone) {
+      setQIndex(0);
       setStep("questions");
     } else {
       setStep("contact");
@@ -315,6 +294,7 @@ export default function OnboardingTokenPage({
         lastName: lastName.trim(),
         phone: phone.trim(),
       });
+      setQIndex(0);
       setStep("questions");
     } catch (err) {
       toast.error((err as Error).message ?? "Erreur");
@@ -323,15 +303,27 @@ export default function OnboardingTokenPage({
     }
   };
 
-  const handleSubmitAnswers = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const isAnswered = (cq: OnboardingQuestion) => (answers[cq.key] ?? "").trim().length > 0;
+
+  // Wizard : avance d'une question, ou finalise à la dernière.
+  const goNext = (e?: React.FormEvent) => {
+    e?.preventDefault();
     if (busy) return;
-    // Vérifie qu'au moins 80% des questions ont une réponse (souplesse).
-    const filled = questions.filter((q) => (answers[q.key] ?? "").trim().length > 0).length;
-    if (filled < Math.ceil(questions.length * 0.8)) {
-      toast.error("Réponds à toutes les questions (ou presque) avant de continuer.");
+    const cq = questions[qIndex] as OnboardingQuestion;
+    const optional = "optional" in cq && cq.optional;
+    if (!optional && !isAnswered(cq)) {
+      toast.error("Réponds à la question pour continuer.");
       return;
     }
+    if (qIndex < questions.length - 1) {
+      setQIndex((i) => i + 1);
+    } else {
+      finalize();
+    }
+  };
+
+  const finalize = async () => {
+    if (busy) return;
     setBusy(true);
     try {
       const arr = questions.map((q) => {
@@ -567,10 +559,158 @@ export default function OnboardingTokenPage({
     );
   }
 
+  // Rendu d'un champ (réutilisé par le wizard, 1 question à l'écran).
+  const renderField = (cq: OnboardingQuestion) => {
+    const hint = "hint" in cq ? cq.hint : undefined;
+    const rows = (cq as { rows?: number }).rows ?? 3;
+    const k = cq.key;
+    if ("type" in cq && cq.type === "select") {
+      const optStyle: React.CSSProperties = {
+        background: c.dark ? "#15151B" : "#FFFFFF",
+        color: c.dark ? "#F5F2EC" : "#0B0B0B",
+      };
+      const opts = cq.other ? [...cq.options, "Autre"] : cq.options;
+      return (
+        <Field key={k} c={c} label={cq.label} hint={hint}>
+          <select
+            value={answers[k] ?? ""}
+            onChange={(e) => setAnswers((a) => ({ ...a, [k]: e.target.value }))}
+            style={{ ...inputStyle(c), appearance: "none", cursor: "pointer" }}
+          >
+            <option value="" disabled style={optStyle}>Choisis…</option>
+            {opts.map((opt) => (
+              <option key={opt} value={opt} style={optStyle}>{opt}</option>
+            ))}
+          </select>
+          {cq.other && answers[k] === "Autre" && (
+            <input
+              value={answers[`${k}__other`] ?? ""}
+              onChange={(e) => setAnswers((a) => ({ ...a, [`${k}__other`]: e.target.value }))}
+              style={{ ...inputStyle(c), marginTop: 8 }}
+              placeholder="Précise…"
+            />
+          )}
+        </Field>
+      );
+    }
+    if ("type" in cq && cq.type === "multi") {
+      const opts = cq.other ? [...cq.options, "Autre"] : cq.options;
+      const selected = (answers[k] ?? "").split(MULTI_SEP).filter(Boolean);
+      const toggle = (opt: string) => {
+        const set = new Set(selected);
+        if (set.has(opt)) set.delete(opt);
+        else set.add(opt);
+        setAnswers((a) => ({ ...a, [k]: Array.from(set).join(MULTI_SEP) }));
+      };
+      return (
+        <Field key={k} c={c} label={cq.label} hint={hint}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {opts.map((opt) => {
+              const active = selected.includes(opt);
+              return (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => toggle(opt)}
+                  style={{
+                    padding: "9px 13px",
+                    background: active ? ACCENT : c.chip,
+                    color: active ? "#0B0B0B" : c.text,
+                    border: `1px solid ${active ? ACCENT : c.line}`,
+                    borderRadius: 999,
+                    fontFamily: "inherit",
+                    fontSize: 13,
+                    fontWeight: active ? 600 : 400,
+                    cursor: "pointer",
+                    transition: "background 150ms ease",
+                  }}
+                >
+                  {opt}
+                </button>
+              );
+            })}
+          </div>
+          {cq.other && selected.includes("Autre") && (
+            <input
+              value={answers[`${k}__other`] ?? ""}
+              onChange={(e) => setAnswers((a) => ({ ...a, [`${k}__other`]: e.target.value }))}
+              style={{ ...inputStyle(c), marginTop: 8 }}
+              placeholder="Précise…"
+            />
+          )}
+        </Field>
+      );
+    }
+    if ("type" in cq && cq.type === "scale") {
+      const cur = parseInt(answers[k] ?? "", 10);
+      return (
+        <Field key={k} c={c} label={cq.label} hint={hint}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div style={{ display: "flex", gap: 4 }}>
+              {Array.from({ length: cq.max - cq.min + 1 }, (_, i) => cq.min + i).map((n) => {
+                const active = cur === n;
+                return (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => setAnswers((a) => ({ ...a, [k]: String(n) }))}
+                    style={{
+                      flex: 1,
+                      padding: "10px 0",
+                      background: active ? ACCENT : c.chip,
+                      color: active ? "#0B0B0B" : c.text,
+                      border: `1px solid ${active ? ACCENT : c.line}`,
+                      borderRadius: 8,
+                      fontFamily: "inherit",
+                      fontSize: 13,
+                      fontWeight: active ? 600 : 400,
+                      cursor: "pointer",
+                      transition: "background 150ms ease",
+                    }}
+                  >
+                    {n}
+                  </button>
+                );
+              })}
+            </div>
+            <div style={{ ...mono, fontSize: 9, color: c.faint, display: "flex", justifyContent: "space-between" }}>
+              <span>{cq.minLabel}</span>
+              <span>{cq.maxLabel}</span>
+            </div>
+          </div>
+        </Field>
+      );
+    }
+    const placeholder = "placeholder" in cq ? cq.placeholder : "";
+    if ("type" in cq && cq.type === "text") {
+      return (
+        <Field key={k} c={c} label={cq.label} hint={hint}>
+          <input
+            value={answers[k] ?? ""}
+            onChange={(e) => setAnswers((a) => ({ ...a, [k]: e.target.value }))}
+            style={inputStyle(c)}
+            placeholder={placeholder}
+          />
+        </Field>
+      );
+    }
+    return (
+      <Field key={k} c={c} label={cq.label} hint={hint}>
+        <textarea
+          rows={rows}
+          value={answers[k] ?? ""}
+          onChange={(e) => setAnswers((a) => ({ ...a, [k]: e.target.value }))}
+          style={{ ...inputStyle(c), resize: "vertical", lineHeight: 1.5 }}
+          placeholder={placeholder}
+        />
+      </Field>
+    );
+  };
+
   return (
     <Shell c={c} dark={dark}>
       {step !== "upsell" && <UnlockBanner c={c} tier={tier} />}
-      {step !== "upsell" && <StepBar c={c} current={currentNum} total={totalSteps} />}
+      {step !== "upsell" && step !== "questions" && <StepBar c={c} current={currentNum} total={totalSteps} />}
 
       {step === "contact" && (
         <form onSubmit={handleSubmitContact} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -601,182 +741,53 @@ export default function OnboardingTokenPage({
         </form>
       )}
 
-      {step === "questions" && (
-        <form onSubmit={handleSubmitAnswers} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <div>
-            <div style={{ ...mono, color: c.muted }}>Étape 2 sur {totalSteps}</div>
-            <h1 style={{ ...num, fontSize: 30, fontWeight: 500, lineHeight: 1.1, margin: "8px 0 0" }}>
-              {tier === "coaching" ? "Parle-nous de toi." : "Quelques questions courtes."}
-            </h1>
-            <p style={{ fontSize: 13.5, color: c.muted, marginTop: 8 }}>
-              {tier === "coaching"
-                ? "Ces questions permettent à Walid de préparer ton premier call. Plus tes réponses sont précises, plus le call sera utile. Prends 5 minutes pour y répondre sérieusement."
-                : "2 minutes pour qu'on sache qui tu es. Ces infos servent à te présenter à la communauté et à personnaliser ton expérience."}
-            </p>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {questions.map((q) => {
-              const cq = q as OnboardingQuestion;
-              const hint = "hint" in cq ? cq.hint : undefined;
-              const rows = (cq as { rows?: number }).rows ?? 2;
+      {step === "questions" && (() => {
+        const cq = questions[qIndex] as OnboardingQuestion;
+        const isLast = qIndex === questions.length - 1;
+        const pct = Math.round(((qIndex + 1) / questions.length) * 100);
+        return (
+          <form onSubmit={goNext} style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+            {qIndex === 0 && (
+              <div>
+                <h1 style={{ ...num, fontSize: 30, fontWeight: 500, lineHeight: 1.1, margin: 0 }}>
+                  {tier === "coaching" ? "Parle-nous de toi." : "Quelques questions."}
+                </h1>
+                <p style={{ fontSize: 13.5, color: c.muted, marginTop: 8 }}>
+                  {tier === "coaching"
+                    ? "Réponds précisément, ça rend ton 1er call avec Walid bien plus utile."
+                    : "2 min pour qu'on sache qui tu es et te présenter à la communauté."}
+                </p>
+              </div>
+            )}
 
-              // Menu déroulant (single-select), option "Autre" facultative.
-              if ("type" in cq && cq.type === "select") {
-                // Le menu natif déroulant ignore parfois color-scheme (popup blanc
-                // + texte clair du select = invisible). On force un fond + une
-                // couleur SOLIDES sur chaque <option> (respectés par Chrome/FF).
-                const optStyle: React.CSSProperties = {
-                  background: c.dark ? "#15151B" : "#FFFFFF",
-                  color: c.dark ? "#F5F2EC" : "#0B0B0B",
-                };
-                const opts = cq.other ? [...cq.options, "Autre"] : cq.options;
-                return (
-                  <Field key={q.key} c={c} label={q.label} hint={hint}>
-                    <select
-                      value={answers[q.key] ?? ""}
-                      onChange={(e) => setAnswers((a) => ({ ...a, [q.key]: e.target.value }))}
-                      style={{ ...inputStyle(c), appearance: "none", cursor: "pointer" }}
-                    >
-                      <option value="" disabled style={optStyle}>Choisis…</option>
-                      {opts.map((opt) => (
-                        <option key={opt} value={opt} style={optStyle}>{opt}</option>
-                      ))}
-                    </select>
-                    {cq.other && answers[q.key] === "Autre" && (
-                      <input
-                        value={answers[`${q.key}__other`] ?? ""}
-                        onChange={(e) => setAnswers((a) => ({ ...a, [`${q.key}__other`]: e.target.value }))}
-                        style={{ ...inputStyle(c), marginTop: 8 }}
-                        placeholder="Précise…"
-                      />
-                    )}
-                  </Field>
-                );
-              }
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <div style={{ ...mono, fontSize: 9.5, color: c.faint }}>
+                QUESTION {qIndex + 1} / {questions.length}
+              </div>
+              <div style={{ height: 4, borderRadius: 999, background: c.line, overflow: "hidden" }}>
+                <div style={{ height: "100%", width: `${pct}%`, background: ACCENT, transition: "width 250ms ease" }} />
+              </div>
+            </div>
 
-              // Multi-select (chips à cocher), option "Autre" facultative.
-              if ("type" in cq && cq.type === "multi") {
-                const opts = cq.other ? [...cq.options, "Autre"] : cq.options;
-                const selected = (answers[q.key] ?? "").split(MULTI_SEP).filter(Boolean);
-                const toggle = (opt: string) => {
-                  const set = new Set(selected);
-                  if (set.has(opt)) set.delete(opt);
-                  else set.add(opt);
-                  setAnswers((a) => ({ ...a, [q.key]: Array.from(set).join(MULTI_SEP) }));
-                };
-                return (
-                  <Field key={q.key} c={c} label={q.label} hint={hint}>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                      {opts.map((opt) => {
-                        const active = selected.includes(opt);
-                        return (
-                          <button
-                            key={opt}
-                            type="button"
-                            onClick={() => toggle(opt)}
-                            style={{
-                              padding: "9px 13px",
-                              background: active ? ACCENT : c.chip,
-                              color: active ? "#0B0B0B" : c.text,
-                              border: `1px solid ${active ? ACCENT : c.line}`,
-                              borderRadius: 999,
-                              fontFamily: "inherit",
-                              fontSize: 13,
-                              fontWeight: active ? 600 : 400,
-                              cursor: "pointer",
-                              transition: "background 150ms ease",
-                            }}
-                          >
-                            {opt}
-                          </button>
-                        );
-                      })}
-                    </div>
-                    {cq.other && selected.includes("Autre") && (
-                      <input
-                        value={answers[`${q.key}__other`] ?? ""}
-                        onChange={(e) => setAnswers((a) => ({ ...a, [`${q.key}__other`]: e.target.value }))}
-                        style={{ ...inputStyle(c), marginTop: 8 }}
-                        placeholder="Précise…"
-                      />
-                    )}
-                  </Field>
-                );
-              }
+            {renderField(cq)}
 
-              if ("type" in cq && cq.type === "scale") {
-                const cur = parseInt(answers[q.key] ?? "", 10);
-                return (
-                  <Field key={q.key} c={c} label={q.label} hint={hint}>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                      <div style={{ display: "flex", gap: 4 }}>
-                        {Array.from({ length: cq.max - cq.min + 1 }, (_, i) => cq.min + i).map((n) => {
-                          const active = cur === n;
-                          return (
-                            <button
-                              key={n}
-                              type="button"
-                              onClick={() => setAnswers((a) => ({ ...a, [q.key]: String(n) }))}
-                              style={{
-                                flex: 1,
-                                padding: "10px 0",
-                                background: active ? ACCENT : c.chip,
-                                color: active ? "#0B0B0B" : c.text,
-                                border: `1px solid ${active ? ACCENT : c.line}`,
-                                borderRadius: 8,
-                                fontFamily: "inherit",
-                                fontSize: 13,
-                                fontWeight: active ? 600 : 400,
-                                cursor: "pointer",
-                                transition: "background 150ms ease",
-                              }}
-                            >
-                              {n}
-                            </button>
-                          );
-                        })}
-                      </div>
-                      <div style={{ ...mono, fontSize: 9, color: c.faint, display: "flex", justifyContent: "space-between" }}>
-                        <span>{cq.minLabel}</span>
-                        <span>{cq.maxLabel}</span>
-                      </div>
-                    </div>
-                  </Field>
-                );
-              }
-
-              // Texte court (input 1 ligne) ou texte libre (textarea 2 lignes).
-              const placeholder = "placeholder" in cq ? cq.placeholder : "";
-              if ("type" in cq && cq.type === "text") {
-                return (
-                  <Field key={q.key} c={c} label={q.label} hint={hint}>
-                    <input
-                      value={answers[q.key] ?? ""}
-                      onChange={(e) => setAnswers((a) => ({ ...a, [q.key]: e.target.value }))}
-                      style={inputStyle(c)}
-                      placeholder={placeholder}
-                    />
-                  </Field>
-                );
-              }
-              return (
-                <Field key={q.key} c={c} label={q.label} hint={hint}>
-                  <textarea
-                    rows={rows}
-                    value={answers[q.key] ?? ""}
-                    onChange={(e) => setAnswers((a) => ({ ...a, [q.key]: e.target.value }))}
-                    style={{ ...inputStyle(c), resize: "vertical", lineHeight: 1.5 }}
-                    placeholder={placeholder}
-                  />
-                </Field>
-              );
-            })}
-          </div>
-          <GlassButton c={c} kind="solid" type="submit" disabled={busy} style={{ padding: "13px 16px", opacity: busy ? 0.6 : 1 }}>
-            {busy ? "Enregistrement…" : tier === "coaching" ? "Continuer → Réserver le RDV" : "Terminer"}
-          </GlassButton>
-        </form>
-      )}
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 4 }}>
+              {qIndex > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setQIndex((i) => Math.max(0, i - 1))}
+                  style={{ ...mono, fontSize: 11, color: c.muted, background: "none", border: "none", cursor: "pointer", padding: "8px 0" }}
+                >
+                  ← Retour
+                </button>
+              )}
+              <GlassButton c={c} kind="solid" type="submit" disabled={busy} style={{ marginLeft: "auto", padding: "13px 18px", opacity: busy ? 0.6 : 1 }}>
+                {busy ? "Enregistrement…" : isLast ? (tier === "coaching" ? "Terminer → Réserver le RDV" : "Terminer") : "Suivant →"}
+              </GlassButton>
+            </div>
+          </form>
+        );
+      })()}
 
       {step === "upsell" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>

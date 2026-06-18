@@ -680,46 +680,47 @@ function HasDiscordScreen({
     <Screen c={c} dark={dark}>
       <Header
         c={c}
-        tag="ÉTAPE 2/2 · SANS DISCORD"
-        title="Créons ton Discord en 2 minutes."
+        tag="SANS COMPTE DISCORD"
+        title="Rejoins le serveur en 1 clic."
       />
+      <p style={{ fontSize: 14, color: c.muted, lineHeight: 1.55, margin: "0 0 18px" }}>
+        Pas encore de compte Discord ? Ce bouton le <strong style={{ color: c.text }}>crée</strong> et te fait
+        {" "}<strong style={{ color: c.text }}>rejoindre le serveur</strong> directement — pas besoin de passer par discord.com.
+      </p>
+      {/* Étape 1 — primaire : rejoindre le serveur (crée le compte + join). */}
+      <a
+        href={discordInvite}
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 8,
+          width: "100%",
+          boxSizing: "border-box",
+          padding: "15px 20px",
+          borderRadius: 12,
+          background: ACCENT,
+          color: "#fff",
+          fontWeight: 600,
+          fontSize: 15,
+          textDecoration: "none",
+          marginBottom: 16,
+        }}
+      >
+        Rejoindre le serveur AMOUR STUDIOS <ExternalLink size={15} />
+      </a>
       <ol style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 22, listStyle: "none", padding: 0 }}>
         <Step
           c={c}
           n={1}
-          title="Crée ton compte Discord (gratuit)"
-          action={
-            <a
-              href="https://discord.com/register"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ ...mono, fontSize: 10, color: "#5865F2", display: "inline-flex", alignItems: "center", gap: 6, textDecoration: "none" }}
-            >
-              Ouvrir discord.com <ExternalLink size={10} />
-            </a>
-          }
+          title="Clique le bouton ci-dessus → ton compte se crée (si besoin) et tu rejoins le serveur. Ton salon privé s'ouvre tout seul."
         />
-        {discordInvite && (
-          <Step
-            c={c}
-            n={2}
-            title="Rejoins notre serveur Discord"
-            action={
-              <a
-                href={discordInvite}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ ...mono, fontSize: 10, color: ACCENT, display: "inline-flex", alignItems: "center", gap: 6, textDecoration: "none" }}
-              >
-                Rejoindre <ExternalLink size={10} />
-              </a>
-            }
-          />
-        )}
         <Step
           c={c}
-          n={discordInvite ? 3 : 2}
-          title="Reviens ici et clique ci-dessous"
+          n={2}
+          title="Reviens sur cette page et clique « Continuer avec Discord » pour lier ton paiement."
         />
       </ol>
       <DiscordBtn onClick={triggerSignIn} />

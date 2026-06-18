@@ -287,7 +287,7 @@ function claimEmailHtml({
     )}
     ${stepRow(
       "02",
-      `<strong>Rejoins le Discord</strong> — un salon privé s'ouvre rien que pour toi.<br><span style="color:${MUTED};font-size:13.5px;">Clique sur <strong>« ✨ S'onboarder »</strong> dedans : tu reçois ton lien dans la foulée.</span>`
+      `<a href="${DISCORD_INVITE_URL}" style="color:${ORANGE};font-weight:600;">Rejoins le serveur Discord</a> — un salon privé s'ouvre rien que pour toi.<br><span style="color:${MUTED};font-size:13.5px;">(Pas encore de compte Discord ? Ce lien le crée et te fait rejoindre directement.) Clique ensuite sur <strong>« ✨ S'onboarder »</strong> dedans : tu reçois ton lien dans la foulée.</span>`
     )}
     ${stepRow(
       "03",
@@ -312,6 +312,7 @@ function claimEmailHtml({
       { color: INK_SOFT, size: 13.5, mb: 0 }
     )}
     ${directLink(claimUrl)}
+    ${directLink(DISCORD_INVITE_URL, "Lien du serveur Discord")}
   `;
   return layout({
     title: `Bienvenue chez AMOUR STUDIOS — ${tierLabel}`,
@@ -716,7 +717,7 @@ type RelanceTier = "coaching" | "communaute";
 const DISCORD_INVITE_URL =
   process.env.NEXT_PUBLIC_DISCORD_INVITE_URL ??
   process.env.DISCORD_INVITE_URL ??
-  "";
+  "https://discord.gg/78v8PSgjxx";
 
 function helloLine(firstName: string | null): string {
   return firstName ? `Salut ${escape(firstName)}` : "Salut";

@@ -631,6 +631,68 @@ export const markPresentedByDiscordId = internalMutation({
   },
 });
 
+/** Bot → clic « S'onboarder » dans le salon privé. Même résolution + self-heal
+ *  que markPresentedByDiscordId, MAIS renvoie le LIEN d'onboarding pour que le bot
+ *  le poste comme bouton dans le salon privé (en plus du DM + email).
+ *  Idempotent : re-clic (link_sent/form_done) → renvoie + re-envoie le lien ;
+ *  étapes finales (rdv_booked/community_ready) → renvoie le lien sans re-spammer. */
+export const startOnboardingByDiscordId = internalMutation({
+  args: { discordId: v.string() },
+  handler: async (ctx, { discordId }) => {
+    const site = (process.env.SITE_URL ?? "https://amour-studios.vercel.app").replace(/\/$/, "");
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_discord", (q) => q.eq("discordId", discordId))
+      .first();
+    if (!user) {
+      await alertStaffUnlinkedPresentation(ctx, discordId, "user_not_found");
+      return { ok: false as const, reason: "user_not_found" as const };
+    }
+    const tier = await scheduleRoleFromActivePurchase(ctx, user);
+    if (!tier) {
+      await alertStaffUnlinkedPresentation(ctx, discordId, "no_active_purchase");
+      return { ok: false as const, reason: "no_active_purchase" as const };
+    }
+    const ob = await ctx.db
+      .query("onboardings")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .first();
+    if (!ob) return { ok: true as const, tier, reason: "no_onboarding" as const };
+
+    const link = `${site}/onboarding/${ob.token}`;
+    const now = Date.now();
+
+    if (ob.step === "awaiting_presentation") {
+      await ctx.db.patch(ob._id, {
+        step: "link_sent",
+        presentedAt: ob.presentedAt ?? now,
+        linkSentAt: now,
+        updatedAt: now,
+      });
+      await logEvent(ctx, {
+        userId: user._id,
+        type: "onboarding.started",
+        title: "Onboarding démarré (bouton S'onboarder)",
+        actor: "discord_bot",
+      });
+    }
+    // (Re)envoie le lien DM+email tant qu'on n'est pas à une étape finale.
+    if (
+      ob.step === "awaiting_presentation" ||
+      ob.step === "link_sent" ||
+      ob.step === "form_done"
+    ) {
+      await ctx.scheduler.runAfter(0, internal.onboardings.sendLink, {
+        userId: user._id,
+        token: ob.token,
+        firstName: ob.firstName ?? null,
+        tier: ob.tier,
+      });
+    }
+    return { ok: true as const, tier, token: ob.token, link };
+  },
+});
+
 /** Bot Discord → un membre vient de REJOINDRE le serveur. On lui (ré)attribue
  *  son rôle d'après son purchase déjà lié. Couvre l'ordre « se connecter
  *  (OAuth + claim) AVANT de rejoindre le serveur » : à l'arrivée, le compte
@@ -690,8 +752,8 @@ export const sendLink = internalAction({
         const greet = name ? `Salut ${name} 👋\n\n` : "Salut 👋\n\n";
         const intro =
           tier === "coaching"
-            ? "Merci pour ta présentation ✨\n\n**Pour débloquer ton accès Discord complet** (écriture dans tous les channels, lives, feedback), il te reste 3 étapes obligatoires :\n\n1️⃣ Tes coordonnées (~30s)\n2️⃣ Questionnaire (~5 min) pour que Walid prépare ton 1er appel\n3️⃣ **Réserver ton 1er appel avec Walid** ← c'est ce qui débloque ton accès\n\nTant que le RDV n'est pas réservé, ton accès Discord reste limité."
-            : "Merci pour ta présentation ✨\n\n**Pour débloquer ton accès complet communauté**, il te reste 2 petites étapes (~2 min) :\n\n1️⃣ Tes coordonnées\n2️⃣ 3 questions rapides\n\nTant que ce n'est pas complété, ton accès reste limité.";
+            ? "C'est parti ✨\n\n**Pour débloquer ton accès Discord complet** (écriture dans tous les channels, lives, feedback), il te reste 3 étapes :\n\n1️⃣ Tes coordonnées (~30s)\n2️⃣ Questionnaire (~5 min) pour que Walid prépare ton 1er appel\n3️⃣ **Réserver ton 1er appel avec Walid** ← c'est ce qui débloque ton accès\n\nTant que le RDV n'est pas réservé, ton accès Discord reste limité."
+            : "C'est parti ✨\n\n**Pour débloquer ton accès complet communauté**, il te reste 2 petites étapes (~2 min) :\n\n1️⃣ Tes coordonnées\n2️⃣ 3 questions rapides\n\nTant que ce n'est pas complété, ton accès reste limité.";
         await ctx.runAction(internal.onboardings.discordDm, {
           discordId: u.discordId,
           content: `${greet}${intro}\n\n👉 ${link}`,
@@ -793,7 +855,7 @@ export const sendStatusDm = internalAction({
     if (context === "payment_canceled" || s.purchaseStatus === "canceled") {
       content = `${Hi}\n\nTon accès AMOUR STUDIOS a pris fin. Si tu veux revenir, tu reprends en 1 clic ici 👉 ${site}/compte\nUne question ? Réponds à ce DM. 🧡`;
     } else if (!s.step || s.step === "awaiting_presentation") {
-      content = `${Hi}\n\nIl te reste une étape pour débloquer ton accès : **présente-toi dans #🎤・présente-toi** (qui tu es, ton projet, ce que tu cherches). Dès que tu postes, je t'envoie ton lien dans la foulée. 🔥`;
+      content = `${Hi}\n\nIl te reste une étape pour débloquer ton accès : **clique sur « ✨ S'onboarder » dans ton salon privé** (ton salon personnel à l'arrivée sur le serveur). Je t'envoie ton lien d'onboarding dans la foulée. 🔥`;
     } else if (s.step === "link_sent") {
       content =
         s.tier === "coaching"
@@ -851,11 +913,24 @@ export const grantOnboarded = internalAction({
       // Nudge espace membre : le membre sait où aller dès l'activation, sans que
       // le coach envoie quoi que ce soit. Toujours retrouvable dans #mon-espace.
       const espace = `\n\n👉 **Ton espace** : tes exercices ${base}/exos · ton compte ${base}/compte\n(toujours dispo dans #mon-espace)`;
+      // Étape finale encouragée : se présenter à la communauté dans #général
+      // (deep-link si les IDs sont configurés) + un exemple pour aider.
+      const guildId = process.env.DISCORD_GUILD_ID;
+      const generalId = process.env.DISCORD_GENERAL_CHANNEL_ID;
+      const generalRef =
+        guildId && generalId
+          ? `👉 https://discord.com/channels/${guildId}/${generalId}`
+          : "dans **#général** sur le Discord";
+      const presentation =
+        `\n\n🎤 **Dernière chose : présente-toi à la communauté !** Passe ${generalRef}\n` +
+        `Poste une courte présentation + un de tes reels. Par exemple :\n` +
+        `> Salut, moi c'est ${u.firstName ?? "[prénom]"}, artiste depuis [X temps]. Je bosse sur [ton projet], et je suis là pour [ton objectif]. Voici un de mes derniers sons 👇`;
       const content =
         (u.tier === "coaching"
           ? `🎉 ${hi}c'est validé ! Ton accès est complet : tu peux désormais écrire dans tous les channels, ton espace exercices est ouvert, et ton 1er RDV est calé. On se voit très vite. 🚀`
-          : `🎉 ${hi}bienvenue dans AMOUR STUDIOS ! Ta présentation est validée — tu as maintenant accès à **tous les channels** de la communauté. Partage ta musique, pose tes questions, profite des ressources. 🎵`) +
-        espace;
+          : `🎉 ${hi}bienvenue dans AMOUR STUDIOS ! Ton profil est validé — tu as maintenant accès à **tous les channels** de la communauté. Partage ta musique, pose tes questions, profite des ressources. 🎵`) +
+        espace +
+        presentation;
       await ctx.scheduler.runAfter(0, internal.onboardings.discordDm, {
         discordId: u.discordId,
         content,
@@ -1182,12 +1257,12 @@ function relanceDiscordContent({
 
   if (scenario === "presentation") {
     if (level === 24) {
-      return `${hello}\n\nPetit rappel : tu n'as pas encore posté ta présentation dans **#🎤・présente-toi**.\n\nC'est l'étape qui débloque ton onboarding ${tier === "coaching" ? "coaching" : "communauté"}. Un message et on t'envoie ton lien dans la foulée 🔥`;
+      return `${hello}\n\nPetit rappel : tu n'as pas encore démarré ton onboarding.\n\nClique sur **« ✨ S'onboarder »** dans ton salon privé Discord et je t'envoie ton lien dans la foulée 🔥 (onboarding ${tier === "coaching" ? "coaching" : "communauté"}).`;
     }
     if (level === 48) {
-      return `${hello}\n\nÇa fait 2 jours, ta présentation Discord est toujours en attente.\n\nSans ce message dans **#🎤・présente-toi**, on ne peut pas t'envoyer ton lien d'onboarding. C'est 30 secondes, vraiment.`;
+      return `${hello}\n\nÇa fait 2 jours, ton onboarding n'est toujours pas démarré.\n\nUn clic sur **« ✨ S'onboarder »** dans ton salon privé Discord et tu reçois ton lien. C'est 30 secondes, vraiment.`;
     }
-    return `${hello}\n\n**Dernier rappel.** 7 jours sans présentation.\n\nSi tu ne fais pas le message dans **#🎤・présente-toi** rapidement, on devra fermer ton onboarding et libérer ta place.\n\nUn blocage ? Réponds à ce DM, on regarde ensemble.`;
+    return `${hello}\n\n**Dernier rappel.** 7 jours sans avoir démarré ton onboarding.\n\nSi tu ne cliques pas sur **« ✨ S'onboarder »** (salon privé Discord) rapidement, on devra fermer ton onboarding et libérer ta place.\n\nUn blocage ? Réponds à ce DM, on regarde ensemble.`;
   }
 
   if (scenario === "questionnaire") {

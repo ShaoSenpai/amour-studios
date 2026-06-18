@@ -1003,6 +1003,43 @@ http.route({
   }),
 });
 
+// ── Webhook Discord « S'onboarder » ─────────────────────────────────────────
+// Le membre clique le bouton « S'onboarder » dans son salon privé → le bot POST
+// ici avec son discordId → on (ré)assure son rôle, on avance l'onboarding +
+// envoie le lien (DM+email) ET on RENVOIE le lien pour que le bot le poste dans
+// le salon privé. Auth IDENTIQUE à /webhooks/discord/presentation.
+http.route({
+  path: "/webhooks/discord/start-onboarding",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const expected = process.env.DISCORD_BOT_ENDPOINT_SECRET;
+    if (!expected) {
+      return new Response("Not configured", { status: 500 });
+    }
+    const auth = request.headers.get("Authorization") ?? "";
+    if (auth !== `Bearer ${expected}`) {
+      return new Response("Unauthorized", { status: 401 });
+    }
+    let body: { discordId?: string } = {};
+    try {
+      body = (await request.json()) as { discordId?: string };
+    } catch {
+      return new Response("Bad JSON", { status: 400 });
+    }
+    const discordId = (body.discordId ?? "").trim();
+    if (!discordId) return new Response("discordId required", { status: 400 });
+
+    const res = await ctx.runMutation(
+      internal.onboardings.startOnboardingByDiscordId,
+      { discordId }
+    );
+    return new Response(JSON.stringify(res), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }),
+});
+
 // ── Webhook Discord membre rejoint ──────────────────────────────────────────
 // Le bot écoute `guildMemberAdd`. À l'arrivée d'un membre (non-bot, bonne
 // guild), il POST ici avec son discordId → on lui (ré)attribue son rôle d'après

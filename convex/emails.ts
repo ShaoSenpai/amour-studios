@@ -287,7 +287,7 @@ function claimEmailHtml({
     )}
     ${stepRow(
       "02",
-      `<strong>Présente-toi</strong> dans le channel <strong>#🎤・présente-toi</strong> du Discord.<br><span style="color:${MUTED};font-size:13.5px;">C'est obligatoire — c'est ce qui débloque la suite (et anime le serveur 🔥).</span>`
+      `<strong>Rejoins le Discord</strong> — un salon privé s'ouvre rien que pour toi.<br><span style="color:${MUTED};font-size:13.5px;">Clique sur <strong>« ✨ S'onboarder »</strong> dedans : tu reçois ton lien dans la foulée.</span>`
     )}
     ${stepRow(
       "03",
@@ -308,7 +308,7 @@ function claimEmailHtml({
     ${button({ href: claimUrl, label: "Activer mon accès" })}
     ${panel(`${kicker("Ta route")}${steps}`)}
     ${para(
-      `💡 <strong>Avant ta présentation</strong>, tu vois déjà tous les channels mais tu ne peux pas écrire dedans — c'est volontaire, ça force chacun à faire connaissance.`,
+      `💡 Au début tu vois les channels mais tu ne peux pas encore écrire — ça se débloque une fois ton onboarding terminé. C'est normal.`,
       { color: INK_SOFT, size: 13.5, mb: 0 }
     )}
     ${directLink(claimUrl)}
@@ -660,8 +660,8 @@ function onboardingLinkEmailHtml({
   const hello = firstName ? `Salut ${escape(firstName)}` : "Salut";
   const intro =
     tier === "coaching"
-      ? "On a vu ta présentation sur le Discord 🙌 Prochaine étape : 3 étapes pour débloquer ton accès complet — questionnaire (~5 min) puis réservation de ton 1er appel avec Walid."
-      : "On a vu ta présentation sur le Discord 🙌 Dernière étape pour débloquer ton accès complet : 2-3 petites questions (~2 min).";
+      ? "C'est parti 🙌 Pour débloquer ton accès complet : un questionnaire (~5 min) puis la réservation de ton 1er appel avec Walid."
+      : "C'est parti 🙌 Dernière étape pour débloquer ton accès complet : 2-3 petites questions (~2 min).";
   const cta = tier === "coaching" ? "Commencer l'onboarding" : "Compléter mon profil";
   const unlockLabel =
     tier === "coaching"
@@ -738,14 +738,14 @@ function copyForScenario(
   // côté wrappers 24h/48h/7d).
   if (scenario === "presentation") {
     return {
-      ctaLabel: DISCORD_INVITE_URL ? "Rejoindre Discord et me présenter" : "Aller sur Discord",
+      ctaLabel: DISCORD_INVITE_URL ? "Rejoindre le Discord" : "Aller sur Discord",
       ctaHref: DISCORD_INVITE_URL || link,
-      hookLine: "Ta présentation Discord n'est toujours pas faite.",
+      hookLine: "Tu n'as pas encore démarré ton onboarding.",
       bodyLine:
         tier === "coaching"
-          ? "C'est la 1ère étape obligatoire pour ouvrir ton onboarding coaching. Un message dans <strong>#🎤・présente-toi</strong> et on t'envoie ton lien dans la foulée."
-          : "C'est la 1ère étape obligatoire pour ouvrir ton accès communauté. Un message dans <strong>#🎤・présente-toi</strong> et on t'envoie ton lien dans la foulée.",
-      warningLine: "Tant que tu n'as pas posté ta présentation, tu vois les channels mais tu ne peux pas écrire.",
+          ? "Sur le Discord, un <strong>salon privé</strong> s'est ouvert pour toi : clique sur <strong>« ✨ S'onboarder »</strong> dedans et on t'envoie ton lien dans la foulée (onboarding coaching)."
+          : "Sur le Discord, un <strong>salon privé</strong> s'est ouvert pour toi : clique sur <strong>« ✨ S'onboarder »</strong> dedans et on t'envoie ton lien dans la foulée (accès communauté).",
+      warningLine: "Tant que ton onboarding n'est pas démarré, tu vois les channels mais tu ne peux pas écrire.",
       optionalDiscord: DISCORD_INVITE_URL
         ? directLink(DISCORD_INVITE_URL, "Lien Discord")
         : "",
@@ -846,9 +846,9 @@ function relanceEmailHtml({
 
 function relanceSubject(level: 24 | 48 | 7, scenario: Scenario): string {
   if (scenario === "presentation") {
-    if (level === 24) return "Tu as oublié ? Présente-toi sur Discord pour débloquer ton accès";
-    if (level === 48) return "Relance · ta présentation Discord est toujours en attente";
-    return "Dernier rappel · ton accès reste fermé tant que tu ne t'es pas présenté";
+    if (level === 24) return "Tu as oublié ? Clique sur « S'onboarder » dans ton salon privé Discord";
+    if (level === 48) return "Relance · ton onboarding n'est toujours pas démarré";
+    return "Dernier rappel · ton accès reste fermé tant que tu n'as pas démarré ton onboarding";
   }
   if (scenario === "questionnaire") {
     if (level === 24) return "2 min pour finir ton onboarding · AMOUR STUDIOS";
@@ -935,7 +935,7 @@ function walidAlertHtml({
 }): string {
   const scenarioLabel =
     scenario === "presentation"
-      ? "Bloqué à : présentation Discord (étape 1)"
+      ? "Bloqué à : démarrage onboarding (bouton S'onboarder, étape 1)"
       : scenario === "questionnaire"
       ? "Bloqué à : questionnaire onboarding (étape 2)"
       : "Bloqué à : réservation 1er RDV (étape 3)";

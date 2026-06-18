@@ -31,7 +31,7 @@ Approche écartée (YAGNI) : slash commands `/exos` `/compte`, boutons suppléme
 
 ### 2. Nudge à l'activation (Convex)
 
-**Fichier :** `convex/onboardings.ts` — `sendStatusDm`, branche contexte `complete` (le DM « 🎉 c'est validé, ton accès est complet »).
+**Fichier :** `convex/onboardings.ts` — `grantOnboarded` (le DM « 🎉 c'est validé, ton accès est complet » envoyé à l'attribution du rôle Onboardé, lignes ~850-853, 2 variantes coaching/communauté).
 
 - Compléter le contenu avec **deux liens directs** + une mention du salon :
   - `Tes exercices : ${site}/exos`

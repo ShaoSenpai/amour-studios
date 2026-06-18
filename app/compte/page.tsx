@@ -27,7 +27,9 @@ import { Kicker, BigTitle, EditorialBlock } from "@/app/_components/editorial";
 // useSearchParams impose un <Suspense> en Next 16 → wrapper en bas de fichier.
 // ============================================================================
 
-const DISCORD_INVITE = "https://discord.gg/x9humyUMnJ";
+// Lien DIRECT vers le serveur (membre déjà dans le serveur → pas d'écran
+// d'invitation redondant). L'invitation discord.gg/… est réservée aux non-membres.
+const DISCORD_INVITE = "https://discord.com/channels/1474736345900388453";
 // Lien Calendly du 1er RDV — MÊME source que le flow onboarding
 // (app/onboarding/[token]/page.tsx). NEXT_PUBLIC_* est inliné au build Vercel,
 // donc dispo côté client et garanti cohérent avec l'onboarding.

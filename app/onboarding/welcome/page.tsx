@@ -28,8 +28,9 @@ import {
 //     un email + un DM Discord arrivent avec le lien /onboarding/[token].
 // ============================================================================
 
-const DISCORD_INVITE =
-  process.env.NEXT_PUBLIC_DISCORD_INVITE_URL ?? "https://discord.gg/x9humyUMnJ";
+// Lien DIRECT vers le serveur (l'utilisateur a déjà rejoint pour faire son
+// onboarding → pas d'écran d'invitation redondant).
+const DISCORD_INVITE = "https://discord.com/channels/1474736345900388453";
 
 export default function OnboardingWelcomePage() {
   const dark = useIsDark();

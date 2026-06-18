@@ -206,13 +206,9 @@ export default function DashboardPage() {
               kind="community"
               label="Communauté"
               title="Rejoins la conversation"
-              href={process.env.NEXT_PUBLIC_DISCORD_INVITE_URL}
+              href="https://discord.com/channels/1474736345900388453"
               ctaLabel="Ouvrir"
-              body={
-                process.env.NEXT_PUBLIC_DISCORD_INVITE_URL
-                  ? "Les autres artistes sont sur Discord — #entraide & #nouveautés."
-                  : "Discord arrive bientôt."
-              }
+              body="Les autres artistes sont sur Discord — #entraide & #nouveautés."
             />
           </div>
         </section>

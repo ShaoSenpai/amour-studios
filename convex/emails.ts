@@ -718,6 +718,10 @@ const DISCORD_INVITE_URL =
   process.env.NEXT_PUBLIC_DISCORD_INVITE_URL ??
   process.env.DISCORD_INVITE_URL ??
   "https://discord.gg/x9humyUMnJ";
+// Lien DIRECT vers le serveur (membre déjà dans le serveur → pas d'invitation
+// redondante). Réservé aux contextes « déjà membre » (relances onboarding).
+const DISCORD_SERVER_URL =
+  "https://discord.com/channels/" + (process.env.DISCORD_GUILD_ID ?? "1474736345900388453");
 
 function helloLine(firstName: string | null): string {
   return firstName ? `Salut ${escape(firstName)}` : "Salut";
@@ -739,17 +743,16 @@ function copyForScenario(
   // côté wrappers 24h/48h/7d).
   if (scenario === "presentation") {
     return {
-      ctaLabel: DISCORD_INVITE_URL ? "Rejoindre le Discord" : "Aller sur Discord",
-      ctaHref: DISCORD_INVITE_URL || link,
+      // Déjà membre du serveur (il a rejoint) → lien DIRECT, pas l'invitation.
+      ctaLabel: "Ouvrir le Discord",
+      ctaHref: DISCORD_SERVER_URL,
       hookLine: "Tu n'as pas encore démarré ton onboarding.",
       bodyLine:
         tier === "coaching"
           ? "Sur le Discord, un <strong>salon privé</strong> s'est ouvert pour toi : clique sur <strong>« ✨ S'onboarder »</strong> dedans et on t'envoie ton lien dans la foulée (onboarding coaching)."
           : "Sur le Discord, un <strong>salon privé</strong> s'est ouvert pour toi : clique sur <strong>« ✨ S'onboarder »</strong> dedans et on t'envoie ton lien dans la foulée (accès communauté).",
       warningLine: "Tant que ton onboarding n'est pas démarré, tu vois les channels mais tu ne peux pas écrire.",
-      optionalDiscord: DISCORD_INVITE_URL
-        ? directLink(DISCORD_INVITE_URL, "Lien Discord")
-        : "",
+      optionalDiscord: directLink(DISCORD_SERVER_URL, "Lien Discord"),
     };
   }
   if (scenario === "questionnaire") {

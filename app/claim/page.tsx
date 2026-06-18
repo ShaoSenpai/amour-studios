@@ -344,8 +344,9 @@ function ClaimInner() {
 
   // Succès → guidage vers le serveur Discord (étape obligatoire d'activation).
   if (claimState === "done") {
-    const discordInvite =
-      process.env.NEXT_PUBLIC_DISCORD_INVITE_URL ?? "https://discord.gg/x9humyUMnJ";
+    // Écran « done » : la liaison est faite et (en invitation-first) il a déjà
+    // rejoint le serveur → lien DIRECT (pas d'invitation redondante).
+    const discordInvite = "https://discord.com/channels/1474736345900388453";
     return (
       <Screen c={c} dark={dark}>
         <Header

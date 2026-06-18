@@ -31,9 +31,9 @@ const CALENDLY_URL =
   process.env.NEXT_PUBLIC_CALENDLY_URL ??
   "https://calendly.com/amourstudios/onboarding";
 
-const DISCORD_INVITE =
-  process.env.NEXT_PUBLIC_DISCORD_INVITE_URL ??
-  "https://discord.gg/x9humyUMnJ";
+// Lien DIRECT vers le serveur (écran de fin = membre déjà dans le serveur →
+// pas d'écran d'invitation redondant).
+const DISCORD_INVITE = "https://discord.com/channels/1474736345900388453";
 
 // Vidéo « quick win » de l'écran post-questionnaire (coaching). Lecteur Mux
 // chargé côté client uniquement (web component → pas de SSR). Si le playback ID

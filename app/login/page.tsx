@@ -150,7 +150,7 @@ function LoginInner() {
     );
   }
 
-  // ── État par défaut : 2 étapes ──────────────────────────────────────
+  // ── État par défaut : connexion directe (1 action) ──────────────────
   return (
     <main style={shell}>
       <Glass c={c} dark={dark} strong pad={0} style={{ width: "100%", maxWidth: 460, overflow: "hidden" }}>
@@ -159,56 +159,28 @@ function LoginInner() {
 
           <div>
             <div style={{ ...mono, color: c.muted }}>Accès réservé aux membres</div>
-            <h1 style={{ ...num, fontSize: 38, fontWeight: 500, lineHeight: 1.05, margin: "10px 0 0" }}>
-              Entre dans ton univers.
+            <h1 style={{ ...num, fontSize: 34, fontWeight: 500, lineHeight: 1.1, margin: "10px 0 0" }}>
+              Connexion
             </h1>
           </div>
 
-          {/* Étape 1 — Discord (pré-requis) */}
-          <div
+          {/* Connexion Discord — action unique */}
+          <GlassButton
+            c={c}
+            kind="solid"
+            onClick={handleDiscordSignIn}
+            disabled={isLoading}
             style={{
-              border: "1px solid rgba(88,101,242,0.30)",
-              background: "rgba(88,101,242,0.08)",
-              borderRadius: 12,
-              padding: "16px 18px",
+              width: "100%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 10,
+              opacity: isLoading ? 0.6 : 1,
             }}
           >
-            <div style={{ ...mono, fontSize: 10, color: DISCORD, marginBottom: 8 }}>
-              ÉTAPE 1 — REJOINS LE SERVEUR
-            </div>
-            <p style={{ fontSize: 13.5, color: c.muted, lineHeight: 1.5, marginBottom: 12 }}>
-              Tu dois être membre du Discord Amour Studios pour accéder à l&apos;app. C&apos;est gratuit.
-            </p>
-            <a
-              href={discordInvite}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ ...discordBtn, padding: "10px 14px", fontSize: 13 }}
-            >
-              <DiscordIcon size={16} /> Rejoindre le serveur →
-            </a>
-          </div>
-
-          {/* Étape 2 — Connexion */}
-          <div>
-            <div style={{ ...mono, color: c.muted, marginBottom: 10 }}>ÉTAPE 2 — CONNECTE-TOI</div>
-            <GlassButton
-              c={c}
-              kind="solid"
-              onClick={handleDiscordSignIn}
-              disabled={isLoading}
-              style={{
-                width: "100%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 10,
-                opacity: isLoading ? 0.6 : 1,
-              }}
-            >
-              <DiscordIcon /> {isLoading ? "Redirection…" : "Continuer avec Discord"}
-            </GlassButton>
-          </div>
+            <DiscordIcon /> {isLoading ? "Redirection…" : "Se connecter avec Discord"}
+          </GlassButton>
 
           <div style={{ borderTop: `1px solid ${c.line}`, paddingTop: 16 }}>
             <p style={{ ...mono, fontSize: 10.5, color: c.muted, textAlign: "center" }}>

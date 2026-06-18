@@ -457,6 +457,105 @@ export const revokeAccess = mutation({
   },
 });
 
+/**
+ * Offrir un accès GRATUIT (comp) — sans Stripe ni paiement.
+ * Crée un purchase `source:"gift"` (montant 0) au bon tier → débloque /exos
+ * (coaching) via getActivePurchase, ET synchronise les rôles Discord
+ * (Membre/Coaching + Onboardé) si on connaît le discordId. Exclu du MRR.
+ */
+export const grantCompAccess = mutation({
+  args: {
+    email: v.string(),
+    discordId: v.optional(v.string()),
+    tier: v.union(v.literal("communaute"), v.literal("coaching")),
+    reason: v.optional(v.string()),
+    expiresAt: v.optional(v.number()),
+  },
+  handler: async (ctx, { email, discordId, tier, reason, expiresAt }) => {
+    const { userId: adminUserId } = await requireAdmin(ctx);
+    const now = Date.now();
+    const e = email.trim().toLowerCase();
+    if (!e) throw new Error("Email requis");
+    const did = discordId?.trim() || undefined;
+
+    // User existant ? (par email, puis par discordId)
+    let user = await ctx.db
+      .query("users")
+      .withIndex("email", (q) => q.eq("email", e))
+      .first();
+    if (!user && did) {
+      user = await ctx.db
+        .query("users")
+        .withIndex("by_discord", (q) => q.eq("discordId", did))
+        .first();
+    }
+
+    const purchaseId = await ctx.db.insert("purchases", {
+      email: e,
+      stripeSessionId: `gift_${now}`,
+      stripePaymentIntentId: `gift_${now}`,
+      amount: 0,
+      currency: "eur",
+      status: "active",
+      tier,
+      duree: tier === "coaching" ? "3mois" : undefined,
+      createdAt: now,
+      paidAt: now,
+      source: "gift",
+      grantedByUserId: adminUserId,
+      grantReason: reason?.trim() || undefined,
+      expiresAt,
+      ...(user ? { userId: user._id } : {}),
+    });
+
+    // Lier l'user (ou créer un pré-user, réutilisé au login Discord par email).
+    let targetUserId = user?._id;
+    if (user) {
+      await ctx.db.patch(user._id, {
+        purchaseId,
+        lastActiveAt: now,
+        ...(user.deletedAt ? { deletedAt: undefined } : {}),
+      });
+    } else {
+      targetUserId = await ctx.db.insert("users", {
+        email: e,
+        discordId: did,
+        role: "member",
+        purchaseId,
+        xp: 0,
+        streakDays: 0,
+        lastActiveAt: now,
+        createdAt: now,
+      });
+      await ctx.db.patch(purchaseId, { userId: targetUserId });
+    }
+
+    // Rôles Discord (Membre/Coaching + Onboardé pour ne pas être gaté).
+    const resolvedDid = did ?? user?.discordId;
+    if (resolvedDid) {
+      await ctx.scheduler.runAfter(0, internal.stripe.assignDiscordRole, {
+        discordId: resolvedDid,
+        email: e,
+        tier,
+      });
+      if (targetUserId) {
+        await ctx.scheduler.runAfter(0, internal.onboardings.grantOnboarded, {
+          userId: targetUserId,
+        });
+      }
+    }
+
+    await logEvent(ctx, {
+      userId: targetUserId,
+      type: "access.gift",
+      title: `Accès offert · ${tier === "coaching" ? "Coaching" : "Communauté"}${reason?.trim() ? " — " + reason.trim() : ""}`,
+      actor: "admin",
+    });
+
+    return { ok: true as const, purchaseId, userExisted: !!user, discordSynced: !!resolvedDid };
+  },
+});
+
 // ============================================================================
 // Cockpit admin — stats, activity, watchlist, broadcast
 // ============================================================================

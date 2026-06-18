@@ -1420,6 +1420,7 @@ export function selectPaymentsOverview(): Payments {
       return {
         id: pid(`p_${s._id as unknown as string}`),
         eleveId: s._id,
+        offert: false,
         who: s.discordUsername || s.name || "—",
         offre,
         montant: `${s.tier === "coaching" ? 179 : 79} €`,

@@ -958,7 +958,9 @@ export const paymentsOverview = query({
     for (const p of purchases) {
       if (!isActive(p)) continue;
       actifs += 1;
-      mrr += priceOf(p);
+      // Accès offerts (source "gift") : comptés comme membres actifs mais PAS
+      // dans le MRR (ce n'est pas du revenu).
+      if (p.source !== "gift") mrr += priceOf(p);
       if (p.tier === "coaching") {
         if (p.duree === "3mois") coaching3m += 1;
         else coaching1m += 1;
@@ -975,7 +977,7 @@ export const paymentsOverview = query({
       const monthEnd = now - i * 30 * DAY;
       let sum = 0;
       for (const p of purchases) {
-        if (!isActive(p)) continue;
+        if (!isActive(p) || p.source === "gift") continue;
         if ((p.paidAt ?? p.createdAt ?? 0) <= monthEnd) sum += priceOf(p);
       }
       mrrSeries.push(sum);
@@ -1007,7 +1009,8 @@ export const paymentsOverview = query({
             p.tier === "coaching"
               ? `Coaching${p.duree === "3mois" ? " 3 mois" : p.duree === "1mois" ? " 1 mois" : ""}`
               : "Communauté",
-          montant: `${priceOf(p)} €`,
+          montant: p.source === "gift" ? "Offert" : `${priceOf(p)} €`,
+          offert: p.source === "gift",
           statut: p.status,
           echeance: p.currentPeriodEnd ?? null,
           depuis: p.paidAt ?? p.createdAt,

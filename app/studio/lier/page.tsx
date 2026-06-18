@@ -92,6 +92,14 @@ export default function LierPage() {
 
   const linkMutation = useMutation(api.admin.adminLinkDiscordToPurchase);
 
+  // Offrir un accès gratuit (comp).
+  const giftMutation = useMutation(api.admin.grantCompAccess);
+  const [giftEmail, setGiftEmail] = useState("");
+  const [giftDiscordId, setGiftDiscordId] = useState("");
+  const [giftTier, setGiftTier] = useState<"communaute" | "coaching">("coaching");
+  const [giftReason, setGiftReason] = useState("");
+  const [gifting, setGifting] = useState(false);
+
   const trimmedDiscordId = discordId.trim();
   const canLink = trimmedDiscordId.length > 0;
 
@@ -129,6 +137,39 @@ export default function LierPage() {
     }
   };
 
+  const handleGift = async () => {
+    const e = giftEmail.trim().toLowerCase();
+    if (!e) {
+      toast.error("Renseigne l'email de la personne.");
+      return;
+    }
+    if (gifting) return;
+    setGifting(true);
+    try {
+      const res = await giftMutation({
+        email: e,
+        discordId: giftDiscordId.trim() || undefined,
+        tier: giftTier,
+        reason: giftReason.trim() || undefined,
+      });
+      if (res?.ok) {
+        toast.success(
+          `Accès ${giftTier === "coaching" ? "Coaching" : "Communauté"} offert${res.discordSynced ? " (rôles Discord en cours)" : " — ajoute le Discord ID pour donner aussi les rôles"}.`,
+          { duration: 6000 }
+        );
+        setGiftEmail("");
+        setGiftDiscordId("");
+        setGiftReason("");
+      } else {
+        toast.error("Échec.");
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erreur.");
+    } finally {
+      setGifting(false);
+    }
+  };
+
   return (
     <main
       style={{
@@ -160,6 +201,67 @@ export default function LierPage() {
             à sa prochaine connexion Discord.
           </p>
         </div>
+
+        {/* Offrir un accès gratuit (comp) */}
+        <Glass c={c} dark={dark}>
+          <div style={{ ...mono, color: ACCENT, marginBottom: 4 }}>◦ Offrir un accès</div>
+          <p style={{ fontSize: 13, color: c.muted, margin: "0 0 14px", lineHeight: 1.5, maxWidth: 560 }}>
+            Donne un accès <strong>gratuit</strong> (partenaire, cadeau, test) sans paiement.
+            Débloque l&apos;accès + les rôles Discord (si tu mets le Discord ID).
+            N&apos;impacte pas le MRR.
+          </p>
+          <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: 10 }}>
+            <input
+              value={giftEmail}
+              onChange={(ev) => setGiftEmail(ev.target.value)}
+              placeholder="Email de la personne"
+              type="email"
+              style={inputStyle(c)}
+            />
+            <input
+              value={giftDiscordId}
+              onChange={(ev) => setGiftDiscordId(ev.target.value)}
+              placeholder="Discord ID (optionnel, pour les rôles)"
+              inputMode="numeric"
+              style={inputStyle(c)}
+            />
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12, alignItems: "center" }}>
+            {(["communaute", "coaching"] as const).map((t) => (
+              <button
+                key={t}
+                onClick={() => setGiftTier(t)}
+                style={{
+                  ...mono,
+                  fontSize: 11,
+                  padding: "9px 16px",
+                  minHeight: 40,
+                  borderRadius: 999,
+                  cursor: "pointer",
+                  border: `1px solid ${giftTier === t ? ACCENT : c.line}`,
+                  background: giftTier === t ? ACCENT : c.chip,
+                  color: giftTier === t ? "#0B0B0B" : c.muted,
+                }}
+              >
+                {t === "coaching" ? "Coaching (exos + RDV)" : "Communauté"}
+              </button>
+            ))}
+            <input
+              value={giftReason}
+              onChange={(ev) => setGiftReason(ev.target.value)}
+              placeholder="Raison (optionnel)"
+              style={{ ...inputStyle(c), flex: 1, minWidth: 160 }}
+            />
+          </div>
+          <GlassButton
+            c={c}
+            kind="solid"
+            onClick={handleGift}
+            style={{ marginTop: 14, padding: "11px 20px", fontSize: 12, minHeight: 44, opacity: gifting ? 0.6 : 1 }}
+          >
+            {gifting ? "…" : "Offrir l'accès →"}
+          </GlassButton>
+        </Glass>
 
         {/* Discord ID */}
         <Glass c={c} dark={dark}>

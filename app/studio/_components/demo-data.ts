@@ -463,6 +463,7 @@ function sub(opts: {
   return {
     id: pid(`p_${opts.key}`),
     eleveId: null,
+    offert: false,
     who: opts.who,
     offre: opts.offre,
     montant: `${opts.montant} €`,

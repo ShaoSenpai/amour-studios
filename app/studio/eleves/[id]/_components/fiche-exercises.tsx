@@ -16,6 +16,10 @@ type FicheExerciseItem = {
   moduleOrder: number;
   moduleTitle: string;
   lessonTitle: string;
+  // Nouveau flow : lien direct vers l'outil interactif (même que /exos élève) +
+  // ordre pédagogique pour trier comme la liste de Walid.
+  exerciseUrl?: string;
+  lessonOrder?: number;
   completedAt?: number;
   responseUpdatedAt?: number;
   progressPercent?: number;
@@ -30,9 +34,11 @@ export function ExercisesBlock({
   if (exercises.length === 0) {
     return <div style={{ ...mono, color: c.faint }}>Aucun exercice pour cet élève.</div>;
   }
+  // Ordre pédagogique FIXE = module puis ordre de leçon (= l'ordre de Walid),
+  // identique au catalogue élève /exos. Plus de tri alphabétique.
   const sorted = [...exercises].sort((a, b) => {
     if (a.moduleOrder !== b.moduleOrder) return a.moduleOrder - b.moduleOrder;
-    return (a.title || "").localeCompare(b.title || "");
+    return (a.lessonOrder ?? 0) - (b.lessonOrder ?? 0);
   });
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -52,10 +58,16 @@ export function ExercisesBlock({
             : ex.responseUpdatedAt
             ? `En cours · ${Math.round(ex.progressPercent ?? 0)} %`
             : "À commencer";
+        // Nouveau flow : exo interactif (a une exerciseUrl) → ouvre DIRECTEMENT
+        // l'outil (même livrable que l'élève voit). Sinon (exo config/interne ou
+        // verrouillé sans URL) → page détail interne /exos/[id].
+        const href = ex.exerciseUrl
+          ? ex.exerciseUrl
+          : `/exos/${ex._id as unknown as string}`;
         return (
           <a
             key={(ex._id as unknown as string) + i}
-            href={`/exos/${ex._id as unknown as string}`}
+            href={href}
             target="_blank"
             rel="noopener noreferrer"
             style={{

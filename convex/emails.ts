@@ -985,3 +985,99 @@ export const sendWalidStuckStudentAlert = internalAction({
     return { ok: res.ok };
   },
 });
+
+// ─── Email — Win-back fin de coaching → Communauté 79€ (J-7 / J-1 / J:0) ──────
+// Séquence de rétention : quand le coaching 3 mois touche à sa fin, on ne lâche
+// pas le membre dans la nature — on lui propose d'atterrir dans la Communauté
+// 79€/mois (Discord + ressources + groupe). 3 paliers : J-7, J-1, puis J:0
+// (le jour où l'accès se ferme). Envoyé par le cron lifecycle (J-7/J-1) et par
+// le webhook customer.subscription.deleted (J:0).
+
+const COMMU_URL = "https://amourstudios.fr/paiement/?offre=communaute";
+
+function renewalWinbackEmailHtml({
+  level,
+  firstName,
+  daysLeft,
+}: {
+  level: 7 | 1 | 0;
+  firstName: string | null;
+  daysLeft: number;
+}): string {
+  const hello = firstName ? `Salut ${escape(firstName)}` : "Salut";
+  const offerBlock = panel(
+    `${para(
+      `<strong>La Communauté · 79€/mois</strong>`,
+      { size: 15, mb: 8 }
+    )}${para(
+      `Accès au Discord, aux ressources et au groupe d'artistes. Tu restes dans la boucle, tu continues sur ta lancée. Sans engagement, tu arrêtes quand tu veux.`,
+      { size: 14, color: INK_SOFT, mb: 0 }
+    )}`
+  );
+  const reassure = para(
+    `Tu préfères repartir sur un coaching ? Réponds simplement à cet email, on en parle.`,
+    { size: 13.5, color: MUTED, mb: 0 }
+  );
+
+  let kick: string;
+  let title: string;
+  let intro: string;
+  if (level === 7) {
+    kick = "Ton coaching · bientôt la fin";
+    title = "Ton coaching se termine dans une semaine";
+    intro = `${hello}, ton accompagnement coaching 3 mois se termine dans <strong>${daysLeft} jour${
+      daysLeft > 1 ? "s" : ""
+    }</strong>. On n'a pas envie de te lâcher dans la nature 🙂`;
+  } else if (level === 1) {
+    kick = "Ton coaching · dernier jour";
+    title = "C'est le dernier jour de ton coaching";
+    intro = `${hello}, ton coaching 3 mois se termine <strong>demain</strong>. Avant que ton accès se ferme, garde ta place avec nous.`;
+  } else {
+    kick = "Coaching terminé";
+    title = "Ton coaching est terminé 🙏";
+    intro = `${hello}, merci pour ces 3 mois. Ton accès coaching vient de se fermer — mais on n'est pas obligés de s'arrêter là.`;
+  }
+
+  const body = `
+    ${kicker(kick)}
+    ${h1(title, 34)}
+    ${para(intro, { mb: 24 })}
+    ${offerBlock}
+    ${button({ href: COMMU_URL, label: "Rejoindre la Communauté · 79€" })}
+    ${reassure}
+  `;
+  return layout({ title, children: body });
+}
+
+/** Envoie un email de win-back fin de coaching (palier J-7 / J-1 / J:0).
+ *  Interne — appelé par lifecycle.remindRenewals et le webhook subscription.deleted. */
+export const sendRenewalWinback = internalAction({
+  args: {
+    to: v.string(),
+    firstName: v.union(v.string(), v.null()),
+    level: v.union(v.literal(7), v.literal(1), v.literal(0)),
+    daysLeft: v.optional(v.number()),
+  },
+  handler: async (ctx, { to, firstName, level, daysLeft }) => {
+    if (!to) return { ok: false as const, reason: "no_email" as const };
+    const subject =
+      level === 7
+        ? "Ton coaching se termine dans une semaine — garde ta place (79€)"
+        : level === 1
+        ? "Dernier jour de coaching — continue en Communauté (79€)"
+        : "Ton coaching est terminé — reviens dans la Communauté (79€)";
+    const res = await sendViaResend(
+      {
+        to,
+        subject,
+        html: renewalWinbackEmailHtml({
+          level,
+          firstName,
+          daysLeft: daysLeft ?? (level === 1 ? 1 : 7),
+        }),
+      },
+      ctx
+    );
+    return { ok: res.ok };
+  },
+});

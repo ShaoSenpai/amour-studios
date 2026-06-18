@@ -344,6 +344,10 @@ http.route({
           status: "canceled",
         });
 
+        // Fin de coaching → win-back Communauté 79€ (palier J:0). Pour la
+        // communauté (ou autre), on garde le DM boussole générique.
+        const isCoachingWinback = meta.tier === "coaching";
+        const COMMU_URL = "https://amourstudios.fr/paiement/?offre=communaute";
         if (email) {
           const user = await ctx.runQuery(internal.stripe.findUserByEmail, { email });
           if (user?.discordId) {
@@ -357,11 +361,30 @@ http.route({
             await ctx.runAction(internal.stripe.removeOnboardedRole, {
               discordId: user.discordId,
             });
-            // DM boussole « ton accès a pris fin » (couvre résiliation ET fin
-            // auto du coaching 3 mois). On a le userId via findUserByEmail.
-            await ctx.runAction(internal.onboardings.sendStatusDm, {
-              userId: user._id,
-              context: "payment_canceled",
+            if (isCoachingWinback) {
+              // DM win-back (remplace le DM générique pour le coaching : un seul
+              // message, qui annonce la fin ET propose la Communauté).
+              await ctx.runAction(internal.onboardings.discordDm, {
+                discordId: user.discordId,
+                content:
+                  `Salut 👋\n\nTon **coaching est terminé** 🙏 Merci pour ces 3 mois !\n` +
+                  `Si tu veux garder le Discord, les ressources et le groupe, tu peux continuer dans la **Communauté (79€/mois)** :\n👉 ${COMMU_URL}`,
+              });
+            } else {
+              // DM boussole « ton accès a pris fin » (résiliation communauté…).
+              await ctx.runAction(internal.onboardings.sendStatusDm, {
+                userId: user._id,
+                context: "payment_canceled",
+              });
+            }
+          }
+          // Email win-back (canal email, indépendant du lien Discord).
+          if (isCoachingWinback) {
+            const firstName = user?.name?.split(" ")[0] ?? null;
+            await ctx.runAction(internal.emails.sendRenewalWinback, {
+              to: email,
+              firstName,
+              level: 0,
             });
           }
         }
@@ -392,10 +415,8 @@ http.route({
           });
         }
 
-        // Hook relance (Phase 3) : fin d'un engagement coaching 3 mois → proposer
-        // de renouveler (email Resend + ping Discord). Logique à brancher Phase 3.
-        if (meta.tier === "coaching" && meta.duree === "3mois") {
-          console.log(`[relance] coaching 3 mois terminé pour ${email} → renouvellement à proposer`);
+        if (isCoachingWinback) {
+          console.log(`[winback] coaching terminé pour ${email} → email + DM Communauté 79€ envoyés (J:0)`);
         }
 
         if (email) {

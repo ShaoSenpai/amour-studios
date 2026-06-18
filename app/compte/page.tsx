@@ -70,6 +70,7 @@ function CompteInner() {
   const upgradeMut = useAction(api.subscriptions.upgradeMySubscription);
   const startBillingPortal = useAction(api.subscriptions.startBillingPortal);
   const resumeMut = useAction(api.subscriptions.resumeCoachingMonthly);
+  const resumeCommunityMut = useAction(api.subscriptions.resumeCommunityMonthly);
 
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -343,6 +344,53 @@ function CompteInner() {
               </GlassButton>
               <p style={{ ...mono, fontSize: 10, color: c.muted, margin: "8px 0 0", textAlign: "center" }}>
                 Mensuel récurrent, sans engagement. Résiliable via « Gérer mon abonnement ».
+              </p>
+            </div>
+          )}
+
+          {/* 4c — Rejoindre / reprendre la COMMUNAUTÉ 79€ (résilié). Win-back :
+              atterrissage doux après la fin du coaching, ou simple reprise commu.
+              Réutilise le client Stripe (pas de re-checkout). */}
+          {sub.canResumeCommunity && (
+            <div style={boxStyle}>
+              <div style={{ ...mono, fontSize: 10, color: ACCENT }}>
+                {sub.canResumeCoaching ? "OU REJOINDRE LA COMMUNAUTÉ" : "REJOINDRE LA COMMUNAUTÉ"}
+              </div>
+              <p style={{ fontSize: 13.5, color: c.muted, margin: "8px 0 14px", lineHeight: 1.5 }}>
+                Garde l'accès au Discord, aux ressources et au groupe d'artistes pour{" "}
+                <strong style={{ color: c.text }}>79€/mois</strong> — sans engagement, résiliable
+                quand tu veux.
+              </p>
+              <GlassButton
+                c={c}
+                kind={sub.canResumeCoaching ? "ghost" : "solid"}
+                disabled={!!busy}
+                style={{ width: "100%", opacity: busy ? 0.6 : 1 }}
+                onClick={async () => {
+                  setBusy("resumeCommu");
+                  try {
+                    const r = await resumeCommunityMut({});
+                    if ("error" in r) {
+                      toast.error(
+                        r.error === "payment_failed"
+                          ? "Paiement refusé. Mets à jour ta carte via « Gérer mon abonnement », puis réessaie."
+                          : "Impossible de rejoindre pour l'instant. Réessaie ou contacte le support."
+                      );
+                      setBusy(null);
+                    } else {
+                      toast.success("🧡 Bienvenue dans la Communauté !");
+                      setTimeout(() => window.location.reload(), 800);
+                    }
+                  } catch {
+                    toast.error("Erreur. Réessaie.");
+                    setBusy(null);
+                  }
+                }}
+              >
+                {busy === "resumeCommu" ? "Activation…" : "Rejoindre la Communauté · 79€/mois"}
+              </GlassButton>
+              <p style={{ ...mono, fontSize: 10, color: c.muted, margin: "8px 0 0", textAlign: "center" }}>
+                Mensuel récurrent, sans engagement. Carte enregistrée réutilisée.
               </p>
             </div>
           )}

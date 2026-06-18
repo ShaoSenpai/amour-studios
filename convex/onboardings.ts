@@ -791,7 +791,7 @@ export const sendStatusDm = internalAction({
     let content: string | null = null;
 
     if (context === "payment_canceled" || s.purchaseStatus === "canceled") {
-      content = `${Hi}\n\nTon accès AMOUR STUDIOS a pris fin. Si tu veux revenir, tout est ici 👉 ${site}/paiement\nUne question ? Réponds à ce DM. 🧡`;
+      content = `${Hi}\n\nTon accès AMOUR STUDIOS a pris fin. Si tu veux revenir, tu reprends en 1 clic ici 👉 ${site}/compte\nUne question ? Réponds à ce DM. 🧡`;
     } else if (!s.step || s.step === "awaiting_presentation") {
       content = `${Hi}\n\nIl te reste une étape pour débloquer ton accès : **présente-toi dans #🎤・présente-toi** (qui tu es, ton projet, ce que tu cherches). Dès que tu postes, je t'envoie ton lien dans la foulée. 🔥`;
     } else if (s.step === "link_sent") {
@@ -847,10 +847,15 @@ export const grantOnboarded = internalAction({
       // Rôle Onboardé attribué = accès complet débloqué → DM de confirmation
       // (fail-silent, adapté à l'offre). C'est le « tu as accès à tout ».
       const hi = u.firstName ? `${u.firstName}, ` : "";
+      const base = (process.env.SITE_URL ?? "https://amour-studios.vercel.app").replace(/\/$/, "");
+      // Nudge espace membre : le membre sait où aller dès l'activation, sans que
+      // le coach envoie quoi que ce soit. Toujours retrouvable dans #mon-espace.
+      const espace = `\n\n👉 **Ton espace** : tes exercices ${base}/exos · ton compte ${base}/compte\n(toujours dispo dans #mon-espace)`;
       const content =
-        u.tier === "coaching"
+        (u.tier === "coaching"
           ? `🎉 ${hi}c'est validé ! Ton accès est complet : tu peux désormais écrire dans tous les channels, ton espace exercices est ouvert, et ton 1er RDV est calé. On se voit très vite. 🚀`
-          : `🎉 ${hi}bienvenue dans AMOUR STUDIOS ! Ta présentation est validée — tu as maintenant accès à **tous les channels** de la communauté. Partage ta musique, pose tes questions, profite des ressources. 🎵`;
+          : `🎉 ${hi}bienvenue dans AMOUR STUDIOS ! Ta présentation est validée — tu as maintenant accès à **tous les channels** de la communauté. Partage ta musique, pose tes questions, profite des ressources. 🎵`) +
+        espace;
       await ctx.scheduler.runAfter(0, internal.onboardings.discordDm, {
         discordId: u.discordId,
         content,

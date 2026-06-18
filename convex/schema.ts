@@ -126,7 +126,12 @@ export default defineSchema({
     // à un compte). Pilote le cron remindUnactivatedPurchases (idempotence).
     activationReminderAt: v.optional(v.number()),
     // Dernière relance « renouvellement J-7 » (coaching 3 mois proche de la fin).
+    // Legacy : conservé (ne plus écrire). Remplacé par les marqueurs par palier
+    // ci-dessous pour la séquence win-back J-7 / J-1 / J:0.
     renewalReminderAt: v.optional(v.number()),
+    // Séquence win-back fin de coaching → Communauté 79€ (idempotence par palier).
+    renewalReminderJ7At: v.optional(v.number()),
+    renewalReminderJ1At: v.optional(v.number()),
   })
     .index("by_email", ["email"])
     .index("by_stripe_session", ["stripeSessionId"])

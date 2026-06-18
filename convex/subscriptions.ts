@@ -82,6 +82,10 @@ export const mySubscription = query({
     // (status "canceled" après cancel_at) peut reprendre en mensuel. Distinct de
     // canTakeCoaching (upsell Communauté→Coaching).
     const canResumeCoaching = isCoaching && purchase.status === "canceled";
+    // canResumeCommunity : tout abo résilié (ex-coaché OU ex-communauté) peut
+    // reprendre en Communauté 79€/mois en 1 clic (réutilise le client Stripe).
+    // Cœur du win-back « fin de coaching → Communauté ».
+    const canResumeCommunity = purchase.status === "canceled";
 
     return {
       authed: true as const,
@@ -93,6 +97,7 @@ export const mySubscription = query({
       cancelAtPeriodEnd: purchase.cancelAtPeriodEnd ?? false,
       canTakeCoaching: purchase.tier === "communaute" && purchase.status !== "canceled",
       canResumeCoaching,
+      canResumeCommunity,
       needsFirstRdv,
       nextRdvAt,
       name: user.name ?? null,
@@ -290,6 +295,58 @@ export const resumeCoachingMonthly = action({
     }
     await ctx.runMutation(internal.subscriptions._logSelfService, {
       userId, type: "subscription.resume_coaching", title: "Reprise du coaching (mensuel)",
+    });
+    return { ok: true };
+  },
+});
+
+// 3c) Reprendre / rejoindre la COMMUNAUTÉ en mensuel (79€, sans engagement) après
+//     une résiliation (status "canceled"). Cœur du win-back « fin de coaching →
+//     Communauté ». Comme resumeCoachingMonthly : un abo annulé n'est pas
+//     réactivable → on en crée un NOUVEAU sur le customer existant (réutilise sa
+//     carte, pas de re-checkout). Le webhook recordSubscription rattache par email
+//     et rétablit le rôle Discord. Pas de cancel_at (mensuel récurrent), pas de
+//     coupon d'entrée (79€ plein).
+export const resumeCommunityMonthly = action({
+  args: {},
+  handler: async (ctx): Promise<{ ok: true } | { error: string }> => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return { error: "not_authed" };
+    const p = await ctx.runQuery(internal.subscriptions._purchaseForUser, { userId });
+    if (!p) return { error: "no_subscription" };
+    // Déjà un abo actif (communauté OU coaching) → rien à faire (succès idempotent).
+    if (p.status === "active" || p.status === "past_due") {
+      return { ok: true };
+    }
+    const rl = await ctx.runMutation(internal.rateLimit.checkAndIncrement, { key: `resumeCommunity:${userId}`, max: 5 });
+    if (!rl.allowed) return { error: "rate_limited" };
+
+    const stripe = await stripeClient();
+    const oldSub = await stripe.subscriptions.retrieve(p.subscriptionId);
+    const customer = typeof oldSub.customer === "string" ? oldSub.customer : oldSub.customer?.id;
+    if (!customer) return { error: "no_customer" };
+
+    const communityPrice = priceForTier("communaute");
+    const email = (p.email ?? "").toLowerCase();
+    try {
+      // error_if_incomplete = ATOMIQUE : carte refusée / 3DS → erreur, pas d'abo bancal.
+      await stripe.subscriptions.create({
+        customer,
+        items: [{ price: communityPrice }],
+        payment_behavior: "error_if_incomplete",
+        payment_settings: {
+          save_default_payment_method: "on_subscription",
+          payment_method_types: ["card"],
+        },
+        // tier communaute + email → recordSubscription rattache + rôle Discord.
+        metadata: { tier: "communaute", email, resume: "monthly" },
+      }, { idempotencyKey: `resume-community:${userId}` });
+    } catch (err) {
+      console.warn("⚠️ resumeCommunityMonthly échec:", err instanceof Error ? err.message : err);
+      return { error: "payment_failed" };
+    }
+    await ctx.runMutation(internal.subscriptions._logSelfService, {
+      userId, type: "subscription.resume_community", title: "Reprise de la Communauté (mensuel)",
     });
     return { ok: true };
   },

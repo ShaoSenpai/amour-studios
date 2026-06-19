@@ -135,14 +135,16 @@ export const linkAndStartOnboarding = internalMutation({
  *  onboarding row. Si purchase actif + tier connu + pas encore d'onboarding,
  *  crée la row. Idempotent. Appelée depuis auth.ts (à la connexion Discord)
  *  ET depuis le webhook Stripe (à la création d'une subscription). */
+// Idempotent : crée OU démarre l'onboarding d'un user payant et ENVOIE le lien
+// (DM + email). Remplace l'ancien comportement « créer la row à
+// awaiting_presentation sans rien envoyer » : depuis le retrait de l'étape
+// #présente-toi, c'était le trou qui laissait l'onboarding bloqué quand l'OAuth
+// liait le purchase par email (le lien ne partait jamais). Appelé par les chemins
+// OAuth (auth.ts) + le webhook Stripe. Rejoue sans risque (n'envoie qu'à la
+// création ou depuis awaiting_presentation).
 export const ensureForUser = internalMutation({
   args: { userId: v.id("users") },
   handler: async (ctx, { userId }): Promise<{ created: boolean }> => {
-    const existing = await ctx.db
-      .query("onboardings")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .first();
-    if (existing) return { created: false };
     const user = await ctx.db.get(userId);
     if (!user?.email) return { created: false };
     // Cherche un purchase actif/payé du même email avec un tier (subscription).
@@ -156,23 +158,55 @@ export const ensureForUser = internalMutation({
         (p.tier === "coaching" || p.tier === "communaute")
     );
     if (!active || !active.tier) return { created: false };
+
     const now = Date.now();
-    const token = crypto.randomUUID();
-    await ctx.db.insert("onboardings", {
-      userId,
-      tier: active.tier,
-      step: "awaiting_presentation",
-      token,
-      createdAt: now,
-      updatedAt: now,
-    });
+    const existing = await ctx.db
+      .query("onboardings")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .first();
+
+    // Déjà démarré (link_sent / form_done / rdv_booked / community_ready) → no-op.
+    if (existing && existing.step !== "awaiting_presentation") {
+      return { created: false };
+    }
+
+    let token: string;
+    const created = !existing;
+    if (existing) {
+      // Row bloquée à awaiting_presentation → on la démarre (envoi du lien).
+      token = existing.token;
+      await ctx.db.patch(existing._id, {
+        step: "link_sent",
+        presentedAt: existing.presentedAt ?? now,
+        linkSentAt: now,
+        updatedAt: now,
+      });
+    } else {
+      token = crypto.randomUUID();
+      await ctx.db.insert("onboardings", {
+        userId,
+        tier: active.tier,
+        step: "link_sent",
+        token,
+        presentedAt: now,
+        linkSentAt: now,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
     await logEvent(ctx, {
       userId,
-      type: "onboarding.created",
-      title: "Onboarding créé",
+      type: created ? "onboarding.created" : "onboarding.linked",
+      title: created ? "Onboarding créé + lien envoyé" : "Onboarding démarré (lien envoyé)",
       actor: "system",
     });
-    return { created: true };
+    await ctx.scheduler.runAfter(0, internal.onboardings.sendLink, {
+      userId,
+      token,
+      firstName: existing?.firstName ?? null,
+      tier: active.tier,
+    });
+    return { created };
   },
 });
 

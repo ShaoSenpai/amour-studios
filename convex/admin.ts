@@ -287,11 +287,12 @@ export const adminLinkDiscordToPurchase = mutation({
       await ctx.db.patch(user._id, { purchaseId: purchase._id });
     }
 
-    // Onboarding (idempotent côté createForPurchase) si le purchase a un tier.
+    // Onboarding : DÉMARRE l'onboarding + ENVOIE le lien (DM+email). ensureForUser
+    // est idempotent et envoie le lien (corrige le trou où createForPurchase créait
+    // juste la row sans rien envoyer → membre bloqué).
     if (purchase.tier) {
-      await ctx.scheduler.runAfter(0, internal.onboardings.createForPurchase, {
+      await ctx.scheduler.runAfter(0, internal.onboardings.ensureForUser, {
         userId: user._id,
-        tier: purchase.tier,
       });
     }
 

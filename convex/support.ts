@@ -363,3 +363,62 @@ export const resumeAiByChannel = internalMutation({
     }
   },
 });
+
+// ============================================================================
+// Plafond quotidien de tokens IA (Task 5.1)
+// ============================================================================
+
+/** Jour courant en UTC "YYYY-MM-DD". */
+function todayUtc(): string {
+  return new Date(Date.now()).toISOString().slice(0, 10);
+}
+
+/** Cumule la dépense de tokens du jour. Retourne le total après ajout. */
+export const addTokenSpend = internalMutation({
+  args: { tokens: v.number() },
+  handler: async (ctx, { tokens }) => {
+    const day = todayUtc();
+    const row = await ctx.db
+      .query("supportDailyUsage")
+      .withIndex("by_day", (q) => q.eq("day", day))
+      .first();
+    if (!row) {
+      await ctx.db.insert("supportDailyUsage", { day, tokens, updatedAt: Date.now() });
+      return tokens;
+    }
+    const total = row.tokens + tokens;
+    await ctx.db.patch(row._id, { tokens: total, updatedAt: Date.now() });
+    return total;
+  },
+});
+
+/** Dépense de tokens du jour courant (0 si rien). */
+export const todayTokenSpend = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const day = todayUtc();
+    const row = await ctx.db
+      .query("supportDailyUsage")
+      .withIndex("by_day", (q) => q.eq("day", day))
+      .first();
+    return row?.tokens ?? 0;
+  },
+});
+
+// ============================================================================
+// RGPD — purge des transcripts anciens (Task 5.2)
+// ============================================================================
+
+/** Supprime les messages de support plus anciens que olderThanDays (défaut 180). */
+export const purgeOldMessages = internalMutation({
+  args: { olderThanDays: v.optional(v.number()) },
+  handler: async (ctx, { olderThanDays }) => {
+    const cutoff = Date.now() - (olderThanDays ?? 180) * 24 * 60 * 60 * 1000;
+    const old = await ctx.db
+      .query("supportMessages")
+      .withIndex("by_at", (q) => q.lt("at", cutoff))
+      .take(500);
+    for (const m of old) await ctx.db.delete(m._id);
+    return { deleted: old.length };
+  },
+});

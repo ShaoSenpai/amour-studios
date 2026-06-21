@@ -543,6 +543,13 @@ export default defineSchema({
     .index("by_status", ["status"])
     .index("by_discord", ["discordId"]),
 
+  // Compteur de tokens consommés par jour (clé = YYYY-MM-DD) pour le plafond.
+  supportDailyUsage: defineTable({
+    day: v.string(),       // "YYYY-MM-DD" (UTC)
+    tokens: v.number(),    // input + output cumulés
+    updatedAt: v.number(),
+  }).index("by_day", ["day"]),
+
   // Transcript par tour, pour audit + dashboard + RGPD (purge cron).
   supportMessages: defineTable({
     threadId: v.id("supportThreads"),

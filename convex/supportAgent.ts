@@ -93,6 +93,22 @@ export const handleSupportMessage = internalAction({
       messages.push({ role: "user", content: args.content });
     }
 
+    // --- Plafond quotidien de tokens (Task 5.1) ---
+    const dailyCap = Number(process.env.AI_SUPPORT_DAILY_TOKEN_CAP ?? "0");
+    if (dailyCap > 0) {
+      const spent = await ctx.runQuery(internal.support.todayTokenSpend, {});
+      if (spent >= dailyCap) {
+        await ctx.runAction(internal.discord.postAlertToStaff, {
+          content: `⚠️ Plafond de tokens IA support atteint (${spent}/${dailyCap}). L'IA escalade jusqu'à demain.`,
+        }).catch(() => {});
+        return {
+          action: "escalate", mode, reason: "daily_cap",
+          message: "Je passe le relais à l'équipe (limite quotidienne atteinte).",
+          toolsUsed: [], inputTokens: 0, outputTokens: 0,
+        };
+      }
+    }
+
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     const system = [
       { type: "text" as const, text: buildSystemPrompt({ mode }), cache_control: { type: "ephemeral" as const } },
@@ -108,6 +124,11 @@ export const handleSupportMessage = internalAction({
       });
       inputTokens += resp.usage.input_tokens + ((resp.usage as any).cache_read_input_tokens ?? 0);
       outputTokens += resp.usage.output_tokens;
+
+      // Enregistre la dépense de tokens par itération (idempotent si erreur après).
+      await ctx.runMutation(internal.support.addTokenSpend, {
+        tokens: resp.usage.input_tokens + ((resp.usage as any).cache_read_input_tokens ?? 0) + resp.usage.output_tokens,
+      });
 
       const toolUses = resp.content.filter((b: any) => b.type === "tool_use");
 

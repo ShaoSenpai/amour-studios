@@ -1,5 +1,6 @@
 import { v } from "convex/values";
-import { internalMutation, internalQuery } from "./_generated/server";
+import { internalAction, internalMutation, internalQuery } from "./_generated/server";
+import { api, internal } from "./_generated/api";
 import { rateLimit } from "./rateLimit";
 import { logEvent } from "./lib/events";
 import { nextStatus, type SupportEvent } from "./lib/supportState";
@@ -141,5 +142,140 @@ export const logSupportEvent = internalMutation({
       actor: "support_ai",
       meta: meta ? { raw: meta } : undefined,
     });
+  },
+});
+
+// ============================================================================
+// Safe tools — lecture d'état membre + actions self-service pour l'agent IA.
+// Toutes scopées au discordId du membre vérifié ; zéro PII au-delà du minimal.
+// ============================================================================
+
+/**
+ * Lit l'état synthétique d'un membre pour l'agent IA (read-only).
+ * - linked : un compte Discord est bien relié à un paiement
+ * - tier   : "communaute" | "coaching" | null (depuis purchases)
+ * - onboarded : true si l'onboarding est au moins commencé (purchaseId présent)
+ */
+export const lookupMemberState = internalQuery({
+  args: { discordId: v.string() },
+  handler: async (ctx, { discordId }) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_discord", (q) => q.eq("discordId", discordId))
+      .first();
+    if (!user) {
+      return { linked: false, tier: null as string | null, onboarded: false };
+    }
+    // Tier vit sur purchases, pas sur users.
+    let tier: string | null = null;
+    if (user.purchaseId) {
+      const purchase = await ctx.db.get(user.purchaseId);
+      tier = purchase?.tier ?? null;
+    }
+    // onboarded = le compte a un purchaseId lié (paiement confirmé).
+    // Pour plus de précision on pourrait interroger onboardings, mais on garde
+    // le minimum de PII.
+    const onboarded = Boolean(user.purchaseId);
+    return { linked: true, tier, onboarded };
+  },
+});
+
+/**
+ * Interne : résout l'email du paiement d'un membre depuis son discordId.
+ * users.purchaseId → purchases.email (toujours présent, v.string()).
+ * Retourne null si le compte n'est pas lié.
+ */
+export const _memberEmail = internalQuery({
+  args: { discordId: v.string() },
+  handler: async (ctx, { discordId }) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_discord", (q) => q.eq("discordId", discordId))
+      .first();
+    if (!user?.purchaseId) return null;
+    const purchase = await ctx.db.get(user.purchaseId);
+    return purchase?.email ?? null;
+  },
+});
+
+const DISCORD_INVITE = "discord.gg/x9humyUMnJ";
+const CALENDLY_NOTE =
+  "Réserve ton 1er RDV via le lien Calendly reçu à ton onboarding coaching.";
+const ACCOUNT_URL = "/compte";
+
+/**
+ * Dispatche les "safe tools" que l'agent IA peut appeler pour un membre.
+ * Chaque outil est scopé au discordId vérifié transmis par le bot.
+ *
+ * Tools :
+ *   lookupMemberState   — état synthétique (linked/tier/onboarded)
+ *   resendDiscordInvite — renvoie le lien d'invitation Discord
+ *   getCalendlyLink     — note sur l'accès au lien Calendly
+ *   getAccountLink      — URL de la page /compte
+ *   getLinkCode         — rappel : code AMR visible sur /compte
+ *   resendActivationLink / getOnboardingLink — renvoie l'email d'activation
+ *     (nécessite un email ; résolu depuis purchaseId → purchases.email
+ *      ou fourni explicitement par le bot via le champ `email`)
+ */
+type SafeToolResult =
+  | { linked: boolean; tier: string | null; onboarded: boolean }
+  | { ok: true; invite: string }
+  | { ok: true; note: string }
+  | { ok: true; url: string }
+  | { ok: true; hint: string; state: { linked: boolean; tier: string | null; onboarded: boolean } }
+  | { ok: true; sent: boolean }
+  | { ok: false; needHumanEmail: boolean }
+  | { ok: false; error: string };
+
+export const runSafeTool = internalAction({
+  args: {
+    tool: v.string(),
+    discordId: v.string(),
+    email: v.optional(v.string()),
+  },
+  handler: async (ctx, { tool, discordId, email }): Promise<SafeToolResult> => {
+    switch (tool) {
+      case "lookupMemberState":
+        return await ctx.runQuery(internal.support.lookupMemberState, {
+          discordId,
+        });
+
+      case "resendDiscordInvite":
+        return { ok: true, invite: DISCORD_INVITE };
+
+      case "getCalendlyLink":
+        return { ok: true, note: CALENDLY_NOTE };
+
+      case "getAccountLink":
+        return { ok: true, url: ACCOUNT_URL };
+
+      case "getLinkCode": {
+        const state = await ctx.runQuery(internal.support.lookupMemberState, {
+          discordId,
+        });
+        return { ok: true, hint: "Code AMR visible sur /compte", state };
+      }
+
+      case "resendActivationLink":
+      case "getOnboardingLink": {
+        // Résolution de l'email : on préfère l'email fourni explicitement,
+        // sinon on remonte via purchaseId → purchases.email.
+        // Si le compte n'est pas lié (no purchaseId), on demande à l'agent
+        // d'escalader vers un humain pour obtenir l'email.
+        const resolvedEmail =
+          email ??
+          (await ctx.runQuery(internal.support._memberEmail, { discordId }));
+        if (!resolvedEmail) {
+          return { ok: false, needHumanEmail: true };
+        }
+        await ctx.runAction(api.claimTokens.resendActivationByEmail, {
+          email: resolvedEmail,
+        });
+        return { ok: true, sent: true };
+      }
+
+      default:
+        return { ok: false, error: "unknown_tool" };
+    }
   },
 });

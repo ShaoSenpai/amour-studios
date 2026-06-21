@@ -1184,4 +1184,75 @@ http.route({
   }),
 });
 
+// ── Webhook Discord : transcript pour l'escalade ────────────────────────────
+// Le bot appelle cet endpoint pour récupérer le transcript IA d'un fil avant
+// de créer le salon ticket. On enregistre aussi l'escalade dans Convex.
+// Auth Bearer DISCORD_BOT_ENDPOINT_SECRET (= BOT_SECRET côté bot).
+http.route({
+  path: "/webhooks/discord/support-transcript",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const expected = process.env.DISCORD_BOT_ENDPOINT_SECRET;
+    if (!expected) return new Response("Not configured", { status: 500 });
+    if ((request.headers.get("Authorization") ?? "") !== `Bearer ${expected}`)
+      return new Response("Unauthorized", { status: 401 });
+    const body = (await request.json().catch(() => ({}))) as {
+      channelId?: string;
+      escalatedChannelId?: string;
+      reason?: string;
+      discordId?: string;
+    };
+    const channelId = (body.channelId ?? "").trim();
+    const thread = await ctx.runQuery(internal.support.getThreadByChannel, { channelId });
+    if (!thread) {
+      return new Response(JSON.stringify({ transcript: "" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    const transcript = await ctx.runQuery(internal.support.threadTranscript, {
+      threadId: thread._id,
+    });
+    await ctx.runMutation(internal.support.recordEscalation, {
+      threadId: thread._id,
+      discordId: body.discordId ?? thread.discordId,
+      reason: body.reason ?? "escalade IA",
+      escalatedChannelId: body.escalatedChannelId,
+    });
+    return new Response(JSON.stringify({ transcript }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }),
+});
+
+// ── Webhook Discord : action membre sur un fil de support ───────────────────
+// Reçoit les actions des boutons Discord : "resolved" (C'est réglé) et
+// "resume" (Reprendre l'IA). Auth Bearer DISCORD_BOT_ENDPOINT_SECRET.
+http.route({
+  path: "/webhooks/discord/support-action",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const expected = process.env.DISCORD_BOT_ENDPOINT_SECRET;
+    if (!expected) return new Response("Not configured", { status: 500 });
+    if ((request.headers.get("Authorization") ?? "") !== `Bearer ${expected}`)
+      return new Response("Unauthorized", { status: 401 });
+    const body = (await request.json().catch(() => ({}))) as {
+      channelId?: string;
+      action?: string;
+    };
+    const channelId = (body.channelId ?? "").trim();
+    if (!channelId) return new Response("channelId required", { status: 400 });
+    if (body.action === "resolved") {
+      await ctx.runMutation(internal.support.markResolvedByChannel, { channelId });
+    } else if (body.action === "resume") {
+      await ctx.runMutation(internal.support.resumeAiByChannel, { channelId });
+    }
+    return new Response(JSON.stringify({ ok: true }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }),
+});
+
 export default http;

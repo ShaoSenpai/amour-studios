@@ -329,3 +329,37 @@ export const threadTranscript = internalQuery({
       .join("\n");
   },
 });
+
+/** Marque le fil comme résolu (bouton « C'est réglé »). Log un événement CRM. */
+export const markResolvedByChannel = internalMutation({
+  args: { channelId: v.string() },
+  handler: async (ctx, { channelId }) => {
+    const t = await ctx.db
+      .query("supportThreads")
+      .withIndex("by_channel", (q) => q.eq("channelId", channelId))
+      .first();
+    if (!t) return;
+    await ctx.db.patch(t._id, { status: "resolved", updatedAt: Date.now() });
+    await logEvent(ctx, {
+      type: "support.deflection_success",
+      title: "Question réglée par l'IA (sans humain)",
+      actor: "support_ai",
+      meta: { channelId },
+    });
+  },
+});
+
+/** Réactive l'IA sur un fil mis en veille (bouton « Reprendre l'IA »). */
+export const resumeAiByChannel = internalMutation({
+  args: { channelId: v.string() },
+  handler: async (ctx, { channelId }) => {
+    const t = await ctx.db
+      .query("supportThreads")
+      .withIndex("by_channel", (q) => q.eq("channelId", channelId))
+      .first();
+    if (!t) return;
+    if (t.status === "muted") {
+      await ctx.db.patch(t._id, { status: "ai_active", updatedAt: Date.now() });
+    }
+  },
+});

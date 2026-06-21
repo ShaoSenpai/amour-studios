@@ -31,6 +31,7 @@ import type * as lessons from "../lessons.js";
 import type * as lib_access from "../lib/access.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_events from "../lib/events.js";
+import type * as lib_legal from "../lib/legal.js";
 import type * as lib_linking from "../lib/linking.js";
 import type * as lifecycle from "../lifecycle.js";
 import type * as migrations from "../migrations.js";
@@ -82,6 +83,7 @@ declare const fullApi: ApiFromModules<{
   "lib/access": typeof lib_access;
   "lib/auth": typeof lib_auth;
   "lib/events": typeof lib_events;
+  "lib/legal": typeof lib_legal;
   "lib/linking": typeof lib_linking;
   lifecycle: typeof lifecycle;
   migrations: typeof migrations;

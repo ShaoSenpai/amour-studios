@@ -975,10 +975,11 @@ export async function stripeClient() {
  * Les URLs légales (CGV / confidentialité) sont lues depuis l'env si présentes,
  * sinon valeurs par défaut amourstudios.fr — à vérifier/ajuster côté Shao.
  */
-export const ensureCoachingPortalConfig = action({
+// Setup one-time (interne, lancé via `npx convex run`) : pas de requireAdmin
+// (fonction interne non exposée publiquement, déjà protégée par ce statut).
+export const ensureCoachingPortalConfig = internalAction({
   args: {},
   handler: async (ctx): Promise<{ id: string }> => {
-    await ctx.runQuery(internal.stripe.requireAdminPing, {});
     const stripe = await stripeClient();
     const config = await stripe.billingPortal.configurations.create({
       business_profile: {

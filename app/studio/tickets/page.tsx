@@ -219,6 +219,7 @@ export default function TicketsPage() {
   const c = palette(dark, ACCENT);
   const isMobile = useIsMobile();
   const data = useQuery(api.tickets.listTickets);
+  const aiStats = useQuery(api.support.aiSupportStats);
 
   if (data === undefined) {
     return (
@@ -278,6 +279,95 @@ export default function TicketsPage() {
                 </span>
               </div>
             </div>
+          </div>
+        </Glass>
+
+        {/* Assistant IA — métriques de déflection */}
+        <Glass c={c} dark={dark} pad={0} style={{ marginBottom: 16 }}>
+          <div style={{ padding: "20px 24px 14px" }}>
+            <div style={{ ...mono, color: c.muted }}>Assistant IA · Support</div>
+            <div style={{ ...num, fontSize: 22, fontWeight: 500, marginTop: 6, color: c.text }}>
+              🤖 Assistant IA
+            </div>
+          </div>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(5, 1fr)",
+              gap: 1,
+              borderTop: `1px solid ${c.line}`,
+            }}
+          >
+            {(
+              [
+                {
+                  label: "Déflection",
+                  value: aiStats !== undefined ? `${aiStats.deflectionRate}%` : "—",
+                  sub: "réglés sans humain",
+                  accent: true,
+                },
+                {
+                  label: "Réglés IA",
+                  value: aiStats !== undefined ? String(aiStats.resolved) : "—",
+                  sub: "sans intervention",
+                },
+                {
+                  label: "Escaladés",
+                  value: aiStats !== undefined ? String(aiStats.escalated) : "—",
+                  sub: "vers le coach",
+                },
+                {
+                  label: "Réponses IA (24h)",
+                  value: aiStats !== undefined ? String(aiStats.aiRepliesToday) : "—",
+                  sub: "messages assistant",
+                },
+                {
+                  label: "Fils actifs",
+                  value: aiStats !== undefined ? String(aiStats.aiActive) : "—",
+                  sub: "en cours",
+                },
+              ] as {
+                label: string;
+                value: string;
+                sub: string;
+                accent?: boolean;
+              }[]
+            ).map((stat, i) => (
+              <div
+                key={i}
+                style={{
+                  padding: "18px 22px",
+                  borderRight:
+                    isMobile
+                      ? i % 2 === 0
+                        ? `1px solid ${c.line}`
+                        : "none"
+                      : i < 4
+                        ? `1px solid ${c.line}`
+                        : "none",
+                  borderBottom:
+                    isMobile && i < 4 ? `1px solid ${c.line}` : "none",
+                }}
+              >
+                <div style={{ ...mono, color: c.faint, marginBottom: 6 }}>
+                  {stat.label}
+                </div>
+                <div
+                  style={{
+                    ...num,
+                    fontSize: 28,
+                    fontWeight: 500,
+                    lineHeight: 1,
+                    color: stat.accent ? ACCENT : c.text,
+                  }}
+                >
+                  {stat.value}
+                </div>
+                <div style={{ ...mono, color: c.faint, marginTop: 4, fontSize: 10 }}>
+                  {stat.sub}
+                </div>
+              </div>
+            ))}
           </div>
         </Glass>
 

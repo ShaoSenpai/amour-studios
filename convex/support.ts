@@ -1,6 +1,7 @@
 import { v } from "convex/values";
-import { internalAction, internalMutation, internalQuery } from "./_generated/server";
+import { internalAction, internalMutation, internalQuery, query } from "./_generated/server";
 import { api, internal } from "./_generated/api";
+import { requireAdmin } from "./lib/auth";
 import { rateLimit } from "./rateLimit";
 import { logEvent } from "./lib/events";
 import { nextStatus, type SupportEvent } from "./lib/supportState";
@@ -420,5 +421,44 @@ export const purgeOldMessages = internalMutation({
       .take(500);
     for (const m of old) await ctx.db.delete(m._id);
     return { deleted: old.length };
+  },
+});
+
+// ============================================================================
+// Stats Assistant IA — dashboard /studio/tickets (Task 5.3)
+// ============================================================================
+
+/** Agrège l'activité IA de support pour la section « Assistant IA » du back-office.
+ * Admin-only. Taux de déflection = fils résolus sans humain / (résolus + escaladés). */
+export const aiSupportStats = query({
+  args: {},
+  handler: async (ctx) => {
+    await requireAdmin(ctx);
+
+    const threads = await ctx.db.query("supportThreads").collect();
+    const resolved = threads.filter((t) => t.status === "resolved").length;
+    const escalated = threads.filter((t) => t.status === "escalated").length;
+    const aiActive = threads.filter((t) => t.status === "ai_active").length;
+    const totalHandled = threads.length;
+    // Taux de déflection = résolus sans humain / (résolus + escaladés).
+    const closed = resolved + escalated;
+    const deflectionRate = closed > 0 ? Math.round((resolved / closed) * 100) : 0;
+
+    // Volume des dernières 24h (messages assistant).
+    const since = Date.now() - 24 * 60 * 60 * 1000;
+    const recentMsgs = await ctx.db
+      .query("supportMessages")
+      .withIndex("by_at", (q) => q.gt("at", since))
+      .collect();
+    const aiRepliesToday = recentMsgs.filter((m) => m.role === "assistant").length;
+
+    return {
+      totalHandled,
+      resolved,
+      escalated,
+      aiActive,
+      deflectionRate,
+      aiRepliesToday,
+    };
   },
 });

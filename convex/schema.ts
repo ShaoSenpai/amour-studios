@@ -135,6 +135,13 @@ export default defineSchema({
     // Preuve de consentement aux CGV + renonciation rétractation (page paiement).
     termsAcceptedAt: v.optional(v.number()),
     termsVersion: v.optional(v.string()),
+    // Consentements RGPD recueillis à l'upgrade SELF-SERVICE Communauté → Coaching
+    // depuis /compte (le membre n'a pas forcément d'onboarding → preuve sur le
+    // purchase). Timestamps = preuve ; témoignage facultatif.
+    consentRecordingAt: v.optional(v.number()),
+    consentConfidentialityAt: v.optional(v.number()),
+    consentTestimonialAt: v.optional(v.number()),
+    consentVersion: v.optional(v.string()),
   })
     .index("by_email", ["email"])
     .index("by_stripe_session", ["stripeSessionId"])

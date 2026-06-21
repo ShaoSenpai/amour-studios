@@ -424,6 +424,35 @@ export const purgeOldMessages = internalMutation({
   },
 });
 
+/** RESET TOTAL des données du bot support (threads + messages + usage quotidien).
+ *  Garde-fou Stripe test (comme resetTestFunnel) pour protéger d'un effacement en
+ *  prod live. Lancer : npx convex run support:resetSupportData --prod */
+export const resetSupportData = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const sk = process.env.STRIPE_SECRET_KEY ?? "";
+    if (!sk.startsWith("sk_test")) {
+      throw new Error(
+        "resetSupportData REFUSÉ : Stripe n'est pas en mode test (protection données réelles).",
+      );
+    }
+    const deleted = { supportThreads: 0, supportMessages: 0, supportDailyUsage: 0 };
+    for (const m of await ctx.db.query("supportMessages").collect()) {
+      await ctx.db.delete(m._id);
+      deleted.supportMessages++;
+    }
+    for (const t of await ctx.db.query("supportThreads").collect()) {
+      await ctx.db.delete(t._id);
+      deleted.supportThreads++;
+    }
+    for (const d of await ctx.db.query("supportDailyUsage").collect()) {
+      await ctx.db.delete(d._id);
+      deleted.supportDailyUsage++;
+    }
+    return { ok: true as const, deleted };
+  },
+});
+
 // ============================================================================
 // Stats Assistant IA — dashboard /studio/tickets (Task 5.3)
 // ============================================================================

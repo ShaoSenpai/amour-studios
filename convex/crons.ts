@@ -52,4 +52,12 @@ crons.daily(
   {}
 );
 
+// RGPD — purge des transcripts de support > 180 jours (3h30 UTC).
+crons.daily(
+  "purge support messages",
+  { hourUTC: 3, minuteUTC: 30 },
+  internal.support.purgeOldMessages,
+  { olderThanDays: 180 },
+);
+
 export default crons;

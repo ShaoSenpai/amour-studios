@@ -68,12 +68,18 @@ export const createSubscription = action({
     duree: v.optional(v.union(v.literal("1mois"), v.literal("3mois"))),
     email: v.string(),
     phone: v.optional(v.string()),
+    // Preuve de consentement CGV + renonciation rétractation (cases page paiement).
+    termsAccepted: v.optional(v.boolean()),
+    legalVersion: v.optional(v.string()),
   },
-  handler: async (ctx, { offre, duree, email, phone }) => {
+  handler: async (ctx, { offre, duree, email, phone, termsAccepted, legalVersion }) => {
     const Stripe = (await import("stripe")).default;
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
       apiVersion: "2026-03-25.dahlia",
     });
+
+    // TEMP (vérif passthrough consentement Task 8 — à retirer après validation).
+    console.log("[stripe] termsAccepted:", termsAccepted, legalVersion);
 
     const normalizedEmail = email.trim().toLowerCase();
     if (!normalizedEmail || !EMAIL_RE.test(normalizedEmail)) {
@@ -193,6 +199,10 @@ export const createSubscription = action({
       currency: subscription.currency ?? "eur",
       status: "incomplete",
       phone: cleanPhone,
+      // Preuve de consentement : on enregistre l'horodatage + la version SI le
+      // client a coché (le gate réel est côté UI paiement). Rétro-compatible.
+      termsAcceptedAt: termsAccepted ? Date.now() : undefined,
+      termsVersion: termsAccepted ? (legalVersion ?? "unknown") : undefined,
     });
 
     return {
@@ -473,6 +483,9 @@ export const recordSubscription = internalMutation({
     currentPeriodEnd: v.optional(v.number()),
     cancelAtPeriodEnd: v.optional(v.boolean()),
     phone: v.optional(v.string()),
+    // Preuve de consentement CGV (cf. createSubscription).
+    termsAcceptedAt: v.optional(v.number()),
+    termsVersion: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -499,6 +512,9 @@ export const recordSubscription = internalMutation({
       if (typeof args.cancelAtPeriodEnd === "boolean")
         patch.cancelAtPeriodEnd = args.cancelAtPeriodEnd;
       if (args.phone) patch.phone = args.phone;
+      if (typeof args.termsAcceptedAt === "number")
+        patch.termsAcceptedAt = args.termsAcceptedAt;
+      if (args.termsVersion) patch.termsVersion = args.termsVersion;
       if (args.status === "active" && !existing.paidAt) patch.paidAt = now;
       await ctx.db.patch(existing._id, patch);
 
@@ -539,6 +555,8 @@ export const recordSubscription = internalMutation({
       currentPeriodEnd: args.currentPeriodEnd,
       cancelAtPeriodEnd: args.cancelAtPeriodEnd,
       phone: args.phone,
+      termsAcceptedAt: args.termsAcceptedAt,
+      termsVersion: args.termsVersion,
       source: "stripe",
       createdAt: now,
       paidAt: args.status === "active" ? now : undefined,

@@ -8,7 +8,9 @@ import { buildSystemPrompt, type SupportMode } from "./lib/supportFaq";
 import { TOOL_DEFS, ACTION_TOOL_NAMES } from "./lib/supportTools";
 
 const MODEL = "claude-haiku-4-5";
-const MAX_TURNS = 2;
+// Nb max d'échanges membre↔IA avant escalade auto (garde-fou coût/qualité). 2 était
+// trop bas (escalade quasi immédiate) ; 6 permet un vrai aller-retour avant la main humaine.
+const MAX_TURNS = 6;
 
 type Decision = {
   action: "reply" | "escalate" | "disabled";

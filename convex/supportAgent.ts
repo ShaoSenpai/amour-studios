@@ -52,6 +52,13 @@ export const handleSupportMessage = internalAction({
       });
       return emptyDecision("disabled");
     }
+    // Réouverture : un fil marqué "résolu" qui reçoit un nouveau message membre
+    // est réactivé (sinon il resterait muet). Reset du compteur de tours.
+    if (thread.status === "resolved") {
+      await ctx.runMutation(internal.support.reactivateThread, { threadId: thread._id });
+      thread.status = "ai_active";
+      thread.turnCount = 0;
+    }
     if (thread.status !== "ai_active") return emptyDecision("disabled");
 
     const allowed = await ctx.runMutation(internal.support.checkMemberRateLimit, {
@@ -61,12 +68,13 @@ export const handleSupportMessage = internalAction({
     if (!allowed) {
       await ctx.runMutation(internal.support.logSupportEvent, {
         type: "support.rate_limited",
-        title: "Membre rate-limité (escalade)",
+        title: "Membre rate-limité (throttle, sans ticket)",
         discordId: args.discordId,
       });
+      // Throttle DOUX : on ralentit sans créer de ticket (évite les tickets inutiles).
       return {
-        action: "escalate", mode, reason: "rate_limited",
-        message: "Tu as beaucoup de questions d'un coup — je passe le relais à l'équipe.",
+        action: "reply", mode, reason: "rate_limited",
+        message: "Tu vas un peu vite 🙂 Laisse-moi une minute puis repose ta question — je suis là.",
         toolsUsed: [], inputTokens: 0, outputTokens: 0,
       };
     }

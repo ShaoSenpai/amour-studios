@@ -75,6 +75,15 @@ export const ensureTicketThreadMuted = internalMutation({
   },
 });
 
+/** Réactive un fil RÉSOLU quand le membre ré-écrit : repasse ai_active + remet
+ *  le compteur de tours à zéro (nouvelle conversation). */
+export const reactivateThread = internalMutation({
+  args: { threadId: v.id("supportThreads") },
+  handler: async (ctx, { threadId }) => {
+    await ctx.db.patch(threadId, { status: "ai_active", turnCount: 0, updatedAt: Date.now() });
+  },
+});
+
 /** Lit un fil par channelId (undefined si inexistant). */
 export const getThreadByChannel = internalQuery({
   args: { channelId: v.string() },

@@ -25,7 +25,9 @@ export function nextStatus(
     case "admin_resume":
       return current === "muted" ? "ai_active" : current;
     case "member_message":
-      return current;
+      // Un membre qui ré-écrit dans un fil RÉSOLU rouvre la conversation avec l'IA
+      // (évite qu'il reste sans réponse). escalated reste escalated (suivi = ticket).
+      return current === "resolved" ? "ai_active" : current;
     default:
       return current;
   }

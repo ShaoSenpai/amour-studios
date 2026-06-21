@@ -11,7 +11,22 @@ import { internal } from "./_generated/api";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { requireAdmin } from "./lib/auth";
 import { logEvent } from "./lib/events";
+import {
+  linkDm,
+  statusDm,
+  grantedDm,
+  linkedChannelMsg,
+  relanceDm,
+} from "./lib/discordMessages";
 import type { Id, Doc } from "./_generated/dataModel";
+
+// Validators du payload embed brandé envoyé au bot Discord (cf. lib/discordMessages).
+const EMBED_V = v.object({
+  title: v.optional(v.string()),
+  description: v.optional(v.string()),
+  footer: v.optional(v.string()),
+});
+const BUTTON_V = v.object({ label: v.string(), url: v.string() });
 
 // ============================================================================
 // Onboarding client post-paiement.
@@ -743,18 +758,18 @@ export const sendLink = internalAction({
         console.warn("⚠️ Email onboarding échec:", err);
       }
     }
-    // DM Discord — fail-silent.
+    // DM Discord — fail-silent. Embed brandé + bouton (cf. lib/discordMessages).
     if (u.discordId) {
       try {
-        const name = (firstName ?? u.firstName ?? "").trim();
-        const greet = name ? `Salut ${name} 👋\n\n` : "Salut 👋\n\n";
-        const intro =
-          tier === "coaching"
-            ? "C'est parti ✨\n\n**Pour débloquer ton accès Discord complet** (écriture dans tous les channels, lives, feedback), il te reste 3 étapes :\n\n1️⃣ Tes coordonnées (~30s)\n2️⃣ Questionnaire (~5 min) pour que Walid prépare ton 1er appel\n3️⃣ **Réserver ton 1er appel avec Walid** ← c'est ce qui débloque ton accès\n\nTant que le RDV n'est pas réservé, ton accès Discord reste limité."
-            : "C'est parti ✨\n\n**Pour débloquer ton accès complet communauté**, il te reste 2 petites étapes (~2 min) :\n\n1️⃣ Tes coordonnées\n2️⃣ 3 questions rapides\n\nTant que ce n'est pas complété, ton accès reste limité.";
+        const msg = linkDm({
+          firstName: firstName ?? u.firstName ?? null,
+          tier,
+          link,
+        });
         await ctx.runAction(internal.onboardings.discordDm, {
           discordId: u.discordId,
-          content: `${greet}${intro}\n\n👉 ${link}`,
+          embed: msg.embed,
+          button: msg.button,
         });
       } catch (err) {
         console.warn("⚠️ DM Discord onboarding échec:", err);
@@ -845,30 +860,21 @@ export const sendStatusDm = internalAction({
     if (!s || !s.discordId) return { ok: false as const, reason: "no_discord" as const };
     const site = process.env.SITE_URL ?? "https://amour-studios.vercel.app";
     const link = s.token ? `${site}/onboarding/${s.token}` : site;
-    const Hi = s.firstName ? `Salut ${s.firstName} 👋` : "Salut 👋";
-    const hi = s.firstName ? `${s.firstName}, ` : "";
 
-    let content: string | null = null;
+    const msg = statusDm({
+      firstName: s.firstName,
+      tier: s.tier,
+      step: s.step,
+      link,
+      site,
+      canceled: context === "payment_canceled" || s.purchaseStatus === "canceled",
+    });
 
-    if (context === "payment_canceled" || s.purchaseStatus === "canceled") {
-      content = `${Hi}\n\nTon accès AMOUR STUDIOS a pris fin. Si tu veux revenir, tu reprends en 1 clic ici 👉 ${site}/compte\nUne question ? Réponds à ce DM. 🧡`;
-    } else if (!s.step || s.step === "awaiting_presentation") {
-      content = `${Hi}\n\nIl te reste une étape pour débloquer ton accès : **clique sur « ✨ S'onboarder » dans ton salon privé** (ton salon personnel à l'arrivée sur le serveur). Je t'envoie ton lien d'onboarding dans la foulée. 🔥`;
-    } else if (s.step === "link_sent") {
-      content =
-        s.tier === "coaching"
-          ? `${Hi}\n\nTu y es presque : termine ton **questionnaire** (~5 min) pour que Walid prépare ton 1er appel 👉 ${link}`
-          : `${Hi}\n\nTu y es presque : complète tes **infos** (~2 min) pour débloquer ton accès complet 👉 ${link}`;
-    } else if (s.step === "form_done" && s.tier === "coaching") {
-      content = `${hi ? `Bravo ${s.firstName} 🙌` : "Bravo 🙌"}\n\nTon questionnaire est **validé** ✅ Dernière étape pour débloquer ton accès Discord complet : **réserve ton 1er RDV avec Walid** 👉 ${link}`;
-    } else if (s.step === "rdv_booked" || s.step === "community_ready") {
-      content = `🎉 ${hi}tout est validé — tu as accès à tout sur le Discord. À très vite ! 🧡`;
-    }
-
-    if (!content) return { ok: false as const, reason: "no_message" as const };
+    if (!msg) return { ok: false as const, reason: "no_message" as const };
     await ctx.scheduler.runAfter(0, internal.onboardings.discordDm, {
       discordId: s.discordId,
-      content,
+      embed: msg.embed,
+      button: msg.button,
     });
     return { ok: true as const };
   },
@@ -905,36 +911,22 @@ export const grantOnboarded = internalAction({
         return { ok: false };
       }
       // Rôle Onboardé attribué = accès complet débloqué → DM de confirmation
-      // (fail-silent, adapté à l'offre). C'est le « tu as accès à tout ».
-      const hi = u.firstName ? `${u.firstName}, ` : "";
+      // brandé (fail-silent, adapté à l'offre). Un SEUL embed + un bouton.
       const base = (process.env.SITE_URL ?? "https://amour-studios.vercel.app").replace(/\/$/, "");
-      // Nudge espace membre : le membre sait où aller dès l'activation, sans que
-      // le coach envoie quoi que ce soit. Toujours retrouvable dans #mon-espace.
-      const espace = `\n\n👉 **Ton espace** : tes exercices ${base}/exos · ton compte ${base}/compte\n(toujours dispo dans #mon-espace)`;
-      // Étape finale encouragée : se présenter à la communauté dans #général
-      // (deep-link si les IDs sont configurés) + un exemple pour aider.
-      const guildId = process.env.DISCORD_GUILD_ID;
+      // Renvoi vers #général : mention de salon `<#id>` (cliquable, SANS carte
+      // de preview) si l'ID est configuré, sinon « #général » en texte.
       const generalId = process.env.DISCORD_GENERAL_CHANNEL_ID;
-      const generalRef =
-        guildId && generalId
-          ? `👉 https://discord.com/channels/${guildId}/${generalId}`
-          : "dans **#général** sur le Discord";
-      const presentation =
-        `\n\n🎤 **Dernière chose : présente-toi à la communauté !** Passe ${generalRef}\n` +
-        `Poste une courte présentation + un de tes reels. Par exemple :\n` +
-        `> Salut, moi c'est ${u.firstName ?? "[prénom]"}, artiste depuis [X temps]. Je bosse sur [ton projet], et je suis là pour [ton objectif]. Voici un de mes derniers sons 👇`;
-      const content =
-        (u.tier === "coaching"
-          ? `🎉 ${hi}c'est validé ! Ton accès est complet : tu peux désormais écrire dans tous les channels, ton espace exercices est ouvert, et ton 1er RDV est calé. On se voit très vite. 🚀`
-          : `🎉 ${hi}bienvenue dans AMOUR STUDIOS ! Ton profil est validé — tu as maintenant accès à **tous les channels** de la communauté. Partage ta musique, pose tes questions, profite des ressources. 🎵`) +
-        espace +
-        presentation;
+      const generalRef = generalId ? `<#${generalId}>` : "**#général**";
+      const msg = grantedDm({
+        firstName: u.firstName,
+        tier: u.tier === "coaching" ? "coaching" : "communaute",
+        base,
+        generalRef,
+      });
       await ctx.scheduler.runAfter(0, internal.onboardings.discordDm, {
         discordId: u.discordId,
-        content,
-        // DM riche en liens (espace /exos + /compte + deep-link #général) →
-        // sans ça Discord empile 1 carte de preview par URL (effet « spam »).
-        suppressEmbeds: true,
+        embed: msg.embed,
+        button: msg.button,
       });
       return { ok: true };
     } catch (err) {
@@ -951,10 +943,13 @@ export const grantOnboarded = internalAction({
 export const discordDm = internalAction({
   args: {
     discordId: v.string(),
-    content: v.string(),
+    // `content` (texte brut, legacy/alertes) OU `embed` (message membre brandé).
+    content: v.optional(v.string()),
     suppressEmbeds: v.optional(v.boolean()),
+    embed: v.optional(EMBED_V),
+    button: v.optional(BUTTON_V),
   },
-  handler: async (_ctx, { discordId, content, suppressEmbeds }) => {
+  handler: async (_ctx, { discordId, content, suppressEmbeds, embed, button }) => {
     const endpoint = process.env.DISCORD_BOT_ENDPOINT;
     const secret = process.env.DISCORD_BOT_ENDPOINT_SECRET;
     if (!endpoint || !secret) {
@@ -968,7 +963,7 @@ export const discordDm = internalAction({
           "Content-Type": "application/json",
           Authorization: `Bearer ${secret}`,
         },
-        body: JSON.stringify({ discordId, content, suppressEmbeds }),
+        body: JSON.stringify({ discordId, content, suppressEmbeds, embed, button }),
       });
       if (!res.ok) {
         const txt = await res.text();
@@ -988,11 +983,12 @@ export const discordDm = internalAction({
 export const discordPostOnboarding = internalAction({
   args: {
     discordId: v.string(),
-    content: v.string(),
+    content: v.optional(v.string()),
     linkLabel: v.optional(v.string()),
     linkUrl: v.optional(v.string()),
+    embed: v.optional(EMBED_V),
   },
-  handler: async (_ctx, { discordId, content, linkLabel, linkUrl }) => {
+  handler: async (_ctx, { discordId, content, linkLabel, linkUrl, embed }) => {
     const endpoint = process.env.DISCORD_BOT_ENDPOINT;
     const secret = process.env.DISCORD_BOT_ENDPOINT_SECRET;
     if (!endpoint || !secret) return { ok: false, reason: "missing_env" };
@@ -1003,7 +999,7 @@ export const discordPostOnboarding = internalAction({
           "Content-Type": "application/json",
           Authorization: `Bearer ${secret}`,
         },
-        body: JSON.stringify({ discordId, content, linkLabel, linkUrl }),
+        body: JSON.stringify({ discordId, content, linkLabel, linkUrl, embed }),
       });
       return (await res.json().catch(() => ({ ok: false }))) as { ok: boolean };
     } catch (err) {
@@ -1027,31 +1023,20 @@ export const postLinkedStatusToChannel = internalAction({
     if (!s || !s.discordId) return { ok: false as const, reason: "no_discord" as const };
     const site = process.env.SITE_URL ?? "https://amour-studios.vercel.app";
     const link = s.token ? `${site}/onboarding/${s.token}` : `${site}/exos`;
-    const hi = s.firstName ? ` ${s.firstName}` : "";
 
-    let content: string;
-    let linkLabel: string | undefined;
-    let linkUrl: string | undefined;
-
-    if (s.step === "rdv_booked" || s.step === "community_ready") {
-      // Déjà tout validé → simple confirmation (pas de bouton).
-      content = `🎉 Bravo${hi}, ton compte est lié et tout est validé — tu as accès à tout sur le serveur ! 🧡`;
-    } else if (s.step === "form_done" && s.tier === "coaching") {
-      content = `🎉 Bravo${hi}, ton compte est lié ! Dernière étape pour débloquer ton accès complet : réserve ton 1er RDV avec Walid 👇`;
-      linkLabel = "Réserver mon 1er RDV";
-      linkUrl = link;
-    } else {
-      // link_sent (cas le plus courant juste après liaison) ou awaiting_presentation.
-      content = `🎉 Bravo${hi}, ton compte est lié ! Dernière étape : complète ton onboarding 👇`;
-      linkLabel = s.tier === "coaching" ? "Ouvrir mon onboarding" : "Compléter mon profil";
-      linkUrl = link;
-    }
+    const msg = linkedChannelMsg({
+      firstName: s.firstName,
+      tier: s.tier,
+      step: s.step,
+      link,
+    });
 
     await ctx.scheduler.runAfter(0, internal.onboardings.discordPostOnboarding, {
       discordId: s.discordId,
-      content,
-      linkLabel,
-      linkUrl,
+      embed: msg.embed,
+      // discordPostOnboarding rend linkLabel/linkUrl comme bouton-lien de l'embed.
+      linkLabel: msg.button?.label,
+      linkUrl: msg.button?.url,
     });
     return { ok: true as const };
   },
@@ -1175,7 +1160,7 @@ export const triggerManualRelance = mutation({
 /** Relance MANUELLE (bouton « Relancer » du dashboard) : envoie un message de
  *  RAPPEL — DISTINCT du 1er envoi `sendLink` (« Bienvenue, c'est parti ») — et
  *  ADAPTÉ à l'étape où le membre est bloqué (présentation / questionnaire / RDV).
- *  Réutilise le contenu de relance du cron (`relanceDiscordContent` niveau doux
+ *  Réutilise le contenu de relance du cron (`relanceDm` niveau doux
  *  + mail `sendRelanceOnboarding24h`) → cohérent, rien de neuf à maintenir.
  *  Fail-silent par canal. Ne touche PAS aux flags relance{24,48,7} du cron. */
 export const sendManualRelance = internalAction({
@@ -1208,15 +1193,11 @@ export const sendManualRelance = internalAction({
     }
     // DM « petit rappel » adapté à l'étape (≠ « Bienvenue, c'est parti »).
     if (s.discordId) {
+      const msg = relanceDm({ level: 24, scenario, tier: s.tier, firstName, link });
       await ctx.scheduler.runAfter(0, internal.onboardings.discordDm, {
         discordId: s.discordId,
-        content: relanceDiscordContent({
-          level: 24,
-          scenario,
-          tier: s.tier,
-          firstName,
-          link,
-        }),
+        embed: msg.embed,
+        button: msg.button,
       });
     }
     return { ok: true as const };
@@ -1372,51 +1353,8 @@ export const _markRelanceSent = internalMutation({
   },
 });
 
-/** Contenu DM Discord selon (level × scenario × tier). Ton qui monte avec le level. */
-function relanceDiscordContent({
-  level,
-  scenario,
-  tier,
-  firstName,
-  link,
-}: {
-  level: RelanceLevel;
-  scenario: RelanceScenario;
-  tier: "coaching" | "communaute";
-  firstName: string | null;
-  link: string;
-}): string {
-  const hello = firstName ? `Salut ${firstName} 👋` : "Salut 👋";
-
-  if (scenario === "presentation") {
-    if (level === 24) {
-      return `${hello}\n\nPetit rappel : tu n'as pas encore démarré ton onboarding.\n\nClique sur **« ✨ S'onboarder »** dans ton salon privé Discord et je t'envoie ton lien dans la foulée 🔥 (onboarding ${tier === "coaching" ? "coaching" : "communauté"}).`;
-    }
-    if (level === 48) {
-      return `${hello}\n\nÇa fait 2 jours, ton onboarding n'est toujours pas démarré.\n\nUn clic sur **« ✨ S'onboarder »** dans ton salon privé Discord et tu reçois ton lien. C'est 30 secondes, vraiment.`;
-    }
-    return `${hello}\n\n**Dernier rappel.** 7 jours sans avoir démarré ton onboarding.\n\nSi tu ne cliques pas sur **« ✨ S'onboarder »** (salon privé Discord) rapidement, on devra fermer ton onboarding et libérer ta place.\n\nUn blocage ? Réponds à ce DM, on regarde ensemble.`;
-  }
-
-  if (scenario === "questionnaire") {
-    if (level === 24) {
-      return `${hello}\n\nTu as bien ton lien d'onboarding, mais ton questionnaire n'est pas terminé.\n\n${tier === "coaching" ? "Il reste 5 min pour le boucler. C'est ce qui permet à Walid de préparer ton 1er appel." : "Il reste 2 min pour le finir. Dernière étape avant ton accès complet."}\n\n👉 ${link}`;
-    }
-    if (level === 48) {
-      return `${hello}\n\n48h que ton questionnaire est en pause. ${tier === "coaching" ? "Sans ce questionnaire, tu ne peux pas réserver ton 1er RDV ni écrire sur le Discord." : "Sans ce questionnaire, ton accès Discord reste limité."}\n\n👉 ${link}`;
-    }
-    return `${hello}\n\n**Dernier rappel.** 7 jours que ton questionnaire est ouvert.\n\nSi tu ne le termines pas, on suspend ton onboarding. Un blocage ? Dis-le moi en réponse.\n\n👉 ${link}`;
-  }
-
-  // rdv (coaching only)
-  if (level === 24) {
-    return `${hello}\n\nQuestionnaire OK 🙌 Il reste juste ton 1er RDV avec Walid à réserver.\n\nC'est ce qui débloque ton accès Discord complet (écriture, lives, feedback).\n\n👉 ${link}`;
-  }
-  if (level === 48) {
-    return `${hello}\n\n48h que ton questionnaire est validé mais que le RDV n'est pas posé.\n\nTon accès Discord reste limité tant que le créneau n'est pas réservé. Choisis ce qui t'arrange.\n\n👉 ${link}`;
-  }
-  return `${hello}\n\n**Dernier rappel.** 7 jours sans RDV.\n\nTon accès Discord reste limité. Si tu n'arrives pas à trouver un créneau, réponds-moi, on cale ça à la main.\n\n👉 ${link}`;
-}
+// (relanceDiscordContent retiré 2026-06-21 : le copy des relances vit désormais
+//  dans lib/discordMessages.ts → relanceDm, rendu en embed brandé par le bot.)
 
 /** Détermine le scénario en fonction de l'étape actuelle. */
 function scenarioForStep(
@@ -1535,15 +1473,11 @@ export const runDailyRelances = internalAction({
       // ── DM Discord (fail-silent) ──
       if (contact.discordId) {
         try {
+          const msg = relanceDm({ level, scenario, tier: ob.tier, firstName, link });
           await ctx.runAction(internal.onboardings.discordDm, {
             discordId: contact.discordId,
-            content: relanceDiscordContent({
-              level,
-              scenario,
-              tier: ob.tier,
-              firstName,
-              link,
-            }),
+            embed: msg.embed,
+            button: msg.button,
           });
         } catch (err) {
           console.warn(`⚠️ relance ${level}h DM échec:`, err);

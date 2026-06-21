@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { internalAction, internalMutation, internalQuery } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
+import { coachingEndingDm } from "./lib/discordMessages";
 
 // ============================================================================
 // Amour Studios — Crons « cycle de vie » des achats.
@@ -192,18 +193,14 @@ export const remindRenewals = internalAction({
         })
         .catch(() => {});
 
-      // DM Discord (si lié).
+      // DM Discord (si lié) — embed brandé win-back.
       if (user?.discordId) {
-        const dm =
-          level === 1
-            ? `Salut 👋\n\n**Dernier jour de ton coaching** ⏳\n` +
-              `Avant que ton accès se ferme, garde ta place avec nous dans la **Communauté (79€/mois)** : Discord + ressources + groupe.\n👉 ${COMMU_URL}`
-            : `Salut 👋\n\nTon **coaching 3 mois se termine dans ${daysLeft} jour${daysLeft > 1 ? "s" : ""}**.\n` +
-              `Pour rester dans la boucle, tu peux continuer dans la **Communauté (79€/mois)** : Discord + ressources + groupe.\n👉 ${COMMU_URL}`;
+        const dm = coachingEndingDm({ daysLeft, commuUrl: COMMU_URL });
         await ctx
           .runAction(internal.onboardings.discordDm, {
             discordId: user.discordId,
-            content: dm,
+            embed: dm.embed,
+            button: dm.button,
           })
           .catch(() => {});
       }

@@ -20,12 +20,50 @@ export type DiscordEmbed = {
   footer?: string;
 };
 export type DiscordButton = { label: string; url: string };
-export type DiscordMessage = { embed: DiscordEmbed; button?: DiscordButton };
+// `buttons` (tableau) = plusieurs boutons-liens sur une même ligne (ex. Connecter
+// + code AMR) ; `button` (singulier) reste pour le cas à un seul CTA.
+export type DiscordMessage = {
+  embed: DiscordEmbed;
+  button?: DiscordButton;
+  buttons?: DiscordButton[];
+};
+
+/** Heads-up email Discord : un email validé est requis pour relier l'accès.
+ *  Réutilisé tel quel dans plusieurs messages pour une formulation unique. */
+export const EMAIL_VALIDE_NOTE =
+  "Vérifie que l'email de ton compte Discord est validé (Paramètres Discord → Mon compte), sinon on ne pourra pas relier ton accès.";
 
 /** « C'est parti » → « C'est parti, Kevin ». Sans prénom : base inchangée. */
 function withName(base: string, firstName: string | null): string {
   const n = (firstName ?? "").trim();
   return n ? `${base}, ${n}` : base;
+}
+
+/** Message « lie ton compte » : compte Discord pas (encore) relié à un paiement.
+ *  Donne 2 chemins de réparation (OAuth + code AMR) et prévient pour l'email
+ *  Discord non validé. Réutilisé à l'arrivée (non lié), au fallback S'onboarder
+ *  et dans la relance. */
+export function linkAccountDm({
+  loginUrl,
+  lierUrl,
+}: {
+  loginUrl: string;
+  lierUrl: string;
+}): DiscordMessage {
+  return {
+    embed: {
+      title: `Tu as payé ? Lie ton compte 🔗`,
+      description:
+        `Ce compte Discord n'est pas encore relié à ton paiement.\n` +
+        `Connecte-toi avec **CE** compte Discord pour relier ton accès automatiquement.\n\n` +
+        `⚠️ **D'abord** : ${EMAIL_VALIDE_NOTE}`,
+      footer: `Email pas validé ? Utilise ton code AMR (reçu par mail à l'achat) — ça marche sans validation.`,
+    },
+    buttons: [
+      { label: "Connecter mon compte", url: loginUrl },
+      { label: "J'ai un code AMR", url: lierUrl },
+    ],
+  };
 }
 
 // ── 1er envoi du lien d'onboarding (sendLink) ───────────────────────────────

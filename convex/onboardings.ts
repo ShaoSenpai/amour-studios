@@ -1014,8 +1014,9 @@ export const discordDm = internalAction({
     suppressEmbeds: v.optional(v.boolean()),
     embed: v.optional(EMBED_V),
     button: v.optional(BUTTON_V),
+    buttons: v.optional(v.array(BUTTON_V)),
   },
-  handler: async (_ctx, { discordId, content, suppressEmbeds, embed, button }) => {
+  handler: async (_ctx, { discordId, content, suppressEmbeds, embed, button, buttons }) => {
     const endpoint = process.env.DISCORD_BOT_ENDPOINT;
     const secret = process.env.DISCORD_BOT_ENDPOINT_SECRET;
     if (!endpoint || !secret) {
@@ -1029,7 +1030,7 @@ export const discordDm = internalAction({
           "Content-Type": "application/json",
           Authorization: `Bearer ${secret}`,
         },
-        body: JSON.stringify({ discordId, content, suppressEmbeds, embed, button }),
+        body: JSON.stringify({ discordId, content, suppressEmbeds, embed, button, buttons }),
       });
       if (!res.ok) {
         const txt = await res.text();
@@ -1053,8 +1054,9 @@ export const discordPostOnboarding = internalAction({
     linkLabel: v.optional(v.string()),
     linkUrl: v.optional(v.string()),
     embed: v.optional(EMBED_V),
+    buttons: v.optional(v.array(BUTTON_V)),
   },
-  handler: async (_ctx, { discordId, content, linkLabel, linkUrl, embed }) => {
+  handler: async (_ctx, { discordId, content, linkLabel, linkUrl, embed, buttons }) => {
     const endpoint = process.env.DISCORD_BOT_ENDPOINT;
     const secret = process.env.DISCORD_BOT_ENDPOINT_SECRET;
     if (!endpoint || !secret) return { ok: false, reason: "missing_env" };
@@ -1065,7 +1067,7 @@ export const discordPostOnboarding = internalAction({
           "Content-Type": "application/json",
           Authorization: `Bearer ${secret}`,
         },
-        body: JSON.stringify({ discordId, content, linkLabel, linkUrl, embed }),
+        body: JSON.stringify({ discordId, content, linkLabel, linkUrl, embed, buttons }),
       });
       return (await res.json().catch(() => ({ ok: false }))) as { ok: boolean };
     } catch (err) {

@@ -62,7 +62,7 @@ function stepInfo(step: string): StepLabel | null {
     return { icon: "📍", text: "Pas présenté", anchorKey: "createdAt" };
   if (step === "link_sent")
     return { icon: "📝", text: "Questionnaire pending", anchorKey: "linkSentAt" };
-  if (step === "form_done")
+  if (step === "form_done" || step === "consents")
     return { icon: "📅", text: "RDV pending", anchorKey: "formCompletedAt" };
   return null;
 }

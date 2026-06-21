@@ -168,7 +168,7 @@ function shouldShowUpsell(answers: Record<string, string>): boolean {
 
 const COACHING_UPSELL_URL = "https://amourstudios.fr/paiement?offre=coaching";
 
-type StepKey = "loading" | "invalid" | "contact" | "questions" | "quickwin" | "rdv" | "upsell" | "done";
+type StepKey = "loading" | "invalid" | "contact" | "questions" | "consents" | "quickwin" | "rdv" | "upsell" | "done";
 
 export default function OnboardingTokenPage({
   params,
@@ -182,6 +182,7 @@ export default function OnboardingTokenPage({
   const data = useQuery(api.onboardings.getByToken, { token });
   const submitContact = useMutation(api.onboardings.submitContact);
   const submitAnswers = useMutation(api.onboardings.submitAnswers);
+  const submitConsents = useMutation(api.onboardings.submitConsents);
   const markRdvBooked = useMutation(api.onboardings.markRdvBooked);
   // Upsell Communauté → Coaching (écran de fin, fenêtre 1h).
   const offer = useQuery(api.onboardings.upgradeOffer, { token });
@@ -199,6 +200,11 @@ export default function OnboardingTokenPage({
   // Upsell : masquage local ("Non merci") + état d'activation du débit.
   const [upsellDismissed, setUpsellDismissed] = useState(false);
   const [upgrading, setUpgrading] = useState(false);
+  // Consentements RGPD (coaching) : enregistrement + confidentialité OBLIGATOIRES,
+  // témoignage FACULTATIF. Hooks placés AVANT tout early return (React #310).
+  const [cRecording, setCRecording] = useState(false);
+  const [cConfidentiality, setCConfidentiality] = useState(false);
+  const [cTestimonial, setCTestimonial] = useState(false);
 
   // Handler du débit +100€ off-session puis bascule coaching. Le succès patche
   // l'onboarding (→ tier coaching/form_done) : `data` (useQuery réactif) se met
@@ -240,6 +246,9 @@ export default function OnboardingTokenPage({
     setAnswers(map);
     if (data.step === "rdv_booked" || data.step === "community_ready") {
       setStep("done");
+    } else if (data.step === "consents" && data.tier === "coaching") {
+      // Questionnaire validé, consentements RGPD pas encore recueillis.
+      setStep("consents");
     } else if (data.step === "form_done" && data.tier === "coaching") {
       // ⚠️ Ne PAS écraser l'interstitiel local "quickwin" : à la validation du
       // questionnaire, le handler pose setStep("quickwin"), mais le serveur passe
@@ -352,16 +361,38 @@ export default function OnboardingTokenPage({
       });
       await submitAnswers({ token, answers: arr, finalize: true });
       if (tier === "coaching") {
-        // Interstitiel « quick win » (vidéo de félicitation/préparation) avant
-        // le RDV. One-shot : sur reload, le mapping réactif renvoie direct à "rdv".
-        // Si la vidéo Mux n'est pas configurée, on saute l'écran (pas d'écran
-        // vide qui parlerait d'une vidéo absente) → RDV direct.
-        setStep("quickwin");
+        // Coaching : avant le RDV (et donc avant tout enregistrement de session),
+        // on recueille les consentements RGPD. Le serveur est passé à "consents".
+        setStep("consents");
       } else if (shouldShowUpsell(answers)) {
         setStep("upsell");
       } else {
         setStep("done");
       }
+    } catch (err) {
+      toast.error((err as Error).message ?? "Erreur");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // Consentements RGPD (coaching) → enregistre la preuve puis enchaîne sur
+  // l'interstitiel quickwin avant le RDV (le serveur passe à form_done).
+  const handleSubmitConsents = async () => {
+    if (busy) return;
+    if (!cRecording || !cConfidentiality) {
+      toast.error("Les 2 consentements obligatoires sont requis.");
+      return;
+    }
+    setBusy(true);
+    try {
+      await submitConsents({
+        token,
+        recording: cRecording,
+        confidentiality: cConfidentiality,
+        testimonial: cTestimonial,
+      });
+      setStep("quickwin");
     } catch (err) {
       toast.error((err as Error).message ?? "Erreur");
     } finally {
@@ -479,6 +510,76 @@ export default function OnboardingTokenPage({
           >
             Direction <strong style={{ color: c.muted }}>#💬・général</strong>
             {tier === "coaching" ? " ou présente-toi à Walid" : ""}
+          </p>
+        </div>
+      </Shell>
+    );
+  }
+
+  if (step === "consents") {
+    const canContinue = cRecording && cConfidentiality && !busy;
+    return (
+      <Shell c={c} dark={dark}>
+        <div>
+          <div style={{ ...mono, color: ACCENT }}>◦ Questionnaire validé ✓</div>
+          <h1 style={{ ...num, fontSize: 32, fontWeight: 500, lineHeight: 1.05, margin: "10px 0 0" }}>
+            Avant de réserver ton 1er RDV.
+          </h1>
+          <p style={{ fontSize: 14, color: c.text, marginTop: 12, lineHeight: 1.55 }}>
+            Tes sessions de coaching peuvent être enregistrées pour ton suivi. Quelques
+            accords avant de continuer — c&apos;est rapide.
+          </p>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 20 }}>
+            <ConsentRow
+              c={c}
+              checked={cRecording}
+              onChange={setCRecording}
+              required
+            >
+              J&apos;accepte que mes sessions de coaching soient{" "}
+              <strong>enregistrées et transcrites</strong> à des fins de suivi pédagogique.
+            </ConsentRow>
+            <ConsentRow
+              c={c}
+              checked={cConfidentiality}
+              onChange={setCConfidentiality}
+              required
+            >
+              Je m&apos;engage à <strong>ne pas divulguer</strong> le contenu du coaching, des
+              sessions et des échanges de la communauté.
+            </ConsentRow>
+            <ConsentRow
+              c={c}
+              checked={cTestimonial}
+              onChange={setCTestimonial}
+            >
+              J&apos;autorise l&apos;utilisation de mes résultats / extraits en{" "}
+              <strong>témoignages</strong>.
+            </ConsentRow>
+          </div>
+
+          <GlassButton
+            c={c}
+            kind="solid"
+            onClick={handleSubmitConsents}
+            disabled={!canContinue}
+            style={{
+              marginTop: 22,
+              padding: "14px 18px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: "100%",
+              boxSizing: "border-box",
+              opacity: canContinue ? 1 : 0.5,
+              cursor: canContinue ? "pointer" : "default",
+            }}
+          >
+            {busy ? "Enregistrement…" : "Continuer →"}
+          </GlassButton>
+          <p style={{ ...mono, fontSize: 9.5, color: c.faint, textAlign: "center", marginTop: 10, lineHeight: 1.4 }}>
+            Les 2 premiers sont obligatoires · le 3e est facultatif et sans incidence sur ton accès
           </p>
         </div>
       </Shell>
@@ -1174,6 +1275,51 @@ function Field({
       {hint && (
         <span style={{ fontSize: 11, color: c.faint, lineHeight: 1.45 }}>{hint}</span>
       )}
+    </label>
+  );
+}
+
+/** Ligne de consentement (case + libellé), style wizard. `required` ajoute un
+ *  marqueur visuel « obligatoire ». */
+function ConsentRow({
+  c,
+  checked,
+  onChange,
+  required,
+  children,
+}: {
+  c: C;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  required?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <label
+      style={{
+        display: "flex",
+        gap: 12,
+        alignItems: "flex-start",
+        padding: "13px 14px",
+        background: checked ? `${ACCENT}12` : c.chip,
+        border: `1px solid ${checked ? ACCENT : c.line}`,
+        borderRadius: 12,
+        cursor: "pointer",
+        transition: "background 150ms ease, border-color 150ms ease",
+      }}
+    >
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        style={{ marginTop: 2, accentColor: ACCENT, width: 17, height: 17, flexShrink: 0 }}
+      />
+      <span style={{ fontSize: 13.5, color: c.text, lineHeight: 1.5 }}>
+        {children}{" "}
+        <span style={{ ...mono, fontSize: 9.5, color: required ? ACCENT : c.faint }}>
+          {required ? "(obligatoire)" : "(facultatif)"}
+        </span>
+      </span>
     </label>
   );
 }

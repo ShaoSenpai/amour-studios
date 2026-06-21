@@ -279,3 +279,53 @@ export const runSafeTool = internalAction({
     }
   },
 });
+
+// ============================================================================
+// Escalade et transcript
+// ============================================================================
+
+/** Marque le fil escaladé + log event. Le bot crée le salon ticket et rappelle
+ * cette mutation avec l'escalatedChannelId pour la traçabilité. */
+export const recordEscalation = internalMutation({
+  args: {
+    threadId: v.id("supportThreads"),
+    discordId: v.string(),
+    reason: v.string(),
+    escalatedChannelId: v.optional(v.string()),
+  },
+  handler: async (ctx, { threadId, discordId, reason, escalatedChannelId }) => {
+    const t = await ctx.db.get(threadId);
+    if (!t) return;
+    await ctx.db.patch(threadId, {
+      status: "escalated",
+      updatedAt: Date.now(),
+      ...(escalatedChannelId ? { escalatedChannelId } : {}),
+    });
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_discord", (q) => q.eq("discordId", discordId))
+      .first();
+    await logEvent(ctx, {
+      userId: user?._id,
+      type: "support.escalated",
+      title: `Escalade IA → humain : ${reason.slice(0, 80)}`,
+      actor: "support_ai",
+      meta: { channelId: t.channelId, discordId, reason },
+    });
+  },
+});
+
+/** Transcript texte d'un fil (pour copier dans le salon ticket à l'escalade). */
+export const threadTranscript = internalQuery({
+  args: { threadId: v.id("supportThreads") },
+  handler: async (ctx, { threadId }) => {
+    const msgs = await ctx.db
+      .query("supportMessages")
+      .withIndex("by_thread", (q) => q.eq("threadId", threadId))
+      .collect();
+    return msgs
+      .filter((m) => m.role !== "system")
+      .map((m) => `${m.role === "user" ? "Membre" : "Assistant"} : ${m.content}`)
+      .join("\n");
+  },
+});

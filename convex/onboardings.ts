@@ -348,18 +348,22 @@ export const _obByToken = internalQuery({
 });
 
 /** Internal mutation : applique l'upgrade Communauté → Coaching côté onboarding
- *  une fois le débit Stripe confirmé. Bascule la row sur coaching/form_done et
- *  ferme la fenêtre d'offre (→ la page enchaîne l'étape RDV coaching). Log
- *  l'event tier_changed. Idempotent : ne re-log pas si déjà coaching. */
+ *  une fois le débit Stripe confirmé. Fait repasser le membre par le PARCOURS
+ *  COACHING complet (questionnaire coaching → vidéo quick-win → RDV) au lieu de
+ *  sauter direct au RDV : on pose step="link_sent" (la page route alors vers
+ *  l'étape "questions" en tier=coaching). Ferme la fenêtre d'offre. Idempotent :
+ *  ne re-log pas si déjà coaching et ne RÉTROGRADE pas une étape déjà avancée. */
 export const _applyUpgradeOnboarding = internalMutation({
   args: { onboardingId: v.id("onboardings") },
   handler: async (ctx, { onboardingId }) => {
     const ob = await ctx.db.get(onboardingId);
     if (!ob) return;
     const alreadyCoaching = ob.tier === "coaching";
+    // Rejeu (déjà avancé dans le parcours coaching) → on ne rétrograde pas.
+    const advanced = ob.step === "form_done" || ob.step === "rdv_booked";
     await ctx.db.patch(onboardingId, {
       tier: "coaching",
-      step: "form_done",
+      step: advanced ? ob.step : "link_sent",
       upgradeOfferExpiresAt: undefined,
       updatedAt: Date.now(),
     });

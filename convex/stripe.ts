@@ -78,9 +78,6 @@ export const createSubscription = action({
       apiVersion: "2026-03-25.dahlia",
     });
 
-    // TEMP (vérif passthrough consentement Task 8 — à retirer après validation).
-    console.log("[stripe] termsAccepted:", termsAccepted, legalVersion);
-
     const normalizedEmail = email.trim().toLowerCase();
     if (!normalizedEmail || !EMAIL_RE.test(normalizedEmail)) {
       throw new Error("Email invalide");

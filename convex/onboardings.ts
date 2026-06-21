@@ -1152,11 +1152,11 @@ export const triggerManualRelance = mutation({
     if (ob.step === "rdv_booked" || ob.step === "community_ready") {
       return { ok: false, reason: "already_done" };
     }
-    await ctx.scheduler.runAfter(0, internal.onboardings.sendLink, {
+    // RELANCE manuelle = message « rappel » DISTINCT du 1er envoi (sendLink), et
+    // adapté à l'étape (réutilise le contenu de relance du cron). Voir
+    // sendManualRelance ci-dessous.
+    await ctx.scheduler.runAfter(0, internal.onboardings.sendManualRelance, {
       userId: ob.userId,
-      token: ob.token,
-      firstName: ob.firstName ?? null,
-      tier: ob.tier,
     });
     await logEvent(ctx, {
       userId: ob.userId,
@@ -1165,6 +1165,57 @@ export const triggerManualRelance = mutation({
       actor: "admin",
     });
     return { ok: true };
+  },
+});
+
+/** Relance MANUELLE (bouton « Relancer » du dashboard) : envoie un message de
+ *  RAPPEL — DISTINCT du 1er envoi `sendLink` (« Bienvenue, c'est parti ») — et
+ *  ADAPTÉ à l'étape où le membre est bloqué (présentation / questionnaire / RDV).
+ *  Réutilise le contenu de relance du cron (`relanceDiscordContent` niveau doux
+ *  + mail `sendRelanceOnboarding24h`) → cohérent, rien de neuf à maintenir.
+ *  Fail-silent par canal. Ne touche PAS aux flags relance{24,48,7} du cron. */
+export const sendManualRelance = internalAction({
+  args: { userId: v.id("users") },
+  handler: async (ctx, { userId }) => {
+    const s = await ctx.runQuery(internal.onboardings._statusForUser, { userId });
+    if (!s || !s.step || !s.tier) return { ok: false as const, reason: "no_state" as const };
+    const scenario = scenarioForStep(s.step, s.tier);
+    // Étape finale (rdv_booked/community_ready) → rien à relancer.
+    if (!scenario) return { ok: false as const, reason: "final" as const };
+
+    const contact = await ctx.runQuery(internal.onboardings._userContact, { userId });
+    const site = process.env.SITE_URL ?? "https://amour-studios.vercel.app";
+    const link = s.token ? `${site}/onboarding/${s.token}` : site;
+    const firstName = s.firstName ?? contact?.firstName ?? null;
+
+    // Mail de relance dédié (ton « rappel », ≠ mail de bienvenue). Fail-silent.
+    if (contact?.email) {
+      try {
+        await ctx.runAction(internal.emails.sendRelanceOnboarding24h, {
+          to: contact.email,
+          firstName,
+          link,
+          tier: s.tier,
+          scenario,
+        });
+      } catch (err) {
+        console.warn("⚠️ relance manuelle email échec:", err);
+      }
+    }
+    // DM « petit rappel » adapté à l'étape (≠ « Bienvenue, c'est parti »).
+    if (s.discordId) {
+      await ctx.scheduler.runAfter(0, internal.onboardings.discordDm, {
+        discordId: s.discordId,
+        content: relanceDiscordContent({
+          level: 24,
+          scenario,
+          tier: s.tier,
+          firstName,
+          link,
+        }),
+      });
+    }
+    return { ok: true as const };
   },
 });
 

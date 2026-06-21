@@ -452,7 +452,10 @@ export default function OnboardingTokenPage({
     const showUpsell = offer?.eligible === true && !upsellDismissed;
     return (
       <Shell c={c} dark={dark}>
-        {showUpsell && (
+        {showUpsell ? (
+          // Upsell éligible : il occupe seul l'écran de fin (la carte de
+          // bienvenue Discord est masquée pour lui laisser toute la place).
+          // Après fermeture de l'upsell (onDismiss), on retombe sur la carte.
           <UpsellBlock
             c={c}
             offer={offer}
@@ -460,7 +463,7 @@ export default function OnboardingTokenPage({
             onUpgrade={handleUpgrade}
             onDismiss={() => setUpsellDismissed(true)}
           />
-        )}
+        ) : (
         <div>
           <div style={{ ...mono, color: ACCENT }}>◦ Accès débloqué ✓</div>
           <h1 style={{ ...num, fontSize: 36, fontWeight: 500, lineHeight: 1.05, margin: "10px 0 0" }}>
@@ -512,6 +515,7 @@ export default function OnboardingTokenPage({
             {tier === "coaching" ? " ou présente-toi à Walid" : ""}
           </p>
         </div>
+        )}
       </Shell>
     );
   }

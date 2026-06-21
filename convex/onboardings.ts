@@ -8,6 +8,7 @@ import {
   type MutationCtx,
 } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { getAuthUserId } from "@convex-dev/auth/server";
 import { requireAdmin } from "./lib/auth";
 import { logEvent } from "./lib/events";
 import type { Id, Doc } from "./_generated/dataModel";
@@ -128,6 +129,11 @@ export const linkAndStartOnboarding = internalMutation({
       firstName: ob.firstName ?? null,
       tier: ob.tier,
     });
+    // Liaison APRÈS coup (claim/code) → si le membre est déjà sur le serveur,
+    // « Bravo, compte lié + étape » dans son salon privé (no-op sinon).
+    await ctx.scheduler.runAfter(0, internal.onboardings.postLinkedStatusToChannel, {
+      userId,
+    });
   },
 });
 
@@ -206,6 +212,11 @@ export const ensureForUser = internalMutation({
       firstName: existing?.firstName ?? null,
       tier: active.tier,
     });
+    // Liaison APRÈS coup (login OAuth qui auto-lie par email) → si le membre est
+    // déjà sur le serveur, « Bravo, compte lié + étape » dans son salon privé.
+    await ctx.scheduler.runAfter(0, internal.onboardings.postLinkedStatusToChannel, {
+      userId,
+    });
     return { created };
   },
 });
@@ -234,6 +245,23 @@ export const getByToken = query({
       formCompletedAt: ob.formCompletedAt ?? null,
       rdvBookedAt: ob.rdvBookedAt ?? null,
     };
+  },
+});
+
+/** Onboarding du user CONNECTÉ (pour la page /onboarding/welcome qui deep-linke
+ *  direct vers le wizard). Renvoie le minimum nécessaire ({ token, step, tier })
+ *  ou null si pas connecté / pas encore de row (lag webhook post-paiement). */
+export const myCurrent = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) return null;
+    const ob = await ctx.db
+      .query("onboardings")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .first();
+    if (!ob) return null;
+    return { token: ob.token, step: ob.step, tier: ob.tier };
   },
 });
 
@@ -900,6 +928,9 @@ export const grantOnboarded = internalAction({
       await ctx.scheduler.runAfter(0, internal.onboardings.discordDm, {
         discordId: u.discordId,
         content,
+        // DM riche en liens (espace /exos + /compte + deep-link #général) →
+        // sans ça Discord empile 1 carte de preview par URL (effet « spam »).
+        suppressEmbeds: true,
       });
       return { ok: true };
     } catch (err) {
@@ -909,10 +940,17 @@ export const grantOnboarded = internalAction({
   },
 });
 
-/** Appelle le bot Discord pour envoyer un DM. */
+/** Appelle le bot Discord pour envoyer un DM.
+ *  `suppressEmbeds` (optionnel) : demande au bot de masquer les cartes de preview
+ *  auto-générées par Discord pour chaque lien (utile sur les DM riches en liens,
+ *  ex. le DM de fin d'onboarding qui sinon affiche 1 carte par URL). */
 export const discordDm = internalAction({
-  args: { discordId: v.string(), content: v.string() },
-  handler: async (_ctx, { discordId, content }) => {
+  args: {
+    discordId: v.string(),
+    content: v.string(),
+    suppressEmbeds: v.optional(v.boolean()),
+  },
+  handler: async (_ctx, { discordId, content, suppressEmbeds }) => {
     const endpoint = process.env.DISCORD_BOT_ENDPOINT;
     const secret = process.env.DISCORD_BOT_ENDPOINT_SECRET;
     if (!endpoint || !secret) {
@@ -926,7 +964,7 @@ export const discordDm = internalAction({
           "Content-Type": "application/json",
           Authorization: `Bearer ${secret}`,
         },
-        body: JSON.stringify({ discordId, content }),
+        body: JSON.stringify({ discordId, content, suppressEmbeds }),
       });
       if (!res.ok) {
         const txt = await res.text();
@@ -938,6 +976,80 @@ export const discordDm = internalAction({
       console.warn("⚠️ DM bot fetch échec:", err);
       return { ok: false };
     }
+  },
+});
+
+/** Appelle le bot pour poster dans le SALON PRIVÉ d'onboarding du membre
+ *  (topic onboarding:<discordId>). Fail-silent. */
+export const discordPostOnboarding = internalAction({
+  args: {
+    discordId: v.string(),
+    content: v.string(),
+    linkLabel: v.optional(v.string()),
+    linkUrl: v.optional(v.string()),
+  },
+  handler: async (_ctx, { discordId, content, linkLabel, linkUrl }) => {
+    const endpoint = process.env.DISCORD_BOT_ENDPOINT;
+    const secret = process.env.DISCORD_BOT_ENDPOINT_SECRET;
+    if (!endpoint || !secret) return { ok: false, reason: "missing_env" };
+    try {
+      const res = await fetch(`${endpoint.replace(/\/$/, "")}/post-onboarding`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${secret}`,
+        },
+        body: JSON.stringify({ discordId, content, linkLabel, linkUrl }),
+      });
+      return (await res.json().catch(() => ({ ok: false }))) as { ok: boolean };
+    } catch (err) {
+      console.warn("⚠️ post-onboarding bot échec:", err);
+      return { ok: false };
+    }
+  },
+});
+
+/** STATE-AWARE : « Bravo, ton compte est lié ! » + la prochaine étape, posté
+ *  DANS LE SALON PRIVÉ du membre — MAIS seulement si ce salon existe (= le
+ *  membre est DÉJÀ sur le serveur → liaison APRÈS coup). S'il n'est pas encore
+ *  arrivé, le bot renvoie no_channel → no-op (il aura le flux normal
+ *  « S'onboarder » à son arrivée). Distingue donc tout seul « onboarding
+ *  classique » vs « liaison après coup ». Réutilise la boussole _statusForUser
+ *  pour s'adapter à l'étape. Fail-silent. */
+export const postLinkedStatusToChannel = internalAction({
+  args: { userId: v.id("users") },
+  handler: async (ctx, { userId }) => {
+    const s = await ctx.runQuery(internal.onboardings._statusForUser, { userId });
+    if (!s || !s.discordId) return { ok: false as const, reason: "no_discord" as const };
+    const site = process.env.SITE_URL ?? "https://amour-studios.vercel.app";
+    const link = s.token ? `${site}/onboarding/${s.token}` : `${site}/exos`;
+    const hi = s.firstName ? ` ${s.firstName}` : "";
+
+    let content: string;
+    let linkLabel: string | undefined;
+    let linkUrl: string | undefined;
+
+    if (s.step === "rdv_booked" || s.step === "community_ready") {
+      // Déjà tout validé → simple confirmation (pas de bouton).
+      content = `🎉 Bravo${hi}, ton compte est lié et tout est validé — tu as accès à tout sur le serveur ! 🧡`;
+    } else if (s.step === "form_done" && s.tier === "coaching") {
+      content = `🎉 Bravo${hi}, ton compte est lié ! Dernière étape pour débloquer ton accès complet : réserve ton 1er RDV avec Walid 👇`;
+      linkLabel = "Réserver mon 1er RDV";
+      linkUrl = link;
+    } else {
+      // link_sent (cas le plus courant juste après liaison) ou awaiting_presentation.
+      content = `🎉 Bravo${hi}, ton compte est lié ! Dernière étape : complète ton onboarding 👇`;
+      linkLabel = s.tier === "coaching" ? "Ouvrir mon onboarding" : "Compléter mon profil";
+      linkUrl = link;
+    }
+
+    await ctx.scheduler.runAfter(0, internal.onboardings.discordPostOnboarding, {
+      discordId: s.discordId,
+      content,
+      linkLabel,
+      linkUrl,
+    });
+    return { ok: true as const };
   },
 });
 

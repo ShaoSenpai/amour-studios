@@ -106,10 +106,12 @@ function ThemeInitScript() {
   const script = [
     "(function(){",
     "try{",
+    // Défaut = CLAIR. Le mode sombre ne s'applique QUE si l'utilisateur l'a
+    // explicitement choisi via le toggle (localStorage amour-theme='dark').
+    // On NE suit PAS la préférence système (sinon un OS en dark forçait le
+    // sombre sur l'onboarding alors qu'on veut clair par défaut).
     "var t=localStorage.getItem('amour-theme');",
     "if(t==='dark')document.documentElement.setAttribute('data-theme','dark');",
-    "else if(!t&&window.matchMedia('(prefers-color-scheme:dark)').matches)",
-    "document.documentElement.setAttribute('data-theme','dark');",
     "}catch(e){}",
     "})();",
   ].join("");

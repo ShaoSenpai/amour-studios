@@ -8,9 +8,9 @@ import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { requireAdmin } from "./lib/auth";
 import { internal } from "./_generated/api";
-import { Id } from "./_generated/dataModel";
+import { Id, TableNames } from "./_generated/dataModel";
 import { logEvent } from "./lib/events";
-import { linkPurchaseToUser } from "./lib/linking";
+import { linkPurchaseToUser, isNumericDiscordId } from "./lib/linking";
 import { ensureClaim } from "./claimTokens";
 
 // Base de l'app (pour construire les liens d'activation /claim).
@@ -1390,6 +1390,103 @@ export const forgetPresentationOnBot = internalAction({
       console.warn("⚠️ forget-presentation bot injoignable:", err);
       return { ok: false as const };
     }
+  },
+});
+
+/** Interne (TEST/DEV) : RESET COMPLET (slate vierge avant un test E2E).
+ *  Supprime tous les users NON-admin + données liées + auth + rôles Discord ;
+ *  vide purchases/onboardings/coachingSessions/claimTokens/events ; délie les
+ *  admins. Lancée par `scripts/reset-test.sh`.
+ *
+ *  🔒 GARDE-FOU GO-LIVE : refuse de s'exécuter SAUF si la variable d'env Convex
+ *  `ALLOW_TEST_RESET` vaut exactement "true". AVANT de passer en LIVE, supprimer
+ *  cette variable (`npx convex env remove ALLOW_TEST_RESET --prod`) → la mutation
+ *  devient inerte et ne pourra JAMAIS supprimer de vrais clients. NE touche
+ *  jamais role:"admin". IRRÉVERSIBLE.
+ */
+export const _resetAllTest = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    if (process.env.ALLOW_TEST_RESET !== "true") {
+      throw new Error(
+        "Reset bloqué : ALLOW_TEST_RESET ≠ 'true' (garde-fou go-live). " +
+          "En TEST : npx convex env set ALLOW_TEST_RESET true --prod"
+      );
+    }
+    const users = await ctx.db.query("users").collect();
+    const targets = users.filter((u) => u.role !== "admin");
+    const admins = users.filter((u) => u.role === "admin");
+    const targetIds = new Set(targets.map((u) => u._id as unknown as string));
+    const counts: Record<string, number> = {};
+    const delByField = async (
+      table: TableNames,
+      field: string,
+      idset: Set<string>
+    ): Promise<Set<string>> => {
+      const rows = await ctx.db.query(table).collect();
+      const deleted = new Set<string>();
+      for (const r of rows) {
+        const val = (r as Record<string, unknown>)[field] as string | undefined;
+        if (val !== undefined && idset.has(val)) {
+          await ctx.db.delete(r._id);
+          deleted.add(r._id as unknown as string);
+        }
+      }
+      if (deleted.size) counts[table] = (counts[table] ?? 0) + deleted.size;
+      return deleted;
+    };
+    let discordCleaned = 0;
+    for (const u of targets) {
+      if (isNumericDiscordId(u.discordId)) {
+        await ctx.scheduler.runAfter(0, internal.stripe.removeDiscordRoles, {
+          discordId: u.discordId!,
+          email: u.email ?? "",
+        });
+        await ctx.scheduler.runAfter(0, internal.stripe.removeOnboardedRole, {
+          discordId: u.discordId!,
+        });
+        discordCleaned++;
+      }
+    }
+    if (targetIds.size) {
+      for (const t of [
+        "coachingNotes",
+        "exerciseResponses",
+        "progress",
+        "comments",
+        "badges",
+        "onboardingNotes",
+        "notes",
+        "notifications",
+      ] as TableNames[]) {
+        await delByField(t, "userId", targetIds);
+      }
+      const sessions = await delByField("authSessions", "userId", targetIds);
+      if (sessions.size) await delByField("authRefreshTokens", "sessionId", sessions);
+      const accounts = await delByField("authAccounts", "userId", targetIds);
+      if (accounts.size) await delByField("authVerificationCodes", "accountId", accounts);
+    }
+    for (const table of [
+      "purchases",
+      "onboardings",
+      "coachingSessions",
+      "claimTokens",
+      "events",
+    ] as TableNames[]) {
+      const rows = await ctx.db.query(table).collect();
+      for (const r of rows) await ctx.db.delete(r._id);
+      counts[table] = (counts[table] ?? 0) + rows.length;
+    }
+    for (const u of targets) await ctx.db.delete(u._id);
+    counts.users = targets.length;
+    let adminsUnlinked = 0;
+    for (const u of admins) {
+      if (u.purchaseId !== undefined) {
+        await ctx.db.patch(u._id, { purchaseId: undefined });
+        adminsUnlinked++;
+      }
+    }
+    return { usersDeleted: targets.length, discordCleaned, adminsPreserved: admins.length, adminsUnlinked, deletedCounts: counts };
   },
 });
 

@@ -266,13 +266,31 @@ function layout({ title, children }: { title: string; children: string }): strin
 
 const APP_URL = "https://amour-studios.vercel.app";
 
+// Note « code de liaison » — ALTERNATIVE MANUELLE discrète (PAS l'étape
+// principale : le bouton/lien ci-dessus relie déjà tout seul, même si l'email du
+// paiement diffère de l'email Discord). On précise OÙ s'en servir : sur l'espace
+// /exos, une fois connecté avec Discord. Cas d'usage de niche (déjà connecté +
+// email différent). Volontairement petit pour ne pas créer de confusion.
+function amrCodeNote(code: string): string {
+  return (
+    `<p style="font-size:13px;color:${MUTED};line-height:1.55;margin:16px 0 0;">` +
+    `Tu préfères le faire à la main&nbsp;? Connecte-toi sur ton espace ` +
+    `<a href="${APP_URL}/exos" style="color:${ORANGE};text-decoration:none;">amour-studios.vercel.app/exos</a> ` +
+    `puis colle ton code de liaison&nbsp;: ` +
+    `<strong style="color:${INK};font-family:'SFMono-Regular',Consolas,monospace;letter-spacing:1px;">AMR-${escape(code)}</strong>.` +
+    `</p>`
+  );
+}
+
 function claimEmailHtml({
   firstName,
   claimToken,
+  code,
   tier,
 }: {
   firstName: string;
   claimToken: string;
+  code?: string;
   tier: "coaching" | "communaute";
 }) {
   const claimUrl = `${APP_URL}/claim?t=${encodeURIComponent(claimToken)}`;
@@ -307,6 +325,7 @@ function claimEmailHtml({
     )}
     ${button({ href: claimUrl, label: "Activer mon accès" })}
     ${panel(`${kicker("Ta route")}${steps}`)}
+    ${code ? amrCodeNote(code) : ""}
     ${para(
       `💡 Au début tu vois les channels mais tu ne peux pas encore écrire — ça se débloque une fois ton onboarding terminé. C'est normal.`,
       { color: INK_SOFT, size: 13.5, mb: 0 }
@@ -325,11 +344,12 @@ export const sendClaimEmail = internalAction({
     to: v.string(),
     firstName: v.optional(v.string()),
     claimToken: v.string(),
+    code: v.optional(v.string()),
     tier: v.optional(
       v.union(v.literal("coaching"), v.literal("communaute"))
     ),
   },
-  handler: async (ctx, { to, firstName, claimToken, tier }) => {
+  handler: async (ctx, { to, firstName, claimToken, code, tier }) => {
     if (!to) return { ok: false, reason: "no_email" };
     const resolvedTier = tier ?? "communaute";
     const tierLabel =
@@ -340,6 +360,73 @@ export const sendClaimEmail = internalAction({
       html: claimEmailHtml({
         firstName: firstName ?? "",
         claimToken,
+        code,
+        tier: resolvedTier,
+      }),
+    }, ctx);
+    return { ok: true };
+  },
+});
+
+// ─── Email — Relier un paiement à un compte (récupération, distinct du claim) ──
+// Envoyé par `resendActivationByEmail` (page /lier + onglet email du « Lier mon
+// paiement »). Wording RÉCUP (« on a retrouvé ton paiement, relie-le ») ≠ mail
+// de bienvenue « active ton accès ». Lien = /claim?t= DIRECT (le token relie au
+// compte connecté, JAMAIS de re-saisie d'email) + code AMR en repli in-app.
+function relinkEmailHtml({
+  firstName,
+  claimToken,
+  code,
+  tier,
+}: {
+  firstName: string;
+  claimToken: string;
+  code?: string;
+  tier: "coaching" | "communaute";
+}) {
+  const claimUrl = `${APP_URL}/claim?t=${encodeURIComponent(claimToken)}`;
+  const tierLabel = tier === "coaching" ? "Coaching" : "Communauté";
+  const body = `
+    ${kicker("Récupération d'accès")}
+    ${h1(`Relie ton paiement${firstName ? `, ${escape(firstName)}` : ""}`, 34)}
+    ${para(
+      `On a bien retrouvé ton paiement <strong>${tierLabel}</strong>. Pour le relier à ton accès, clique ci-dessous puis connecte-toi avec <strong>ton compte Discord</strong> — c'est tout, rien d'autre à saisir.`,
+      { mb: 28 }
+    )}
+    ${button({ href: claimUrl, label: "Relier mon paiement" })}
+    ${code ? amrCodeNote(code) : ""}
+    ${para(
+      `Ce lien relie ton paiement au compte Discord avec lequel tu te connectes, même si l'email de ton paiement est différent.`,
+      { color: INK_SOFT, size: 13.5, mb: 0 }
+    )}
+    ${directLink(claimUrl)}
+  `;
+  return layout({
+    title: `Relie ton paiement — AMOUR STUDIOS`,
+    children: body,
+  });
+}
+
+export const sendRelinkEmail = internalAction({
+  args: {
+    to: v.string(),
+    firstName: v.optional(v.string()),
+    claimToken: v.string(),
+    code: v.optional(v.string()),
+    tier: v.optional(
+      v.union(v.literal("coaching"), v.literal("communaute"))
+    ),
+  },
+  handler: async (ctx, { to, firstName, claimToken, code, tier }) => {
+    if (!to) return { ok: false, reason: "no_email" };
+    const resolvedTier = tier ?? "communaute";
+    await sendViaResend({
+      to,
+      subject: `Relie ton paiement à ton compte AMOUR STUDIOS`,
+      html: relinkEmailHtml({
+        firstName: firstName ?? "",
+        claimToken,
+        code,
         tier: resolvedTier,
       }),
     }, ctx);

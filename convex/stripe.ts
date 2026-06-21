@@ -43,6 +43,18 @@ export function priceForTier(tier: Tier): string {
 }
 
 /**
+ * ID de la configuration de Portail Client Stripe « coaching » (résiliation
+ * désactivée). Utilisée par `startBillingPortal` pour les membres en coaching :
+ * l'engagement 3 mois ne doit pas être résiliable en self-service. Renvoie
+ * `undefined` si l'env n'est pas posée → le portail retombe sur la config par
+ * défaut du compte (résiliation active), ce qui préserve le self-service
+ * Communauté. Créer la config une fois via `ensureCoachingPortalConfig`.
+ */
+export function coachingPortalConfig(): string | undefined {
+  return process.env.STRIPE_PORTAL_CONFIG_COACHING || undefined;
+}
+
+/**
  * Action publique : crée (ou réutilise) un Customer Stripe + une Subscription
  * en mode `default_incomplete`, et renvoie le clientSecret du PaymentIntent
  * de la première facture pour Stripe Elements côté frontend.
@@ -935,6 +947,45 @@ export async function stripeClient() {
     apiVersion: "2026-03-25.dahlia",
   });
 }
+
+/**
+ * Action admin (one-time setup) : crée la configuration de Portail Client Stripe
+ * « coaching » avec la RÉSILIATION DÉSACTIVÉE (engagement 3 mois non résiliable
+ * en self-service), tout en gardant factures + mise à jour carte.
+ *
+ * À lancer une fois en TEST puis une fois en LIVE, puis copier l'`id` (`bpc_…`)
+ * renvoyé dans l'env Convex `STRIPE_PORTAL_CONFIG_COACHING` (par env).
+ * La Communauté n'utilise PAS cette config → elle reste résiliable (défaut).
+ *
+ * Les URLs légales (CGV / confidentialité) sont lues depuis l'env si présentes,
+ * sinon valeurs par défaut amourstudios.fr — à vérifier/ajuster côté Shao.
+ */
+export const ensureCoachingPortalConfig = action({
+  args: {},
+  handler: async (ctx): Promise<{ id: string }> => {
+    await ctx.runQuery(internal.stripe.requireAdminPing, {});
+    const stripe = await stripeClient();
+    const config = await stripe.billingPortal.configurations.create({
+      business_profile: {
+        headline: "AMOUR STUDIOS — Coaching",
+        privacy_policy_url:
+          process.env.STRIPE_PORTAL_PRIVACY_URL ?? "https://amourstudios.fr/confidentialite",
+        terms_of_service_url:
+          process.env.STRIPE_PORTAL_TERMS_URL ?? "https://amourstudios.fr/cgv",
+      },
+      features: {
+        invoice_history: { enabled: true },
+        payment_method_update: { enabled: true },
+        // Cœur du verrou : pas de résiliation self-service pour le coaching.
+        subscription_cancel: { enabled: false },
+        // Pas de downgrade / changement de plan en self-service.
+        subscription_update: { enabled: false },
+      },
+    });
+    console.log(`[stripe] Portal config coaching créée: ${config.id} — pose STRIPE_PORTAL_CONFIG_COACHING=${config.id}`);
+    return { id: config.id };
+  },
+});
 
 /**
  * Action admin : annule un abonnement Stripe (immédiatement ou à la fin de la

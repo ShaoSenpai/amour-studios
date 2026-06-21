@@ -322,8 +322,9 @@ export async function ensureClaim(
 
 export const refreshForPaymentIntent = internalMutation({
   args: { paymentIntentId: v.string(), email: v.optional(v.string()) },
+  // Renvoie { token, code } (le code AMR sert au repli in-app dans les emails).
   handler: async (ctx, { paymentIntentId, email }) =>
-    (await ensureClaim(ctx, paymentIntentId, email)).token,
+    await ensureClaim(ctx, paymentIntentId, email),
 });
 
 /** One-shot : attribue un `code` aux claimTokens existants qui n'en ont pas. */
@@ -370,19 +371,27 @@ export const _findActivePurchaseForEmail = internalQuery({
       .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
     const picked = candidates[0];
     if (!picked) return null;
-    // Prénom : depuis l'onboarding du user lié si dispo (sinon vide).
+    // État de liaison + onboarding (pour rendre l'email fallback state-aware :
+    // ne pas renvoyer « relie ton paiement » si c'est DÉJÀ lié — anti-répétition).
     let firstName: string | null = null;
+    let onboardingStep: string | null = null;
+    let onboardingToken: string | null = null;
     if (picked.userId) {
       const ob = await ctx.db
         .query("onboardings")
         .withIndex("by_user", (q) => q.eq("userId", picked.userId!))
         .first();
       firstName = ob?.firstName ?? null;
+      onboardingStep = ob?.step ?? null;
+      onboardingToken = ob?.token ?? null;
     }
     return {
       paymentIntentId: picked.stripePaymentIntentId as string,
       tier: picked.tier ?? null,
       firstName,
+      linkedUserId: picked.userId ?? null,
+      onboardingStep,
+      onboardingToken,
     };
   },
 });
@@ -423,14 +432,41 @@ export const resendActivationByEmail = action({
     if (!found) return { ok: true };
 
     try {
-      const token = await ctx.runMutation(
+      const site = process.env.SITE_URL ?? "https://amour-studios.vercel.app";
+      // STATE-AWARE (anti-répétition) : on n'envoie « relie ton paiement » QUE si
+      // ce n'est PAS encore lié. Si déjà lié, on s'adapte à l'étape pour ne pas
+      // répéter une étape franchie.
+      if (found.linkedUserId) {
+        // Déjà lié + onboarding terminé → rien à renvoyer (évite la répétition).
+        if (
+          found.onboardingStep === "rdv_booked" ||
+          found.onboardingStep === "community_ready"
+        ) {
+          return { ok: true };
+        }
+        // Déjà lié mais onboarding en cours → renvoyer le LIEN d'onboarding
+        // (le bon état), surtout pas « relie ton paiement » (déjà fait).
+        if (found.onboardingToken) {
+          await ctx.runAction(internal.emails.sendOnboardingLinkEmail, {
+            to: normalized,
+            firstName: found.firstName ?? null,
+            link: `${site}/onboarding/${found.onboardingToken}`,
+            tier: found.tier ?? "communaute",
+          });
+        }
+        return { ok: true };
+      }
+      // NON lié → mail RÉCUP « relie ton paiement » (lien /claim?t= DIRECT + code
+      // AMR en repli, cas email paiement ≠ email Discord).
+      const { token, code } = await ctx.runMutation(
         internal.claimTokens.refreshForPaymentIntent,
         { paymentIntentId: found.paymentIntentId, email: normalized }
       );
-      await ctx.runAction(internal.emails.sendClaimEmail, {
+      await ctx.runAction(internal.emails.sendRelinkEmail, {
         to: normalized,
         firstName: found.firstName ?? "",
         claimToken: token,
+        code,
         tier: found.tier ?? undefined,
       });
     } catch (err) {
@@ -453,6 +489,7 @@ export const byPaymentIntent = internalQuery({
         q.eq("paymentIntentId", paymentIntentId)
       )
       .first();
-    return claim?.token ?? null;
+    if (!claim?.token) return null;
+    return { token: claim.token, code: claim.code ?? null };
   },
 });

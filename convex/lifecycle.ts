@@ -69,7 +69,7 @@ export const remindUnactivatedPurchases = internalAction({
         // Token claim frais (le 1er a pu expirer avant la création du compte).
         const pi = p.stripePaymentIntentId;
         if (pi && pi.startsWith("pi_")) {
-          const token = await ctx.runMutation(
+          const { token, code } = await ctx.runMutation(
             internal.claimTokens.refreshForPaymentIntent,
             { paymentIntentId: pi, email: p.email }
           );
@@ -77,6 +77,7 @@ export const remindUnactivatedPurchases = internalAction({
             to: p.email,
             firstName: "",
             claimToken: token,
+            code,
             tier: p.tier,
           });
         }

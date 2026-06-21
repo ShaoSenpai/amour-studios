@@ -99,10 +99,11 @@ export function LinkPayment() {
           textDecoration: "underline",
           textUnderlineOffset: 3,
           padding: "4px 0",
-          alignSelf: "center",
+          width: "100%",
+          textAlign: "center",
         }}
       >
-        J&apos;ai payé mais pas d&apos;accès ? Lier mon paiement
+        Ton compte n&apos;est pas lié à ton paiement ? Le relier
       </button>
     );
   }
@@ -133,9 +134,13 @@ export function LinkPayment() {
         background: `${ACCENT}08`,
       }}
     >
-      <div style={{ ...mono, fontSize: 10, color: ACCENT, letterSpacing: "0.06em" }}>
-        ◦ LIER MON PAIEMENT
+      <div style={{ ...mono, fontSize: 10, color: ACCENT, letterSpacing: "0.06em", textAlign: "center" }}>
+        ◦ TON COMPTE N&apos;EST PAS LIÉ ?
       </div>
+      <p style={{ fontSize: 12.5, color: c.muted, lineHeight: 1.5, margin: 0, textAlign: "center" }}>
+        Tu as payé mais ton compte Discord n&apos;est pas encore relié à ton paiement.
+        Relie-le ci-dessous — ton accès se débloque tout de suite, ici même.
+      </p>
 
       <div style={{ display: "flex", gap: 4, background: c.chip, padding: 4, borderRadius: 10 }}>
         <button type="button" style={tabBtn("code", "AVEC UN CODE")} onClick={() => setTab("code")}>
@@ -149,7 +154,9 @@ export function LinkPayment() {
       {tab === "code" ? (
         <form onSubmit={submitCode} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           <p style={{ fontSize: 12.5, color: c.muted, lineHeight: 1.5, margin: 0 }}>
-            Entre le code de liaison (fourni par l&apos;équipe ou dans ton email de confirmation).
+            <strong style={{ color: c.text }}>Utilise ton code de liaison.</strong> Tu l&apos;as
+            reçu par email à ton achat (format <strong style={{ color: c.text }}>AMR-XXXXXX</strong>).
+            Colle-le ci-dessous puis valide : ton paiement est relié à <strong style={{ color: c.text }}>ce compte</strong> et ton accès s&apos;ouvre aussitôt.
           </p>
           <input
             value={code}

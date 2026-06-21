@@ -643,14 +643,15 @@ http.route({
         );
         const targetEmail = email || purchase?.email || "";
         if (purchase?.stripePaymentIntentId && !purchase.userId) {
-          const claimToken = await ctx.runQuery(internal.claimTokens.byPaymentIntent, {
+          const claim = await ctx.runQuery(internal.claimTokens.byPaymentIntent, {
             paymentIntentId: purchase.stripePaymentIntentId,
           });
-          if (claimToken && targetEmail) {
+          if (claim?.token && targetEmail) {
             await ctx.runAction(internal.emails.sendClaimEmail, {
               to: targetEmail,
               firstName: "",
-              claimToken,
+              claimToken: claim.token,
+              code: claim.code ?? undefined,
               tier: purchase?.tier,
             });
           }

@@ -17,15 +17,18 @@ import {
 } from "../../studio/_components/glass";
 
 // ============================================================================
-// /onboarding/welcome — page d'attente post-paiement.
+// /onboarding/welcome — page d'attente post-paiement (fallback du tunnel /claim).
 //
 // Deux états :
 //  1. Non connecté → bouton « Continuer avec Discord » (OAuth). Au login, le
 //     callback createOrUpdateUser (convex/auth.ts) lie le user au purchase
-//     (par email) et crée la row d'onboarding (`step=awaiting_presentation`).
-//  2. Connecté → instruction : « Va te présenter dans #presentations »
-//     + bouton vers le Discord. Une fois la présentation détectée par le bot,
-//     un email + un DM Discord arrivent avec le lien /onboarding/[token].
+//     (par email) et `ensureForUser` démarre l'onboarding + envoie le lien.
+//  2. Connecté → on le deep-linke DIRECT sur son wizard /onboarding/[token]
+//     (query onboardings.myCurrent) + bouton secondaire « Rejoindre le Discord ».
+//     Si la row n'existe pas encore (lag webhook), écran d'attente + Discord.
+//
+// NB : plus aucune étape #présente-toi / #presentations (flow supprimé le 18/06,
+// onboarding désormais piloté par le salon privé + bouton « ✨ S'onboarder »).
 // ============================================================================
 
 // Lien DIRECT vers le serveur (l'utilisateur a déjà rejoint pour faire son
@@ -36,6 +39,12 @@ export default function OnboardingWelcomePage() {
   const dark = useIsDark();
   const c = palette(dark, ACCENT);
   const me = useQuery(api.users.current);
+  // Onboarding du user connecté → deep-link direct vers le wizard (pas de
+  // « danse » S'onboarder côté Discord puisqu'on l'a déjà sous la main, logué).
+  const myOnboarding = useQuery(
+    api.onboardings.myCurrent,
+    me ? {} : "skip"
+  );
   const { signIn } = useAuthActions();
   const [signingIn, setSigningIn] = useState(false);
 
@@ -131,39 +140,67 @@ export default function OnboardingWelcomePage() {
               </p>
             </>
           ) : (
-            // Connecté
+            // Connecté → on l'envoie DIRECT sur son onboarding (il est déjà logué).
             <>
               <div>
                 <div style={{ ...mono, color: c.muted }}>
                   Compte connecté · {me.discordUsername ? `@${me.discordUsername}` : me.name ?? "Discord"}
                 </div>
-                <h1 style={{ ...num, fontSize: 32, fontWeight: 500, lineHeight: 1.1, margin: "10px 0 0" }}>
-                  Étape 1 — présente-toi sur Discord.
-                </h1>
-                <p style={{ fontSize: 14.5, color: c.muted, marginTop: 12, lineHeight: 1.55 }}>
-                  Rejoins le serveur Discord d&apos;AMOUR STUDIOS, puis poste
-                  une petite présentation dans le channel{" "}
-                  <strong style={{ color: c.text }}>#🎤・présente-toi</strong>{" "}
-                  (qui tu es, ton projet, d&apos;où tu viens).
-                </p>
-                <p style={{ fontSize: 13.5, color: c.muted, marginTop: 10, lineHeight: 1.55 }}>
-                  Tant que tu n&apos;as pas posté ta présentation, tu vois les channels
-                  mais tu ne peux pas écrire dedans — c&apos;est volontaire, ça force
-                  chacun à faire connaissance.
-                </p>
-                <p style={{ fontSize: 14.5, color: c.muted, marginTop: 12, lineHeight: 1.55 }}>
-                  Dès que c&apos;est posté, tu reçois{" "}
-                  <strong style={{ color: c.text }}>par email + DM Discord</strong>{" "}
-                  ton lien d&apos;onboarding pour débloquer ton accès complet.
-                </p>
+                {myOnboarding ? (
+                  <>
+                    <h1 style={{ ...num, fontSize: 34, fontWeight: 500, lineHeight: 1.05, margin: "10px 0 0" }}>
+                      Ton accès est prêt 🎉
+                    </h1>
+                    <p style={{ fontSize: 14.5, color: c.muted, marginTop: 12, lineHeight: 1.55 }}>
+                      Il te reste l&apos;onboarding : tes infos + un court
+                      questionnaire{myOnboarding.tier === "coaching" ? ", puis tu réserves ton 1er appel" : ""}.
+                      {myOnboarding.tier === "coaching" ? " ~5 min." : " ~2 min."}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <h1 style={{ ...num, fontSize: 32, fontWeight: 500, lineHeight: 1.1, margin: "10px 0 0" }}>
+                      On finalise ton accès…
+                    </h1>
+                    <p style={{ fontSize: 14.5, color: c.muted, marginTop: 12, lineHeight: 1.55 }}>
+                      Ton paiement se synchronise (quelques secondes). Ton lien
+                      d&apos;onboarding arrive aussi{" "}
+                      <strong style={{ color: c.text }}>par email + DM Discord</strong>.
+                      En attendant, rejoins le serveur.
+                    </p>
+                  </>
+                )}
               </div>
+
+              {/* Action primaire : continuer l'onboarding (si la row existe). */}
+              {myOnboarding && (
+                <a
+                  href={`/onboarding/${myOnboarding.token}`}
+                  className="glass-btn"
+                  style={{
+                    ...glassBtn(c, "solid"),
+                    width: "100%",
+                    padding: "14px 16px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 10,
+                    textDecoration: "none",
+                    textAlign: "center",
+                  }}
+                >
+                  Continuer mon onboarding →
+                </a>
+              )}
+
+              {/* Action secondaire : rejoindre le Discord (toujours dispo). */}
               <a
                 href={DISCORD_INVITE}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="glass-btn"
                 style={{
-                  ...glassBtn(c, "solid"),
+                  ...glassBtn(c, myOnboarding ? "ghost" : "solid"),
                   width: "100%",
                   padding: "14px 16px",
                   display: "flex",
@@ -175,28 +212,8 @@ export default function OnboardingWelcomePage() {
                 }}
               >
                 <DiscordIcon />
-                Ouvrir le Discord
+                Rejoindre le Discord
               </a>
-              <div
-                style={{
-                  marginTop: 4,
-                  padding: 14,
-                  background: c.chip,
-                  border: `1px solid ${c.line}`,
-                  borderRadius: 12,
-                }}
-              >
-                <div style={{ ...mono, fontSize: 9.5, color: c.muted, marginBottom: 6 }}>
-                  Et après ?
-                </div>
-                <div style={{ fontSize: 13.5, color: c.text, lineHeight: 1.55 }}>
-                  1. Tu te présentes dans <strong>#presentations</strong>.
-                  <br />
-                  2. On te détecte → on t&apos;envoie ton lien d&apos;onboarding.
-                  <br />
-                  3. Tu remplis (5 min) puis tu réserves ton 1er appel.
-                </div>
-              </div>
             </>
           )}
         </div>

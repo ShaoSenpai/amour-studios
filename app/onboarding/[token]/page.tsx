@@ -241,7 +241,12 @@ export default function OnboardingTokenPage({
     if (data.step === "rdv_booked" || data.step === "community_ready") {
       setStep("done");
     } else if (data.step === "form_done" && data.tier === "coaching") {
-      setStep("rdv");
+      // ⚠️ Ne PAS écraser l'interstitiel local "quickwin" : à la validation du
+      // questionnaire, le handler pose setStep("quickwin"), mais le serveur passe
+      // à form_done → cette query réactive re-déclenche et ferait sauter la vidéo
+      // (bug : on atterrissait direct sur le Calendly). On ne force "rdv" que si
+      // on n'est pas déjà sur quickwin (reload/reprise = quickwin déjà vu → rdv).
+      setStep((prev) => (prev === "quickwin" ? prev : "rdv"));
     } else if (data.firstName && data.lastName && data.phone) {
       setQIndex(0);
       setStep("questions");
@@ -490,7 +495,7 @@ export default function OnboardingTokenPage({
           </h1>
           <p style={{ fontSize: 14.5, color: c.text, marginTop: 14, lineHeight: 1.55 }}>
             Avant de réserver ton 1er appel, prends 2 minutes pour cette vidéo :
-            Walid t&apos;explique comment préparer ce premier RDV pour en tirer le maximum.
+            Younes t&apos;explique comment préparer ce premier RDV pour en tirer le maximum.
           </p>
           {QUICKWIN_MUX_PLAYBACK_ID ? (
             <div

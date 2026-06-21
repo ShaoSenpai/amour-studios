@@ -18,6 +18,7 @@ import {
   Avatar,
 } from "../studio/_components/glass";
 import { Kicker, BigTitle, EditorialBlock } from "@/app/_components/editorial";
+import { LinkPayment } from "@/app/_components/link-payment";
 
 // ============================================================================
 // /compte — vraie page de gestion d'abonnement (état des lieux + actions).
@@ -171,6 +172,11 @@ function CompteInner() {
                 Découvrir les offres ↗
               </a>
             </p>
+            {/* Repli : tu as payé mais le compte n'est pas lié → coller le code AMR
+                (ou renvoi par email). Réutilise le composant partagé LinkPayment. */}
+            <div style={{ borderTop: `1px solid ${c.line}`, marginTop: 18, paddingTop: 16 }}>
+              <LinkPayment />
+            </div>
           </EditorialBlock>
         </div>
       </main>
@@ -180,249 +186,270 @@ function CompteInner() {
   const periodEnd = sub.currentPeriodEnd ? fmtDateFr(sub.currentPeriodEnd) : null;
   const discordRole = isCoaching ? "Coaching" : "Communauté";
 
-  // Encadré réutilisable (border plate, sans verre) pour les blocs RDV / upgrade.
-  const boxStyle = {
+  // Hiérarchie « une seule action orange à la fois » : on détermine l'action
+  // mise en avant ; tout le reste (gestion) reste discret (ghost).
+  const showRdv = isCoaching && !!sub.needsFirstRdv;
+  const showUpsell = !!sub.canTakeCoaching;
+  const showResumeCoaching = !!sub.canResumeCoaching;
+  const showResumeCommunity = !!sub.canResumeCommunity;
+  const hasPrimary = showRdv || showUpsell || showResumeCoaching || showResumeCommunity;
+
+  // Badge de statut (point coloré).
+  const canceling = !!sub.cancelAtPeriodEnd;
+  const statusActive = sub.status === "active";
+  const statusColor = canceling ? "#E8A33D" : statusActive ? c.successFg : c.muted;
+  const statusLabel =
+    canceling && periodEnd
+      ? `Se termine le ${periodEnd}`
+      : statusActive
+      ? "Actif"
+      : sub.status;
+
+  // Carte « offre » : accent léger pour ressortir SANS 2e bouton orange.
+  const offerCard = {
+    border: `1px solid ${ACCENT}40`,
+    background: `${ACCENT}0A`,
+    borderRadius: 14,
+    padding: "18px 20px",
+  } as const;
+  const plainCard = {
     border: `1px solid ${c.line}`,
     background: "transparent",
-    borderRadius: 12,
+    borderRadius: 14,
     padding: "16px 18px",
   } as const;
+  const offerKicker = { ...mono, fontSize: 10, color: ACCENT, letterSpacing: "0.06em" } as const;
+  const offerTitle = { ...num, fontSize: 19, fontWeight: 600 as const, color: c.text, margin: "8px 0 6px" };
+  const finePrint = { ...mono, fontSize: 9.5, color: c.faint, margin: "8px 0 0", textAlign: "center" as const };
 
   return (
     <main style={shell}>
-      {/* Hero éditorial */}
-      <div style={{ width: "100%", maxWidth: 480, marginBottom: 8 }}>
-        <Kicker>Mon compte</Kicker>
-        <BigTitle w1="Mon" w2="Compte" />
-      </div>
-
-      {/* Bloc identité + déconnexion (toujours en haut) */}
-      <EditorialBlock c={c} style={{ width: "100%", maxWidth: 480, marginBottom: 14 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <Avatar
-            name={sub.discordUsername || sub.name || sub.email || "?"}
-            size={40}
-            dark={dark}
-            image={sub.image ?? undefined}
-          />
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: 15, fontWeight: 500, color: c.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {sub.discordUsername || sub.name || "Mon compte"}
-            </div>
-            <div style={{ ...mono, fontSize: 11, color: c.muted }}>{sub.email ?? "—"}</div>
-          </div>
-          <GlassButton c={c} kind="ghost" onClick={() => void signOut().then(() => router.replace("/login?returnTo=%2Fcompte"))}>
-            Se déconnecter
-          </GlassButton>
+      <div style={{ width: "100%", maxWidth: 480, display: "flex", flexDirection: "column", gap: 14 }}>
+        {/* Hero éditorial */}
+        <div>
+          <Kicker>Mon compte</Kicker>
+          <BigTitle w1="Mon" w2="Compte" />
         </div>
-      </EditorialBlock>
 
-      <EditorialBlock c={c} style={{ width: "100%", maxWidth: 480 }}>
-        <div style={{ padding: "40px 38px", display: "flex", flexDirection: "column", gap: 22 }}>
-          {/* 1 — En-tête état des lieux */}
-          <div>
-            <div style={{ ...mono, color: c.muted }}>Mon abonnement</div>
-            <h1 style={{ ...num, fontSize: 32, fontWeight: 500, margin: "10px 0 0" }}>
-              {isCoaching ? "Coaching" : "Communauté"} · {sub.amountEur}€/mois
-            </h1>
-            <p style={{ fontSize: 13.5, color: c.muted, marginTop: 10 }}>
-              Statut : {sub.status}
-              {sub.cancelAtPeriodEnd && periodEnd
-                ? ` · se termine le ${periodEnd}`
-                : periodEnd
-                ? ` · prochain prélèvement le ${periodEnd}`
-                : ""}
-            </p>
+        {/* Identité + déconnexion */}
+        <EditorialBlock c={c}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <Avatar
+              name={sub.discordUsername || sub.name || sub.email || "?"}
+              size={40}
+              dark={dark}
+              image={sub.image ?? undefined}
+            />
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ fontSize: 15, fontWeight: 500, color: c.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {sub.discordUsername || sub.name || "Mon compte"}
+              </div>
+              <div style={{ ...mono, fontSize: 11, color: c.muted }}>{sub.email ?? "—"}</div>
+            </div>
+            <GlassButton c={c} kind="ghost" onClick={() => void signOut().then(() => router.replace("/login?returnTo=%2Fcompte"))}>
+              Se déconnecter
+            </GlassButton>
           </div>
+        </EditorialBlock>
 
-          {/* 2 — Accès Discord (toujours) */}
-          <p style={{ fontSize: 13, color: c.muted, margin: 0 }}>
-            Accès Discord : {discordRole} ·{" "}
-            <a
-              href={DISCORD_INVITE}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ color: ACCENT, textDecoration: "none" }}
-            >
+        {/* Carte 1 — Ton plan (état des lieux scannable) */}
+        <EditorialBlock c={c}>
+          <div style={{ ...mono, fontSize: 10, color: c.muted, letterSpacing: "0.08em" }}>
+            TON ABONNEMENT
+          </div>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+            <span style={{ ...num, fontSize: 27, fontWeight: 600, color: c.text }}>
+              {isCoaching ? "Coaching" : "Communauté"}
+            </span>
+            <span style={{ ...num, fontSize: 17, color: c.muted }}>· {sub.amountEur}€/mois</span>
+          </div>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 7, marginTop: 12 }}>
+            <span style={{ width: 7, height: 7, borderRadius: "50%", background: statusColor, flexShrink: 0 }} />
+            <span style={{ fontSize: 13, color: c.muted }}>
+              {statusLabel}
+              {!canceling && statusActive && periodEnd ? ` · prochain prélèvement le ${periodEnd}` : ""}
+            </span>
+          </div>
+          <div style={{ borderTop: `1px solid ${c.line}`, marginTop: 16, paddingTop: 14, fontSize: 13.5, color: c.muted }}>
+            Accès Discord · {discordRole} ·{" "}
+            <a href={DISCORD_INVITE} target="_blank" rel="noopener noreferrer" style={{ color: ACCENT, textDecoration: "none" }}>
               Ouvrir le serveur ↗
             </a>
-          </p>
+          </div>
+        </EditorialBlock>
 
-          {/* 3 — Bloc RDV (coaching uniquement) */}
-          {isCoaching && sub.needsFirstRdv ? (
-            <div style={boxStyle}>
-              <div style={{ ...mono, fontSize: 10, color: ACCENT }}>Active ton coaching</div>
-              <p style={{ fontSize: 13.5, color: c.muted, margin: "8px 0 12px", lineHeight: 1.5 }}>
-                Dernière étape pour démarrer : réserve ton 1er appel avec Walid. C&apos;est
-                ce qui débloque ton accès complet.
-              </p>
-              <a
-                href={CALENDLY_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="glass-btn"
-                style={{
-                  ...glassBtn(c, "solid"),
-                  display: "block",
-                  textAlign: "center",
-                  textDecoration: "none",
-                }}
-              >
-                Réserve ton 1er RDV →
-              </a>
-            </div>
-          ) : isCoaching && sub.nextRdvAt ? (
-            <p style={{ fontSize: 13, color: c.muted, margin: 0 }}>
-              Prochain RDV : {fmtDateTimeFr(sub.nextRdvAt)}
+        {/* RDV à réserver (coaching, 1re fois) — action mise en avant */}
+        {showRdv ? (
+          <div style={offerCard}>
+            <div style={offerKicker}>DERNIÈRE ÉTAPE</div>
+            <h2 style={offerTitle}>Réserve ton 1er appel avec Walid</h2>
+            <p style={{ fontSize: 13.5, color: c.muted, margin: "0 0 14px", lineHeight: 1.5 }}>
+              C&apos;est ce qui débloque ton accès complet (exercices + feedback).
             </p>
-          ) : null}
+            <a
+              href={CALENDLY_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="glass-btn"
+              style={{ ...glassBtn(c, "solid"), display: "block", textAlign: "center", textDecoration: "none" }}
+            >
+              Réserver mon 1er RDV →
+            </a>
+          </div>
+        ) : isCoaching && sub.nextRdvAt ? (
+          <div style={plainCard}>
+            <span style={{ fontSize: 13.5, color: c.muted }}>
+              Prochain RDV · {fmtDateTimeFr(sub.nextRdvAt)}
+            </span>
+          </div>
+        ) : null}
 
-          {/* 4 — Passer au Coaching (Communauté uniquement). Offre UNIQUE :
-              179€/mois pendant 3 mois puis arrêt automatique. */}
-          {sub.canTakeCoaching && (
-            <div style={boxStyle}>
-              <div style={{ ...mono, fontSize: 10, color: ACCENT }}>PASSER AU COACHING</div>
-              <p style={{ fontSize: 13.5, color: c.muted, margin: "8px 0 14px", lineHeight: 1.5 }}>
-                Débloque le coaching 1:1 avec Walid (RDV + exos) :{" "}
-                <strong style={{ color: c.text }}>179€/mois pendant 3 mois</strong>, prélevé
-                aujourd&apos;hui (le cycle coaching démarre maintenant).
-              </p>
-              <GlassButton
-                c={c}
-                kind="solid"
-                onClick={() =>
-                  run("up", () => upgradeMut({}), "🎉 Coaching débloqué !").then(() =>
-                    router.refresh()
-                  )
-                }
-                disabled={!!busy}
-                style={{ width: "100%", opacity: busy ? 0.6 : 1 }}
-              >
-                {busy === "up" ? "Activation…" : "Passer au Coaching · 179€/mois (3 mois)"}
-              </GlassButton>
-              <p style={{ ...mono, fontSize: 10, color: c.muted, margin: "8px 0 0", textAlign: "center" }}>
-                Engagement 3 mois, puis arrêt automatique. Pour changer de carte, passe par
-                « Gérer mon abonnement ».
-              </p>
+        {/* Upsell coaching (le centre commercial) — bénéfices d'abord */}
+        {showUpsell && (
+          <div style={offerCard}>
+            <div style={offerKicker}>PASSE AU NIVEAU SUPÉRIEUR</div>
+            <h2 style={{ ...offerTitle, fontSize: 20 }}>Travaille en 1:1 avec Walid</h2>
+            <ul style={{ listStyle: "none", padding: 0, margin: "2px 0 14px", display: "flex", flexDirection: "column", gap: 9 }}>
+              <li style={{ display: "flex", gap: 10, fontSize: 14, color: c.text, lineHeight: 1.45 }}>
+                <span style={{ color: ACCENT, fontWeight: 700 }}>✓</span>
+                <span>Des <strong style={{ color: c.text }}>RDV privés</strong> réguliers avec Walid</span>
+              </li>
+              <li style={{ display: "flex", gap: 10, fontSize: 14, color: c.text, lineHeight: 1.45 }}>
+                <span style={{ color: ACCENT, fontWeight: 700 }}>✓</span>
+                <span>Tes <strong style={{ color: c.text }}>exercices personnalisés</strong> (les modules s&apos;ouvrent)</span>
+              </li>
+              <li style={{ display: "flex", gap: 10, fontSize: 14, color: c.text, lineHeight: 1.45 }}>
+                <span style={{ color: ACCENT, fontWeight: 700 }}>✓</span>
+                <span>Du <strong style={{ color: c.text }}>feedback sur tes sons</strong> et ton positionnement</span>
+              </li>
+            </ul>
+            <div style={{ fontSize: 13.5, color: c.muted, marginBottom: 12, lineHeight: 1.5 }}>
+              <strong style={{ color: c.text }}>179€/mois</strong> · 3 mois, prélevé aujourd&apos;hui, puis arrêt automatique.
             </div>
-          )}
-
-          {/* 4b — Continuer le coaching en MENSUEL (engagement 3 mois terminé). */}
-          {sub.canResumeCoaching && (
-            <div style={boxStyle}>
-              <div style={{ ...mono, fontSize: 10, color: ACCENT }}>CONTINUER LE COACHING</div>
-              <p style={{ fontSize: 13.5, color: c.muted, margin: "8px 0 14px", lineHeight: 1.5 }}>
-                Ton accompagnement de 3 mois est terminé. Reprends-le en{" "}
-                <strong style={{ color: c.text }}>mensuel — 179€/mois</strong>, sans engagement,
-                résiliable quand tu veux.
-              </p>
-              <GlassButton
-                c={c}
-                kind="solid"
-                disabled={!!busy}
-                style={{ width: "100%", opacity: busy ? 0.6 : 1 }}
-                onClick={async () => {
-                  setBusy("resume");
-                  try {
-                    const r = await resumeMut({});
-                    if ("error" in r) {
-                      toast.error(
-                        r.error === "payment_failed"
-                          ? "Paiement refusé. Mets à jour ta carte via « Gérer mon abonnement », puis réessaie."
-                          : "Impossible de reprendre pour l'instant. Réessaie ou contacte le support."
-                      );
-                      setBusy(null);
-                    } else {
-                      toast.success("🧡 Coaching réactivé !");
-                      setTimeout(() => window.location.reload(), 800);
-                    }
-                  } catch {
-                    toast.error("Erreur. Réessaie.");
-                    setBusy(null);
-                  }
-                }}
-              >
-                {busy === "resume" ? "Réactivation…" : "Continuer mon coaching · 179€/mois"}
-              </GlassButton>
-              <p style={{ ...mono, fontSize: 10, color: c.muted, margin: "8px 0 0", textAlign: "center" }}>
-                Mensuel récurrent, sans engagement. Résiliable via « Gérer mon abonnement ».
-              </p>
-            </div>
-          )}
-
-          {/* 4c — Rejoindre / reprendre la COMMUNAUTÉ 79€ (résilié). Win-back :
-              atterrissage doux après la fin du coaching, ou simple reprise commu.
-              Réutilise le client Stripe (pas de re-checkout). */}
-          {sub.canResumeCommunity && (
-            <div style={boxStyle}>
-              <div style={{ ...mono, fontSize: 10, color: ACCENT }}>
-                {sub.canResumeCoaching ? "OU REJOINDRE LA COMMUNAUTÉ" : "REJOINDRE LA COMMUNAUTÉ"}
-              </div>
-              <p style={{ fontSize: 13.5, color: c.muted, margin: "8px 0 14px", lineHeight: 1.5 }}>
-                Garde l'accès au Discord, aux ressources et au groupe d'artistes pour{" "}
-                <strong style={{ color: c.text }}>79€/mois</strong> — sans engagement, résiliable
-                quand tu veux.
-              </p>
-              <GlassButton
-                c={c}
-                kind={sub.canResumeCoaching ? "ghost" : "solid"}
-                disabled={!!busy}
-                style={{ width: "100%", opacity: busy ? 0.6 : 1 }}
-                onClick={async () => {
-                  setBusy("resumeCommu");
-                  try {
-                    const r = await resumeCommunityMut({});
-                    if ("error" in r) {
-                      toast.error(
-                        r.error === "payment_failed"
-                          ? "Paiement refusé. Mets à jour ta carte via « Gérer mon abonnement », puis réessaie."
-                          : "Impossible de rejoindre pour l'instant. Réessaie ou contacte le support."
-                      );
-                      setBusy(null);
-                    } else {
-                      toast.success("🧡 Bienvenue dans la Communauté !");
-                      setTimeout(() => window.location.reload(), 800);
-                    }
-                  } catch {
-                    toast.error("Erreur. Réessaie.");
-                    setBusy(null);
-                  }
-                }}
-              >
-                {busy === "resumeCommu" ? "Activation…" : "Rejoindre la Communauté · 79€/mois"}
-              </GlassButton>
-              <p style={{ ...mono, fontSize: 10, color: c.muted, margin: "8px 0 0", textAlign: "center" }}>
-                Mensuel récurrent, sans engagement. Carte enregistrée réutilisée.
-              </p>
-            </div>
-          )}
-
-          {/* 5 — Gestion de l'abonnement = Portail Client Stripe (factures + PDF,
-              moyen de paiement, résiliation/renouvellement). Un seul point d'entrée. */}
-          <div style={{ borderTop: `1px solid ${c.line}`, paddingTop: 18, display: "flex", flexDirection: "column", gap: 8 }}>
             <GlassButton
               c={c}
               kind="solid"
-              onClick={() => goPortal("portal")}
+              onClick={() => run("up", () => upgradeMut({}), "🎉 Coaching débloqué !").then(() => router.refresh())}
               disabled={!!busy}
-              style={{ width: "100%", opacity: busy === "portal" ? 0.6 : 1 }}
+              style={{ width: "100%", opacity: busy ? 0.6 : 1 }}
             >
-              {busy === "portal" ? "Redirection…" : "Gérer mon abonnement ↗"}
+              {busy === "up" ? "Activation…" : "Passer au coaching"}
             </GlassButton>
-            <p style={{ ...mono, fontSize: 9, color: c.faint, textAlign: "center", margin: 0 }}>
-              Factures, moyen de paiement et résiliation sur ton espace sécurisé Stripe.
-            </p>
+            <p style={finePrint}>Pour changer de carte, passe par « Gérer mon abonnement ».</p>
           </div>
+        )}
 
-          {/* 7 — Pied */}
-          <p style={{ ...mono, fontSize: 9.5, color: c.faint, textAlign: "center", margin: 0 }}>
-            Besoin d&apos;aide ?{" "}
-            <a href="mailto:contact@amourstudios.fr" style={{ color: c.muted }}>
-              contact@amourstudios.fr
-            </a>
+        {/* Continuer le coaching en mensuel (cycle 3 mois terminé) */}
+        {showResumeCoaching && (
+          <div style={offerCard}>
+            <div style={offerKicker}>CONTINUER LE COACHING</div>
+            <h2 style={offerTitle}>Reprends ton accompagnement</h2>
+            <p style={{ fontSize: 13.5, color: c.muted, margin: "0 0 14px", lineHeight: 1.5 }}>
+              Ton cycle de 3 mois est terminé. Continue en{" "}
+              <strong style={{ color: c.text }}>mensuel · 179€/mois</strong>, sans engagement, résiliable quand tu veux.
+            </p>
+            <GlassButton
+              c={c}
+              kind="solid"
+              disabled={!!busy}
+              style={{ width: "100%", opacity: busy ? 0.6 : 1 }}
+              onClick={async () => {
+                setBusy("resume");
+                try {
+                  const r = await resumeMut({});
+                  if ("error" in r) {
+                    toast.error(
+                      r.error === "payment_failed"
+                        ? "Paiement refusé. Mets à jour ta carte via « Gérer mon abonnement », puis réessaie."
+                        : "Impossible de reprendre pour l'instant. Réessaie ou contacte le support."
+                    );
+                    setBusy(null);
+                  } else {
+                    toast.success("🧡 Coaching réactivé !");
+                    setTimeout(() => window.location.reload(), 800);
+                  }
+                } catch {
+                  toast.error("Erreur. Réessaie.");
+                  setBusy(null);
+                }
+              }}
+            >
+              {busy === "resume" ? "Réactivation…" : "Continuer mon coaching · 179€/mois"}
+            </GlassButton>
+            <p style={finePrint}>Mensuel récurrent, sans engagement. Résiliable via « Gérer mon abonnement ».</p>
+          </div>
+        )}
+
+        {/* Rejoindre / reprendre la Communauté 79€ (win-back). Secondaire si le
+            coaching est aussi proposé (une seule action orange à la fois). */}
+        {showResumeCommunity && (
+          <div style={showResumeCoaching ? plainCard : offerCard}>
+            <div style={{ ...offerKicker, color: showResumeCoaching ? c.muted : ACCENT }}>
+              {showResumeCoaching ? "OU REJOINDRE LA COMMUNAUTÉ" : "REJOINDRE LA COMMUNAUTÉ"}
+            </div>
+            <h2 style={offerTitle}>Garde ta place dans la communauté</h2>
+            <p style={{ fontSize: 13.5, color: c.muted, margin: "0 0 14px", lineHeight: 1.5 }}>
+              Discord, ressources et groupe d&apos;artistes pour{" "}
+              <strong style={{ color: c.text }}>79€/mois</strong> — sans engagement, résiliable quand tu veux.
+            </p>
+            <GlassButton
+              c={c}
+              kind={showResumeCoaching ? "ghost" : "solid"}
+              disabled={!!busy}
+              style={{ width: "100%", opacity: busy ? 0.6 : 1 }}
+              onClick={async () => {
+                setBusy("resumeCommu");
+                try {
+                  const r = await resumeCommunityMut({});
+                  if ("error" in r) {
+                    toast.error(
+                      r.error === "payment_failed"
+                        ? "Paiement refusé. Mets à jour ta carte via « Gérer mon abonnement », puis réessaie."
+                        : "Impossible de rejoindre pour l'instant. Réessaie ou contacte le support."
+                    );
+                    setBusy(null);
+                  } else {
+                    toast.success("🧡 Bienvenue dans la Communauté !");
+                    setTimeout(() => window.location.reload(), 800);
+                  }
+                } catch {
+                  toast.error("Erreur. Réessaie.");
+                  setBusy(null);
+                }
+              }}
+            >
+              {busy === "resumeCommu" ? "Activation…" : "Rejoindre la communauté · 79€/mois"}
+            </GlassButton>
+            <p style={finePrint}>Mensuel récurrent, sans engagement. Carte enregistrée réutilisée.</p>
+          </div>
+        )}
+
+        {/* Gestion — discret (ghost) si une offre est mise en avant, sinon principal */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <GlassButton
+            c={c}
+            kind={hasPrimary ? "ghost" : "solid"}
+            onClick={() => goPortal("portal")}
+            disabled={!!busy}
+            style={{ width: "100%", opacity: busy === "portal" ? 0.6 : 1 }}
+          >
+            {busy === "portal" ? "Redirection…" : "Gérer mon abonnement ↗"}
+          </GlassButton>
+          <p style={{ ...mono, fontSize: 9, color: c.faint, textAlign: "center", margin: 0 }}>
+            {isCoaching
+              ? "Factures et moyen de paiement sur ton espace sécurisé Stripe. Engagement 3 mois : pour toute question, écris-nous."
+              : "Factures, moyen de paiement et résiliation sur ton espace sécurisé Stripe."}
           </p>
         </div>
-      </EditorialBlock>
+
+        {/* Pied */}
+        <p style={{ ...mono, fontSize: 9.5, color: c.faint, textAlign: "center", margin: "2px 0 0" }}>
+          Besoin d&apos;aide ?{" "}
+          <a href="mailto:contact@amourstudios.fr" style={{ color: c.muted }}>
+            contact@amourstudios.fr
+          </a>
+        </p>
+      </div>
     </main>
   );
 }

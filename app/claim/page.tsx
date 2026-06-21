@@ -160,12 +160,16 @@ function ClaimInner() {
       });
   };
 
-  // Si le compte connecté a DÉJÀ ce paiement lié → écran "done" direct.
+  // Si le compte connecté a DÉJÀ lié CE paiement précis → écran "done" direct.
+  // ⚠️ On compare `purchaseId === purchase._id` (et PAS juste « purchaseId
+  // existe ») : sinon un user qui possède déjà un AUTRE paiement voyait l'écran
+  // « c'est lié » sans que le paiement du lien soit réellement rattaché (bug
+  // « ça ne fait rien » sur un compte ayant déjà un purchase).
   useEffect(() => {
     if (
       currentUser &&
-      currentUser.purchaseId &&
       purchase &&
+      currentUser.purchaseId === purchase._id &&
       (purchase.status === "paid" ||
         purchase.status === "active" ||
         purchase.status === "incomplete") &&
@@ -299,9 +303,17 @@ function ClaimInner() {
     return <HasDiscordScreen claimRef={claimRef!} signIn={signIn} />;
   }
 
-  // User connecté, paiement prêt, PAS encore lié → CONFIRME le compte cible avant
-  // de lier (anti mauvais-compte : montre à QUI on va lier + « changer de compte »).
-  if (currentUser && purchase && !currentUser.purchaseId && claimState === "idle") {
+  // User connecté, paiement prêt, CE paiement pas encore lié à lui → CONFIRME le
+  // compte cible avant de lier (anti mauvais-compte : montre à QUI on va lier +
+  // « changer de compte »). On teste `purchaseId !== purchase._id` (et PAS
+  // `!purchaseId`) : un user possédant déjà un autre paiement doit quand même
+  // pouvoir lier celui du lien.
+  if (
+    currentUser &&
+    purchase &&
+    currentUser.purchaseId !== purchase._id &&
+    claimState === "idle"
+  ) {
     return (
       <ConfirmAccountScreen
         c={c}
@@ -676,19 +688,22 @@ function HasDiscordScreen({
     );
   }
 
-  // choice === "no"
+  // choice === "no" — UNE seule action : créer le compte + rejoindre. Plus de
+  // « reviens sur cette page » : une fois le compte créé, le rattrapage (DM
+  // Discord + email) ramène le client tout seul pour finaliser la liaison.
   return (
     <Screen c={c} dark={dark}>
       <Header
         c={c}
-        tag="SANS COMPTE DISCORD"
-        title="Rejoins le serveur en 1 clic."
+        tag="PAS DE COMPTE DISCORD"
+        title="Crée ton compte (gratuit, 2 min)."
       />
-      <p style={{ fontSize: 14, color: c.muted, lineHeight: 1.55, margin: "0 0 18px" }}>
-        Pas encore de compte Discord ? Ce bouton le <strong style={{ color: c.text }}>crée</strong> et te fait
-        {" "}<strong style={{ color: c.text }}>rejoindre le serveur</strong> directement — pas besoin de passer par discord.com.
+      <p style={{ fontSize: 14.5, color: c.muted, lineHeight: 1.55, margin: "0 0 20px" }}>
+        Ton accès passe par Discord. Crée ton compte et rejoins le serveur en un
+        clic — pas besoin de passer par discord.com.
       </p>
-      {/* Étape 1 — primaire : rejoindre le serveur (crée le compte + join). */}
+
+      {/* Action principale unique : crée le compte + join. */}
       <a
         href={discordInvite}
         target="_blank"
@@ -707,24 +722,53 @@ function HasDiscordScreen({
           fontWeight: 600,
           fontSize: 15,
           textDecoration: "none",
-          marginBottom: 16,
         }}
       >
-        Rejoindre le serveur AMOUR STUDIOS <ExternalLink size={15} />
+        Créer mon compte + rejoindre <ExternalLink size={15} />
       </a>
-      <ol style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 22, listStyle: "none", padding: 0 }}>
-        <Step
-          c={c}
-          n={1}
-          title="Clique le bouton ci-dessus → ton compte se crée (si besoin) et tu rejoins le serveur. Ton salon privé s'ouvre tout seul."
-        />
-        <Step
-          c={c}
-          n={2}
-          title="Reviens sur cette page et clique « Continuer avec Discord » pour lier ton paiement."
-        />
-      </ol>
-      <DiscordBtn onClick={triggerSignIn} />
+
+      {/* Rassurance : pas besoin de revenir ici, on le guide après. */}
+      <div
+        style={{
+          display: "flex",
+          gap: 10,
+          alignItems: "flex-start",
+          marginTop: 16,
+          padding: "13px 15px",
+          borderRadius: 12,
+          background: c.chip,
+          border: `1px solid ${c.line}`,
+        }}
+      >
+        <span style={{ color: ACCENT, fontWeight: 700, lineHeight: 1.45 }}>✓</span>
+        <p style={{ fontSize: 13.5, color: c.text, lineHeight: 1.5, margin: 0 }}>
+          Au moment de créer ton compte, <strong>Discord va te demander de vérifier
+          ton email</strong> — fais-le, c&apos;est ce qui nous permet de te reconnaître.
+          Ensuite, <strong>clique le lien de ton mail d&apos;activation</strong> (ou
+          reviens ici) pour lier ton paiement et débloquer ton accès.
+        </p>
+      </div>
+
+      {/* Secondaire discret : déjà tout fait → connexion directe. */}
+      <button
+        onClick={triggerSignIn}
+        style={{
+          ...mono,
+          fontSize: 10.5,
+          color: c.muted,
+          background: "none",
+          border: "none",
+          cursor: "pointer",
+          textDecoration: "underline",
+          textUnderlineOffset: 3,
+          marginTop: 18,
+          padding: 0,
+          alignSelf: "center",
+        }}
+      >
+        C&apos;est déjà fait ? Me connecter avec Discord
+      </button>
+
       <button
         onClick={() => setChoice(null)}
         style={{
@@ -734,7 +778,7 @@ function HasDiscordScreen({
           background: "none",
           border: "none",
           cursor: "pointer",
-          marginTop: 16,
+          marginTop: 14,
           padding: 0,
           alignSelf: "flex-start",
         }}
@@ -924,55 +968,6 @@ function OptionCard({
       </div>
       <ArrowRight size={18} style={{ color: ACCENT, flexShrink: 0 }} />
     </button>
-  );
-}
-
-function Step({
-  c,
-  n,
-  title,
-  action,
-}: {
-  c: C;
-  n: number;
-  title: string;
-  action?: React.ReactNode;
-}) {
-  return (
-    <li
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 14,
-        border: `1px solid ${c.line}`,
-        background: c.chip,
-        borderRadius: 12,
-        padding: "12px 14px",
-      }}
-    >
-      <span
-        style={{
-          ...num,
-          display: "flex",
-          width: 28,
-          height: 28,
-          flexShrink: 0,
-          alignItems: "center",
-          justifyContent: "center",
-          background: ACCENT,
-          color: "#0B0B0B",
-          borderRadius: 8,
-          fontSize: 14,
-          fontWeight: 600,
-        }}
-      >
-        {n}
-      </span>
-      <div style={{ minWidth: 0, flex: 1 }}>
-        <div style={{ fontSize: 14, color: c.text }}>{title}</div>
-        {action && <div style={{ marginTop: 4 }}>{action}</div>}
-      </div>
-    </li>
   );
 }
 

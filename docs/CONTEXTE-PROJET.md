@@ -1,6 +1,8 @@
 # AMOUR STUDIOS — Contexte projet & outil interne (source de vérité)
 
-_Maj : 2026-06-09_
+_Maj : 2026-06-19_
+
+> ⚠️ Les sections 5-7 ci-dessous datent du 2026-06-09. **L'état réel à jour vit dans la mémoire** (`.claude/projects/.../memory/MEMORY.md`, chargée à chaque session). Depuis : tout l'onboarding E2E + Calendly + Fireflies + Google Meet live ; back-office /studio mobile ; landing réécrite + allégée mobile ; **liaison paiement↔compte refondue** (primitif fiable + code AMR-XXXXXX, voir [[liaison-paiement-compte]]) ; questionnaire onboarding en wizard ; flow Discord piloté par bouton (présente-toi retiré). **Reste go-live : Stripe TEST→LIVE, mode test à false + retirer resetTestFunnel, Backups Convex, Portail Stripe, 2FA modo Discord.**
 
 ## 1. Business
 Accompagnement pour **artistes musique** : percer via le **contenu sur les réseaux**. Mentor public **Papi Amour** (interne : Walid). Équipe : Kevin, Younes, Shao, Florent (bot).

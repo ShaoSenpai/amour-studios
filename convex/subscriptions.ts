@@ -4,7 +4,7 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { logEvent } from "./lib/events";
-import { stripeClient, priceForTier } from "./stripe";
+import { stripeClient, priceForTier, coachingPortalConfig } from "./stripe";
 
 // ============================================================================
 // Self-service abonnement (membre). Agit sur l'abonnement du user AUTHENTIFIÉ.
@@ -500,9 +500,16 @@ export const startBillingPortal = action({
     const customer = typeof sub.customer === "string" ? sub.customer : sub.customer?.id;
     if (!customer) throw new Error("Customer Stripe introuvable.");
     const site = process.env.SITE_URL ?? "https://amour-studios.vercel.app";
+    // Coaching = engagement 3 mois non résiliable en self-service → on force la
+    // config de portail « coaching » (résiliation OFF) si elle est posée. La
+    // Communauté retombe sur la config par défaut du compte (résiliation active).
+    const coachingConfig = coachingPortalConfig();
     const session = await stripe.billingPortal.sessions.create({
       customer,
       return_url: `${site}/compte`,
+      ...(p.tier === "coaching" && coachingConfig
+        ? { configuration: coachingConfig }
+        : {}),
     });
     return { url: session.url };
   },

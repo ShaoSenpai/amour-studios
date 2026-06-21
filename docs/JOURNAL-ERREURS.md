@@ -5,6 +5,25 @@
 
 ---
 
+## Session — 2026-06-19
+
+### 🔴 Liaison paiement ↔ compte Discord (refonte fiable)
+
+| # | Symptôme | Cause | Correctif | Statut |
+|---|----------|-------|-----------|--------|
+| 16 | Impossible de lier un paiement quand **email paiement ≠ email Discord** (admin, /lier email, /claim) | La liaison reposait sur le **match d'email** (auth.ts) ou un **ID Discord tapé à la main**. Email différent → rien lié ; pseudo tapé → compte fantôme. | **Primitif unique** `convex/lib/linking.ts linkPurchaseToUser` : lie au **compte connecté** + écrit `user.purchaseId` (lu en 1er par getActivePurchase). **Code de liaison** `AMR-XXXXXX` (linkByCode in-app) + picker admin + « copier le lien ». | ✅ déployé, code résout E2E |
+| 17 | Un membre payé reste sans accès ; le bot ne lui pose jamais les rôles | Outil admin (`adminLinkDiscordToPurchase`/`addMember`/`grantCompAccess`) acceptait un **pseudo** dans le champ ID Discord (« papi_94645 ») → user fantôme que `by_discord` (ID numérique) ne retrouve jamais. | `assertNumericDiscordId` (refuse non-numérique) dans les 3 outils + `assignDiscordRole` **no-op** si discordId non numérique. Réparation : `admin.cleanBrokenLink`. | ✅ déployé |
+
+### 🟡 Pièges outillage (à retenir)
+
+| Sujet | Piège | Bon réflexe |
+|---|---|---|
+| Next.js routing | Un dossier `app/_xxx/` est **privé** (exclu du routing → 404) | Page de preview temporaire = dossier **sans** underscore (`app/lppreview/`) |
+| Skill `browse` | `viewport W H` ne marche pas ; `goto` **réinitialise** le viewport ; `file://` charge `about:blank` | `viewport WxH` (ex. `390x844`) réglé **APRÈS** `goto` ; servir le HTML en **HTTP local** (`python3 -m http.server`) |
+| Site OVH (Action FTP) | `docs/` n'était pas dans `exclude:` → notes internes (`SUIVI.md`) **publiques** sur amourstudios.fr | Retirer du repo (le sync FTP supprime) ; idéalement `**/docs/**` dans `exclude:` |
+
+---
+
 ## Session de test — 2026-06-11
 
 ### 🔴 Bloquants (corrigés)

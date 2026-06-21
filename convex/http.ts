@@ -2,6 +2,11 @@ import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
 import { api, internal } from "./_generated/api";
 import { auth } from "./auth";
+import {
+  coachingEndedDm,
+  refundDm,
+  paymentFailedDm,
+} from "./lib/discordMessages";
 
 // ============================================================================
 // Amour Studios — Convex HTTP router
@@ -364,11 +369,11 @@ http.route({
             if (isCoachingWinback) {
               // DM win-back (remplace le DM générique pour le coaching : un seul
               // message, qui annonce la fin ET propose la Communauté).
+              const dm = coachingEndedDm({ commuUrl: COMMU_URL });
               await ctx.runAction(internal.onboardings.discordDm, {
                 discordId: user.discordId,
-                content:
-                  `Salut 👋\n\nTon **coaching est terminé** 🙏 Merci pour ces 3 mois !\n` +
-                  `Si tu veux garder le Discord, les ressources et le groupe, tu peux continuer dans la **Communauté (79€/mois)** :\n👉 ${COMMU_URL}`,
+                embed: dm.embed,
+                button: dm.button,
               });
             } else {
               // DM boussole « ton accès a pris fin » (résiliation communauté…).
@@ -537,12 +542,11 @@ http.route({
             await ctx.runAction(internal.stripe.removeOnboardedRole, {
               discordId: user.discordId,
             });
-            // DM élève — voix Papi Amour, tutoiement
+            // DM élève — embed brandé.
+            const dm = refundDm({ amountEur, cur });
             await ctx.runAction(internal.onboardings.discordDm, {
               discordId: user.discordId,
-              content:
-                `Salut 👋\n\nOn vient d'effectuer un **remboursement de ${amountEur} ${cur}** sur ton compte.\n\n` +
-                `Ton accès Discord a été retiré. Si c'est une erreur ou si tu veux reprendre, écris-nous : contact@amourstudios.fr`,
+              embed: dm.embed,
             });
           }
           // Email Resend (filet de sécurité si DM bloqué)
@@ -751,14 +755,12 @@ http.route({
               email: femail,
             });
             if (user?.discordId) {
+              const site = (process.env.SITE_URL ?? "https://amour-studios.vercel.app").replace(/\/$/, "");
+              const dm = paymentFailedDm({ site });
               await ctx.runAction(internal.onboardings.discordDm, {
                 discordId: user.discordId,
-                content:
-                  `Salut 👋\n\n**Ta carte bancaire vient d'échouer** pour ton abonnement AMOUR STUDIOS.\n\n` +
-                  `Pas de panique, Stripe va réessayer automatiquement plusieurs fois. ` +
-                  `Mais le mieux est de mettre à jour ta CB :\n\n` +
-                  `👉 Réponds à ce DM avec ton email et on t'envoie le lien pour mettre à jour\n\n` +
-                  `Ou contacte-nous direct : contact@amourstudios.fr`,
+                embed: dm.embed,
+                button: dm.button,
               });
             }
             // Email Resend (filet de sécurité)
@@ -1110,6 +1112,75 @@ http.route({
     }
 
     return new Response("Unknown action", { status: 400 });
+  }),
+});
+
+// Pré-filtre IA #support : le bot relaie chaque message membre ici, on renvoie
+// une décision { action, message, reason }. Auth Bearer DISCORD_BOT_ENDPOINT_SECRET.
+http.route({
+  path: "/webhooks/discord/support-message",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const expected = process.env.DISCORD_BOT_ENDPOINT_SECRET;
+    if (!expected) return new Response("Not configured", { status: 500 });
+    const auth = request.headers.get("Authorization") ?? "";
+    if (auth !== `Bearer ${expected}`) {
+      return new Response("Unauthorized", { status: 401 });
+    }
+    let body: {
+      channelId?: string;
+      discordId?: string;
+      username?: string;
+      content?: string;
+      source?: "support_prefilter" | "ticket";
+      isAdmin?: boolean;
+    } = {};
+    try {
+      body = (await request.json()) as typeof body;
+    } catch {
+      return new Response("Bad JSON", { status: 400 });
+    }
+    const channelId = (body.channelId ?? "").trim();
+    const discordId = (body.discordId ?? "").trim();
+    const content = (body.content ?? "").trim();
+    if (!channelId || !discordId || content.length < 3) {
+      return new Response(JSON.stringify({ action: "disabled" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    const decision = await ctx.runAction(internal.supportAgent.handleSupportMessage, {
+      channelId,
+      discordId,
+      username: body.username,
+      content,
+      source: body.source ?? "support_prefilter",
+      isAdmin: Boolean(body.isAdmin),
+    });
+
+    if (decision.action !== "disabled") {
+      const thread = await ctx.runQuery(internal.support.getThreadByChannel, { channelId });
+      if (thread) {
+        await ctx.runMutation(internal.support.appendMessage, {
+          threadId: thread._id,
+          channelId,
+          role: "assistant",
+          content: decision.message ?? decision.reason ?? "",
+          decision:
+            (process.env.AI_SUPPORT_MODE === "shadow" ? "shadow" : decision.action) as "reply" | "escalate" | "shadow",
+          toolsUsed: decision.toolsUsed,
+          confidence: decision.confidence,
+          inputTokens: decision.inputTokens,
+          outputTokens: decision.outputTokens,
+        });
+      }
+    }
+
+    return new Response(JSON.stringify(decision), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   }),
 });
 

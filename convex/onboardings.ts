@@ -359,9 +359,17 @@ export const _applyUpgradeOnboarding = internalMutation({
     const ob = await ctx.db.get(onboardingId);
     if (!ob) return;
     const alreadyCoaching = ob.tier === "coaching";
+    // Un coaching DOIT passer par l'écran consentements RGPD (s'intercale avant
+    // l'étape RDV). On y route si l'onboarding est encore à un état early OU si
+    // les consentements ne sont pas encore donnés. Sinon on ne régresse PAS un
+    // coaching déjà plus avancé (rdv_booked, ou form_done avec consentements OK).
+    const earlySteps = ["awaiting_presentation", "link_sent", "community_ready"];
+    const needsConsents =
+      earlySteps.includes(ob.step) || !ob.consentRecordingAt;
+    const nextStep = needsConsents ? "consents" : ob.step;
     await ctx.db.patch(onboardingId, {
       tier: "coaching",
-      step: "form_done",
+      step: nextStep,
       upgradeOfferExpiresAt: undefined,
       updatedAt: Date.now(),
     });

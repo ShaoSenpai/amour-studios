@@ -520,6 +520,47 @@ export default defineSchema({
     .index("by_status", ["status"])
     .index("by_discord", ["discordId"]),
 
+  // Fils de support IA (#support pré-filtre + salons ticket). status = source de
+  // vérité unique : le bot lit ce champ pour décider s'il relaie à l'IA.
+  supportThreads: defineTable({
+    // ID Discord du thread (#support) OU du salon ticket où vit la conversation.
+    channelId: v.string(),
+    discordId: v.string(),
+    username: v.optional(v.string()),
+    source: v.union(v.literal("support_prefilter"), v.literal("ticket")),
+    status: v.union(
+      v.literal("ai_active"),
+      v.literal("muted"),
+      v.literal("escalated"),
+      v.literal("resolved"),
+    ),
+    turnCount: v.number(), // nb d'allers-retours IA dans ce fil
+    escalatedChannelId: v.optional(v.string()), // salon ticket créé à l'escalade
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_channel", ["channelId"])
+    .index("by_status", ["status"])
+    .index("by_discord", ["discordId"]),
+
+  // Transcript par tour, pour audit + dashboard + RGPD (purge cron).
+  supportMessages: defineTable({
+    threadId: v.id("supportThreads"),
+    channelId: v.string(),
+    role: v.union(v.literal("user"), v.literal("assistant"), v.literal("system")),
+    content: v.string(),
+    decision: v.optional(
+      v.union(v.literal("reply"), v.literal("escalate"), v.literal("shadow")),
+    ),
+    toolsUsed: v.optional(v.array(v.string())),
+    confidence: v.optional(v.number()),
+    inputTokens: v.optional(v.number()),
+    outputTokens: v.optional(v.number()),
+    at: v.number(),
+  })
+    .index("by_thread", ["threadId"])
+    .index("by_at", ["at"]),
+
   // Transcripts Fireflies orphelins : aucune session ne matche (élève sur un
   // autre compte Google). Stockés ici pour que Walid les rattache à la main
   // via /studio au lieu d'un console.warn perdu.

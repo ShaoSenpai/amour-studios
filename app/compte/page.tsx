@@ -76,6 +76,12 @@ function CompteInner() {
   const resumeCommunityMut = useAction(api.subscriptions.resumeCommunityMonthly);
 
   const [busy, setBusy] = useState<string | null>(null);
+  // Consentements RGPD pour l'upgrade self-service → coaching (déclarés AVANT
+  // tout early return : règle React #310). Enregistrement + confidentialité
+  // OBLIGATOIRES ; témoignage facultatif.
+  const [consentRecording, setConsentRecording] = useState(false);
+  const [consentConfidentiality, setConsentConfidentiality] = useState(false);
+  const [consentTestimonial, setConsentTestimonial] = useState(false);
 
   const run = async (key: string, fn: () => Promise<unknown>, ok: string) => {
     setBusy(key);
@@ -326,12 +332,81 @@ function CompteInner() {
             <div style={{ fontSize: 13.5, color: c.muted, marginBottom: 12, lineHeight: 1.5 }}>
               <strong style={{ color: c.text }}>179€/mois</strong> · 3 mois, prélevé aujourd&apos;hui, puis arrêt automatique.
             </div>
+            {/* Consentements RGPD — recueillis avant la bascule coaching. Les deux
+                premiers sont OBLIGATOIRES (bouton désactivé tant qu'ils ne sont pas
+                cochés) ; le témoignage est facultatif. */}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 10,
+                marginBottom: 14,
+                padding: 14,
+                borderRadius: 12,
+                border: `1px solid ${c.line}`,
+                background: c.chip,
+              }}
+            >
+              <label style={{ display: "flex", gap: 10, alignItems: "flex-start", cursor: "pointer", fontSize: 13, color: c.text, lineHeight: 1.45 }}>
+                <input
+                  type="checkbox"
+                  checked={consentRecording}
+                  onChange={(e) => setConsentRecording(e.target.checked)}
+                  style={{ marginTop: 2, accentColor: ACCENT, width: 16, height: 16, flexShrink: 0 }}
+                />
+                <span>
+                  J&apos;accepte que mes séances de coaching soient{" "}
+                  <strong style={{ color: c.text }}>enregistrées</strong> (replay &amp; compte rendu).{" "}
+                  <span style={{ color: ACCENT }}>Obligatoire</span>
+                </span>
+              </label>
+              <label style={{ display: "flex", gap: 10, alignItems: "flex-start", cursor: "pointer", fontSize: 13, color: c.text, lineHeight: 1.45 }}>
+                <input
+                  type="checkbox"
+                  checked={consentConfidentiality}
+                  onChange={(e) => setConsentConfidentiality(e.target.checked)}
+                  style={{ marginTop: 2, accentColor: ACCENT, width: 16, height: 16, flexShrink: 0 }}
+                />
+                <span>
+                  J&apos;ai pris connaissance de la{" "}
+                  <strong style={{ color: c.text }}>politique de confidentialité</strong> et je l&apos;accepte.{" "}
+                  <span style={{ color: ACCENT }}>Obligatoire</span>
+                </span>
+              </label>
+              <label style={{ display: "flex", gap: 10, alignItems: "flex-start", cursor: "pointer", fontSize: 13, color: c.text, lineHeight: 1.45 }}>
+                <input
+                  type="checkbox"
+                  checked={consentTestimonial}
+                  onChange={(e) => setConsentTestimonial(e.target.checked)}
+                  style={{ marginTop: 2, accentColor: ACCENT, width: 16, height: 16, flexShrink: 0 }}
+                />
+                <span>
+                  J&apos;accepte que mes résultats soient utilisés comme{" "}
+                  <strong style={{ color: c.text }}>témoignage</strong>.{" "}
+                  <span style={{ color: c.muted }}>Facultatif</span>
+                </span>
+              </label>
+            </div>
             <GlassButton
               c={c}
               kind="solid"
-              onClick={() => run("up", () => upgradeMut({}), "🎉 Coaching débloqué !").then(() => router.refresh())}
-              disabled={!!busy}
-              style={{ width: "100%", opacity: busy ? 0.6 : 1 }}
+              onClick={() =>
+                run(
+                  "up",
+                  () =>
+                    upgradeMut({
+                      recording: consentRecording,
+                      confidentiality: consentConfidentiality,
+                      testimonial: consentTestimonial,
+                    }),
+                  "🎉 Coaching débloqué !"
+                ).then(() => router.refresh())
+              }
+              disabled={!!busy || !consentRecording || !consentConfidentiality}
+              style={{
+                width: "100%",
+                opacity: busy || !consentRecording || !consentConfidentiality ? 0.6 : 1,
+              }}
             >
               {busy === "up" ? "Activation…" : "Passer au coaching"}
             </GlassButton>

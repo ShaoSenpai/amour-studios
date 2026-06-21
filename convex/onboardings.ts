@@ -18,6 +18,7 @@ import {
   linkedChannelMsg,
   relanceDm,
 } from "./lib/discordMessages";
+import { LEGAL_VERSION } from "./lib/legal";
 import type { Id, Doc } from "./_generated/dataModel";
 
 // Validators du payload embed brandé envoyé au bot Discord (cf. lib/discordMessages).
@@ -44,6 +45,7 @@ const TIER = v.union(v.literal("coaching"), v.literal("communaute"));
 const STEP = v.union(
   v.literal("awaiting_presentation"),
   v.literal("link_sent"),
+  v.literal("consents"),
   v.literal("form_done"),
   v.literal("rdv_booked"),
   v.literal("community_ready")
@@ -374,11 +376,21 @@ export const _applyUpgradeOnboarding = internalMutation({
     const ob = await ctx.db.get(onboardingId);
     if (!ob) return;
     const alreadyCoaching = ob.tier === "coaching";
-    // Rejeu (déjà avancé dans le parcours coaching) → on ne rétrograde pas.
+    // Upgrade Communauté → Coaching : (a) refaire passer par le parcours
+    // (questionnaire + quick-win) ET (b) garantir le recueil des consentements RGPD.
+    //  - Pas encore avancé → "link_sent" : le parcours coaching réintègre l'écran
+    //    consentements via submitAnswers (questionnaire coaching → "consents").
+    //  - Déjà avancé MAIS sans consentements recueillis → on force "consents".
+    //  - Déjà avancé avec consentements OK → on ne régresse pas.
     const advanced = ob.step === "form_done" || ob.step === "rdv_booked";
+    const nextStep = !advanced
+      ? "link_sent"
+      : ob.consentRecordingAt
+        ? ob.step
+        : "consents";
     await ctx.db.patch(onboardingId, {
       tier: "coaching",
-      step: advanced ? ob.step : "link_sent",
+      step: nextStep,
       upgradeOfferExpiresAt: undefined,
       updatedAt: Date.now(),
     });
@@ -484,7 +496,12 @@ export const submitAnswers = mutation({
         // au-delà, upgradeOffer renvoie { eligible: false }.
         patch.upgradeOfferExpiresAt = now + 60 * 60 * 1000;
       } else if (ob.step === "link_sent") {
-        patch.step = "form_done";
+        // Coaching : le questionnaire est rempli mais les consentements RGPD
+        // (enregistrement + confidentialité) doivent être recueillis AVANT le
+        // RDV (= avant tout enregistrement de session). On s'arrête donc à
+        // l'étape "consents" ; submitConsents fera ensuite passer à "form_done"
+        // (l'écran RDV). La communauté n'a pas de consentements (branche ci-dessus).
+        patch.step = "consents";
       }
     }
     await ctx.db.patch(ob._id, patch);
@@ -513,6 +530,55 @@ export const submitAnswers = mutation({
       }
     }
     return { ok: true };
+  },
+});
+
+/** Étape consentements RGPD (coaching uniquement) : recueille les 2 consentements
+ *  OBLIGATOIRES (enregistrement des sessions + confidentialité) et 1 FACULTATIF
+ *  (témoignage / droit à l'image). Stocke les timestamps comme preuve horodatée +
+ *  la version des documents légaux. S'intercale entre le questionnaire ("consents")
+ *  et le RDV ("form_done" = écran Calendly). Idempotent : si déjà au-delà de
+ *  "consents", no-op (un rejeu du token ne ré-écrit pas la preuve). */
+export const submitConsents = mutation({
+  args: {
+    token: v.string(),
+    recording: v.boolean(),
+    confidentiality: v.boolean(),
+    testimonial: v.boolean(),
+  },
+  handler: async (ctx, { token, recording, confidentiality, testimonial }) => {
+    const ob = await ctx.db
+      .query("onboardings")
+      .withIndex("by_token", (q) => q.eq("token", token))
+      .first();
+    if (!ob) throw new Error("Lien onboarding invalide.");
+    // Idempotence : déjà passé l'étape consentements → no-op (pas de ré-écriture).
+    if (ob.step !== "consents") {
+      return { ok: true as const, already: true as const };
+    }
+    if (!recording || !confidentiality) {
+      throw new Error(
+        "Les consentements enregistrement et confidentialité sont obligatoires."
+      );
+    }
+    const now = Date.now();
+    await ctx.db.patch(ob._id, {
+      consentRecordingAt: now,
+      consentConfidentialityAt: now,
+      consentTestimonialAt: testimonial ? now : undefined,
+      consentVersion: LEGAL_VERSION,
+      // Consentements OK → étape RDV (form_done = écran Calendly côté front).
+      step: "form_done",
+      updatedAt: now,
+    });
+    await logEvent(ctx, {
+      userId: ob.userId,
+      type: "onboarding.consents",
+      title: "Consentements RGPD recueillis",
+      actor: "system",
+      meta: { recording, confidentiality, testimonial, version: LEGAL_VERSION },
+    });
+    return { ok: true as const };
   },
 });
 
@@ -1363,7 +1429,9 @@ function scenarioForStep(
 ): RelanceScenario | null {
   if (step === "awaiting_presentation") return "presentation";
   if (step === "link_sent") return "questionnaire";
-  if (step === "form_done" && tier === "coaching") return "rdv";
+  // consents = post-questionnaire, pré-RDV (coaching) → même scénario "rdv".
+  if ((step === "consents" || step === "form_done") && tier === "coaching")
+    return "rdv";
   return null;
 }
 
@@ -1376,7 +1444,8 @@ function anchorForStep(ob: {
 }): number | null {
   if (ob.step === "awaiting_presentation") return ob.createdAt;
   if (ob.step === "link_sent") return ob.linkSentAt ?? null;
-  if (ob.step === "form_done") return ob.formCompletedAt ?? null;
+  if (ob.step === "consents" || ob.step === "form_done")
+    return ob.formCompletedAt ?? null;
   return null;
 }
 

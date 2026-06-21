@@ -116,12 +116,20 @@ http.route({
       );
     }
 
-    let body: { offre?: string; email?: string; phone?: string };
+    let body: {
+      offre?: string;
+      email?: string;
+      phone?: string;
+      termsAccepted?: boolean;
+      legalVersion?: string;
+    };
     try {
       body = (await request.json()) as {
         offre?: string;
         email?: string;
         phone?: string;
+        termsAccepted?: boolean;
+        legalVersion?: string;
       };
     } catch {
       return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
@@ -136,12 +144,18 @@ http.route({
     // `duree` ici. createSubscription force "3mois" pour tout coaching.
     const email = typeof body.email === "string" ? body.email : "";
     const phone = typeof body.phone === "string" ? body.phone : undefined;
+    const termsAccepted =
+      typeof body.termsAccepted === "boolean" ? body.termsAccepted : undefined;
+    const legalVersion =
+      typeof body.legalVersion === "string" ? body.legalVersion : undefined;
 
     try {
       const result = await ctx.runAction(api.stripe.createSubscription, {
         offre,
         email,
         phone,
+        termsAccepted,
+        legalVersion,
       });
       return new Response(JSON.stringify(result), {
         status: 200,

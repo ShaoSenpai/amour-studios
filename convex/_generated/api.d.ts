@@ -32,6 +32,7 @@ import type * as lib_access from "../lib/access.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_discordMessages from "../lib/discordMessages.js";
 import type * as lib_events from "../lib/events.js";
+import type * as lib_legal from "../lib/legal.js";
 import type * as lib_linking from "../lib/linking.js";
 import type * as lib_supportFaq from "../lib/supportFaq.js";
 import type * as lib_supportState from "../lib/supportState.js";
@@ -89,6 +90,7 @@ declare const fullApi: ApiFromModules<{
   "lib/auth": typeof lib_auth;
   "lib/discordMessages": typeof lib_discordMessages;
   "lib/events": typeof lib_events;
+  "lib/legal": typeof lib_legal;
   "lib/linking": typeof lib_linking;
   "lib/supportFaq": typeof lib_supportFaq;
   "lib/supportState": typeof lib_supportState;

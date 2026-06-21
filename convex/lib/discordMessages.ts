@@ -119,6 +119,15 @@ export function statusDm({
           button: { label: "Compléter mon profil", url: link },
         };
   }
+  if (step === "consents" && tier === "coaching") {
+    return {
+      embed: {
+        title: `Questionnaire validé ✅`,
+        description: `Dernière étape : valide tes **consentements** puis réserve ton 1er RDV avec Walid.`,
+      },
+      button: { label: "Continuer", url: link },
+    };
+  }
   if (step === "form_done" && tier === "coaching") {
     return {
       embed: {
@@ -192,7 +201,7 @@ export function linkedChannelMsg({
       },
     };
   }
-  if (step === "form_done" && tier === "coaching") {
+  if ((step === "consents" || step === "form_done") && tier === "coaching") {
     return {
       embed: {
         title: `Compte lié 🎉`,

@@ -5,6 +5,7 @@ import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { logEvent } from "./lib/events";
 import { stripeClient, priceForTier, coachingPortalConfig } from "./stripe";
+import { LEGAL_VERSION } from "./lib/legal";
 
 // ============================================================================
 // Self-service abonnement (membre). Agit sur l'abonnement du user AUTHENTIFIÉ.
@@ -183,10 +184,22 @@ export const reactivateMySubscription = action({
 // 3) Upgrade Communauté → Coaching : offre unique 3 mois (179€/mois, cap 90j).
 //    Engagement 3 mois : cancel_at posé sur l'abonnement (fin auto après ~90j).
 export const upgradeMySubscription = action({
-  args: {},
-  handler: async (ctx): Promise<{ ok: true; already?: boolean }> => {
+  args: {
+    recording: v.boolean(),
+    confidentiality: v.boolean(),
+    testimonial: v.boolean(),
+  },
+  handler: async (
+    ctx,
+    { recording, confidentiality, testimonial }
+  ): Promise<{ ok: true; already?: boolean }> => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Non authentifié");
+    // Consentements RGPD obligatoires AVANT toute bascule coaching (le membre
+    // self-service n'a pas de wizard onboarding → on les recueille ici).
+    if (!recording || !confidentiality) {
+      throw new Error("Consentements enregistrement et confidentialité obligatoires.");
+    }
     const p = await ctx.runQuery(internal.subscriptions._purchaseForUser, { userId });
     if (!p) throw new Error("Aucun abonnement à upgrader.");
     if (p.tier === "coaching") return { ok: true, already: true };
@@ -234,7 +247,7 @@ export const upgradeMySubscription = action({
         "Le paiement de la différence n'a pas pu être validé (carte refusée ou validation requise). Réessaie ou contacte le support."
       );
     }
-    await ctx.runMutation(internal.subscriptions._applyUpgrade, { purchaseId: p.purchaseId, userId, coachingPrice });
+    await ctx.runMutation(internal.subscriptions._applyUpgrade, { purchaseId: p.purchaseId, userId, coachingPrice, recording, confidentiality, testimonial });
     // cancel_at (pas cancel_at_period_end) = l'engagement 3 mois ne s'affiche
     // pas comme « résiliation programmée » ; on remet cancelAtPeriodEnd à false.
     await ctx.runMutation(internal.stripe.patchPurchase, { purchaseId: p.purchaseId, cancelAtPeriodEnd: false });
@@ -396,11 +409,30 @@ export const startCardUpdate = action({
 });
 
 export const _applyUpgrade = internalMutation({
-  args: { purchaseId: v.id("purchases"), userId: v.id("users"), coachingPrice: v.string() },
-  handler: async (ctx, { purchaseId, userId, coachingPrice }) => {
+  args: {
+    purchaseId: v.id("purchases"),
+    userId: v.id("users"),
+    coachingPrice: v.string(),
+    recording: v.boolean(),
+    confidentiality: v.boolean(),
+    testimonial: v.boolean(),
+  },
+  handler: async (ctx, { purchaseId, userId, coachingPrice, recording, confidentiality, testimonial }) => {
+    const now = Date.now();
     // duree="3mois" directement (offre coaching unique) → accès complet
     // immédiat, sans fenêtre M1-only avant que le webhook ne recolle la durée.
-    await ctx.db.patch(purchaseId, { tier: "coaching", stripePriceId: coachingPrice, amount: 17900, duree: "3mois" });
+    // On grave aussi la PREUVE de consentement RGPD sur le purchase (le membre
+    // self-service n'a pas forcément d'onboarding → la preuve vit ici).
+    await ctx.db.patch(purchaseId, {
+      tier: "coaching",
+      stripePriceId: coachingPrice,
+      amount: 17900,
+      duree: "3mois",
+      consentRecordingAt: recording ? now : undefined,
+      consentConfidentialityAt: confidentiality ? now : undefined,
+      consentTestimonialAt: testimonial ? now : undefined,
+      consentVersion: LEGAL_VERSION,
+    });
 
     // ── Onboarding : basculer le membre Communauté vers l'état coaching
     // « RDV à réserver » ───────────────────────────────────────────────────────

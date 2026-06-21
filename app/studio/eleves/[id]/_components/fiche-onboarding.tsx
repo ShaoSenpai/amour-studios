@@ -21,6 +21,7 @@ const ONB_STEP_LABEL: Record<string, { label: string; color: string }> = {
   awaiting_presentation: { label: "En attente présentation", color: "#F97316" },
   link_sent: { label: "Lien envoyé", color: "#3B82F6" },
   form_done: { label: "Formulaire rempli", color: "#3B82F6" },
+  consents: { label: "Consentements", color: "#3B82F6" },
   rdv_booked: { label: "1er RDV réservé", color: "#1FA463" },
   community_ready: { label: "Communauté prête", color: "#1FA463" },
 };

@@ -132,6 +132,16 @@ export default defineSchema({
     // Séquence win-back fin de coaching → Communauté 79€ (idempotence par palier).
     renewalReminderJ7At: v.optional(v.number()),
     renewalReminderJ1At: v.optional(v.number()),
+    // Preuve de consentement aux CGV + renonciation rétractation (page paiement).
+    termsAcceptedAt: v.optional(v.number()),
+    termsVersion: v.optional(v.string()),
+    // Consentements RGPD recueillis à l'upgrade SELF-SERVICE Communauté → Coaching
+    // depuis /compte (le membre n'a pas forcément d'onboarding → preuve sur le
+    // purchase). Timestamps = preuve ; témoignage facultatif.
+    consentRecordingAt: v.optional(v.number()),
+    consentConfidentialityAt: v.optional(v.number()),
+    consentTestimonialAt: v.optional(v.number()),
+    consentVersion: v.optional(v.string()),
   })
     .index("by_email", ["email"])
     .index("by_stripe_session", ["stripeSessionId"])
@@ -378,6 +388,9 @@ export default defineSchema({
     step: v.union(
       v.literal("awaiting_presentation"),
       v.literal("link_sent"),
+      // Coaching uniquement : questionnaire rempli → consentements RGPD à
+      // recueillir avant l'étape RDV (s'intercale entre link_sent et form_done).
+      v.literal("consents"),
       v.literal("form_done"),
       v.literal("rdv_booked"),
       v.literal("community_ready")
@@ -406,6 +419,11 @@ export default defineSchema({
     rdvSessionId: v.optional(v.id("coachingSessions")),
     // Note libre admin (remplace l'ancienne onboardingNotes).
     notes: v.optional(v.string()),
+    // Consentements RGPD recueillis à l'onboarding coaching (timestamps = preuve).
+    consentRecordingAt: v.optional(v.number()),
+    consentConfidentialityAt: v.optional(v.number()),
+    consentTestimonialAt: v.optional(v.number()),
+    consentVersion: v.optional(v.string()),
     // Relances automatiques (Phase C — cron quotidien runDailyRelances).
     // Anchor temporel selon l'étape bloquée :
     //   - awaiting_presentation → mesuré depuis createdAt

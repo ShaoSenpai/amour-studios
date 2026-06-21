@@ -1103,6 +1103,13 @@ http.route({
         username: body.username,
         channelId,
       });
+      // Coupe l'IA dans le salon ticket (prise en charge humaine) → évite que
+      // l'IA réponde/ré-escalade et recrée un ticket à chaque message du membre.
+      await ctx.runMutation(internal.support.ensureTicketThreadMuted, {
+        channelId,
+        discordId,
+        username: body.username,
+      });
       // Lien cliquable du salon (le guildId est implicite côté Discord : un
       // mention de salon <#id> résout dans le serveur où l'alerte est postée).
       await ctx.runAction(internal.discord.postAlertToStaff, {

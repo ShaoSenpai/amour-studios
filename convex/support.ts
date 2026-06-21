@@ -40,6 +40,41 @@ export const getOrCreateThread = internalMutation({
   },
 });
 
+/** Marque le fil d'un salon TICKET comme `muted` (IA coupée) à l'ouverture.
+ *  Un ticket = prise en charge humaine : l'IA ne doit pas y répondre ni ré-escalader
+ *  (sinon elle recrée un salon ticket à chaque message → doublons). Crée le fil en
+ *  `muted` s'il n'existe pas, sinon coupe l'IA s'il était `ai_active`. */
+export const ensureTicketThreadMuted = internalMutation({
+  args: {
+    channelId: v.string(),
+    discordId: v.string(),
+    username: v.optional(v.string()),
+  },
+  handler: async (ctx, { channelId, discordId, username }) => {
+    const existing = await ctx.db
+      .query("supportThreads")
+      .withIndex("by_channel", (q) => q.eq("channelId", channelId))
+      .first();
+    if (existing) {
+      if (existing.status === "ai_active") {
+        await ctx.db.patch(existing._id, { status: "muted", updatedAt: Date.now() });
+      }
+      return;
+    }
+    const now = Date.now();
+    await ctx.db.insert("supportThreads", {
+      channelId,
+      discordId,
+      username,
+      source: "ticket",
+      status: "muted",
+      turnCount: 0,
+      createdAt: now,
+      updatedAt: now,
+    });
+  },
+});
+
 /** Lit un fil par channelId (undefined si inexistant). */
 export const getThreadByChannel = internalQuery({
   args: { channelId: v.string() },

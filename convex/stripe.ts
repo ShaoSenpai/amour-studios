@@ -142,8 +142,14 @@ export const createSubscription = action({
     // à 79€/mois (le price reste le 79€, c'est le coupon qui remise). No-op si
     // `STRIPE_COMMUNITY_INTRO_COUPON` n'est pas configuré (env absente). Le tier
     // reste "communaute" (même rôle Discord, même accès, abonnement sans fin).
+    // Coaching : pas de coupon par défaut (STRIPE_COACHING_COUPON normalement
+    // absente = plein tarif 179€). Sert aux promos / tests (ex. coupon 99%).
     const introCoupon =
-      tier === "communaute" ? process.env.STRIPE_COMMUNITY_INTRO_COUPON : undefined;
+      tier === "communaute"
+        ? process.env.STRIPE_COMMUNITY_INTRO_COUPON
+        : tier === "coaching"
+          ? process.env.STRIPE_COACHING_COUPON
+          : undefined;
 
     const subscription = await stripe.subscriptions.create({
       customer: customer.id,

@@ -1678,12 +1678,12 @@ export const resetTestIdentity = internalMutation({
  *  risque sur de vraies données. Lancer : `npx convex run admin:resetTestFunnel '{}' --prod`.
  *  ⚠️ À retirer avant la mise en production définitive. */
 export const resetTestFunnel = internalMutation({
-  args: {},
-  handler: async (ctx) => {
+  args: { force: v.optional(v.boolean()) },
+  handler: async (ctx, { force }) => {
     const sk = process.env.STRIPE_SECRET_KEY ?? "";
-    if (!sk.startsWith("sk_test")) {
+    if (!sk.startsWith("sk_test") && !force) {
       throw new Error(
-        "resetTestFunnel REFUSÉ : Stripe n'est pas en mode test (protection données réelles)."
+        "resetTestFunnel REFUSÉ : Stripe n'est pas en mode test (protection données réelles). Passer { force: true } pour bypasser volontairement."
       );
     }
     const deleted = {

@@ -973,6 +973,25 @@ export async function stripeClient() {
   });
 }
 
+/** Reset « comme neuf » : annule TOUS les abonnements Stripe non terminés sur le
+ *  compte de la clé courante. À n'utiliser que pour repartir de zéro (pré-lancement).
+ *  Lancer : npx convex run stripe:cancelAllStripeSubscriptions --prod */
+export const cancelAllStripeSubscriptions = internalAction({
+  args: {},
+  handler: async (): Promise<{ canceled: number; total: number }> => {
+    const stripe = await stripeClient();
+    const subs = await stripe.subscriptions.list({ status: "all", limit: 100 });
+    const live = subs.data.filter((s) =>
+      ["active", "past_due", "trialing", "unpaid", "incomplete", "paused"].includes(s.status),
+    );
+    let canceled = 0;
+    for (const s of live) {
+      try { await stripe.subscriptions.cancel(s.id); canceled++; } catch { /* déjà annulé */ }
+    }
+    return { canceled, total: subs.data.length };
+  },
+});
+
 /** Apple Pay / Google Pay : enregistre `amourstudios.fr` comme Payment Method Domain
  *  (requis pour Apple Pay en live ; Google Pay marche sans). Idempotent : réutilise
  *  le domaine s'il existe. Renvoie le statut des wallets.

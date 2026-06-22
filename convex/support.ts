@@ -472,12 +472,12 @@ export const purgeOldMessages = internalMutation({
  *  Garde-fou Stripe test (comme resetTestFunnel) pour protéger d'un effacement en
  *  prod live. Lancer : npx convex run support:resetSupportData --prod */
 export const resetSupportData = internalMutation({
-  args: {},
-  handler: async (ctx) => {
+  args: { force: v.optional(v.boolean()) },
+  handler: async (ctx, { force }) => {
     const sk = process.env.STRIPE_SECRET_KEY ?? "";
-    if (!sk.startsWith("sk_test")) {
+    if (!sk.startsWith("sk_test") && !force) {
       throw new Error(
-        "resetSupportData REFUSÉ : Stripe n'est pas en mode test (protection données réelles).",
+        "resetSupportData REFUSÉ : Stripe n'est pas en mode test (protection données réelles). Passer { force: true } pour bypasser volontairement.",
       );
     }
     const deleted = { supportThreads: 0, supportMessages: 0, supportDailyUsage: 0 };

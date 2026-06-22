@@ -1029,6 +1029,32 @@ export const provisionLiveStripe = internalAction({
   },
 });
 
+/** Setup go-live : crée le webhook Stripe LIVE (via la clé temporaire) pointant
+ *  vers Convex prod, et renvoie son secret de signature `whsec_…`.
+ *  Le secret n'est dispo qu'à la création → on le pose ensuite dans l'env SANS
+ *  l'afficher (cf. script d'appel). Lancer : npx convex run stripe:provisionLiveWebhook --prod */
+export const provisionLiveWebhook = internalAction({
+  args: {},
+  handler: async (): Promise<{ id: string; secret: string }> => {
+    const sk = process.env.STRIPE_LIVE_SECRET_KEY ?? "";
+    if (!sk.startsWith("sk_live")) {
+      throw new Error("STRIPE_LIVE_SECRET_KEY absente ou non-live.");
+    }
+    const Stripe = (await import("stripe")).default;
+    const stripe = new Stripe(sk, { apiVersion: "2026-03-25.dahlia" });
+    const wh = await stripe.webhookEndpoints.create({
+      url: "https://frugal-curlew-831.convex.site/webhooks/stripe",
+      enabled_events: [
+        "invoice.paid",
+        "customer.subscription.created",
+        "customer.subscription.updated",
+        "customer.subscription.deleted",
+      ],
+    });
+    return { id: wh.id, secret: wh.secret ?? "" };
+  },
+});
+
 /** Vérif go-live : interroge le compte Stripe avec la clé présente en env (ne
  *  l'expose jamais). Confirme objectivement si le compte peut encaisser en réel.
  *  Lancer : npx convex run stripe:checkStripeAccount --prod */

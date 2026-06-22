@@ -1,9 +1,18 @@
 "use client";
 
-import { useState, type CSSProperties, type FormEvent } from "react";
+import { useEffect, useState, type CSSProperties, type FormEvent } from "react";
 import { useMutation, useAction } from "convex/react";
+import { ConvexError } from "convex/values";
 import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
+
+// Message d'erreur lisible : un ConvexError porte le message dans `.data` (le seul
+// transmis au client en prod) ; sinon fallback sur Error.message.
+function errorMessage(err: unknown, fallback: string): string {
+  if (err instanceof ConvexError) return String(err.data) || fallback;
+  if (err instanceof Error && err.message) return err.message;
+  return fallback;
+}
 import {
   ACCENT,
   palette,
@@ -40,10 +49,10 @@ function inputStyle(c: C): CSSProperties {
   };
 }
 
-export function LinkPayment() {
+export function LinkPayment({ defaultOpen = false }: { defaultOpen?: boolean } = {}) {
   const dark = useIsDark();
   const c = palette(dark, ACCENT);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const [tab, setTab] = useState<"code" | "email">("code");
   const [code, setCode] = useState("");
   const [email, setEmail] = useState("");
@@ -51,6 +60,18 @@ export function LinkPayment() {
 
   const linkByCode = useMutation(api.claimTokens.linkByCode);
   const resend = useAction(api.claimTokens.resendActivationByEmail);
+
+  // Deep-link : arrivée depuis le bouton « J'ai un code AMR » du bot
+  // (/login?returnTo=/exos?lier=code) → on ouvre direct le widget sur l'onglet
+  // code. Lu côté client (window) pour éviter une Suspense boundary useSearchParams.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const p = new URLSearchParams(window.location.search).get("lier");
+    if (p === "code" || p === "1") {
+      setTab("code");
+      setOpen(true);
+    }
+  }, []);
 
   const submitCode = async (e: FormEvent) => {
     e.preventDefault();
@@ -61,7 +82,7 @@ export function LinkPayment() {
       toast.success("Paiement lié ! Ton accès est débloqué.");
       // accessSummary (useQuery) se met à jour → l'écran se débloque seul.
     } catch (err) {
-      toast.error((err as Error).message ?? "Code invalide");
+      toast.error(errorMessage(err, "Code invalide ou expiré"));
     } finally {
       setBusy(false);
     }

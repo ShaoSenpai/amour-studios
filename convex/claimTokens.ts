@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { v, ConvexError } from "convex/values";
 import {
   action,
   internalMutation,
@@ -135,18 +135,18 @@ export const claimByToken = mutation({
   args: { token: v.string() },
   handler: async (ctx, { token }) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Non authentifié");
+    if (!userId) throw new ConvexError("Non authentifié");
 
     const claim = await ctx.db
       .query("claimTokens")
       .withIndex("by_token", (q) => q.eq("token", token))
       .first();
-    if (!claim) throw new Error("Lien invalide ou expiré");
+    if (!claim) throw new ConvexError("Lien invalide ou expiré");
     if (claim.expiresAt < Date.now()) {
-      throw new Error("Ce lien d'activation a expiré (valide 7 jours)");
+      throw new ConvexError("Ce lien d'activation a expiré (valide 7 jours)");
     }
     if (claim.claimedAt && claim.claimedByUserId !== userId) {
-      throw new Error("Ce lien a déjà été utilisé sur un autre compte");
+      throw new ConvexError("Ce lien a déjà été utilisé sur un autre compte");
     }
 
     const purchase = await ctx.db
@@ -156,7 +156,7 @@ export const claimByToken = mutation({
       )
       .first();
     if (!purchase) {
-      throw new Error("Paiement introuvable — le webhook Stripe n'est peut-être pas encore arrivé");
+      throw new ConvexError("Paiement introuvable — le webhook Stripe n'est peut-être pas encore arrivé");
     }
     // Abonnements : on accepte "active" et "incomplete" (paiement en cours de
     // confirmation) en plus de "paid" (legacy). On refuse les statuts terminaux.
@@ -165,7 +165,7 @@ export const claimByToken = mutation({
       purchase.status === "active" ||
       purchase.status === "incomplete";
     if (!linkable) {
-      throw new Error(`Ce paiement n'est pas valide (statut : ${purchase.status})`);
+      throw new ConvexError(`Ce paiement n'est pas valide (statut : ${purchase.status})`);
     }
     // Liaison fiable au compte AUTHENTIFIÉ (transfert multi-compte géré, rôles
     // Discord + onboarding) via le primitif partagé. Le TOKEN, envoyé à l'email
@@ -224,25 +224,25 @@ export const linkByCode = mutation({
   args: { code: v.string() },
   handler: async (ctx, { code }) => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Non authentifié");
+    if (!userId) throw new ConvexError("Non authentifié");
     const norm = normalizeCode(code);
-    if (norm.length < 4) throw new Error("Code invalide");
+    if (norm.length < 4) throw new ConvexError("Code invalide");
 
     const rl = await rateLimit(ctx, `linkByCode:${userId}`, 10);
     if (!rl.allowed) {
-      throw new Error("Trop d'essais. Réessaie dans une minute.");
+      throw new ConvexError("Trop d'essais. Réessaie dans une minute.");
     }
 
     const claim = await ctx.db
       .query("claimTokens")
       .withIndex("by_code", (q) => q.eq("code", norm))
       .first();
-    if (!claim) throw new Error("Code invalide ou expiré");
+    if (!claim) throw new ConvexError("Code invalide ou expiré");
     if (claim.expiresAt < Date.now()) {
-      throw new Error("Ce code a expiré. Demande-en un nouveau.");
+      throw new ConvexError("Ce code a expiré. Demande-en un nouveau.");
     }
     if (claim.claimedAt && claim.claimedByUserId !== userId) {
-      throw new Error("Ce code a déjà été utilisé sur un autre compte");
+      throw new ConvexError("Ce code a déjà été utilisé sur un autre compte");
     }
 
     const purchase = await ctx.db
@@ -252,14 +252,14 @@ export const linkByCode = mutation({
       )
       .first();
     if (!purchase) {
-      throw new Error("Paiement introuvable — le webhook Stripe n'est peut-être pas encore arrivé");
+      throw new ConvexError("Paiement introuvable — le webhook Stripe n'est peut-être pas encore arrivé");
     }
     const linkable =
       purchase.status === "paid" ||
       purchase.status === "active" ||
       purchase.status === "incomplete";
     if (!linkable) {
-      throw new Error(`Ce paiement n'est pas valide (statut : ${purchase.status})`);
+      throw new ConvexError(`Ce paiement n'est pas valide (statut : ${purchase.status})`);
     }
 
     const { transferred } = await linkPurchaseToUser(ctx, purchase, userId);

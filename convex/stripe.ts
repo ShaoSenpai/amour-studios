@@ -971,7 +971,15 @@ export const checkStripeAccount = internalAction({
   handler: async (): Promise<Record<string, unknown>> => {
     const sk = process.env.STRIPE_SECRET_KEY ?? "";
     const stripe = await stripeClient();
-    const acct = await stripe.accounts.retrieve();
+    // Sans id, Stripe renvoie le compte de la clé (les types exigent un arg → cast).
+    const acct = (await (stripe.accounts.retrieve as unknown as () => Promise<{
+      id: string;
+      charges_enabled?: boolean;
+      payouts_enabled?: boolean;
+      details_submitted?: boolean;
+      country?: string;
+      default_currency?: string;
+    }>)());
     return {
       keyMode: sk.startsWith("sk_live") ? "live" : sk.startsWith("sk_test") ? "test" : "unknown",
       accountId: acct.id,

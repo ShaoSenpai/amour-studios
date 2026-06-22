@@ -8,6 +8,7 @@ import {
   ACCENT,
   Glass,
   GlassButton,
+  Pill,
   mono,
   num,
   palette,
@@ -18,10 +19,11 @@ import {
 import type { Id } from "@/convex/_generated/dataModel";
 
 // ============================================================================
-// /studio/lier — SAV : « Lier un compte Discord ↔ paiement », sans OAuth.
-// Le coach saisit un Discord ID, cherche un paiement par email (ou voit les
-// récents), et le lie. Backend : api.admin.adminLinkDiscordToPurchase. Sert
-// aussi à tester le flux sans jongler avec les comptes Discord. DA Glass C.
+// /studio/lier — SAV : relier un paiement à un compte Discord, sans OAuth.
+// Refonte ergo : la tâche principale (trouver le paiement → le relier) est en
+// haut et guidée par étapes ; 3 méthodes hiérarchisées (recommandée d'abord) ;
+// le Discord ID est contextuel (inline) à la méthode « secours » ; « Offrir un
+// accès » est démoté en bas (repliable). Backend inchangé. DA Glass C.
 // ============================================================================
 
 type PurchaseRow = {
@@ -74,26 +76,48 @@ function labelStyle(c: C): CSSProperties {
   return { ...mono, fontSize: 10, color: c.muted, marginBottom: 7, display: "block" };
 }
 
+// Petit numéro d'étape (pastille ronde accent).
+function StepDot({ n }: { n: number }) {
+  return (
+    <span
+      style={{
+        ...mono,
+        fontSize: 11,
+        width: 22,
+        height: 22,
+        borderRadius: 999,
+        background: ACCENT,
+        color: "#0B0B0B",
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexShrink: 0,
+        fontWeight: 500,
+      }}
+    >
+      {n}
+    </span>
+  );
+}
+
 export default function LierPage() {
   const dark = useIsDark();
   const c = palette(dark, ACCENT);
   const isMobile = useIsMobile();
 
-  const [discordId, setDiscordId] = useState("");
   const [email, setEmail] = useState("");
   // Email réellement cherché (déclenche la query). "" → 15 récents.
   const [searched, setSearched] = useState<string | undefined>(undefined);
-  const [linkingId, setLinkingId] = useState<Id<"purchases"> | null>(null);
 
   const rows = useQuery(
     api.admin.adminSearchPurchases,
     searched === undefined ? "skip" : { email: searched }
   ) as PurchaseRow[] | undefined;
 
-  const linkMutation = useMutation(api.admin.adminLinkDiscordToPurchase);
-
-  // Voies fiables : copier le lien/code d'activation, ou lier à un membre existant.
+  // Méthode recommandée : copier le lien/code d'activation (le client se relie seul).
   const getClaimLink = useMutation(api.admin.adminGetClaimLink);
+
+  // Méthode 2 : lier à un membre déjà connecté (picker).
   const linkToMember = useMutation(api.admin.adminLinkPurchaseToUser);
   const [pickerFor, setPickerFor] = useState<Id<"purchases"> | null>(null);
   const [memberQuery, setMemberQuery] = useState("");
@@ -102,49 +126,23 @@ export default function LierPage() {
     pickerFor && memberQuery.trim().length >= 2 ? { q: memberQuery.trim() } : "skip"
   );
 
-  // Offrir un accès gratuit (comp).
+  // Méthode 3 (secours) : lier via un Discord ID brut, contextuel à la ligne.
+  const linkMutation = useMutation(api.admin.adminLinkDiscordToPurchase);
+  const [idFor, setIdFor] = useState<Id<"purchases"> | null>(null);
+  const [idValue, setIdValue] = useState("");
+  const [linkingId, setLinkingId] = useState<Id<"purchases"> | null>(null);
+
+  // Offrir un accès gratuit (comp) — démoté, repliable.
   const giftMutation = useMutation(api.admin.grantCompAccess);
+  const [showGift, setShowGift] = useState(false);
   const [giftEmail, setGiftEmail] = useState("");
   const [giftDiscordId, setGiftDiscordId] = useState("");
   const [giftTier, setGiftTier] = useState<"communaute" | "coaching">("coaching");
   const [giftReason, setGiftReason] = useState("");
   const [gifting, setGifting] = useState(false);
 
-  const trimmedDiscordId = discordId.trim();
-  const canLink = trimmedDiscordId.length > 0;
-
   const handleSearch = () => {
     setSearched(email.trim().toLowerCase());
-  };
-
-  const handleLink = async (row: PurchaseRow) => {
-    if (!canLink) {
-      toast.error("Renseigne d'abord un Discord ID.");
-      return;
-    }
-    if (linkingId) return;
-    setLinkingId(row.purchaseId);
-    try {
-      const res = await linkMutation({
-        discordId: trimmedDiscordId,
-        purchaseId: row.purchaseId,
-      });
-      if (res?.ok) {
-        toast.success(
-          "Compte lié — le membre peut se présenter, ou clique Relancer pour lui envoyer le lien.",
-          { duration: 6000 }
-        );
-        setDiscordId("");
-        // Rafraîchit la liste (hasUser passe à vrai).
-        setSearched((s) => (s === undefined ? s : s));
-      } else {
-        toast.error("Liaison impossible.");
-      }
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erreur de liaison.");
-    } finally {
-      setLinkingId(null);
-    }
   };
 
   const handleCopyLink = async (row: PurchaseRow) => {
@@ -152,7 +150,9 @@ export default function LierPage() {
       const res = await getClaimLink({ purchaseId: row.purchaseId });
       try {
         await navigator.clipboard.writeText(res.claimUrl);
-        toast.success(`Lien copié · code ${res.displayCode}`, { duration: 9000 });
+        toast.success(`Lien copié · code ${res.displayCode} — envoie-le au client`, {
+          duration: 9000,
+        });
       } catch {
         // Clipboard refusé → on affiche au moins le lien + code.
         toast.success(`Code ${res.displayCode} · ${res.claimUrl}`, { duration: 12000 });
@@ -175,6 +175,32 @@ export default function LierPage() {
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erreur.");
+    }
+  };
+
+  const handleLinkById = async (row: PurchaseRow) => {
+    const id = idValue.trim();
+    if (!id) {
+      toast.error("Renseigne le Discord ID.");
+      return;
+    }
+    if (linkingId) return;
+    setLinkingId(row.purchaseId);
+    try {
+      const res = await linkMutation({ discordId: id, purchaseId: row.purchaseId });
+      if (res?.ok) {
+        toast.success("Compte lié — il sera adopté à la prochaine connexion Discord.", {
+          duration: 6000,
+        });
+        setIdFor(null);
+        setIdValue("");
+      } else {
+        toast.error("Liaison impossible.");
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erreur de liaison.");
+    } finally {
+      setLinkingId(null);
     }
   };
 
@@ -211,6 +237,8 @@ export default function LierPage() {
     }
   };
 
+  const hasSearched = searched !== undefined;
+
   return (
     <main
       style={{
@@ -221,113 +249,28 @@ export default function LierPage() {
         padding: isMobile ? "20px 16px 48px" : "32px 28px 64px",
       }}
     >
-      <div style={{ maxWidth: 760, margin: "0 auto", display: "flex", flexDirection: "column", gap: 18 }}>
+      <div style={{ maxWidth: 720, margin: "0 auto", display: "flex", flexDirection: "column", gap: 18 }}>
         {/* En-tête */}
         <div>
-          <div style={{ ...mono, color: ACCENT }}>◦ SAV · Liaison manuelle</div>
-          <h1
-            style={{
-              ...num,
-              fontSize: 32,
-              fontWeight: 500,
-              margin: "8px 0 0",
-            }}
-          >
-            Lier un compte Discord ↔ paiement
+          <div style={{ ...mono, color: ACCENT }}>◦ SAV · Liaison</div>
+          <h1 style={{ ...num, fontSize: 32, fontWeight: 500, margin: "8px 0 0" }}>
+            Relier un paiement à un compte
           </h1>
-          <p style={{ fontSize: 13.5, color: c.muted, margin: "8px 0 0", maxWidth: 560, lineHeight: 1.5 }}>
-            Quand un client se présente avec un compte non lié à son paiement
-            (mauvais compte à l&apos;OAuth, compte recréé…), lie son Discord ID
-            au bon paiement. Sans OAuth — le compte sera adopté automatiquement
-            à sa prochaine connexion Discord.
+          <p style={{ fontSize: 13.5, color: c.muted, margin: "8px 0 0", maxWidth: 580, lineHeight: 1.5 }}>
+            Un client a payé mais n&apos;a pas (le bon) accès Discord ? Trouve son paiement,
+            puis relie-le. Le plus simple : lui <strong>envoyer son lien</strong> pour qu&apos;il
+            se relie seul.
           </p>
         </div>
 
-        {/* Offrir un accès gratuit (comp) */}
+        {/* ÉTAPE 1 — Trouver le paiement */}
         <Glass c={c} dark={dark}>
-          <div style={{ ...mono, color: ACCENT, marginBottom: 4 }}>◦ Offrir un accès</div>
-          <p style={{ fontSize: 13, color: c.muted, margin: "0 0 14px", lineHeight: 1.5, maxWidth: 560 }}>
-            Donne un accès <strong>gratuit</strong> (partenaire, cadeau, test) sans paiement.
-            Débloque l&apos;accès + les rôles Discord (si tu mets le Discord ID).
-            N&apos;impacte pas le MRR.
-          </p>
-          <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: 10 }}>
-            <input
-              value={giftEmail}
-              onChange={(ev) => setGiftEmail(ev.target.value)}
-              placeholder="Email de la personne"
-              type="email"
-              style={inputStyle(c)}
-            />
-            <input
-              value={giftDiscordId}
-              onChange={(ev) => setGiftDiscordId(ev.target.value)}
-              placeholder="Discord ID (optionnel, pour les rôles)"
-              inputMode="numeric"
-              style={inputStyle(c)}
-            />
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+            <StepDot n={1} />
+            <span style={{ ...num, fontSize: 17, fontWeight: 500 }}>Trouve le paiement</span>
           </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12, alignItems: "center" }}>
-            {(["communaute", "coaching"] as const).map((t) => (
-              <button
-                key={t}
-                onClick={() => setGiftTier(t)}
-                style={{
-                  ...mono,
-                  fontSize: 11,
-                  padding: "9px 16px",
-                  minHeight: 40,
-                  borderRadius: 999,
-                  cursor: "pointer",
-                  border: `1px solid ${giftTier === t ? ACCENT : c.line}`,
-                  background: giftTier === t ? ACCENT : c.chip,
-                  color: giftTier === t ? "#0B0B0B" : c.muted,
-                }}
-              >
-                {t === "coaching" ? "Coaching (exos + RDV)" : "Communauté"}
-              </button>
-            ))}
-            <input
-              value={giftReason}
-              onChange={(ev) => setGiftReason(ev.target.value)}
-              placeholder="Raison (optionnel)"
-              style={{ ...inputStyle(c), flex: 1, minWidth: 160 }}
-            />
-          </div>
-          <GlassButton
-            c={c}
-            kind="solid"
-            onClick={handleGift}
-            style={{ marginTop: 14, padding: "11px 20px", fontSize: 12, minHeight: 44, opacity: gifting ? 0.6 : 1 }}
-          >
-            {gifting ? "…" : "Offrir l'accès →"}
-          </GlassButton>
-        </Glass>
-
-        {/* Discord ID */}
-        <Glass c={c} dark={dark}>
-          <label htmlFor="discordId" style={labelStyle(c)}>
-            Discord ID du membre
-          </label>
-          <input
-            id="discordId"
-            value={discordId}
-            onChange={(e) => setDiscordId(e.target.value)}
-            placeholder="ex. 123456789012345678"
-            inputMode="numeric"
-            style={inputStyle(c)}
-          />
-          <p style={{ ...mono, fontSize: 9.5, color: c.faint, marginTop: 8 }}>
-            {canLink
-              ? "✓ Prêt — choisis le paiement à lier ci-dessous"
-              : "Renseigne le Discord ID pour activer la liaison"}
-          </p>
-        </Glass>
-
-        {/* Recherche paiement */}
-        <Glass c={c} dark={dark}>
           <label htmlFor="email" style={labelStyle(c)}>
-            Email du paiement (laisse vide pour les 15 plus récents)
+            Email du paiement <span style={{ textTransform: "none" }}>(laisse vide pour voir les 15 plus récents)</span>
           </label>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <input
@@ -341,19 +284,51 @@ export default function LierPage() {
               type="email"
               style={{ ...inputStyle(c), flex: isMobile ? "1 1 100%" : "1 1 240px" }}
             />
-            <GlassButton c={c} kind="solid" onClick={handleSearch} style={{ padding: "11px 20px", fontSize: 12, minHeight: 44 }}>
+            <GlassButton c={c} kind="solid" onClick={handleSearch} style={{ padding: "11px 22px", fontSize: 12, minHeight: 44 }}>
               Chercher
             </GlassButton>
           </div>
+          {!hasSearched && (
+            <p style={{ ...mono, fontSize: 9.5, color: c.faint, marginTop: 10 }}>
+              Astuce : clique « Chercher » sans email pour lister les derniers paiements.
+            </p>
+          )}
+        </Glass>
 
-          {/* Résultats */}
-          <div style={{ marginTop: 16 }}>
-            {searched === undefined && (
-              <div style={{ ...mono, color: c.faint, padding: "8px 2px", fontSize: 10 }}>
-                Lance une recherche, ou liste les paiements récents.
-              </div>
-            )}
-            {searched !== undefined && rows === undefined && (
+        {/* ÉTAPE 2 — Relier (résultats) */}
+        {hasSearched && (
+          <Glass c={c} dark={dark}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+              <StepDot n={2} />
+              <span style={{ ...num, fontSize: 17, fontWeight: 500 }}>Choisis comment relier</span>
+            </div>
+
+            {/* Légende des 3 méthodes (une seule fois) */}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 4,
+                padding: "10px 12px",
+                borderRadius: 12,
+                background: c.chip,
+                border: `1px solid ${c.line}`,
+                margin: "6px 0 14px",
+              }}
+            >
+              <span style={{ fontSize: 12.5, color: c.text }}>
+                <strong>Recommandé</strong> — « Copier le lien + code » : tu l&apos;envoies au
+                client, il clique et se relie seul (zéro risque d&apos;erreur).
+              </span>
+              <span style={{ fontSize: 12.5, color: c.muted }}>
+                « Lier à un membre » : s&apos;il s&apos;est déjà connecté à l&apos;app avec Discord.
+              </span>
+              <span style={{ fontSize: 12.5, color: c.muted }}>
+                « Discord ID (secours) » : seulement si tu as son ID Discord sous la main.
+              </span>
+            </div>
+
+            {rows === undefined && (
               <div style={{ ...mono, color: c.faint, padding: "8px 2px", fontSize: 10 }}>
                 Chargement…
               </div>
@@ -368,17 +343,19 @@ export default function LierPage() {
                 const live = isLive(row.status);
                 const linking = linkingId === row.purchaseId;
                 const picking = pickerFor === row.purchaseId;
+                const idOpen = idFor === row.purchaseId;
                 return (
                   <div
                     key={row.purchaseId}
                     style={{
                       display: "flex",
                       flexDirection: "column",
-                      gap: 10,
-                      padding: "12px 4px",
+                      gap: 12,
+                      padding: "14px 4px",
                       borderTop: `1px solid ${c.hairline}`,
                     }}
                   >
+                    {/* Ligne identité du paiement */}
                     <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
                       <div style={{ minWidth: 0, flex: "1 1 200px" }}>
                         <div
@@ -393,67 +370,65 @@ export default function LierPage() {
                         >
                           {row.email}
                         </div>
-                        <div style={{ ...mono, fontSize: 9.5, color: c.faint, marginTop: 3 }}>
-                          {tierLabel(row.tier)} · {STATUS_LABEL[row.status] ?? row.status}
-                          {row.hasUser ? " · déjà lié" : ""}
+                        <div style={{ ...mono, fontSize: 9.5, color: c.faint, marginTop: 4 }}>
+                          {tierLabel(row.tier)}
                         </div>
                       </div>
-                      <span
-                        style={{
-                          ...mono,
-                          fontSize: isMobile ? 11 : 9.5,
-                          padding: "3px 9px",
-                          borderRadius: 999,
-                          background: live ? ACCENT : c.chip,
-                          color: live ? "#0B0B0B" : c.muted,
-                          border: live ? "none" : `1px solid ${c.line}`,
-                          whiteSpace: "nowrap",
-                          flexShrink: 0,
-                        }}
-                      >
-                        {STATUS_LABEL[row.status] ?? row.status}
-                      </span>
+                      <div style={{ display: "flex", gap: 6, flexShrink: 0, alignItems: "center" }}>
+                        {row.hasUser && <Pill c={c} tone="success">déjà lié</Pill>}
+                        <Pill c={c} tone={live ? "accent" : "outline"}>
+                          {STATUS_LABEL[row.status] ?? row.status}
+                        </Pill>
+                      </div>
                     </div>
 
-                    {/* Actions FIABLES : code/lien + picker membre. (ID Discord = secours) */}
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {/* Actions hiérarchisées : recommandée d'abord */}
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                       <GlassButton
                         c={c}
                         kind="solid"
                         onClick={() => handleCopyLink(row)}
-                        style={{ padding: "9px 14px", fontSize: 11, minHeight: 40 }}
+                        style={{ padding: "10px 16px", fontSize: 11, minHeight: 42 }}
                       >
                         Copier le lien + code
                       </GlassButton>
                       <GlassButton
                         c={c}
-                        kind="ink"
+                        kind="ghost"
                         onClick={() => {
                           setPickerFor(picking ? null : row.purchaseId);
                           setMemberQuery("");
+                          setIdFor(null);
                         }}
-                        style={{ padding: "9px 14px", fontSize: 11, minHeight: 40 }}
+                        style={{ padding: "10px 14px", fontSize: 11, minHeight: 42 }}
                       >
-                        {picking ? "Fermer" : "Lier à un membre…"}
+                        {picking ? "Fermer" : "Lier à un membre"}
                       </GlassButton>
-                      <GlassButton
-                        c={c}
-                        kind="ghost"
-                        onClick={() => handleLink(row)}
-                        disabled={!canLink || linking}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIdFor(idOpen ? null : row.purchaseId);
+                          setIdValue("");
+                          setPickerFor(null);
+                        }}
                         style={{
-                          padding: "9px 14px",
-                          fontSize: 11,
-                          minHeight: 40,
-                          opacity: !canLink || linking ? 0.5 : 1,
-                          cursor: !canLink || linking ? "not-allowed" : "pointer",
-                      }}
-                    >
-                        {linking ? "Liaison…" : "Lier à ce Discord ID"}
-                      </GlassButton>
+                          ...mono,
+                          fontSize: 10,
+                          color: c.faint,
+                          background: "transparent",
+                          border: "none",
+                          cursor: "pointer",
+                          padding: "10px 6px",
+                          minHeight: 42,
+                          textDecoration: "underline",
+                          textUnderlineOffset: 3,
+                        }}
+                      >
+                        {idOpen ? "Annuler" : "Discord ID (secours)"}
+                      </button>
                     </div>
 
-                    {/* Picker membre (recommandé) */}
+                    {/* Reveal : picker membre */}
                     {picking && (
                       <div
                         style={{
@@ -520,11 +495,139 @@ export default function LierPage() {
                           ))}
                       </div>
                     )}
+
+                    {/* Reveal : Discord ID (secours), contextuel à la ligne */}
+                    {idOpen && (
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: isMobile ? "column" : "row",
+                          gap: 8,
+                          padding: "10px 12px",
+                          borderRadius: 12,
+                          background: c.chip,
+                          border: `1px solid ${c.line}`,
+                        }}
+                      >
+                        <input
+                          value={idValue}
+                          onChange={(e) => setIdValue(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") handleLinkById(row);
+                          }}
+                          placeholder="Discord ID (ex. 123456789012345678)"
+                          inputMode="numeric"
+                          autoFocus
+                          style={{ ...inputStyle(c), flex: 1 }}
+                        />
+                        <GlassButton
+                          c={c}
+                          kind="ink"
+                          onClick={() => handleLinkById(row)}
+                          disabled={linking || !idValue.trim()}
+                          style={{
+                            padding: "10px 16px",
+                            fontSize: 11,
+                            minHeight: 44,
+                            opacity: linking || !idValue.trim() ? 0.5 : 1,
+                            cursor: linking || !idValue.trim() ? "not-allowed" : "pointer",
+                          }}
+                        >
+                          {linking ? "Liaison…" : "Lier"}
+                        </GlassButton>
+                      </div>
+                    )}
                   </div>
                 );
               })}
-          </div>
-        </Glass>
+          </Glass>
+        )}
+
+        {/* SECONDAIRE — Offrir un accès gratuit (démoté + repliable) */}
+        <div style={{ marginTop: 4 }}>
+          <button
+            type="button"
+            onClick={() => setShowGift((s) => !s)}
+            style={{
+              ...mono,
+              fontSize: 11,
+              color: c.muted,
+              background: "transparent",
+              border: `1px dashed ${c.line}`,
+              borderRadius: 12,
+              padding: "12px 16px",
+              width: "100%",
+              cursor: "pointer",
+              textAlign: "left",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <span>◦ Offrir un accès gratuit (partenaire, cadeau, test)</span>
+            <span style={{ color: c.faint }}>{showGift ? "−" : "+"}</span>
+          </button>
+
+          {showGift && (
+            <Glass c={c} dark={dark} style={{ marginTop: 10 }}>
+              <p style={{ fontSize: 13, color: c.muted, margin: "0 0 14px", lineHeight: 1.5, maxWidth: 560 }}>
+                Donne un accès <strong>gratuit</strong> sans paiement. Débloque l&apos;accès + les
+                rôles Discord (si tu mets le Discord ID). N&apos;impacte pas le MRR.
+              </p>
+              <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: 10 }}>
+                <input
+                  value={giftEmail}
+                  onChange={(ev) => setGiftEmail(ev.target.value)}
+                  placeholder="Email de la personne"
+                  type="email"
+                  style={inputStyle(c)}
+                />
+                <input
+                  value={giftDiscordId}
+                  onChange={(ev) => setGiftDiscordId(ev.target.value)}
+                  placeholder="Discord ID (optionnel, pour les rôles)"
+                  inputMode="numeric"
+                  style={inputStyle(c)}
+                />
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12, alignItems: "center" }}>
+                {(["communaute", "coaching"] as const).map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setGiftTier(t)}
+                    style={{
+                      ...mono,
+                      fontSize: 11,
+                      padding: "9px 16px",
+                      minHeight: 40,
+                      borderRadius: 999,
+                      cursor: "pointer",
+                      border: `1px solid ${giftTier === t ? ACCENT : c.line}`,
+                      background: giftTier === t ? ACCENT : c.chip,
+                      color: giftTier === t ? "#0B0B0B" : c.muted,
+                    }}
+                  >
+                    {t === "coaching" ? "Coaching (exos + RDV)" : "Communauté"}
+                  </button>
+                ))}
+                <input
+                  value={giftReason}
+                  onChange={(ev) => setGiftReason(ev.target.value)}
+                  placeholder="Raison (optionnel)"
+                  style={{ ...inputStyle(c), flex: 1, minWidth: 160 }}
+                />
+              </div>
+              <GlassButton
+                c={c}
+                kind="solid"
+                onClick={handleGift}
+                style={{ marginTop: 14, padding: "11px 20px", fontSize: 12, minHeight: 44, opacity: gifting ? 0.6 : 1 }}
+              >
+                {gifting ? "…" : "Offrir l'accès →"}
+              </GlassButton>
+            </Glass>
+          )}
+        </div>
       </div>
     </main>
   );

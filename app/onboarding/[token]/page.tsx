@@ -33,7 +33,7 @@ const CALENDLY_URL =
 
 // Lien DIRECT vers le serveur (écran de fin = membre déjà dans le serveur →
 // pas d'écran d'invitation redondant).
-const DISCORD_INVITE = "https://discord.com/channels/1474736345900388453";
+const DISCORD_INVITE = "https://discord.com/channels/1474736345900388453/1517068619706531952";
 
 // Vidéo « quick win » de l'écran post-questionnaire (coaching). Lecteur Mux
 // chargé côté client uniquement (web component → pas de SSR). Si le playback ID
@@ -158,17 +158,12 @@ const COMMUNITY_QUESTIONS: readonly OnboardingQuestion[] = [
   },
 ] as const;
 
-// Renvoie true si le profil communauté mérite qu'on lui propose l'upsell coaching.
-function shouldShowUpsell(answers: Record<string, string>): boolean {
-  if (answers.objective_6m === "Vivre de ma musique") return true;
-  const stuck = parseInt(answers.stuck_level ?? "", 10);
-  if (!Number.isNaN(stuck) && stuck >= 7) return true;
-  return false;
-}
+// (Écran d'upsell « ON T'A LU » retiré 2026-06-21 : il renvoyait vers la page de
+//  paiement EXTERNE plein tarif (179€) et faisait doublon avec l'upsell +130€ en
+//  1 clic de l'écran de fin. La communauté va désormais direct à "done", où
+//  UpsellBlock (+130€ différentiel) s'affiche si l'offre est éligible.)
 
-const COACHING_UPSELL_URL = "https://amourstudios.fr/paiement?offre=coaching";
-
-type StepKey = "loading" | "invalid" | "contact" | "questions" | "consents" | "quickwin" | "rdv" | "upsell" | "done";
+type StepKey = "loading" | "invalid" | "contact" | "questions" | "consents" | "quickwin" | "rdv" | "done";
 
 export default function OnboardingTokenPage({
   params,
@@ -364,9 +359,9 @@ export default function OnboardingTokenPage({
         // Coaching : avant le RDV (et donc avant tout enregistrement de session),
         // on recueille les consentements RGPD. Le serveur est passé à "consents".
         setStep("consents");
-      } else if (shouldShowUpsell(answers)) {
-        setStep("upsell");
       } else {
+        // Communauté → écran de fin direct ; l'upsell +130€ (1 clic) s'y affiche
+        // tout seul si l'offre est éligible (UpsellBlock).
         setStep("done");
       }
     } catch (err) {
@@ -819,8 +814,8 @@ export default function OnboardingTokenPage({
 
   return (
     <Shell c={c} dark={dark}>
-      {step !== "upsell" && <UnlockBanner c={c} tier={tier} />}
-      {step !== "upsell" && step !== "questions" && <StepBar c={c} current={currentNum} total={totalSteps} />}
+      <UnlockBanner c={c} tier={tier} />
+      {step !== "questions" && <StepBar c={c} current={currentNum} total={totalSteps} />}
 
       {step === "contact" && (
         <form onSubmit={handleSubmitContact} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -898,100 +893,6 @@ export default function OnboardingTokenPage({
           </form>
         );
       })()}
-
-      {step === "upsell" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-          <div>
-            <div style={{ ...mono, color: ACCENT }}>◦ ON T&apos;A LU</div>
-            <h1 style={{ ...num, fontSize: 30, fontWeight: 500, lineHeight: 1.1, margin: "10px 0 0" }}>
-              Tu vises plus loin que la communauté.
-            </h1>
-            <p style={{ fontSize: 14, color: c.text, marginTop: 12, lineHeight: 1.6 }}>
-              Vu tes réponses, t&apos;es pas là pour faire de la musique tranquille le dimanche.
-              T&apos;as un vrai objectif et t&apos;es bloqué sur des trucs précis. La communauté ça va t&apos;aider,
-              mais franchement, pour ton cas, ça suffira pas tout seul.
-            </p>
-            <p style={{ fontSize: 14, color: c.text, marginTop: 10, lineHeight: 1.6 }}>
-              Le coaching head-to-head avec Walid, c&apos;est exactement pour les profils comme toi :
-              1 RDV par semaine, méthode adaptée à ton projet, on regarde ce que tu sors, on corrige, on avance.
-            </p>
-          </div>
-
-          <div
-            style={{
-              padding: "14px 16px",
-              background: `${ACCENT}10`,
-              border: `1px solid ${ACCENT}55`,
-              borderRadius: 12,
-              display: "flex",
-              flexDirection: "column",
-              gap: 10,
-            }}
-          >
-            <div style={{ ...mono, fontSize: 10, color: ACCENT, letterSpacing: "0.06em" }}>
-              CE QUE ÇA CHANGE
-            </div>
-            <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 8 }}>
-              {[
-                "1 RDV par semaine avec Walid (1h)",
-                "Méthode perso pour ton projet",
-                "Feedback détaillé sur ton contenu chaque semaine",
-              ].map((line) => (
-                <li
-                  key={line}
-                  style={{
-                    fontSize: 13.5,
-                    color: c.text,
-                    lineHeight: 1.5,
-                    display: "flex",
-                    gap: 10,
-                    alignItems: "flex-start",
-                  }}
-                >
-                  <span style={{ color: ACCENT, marginTop: 2, fontWeight: 600 }}>→</span>
-                  <span>{line}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <a
-            href={COACHING_UPSELL_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="glass-btn"
-            style={{
-              ...glassBtn(c, "solid"),
-              padding: "14px 18px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              textDecoration: "none",
-              width: "100%",
-              boxSizing: "border-box",
-            }}
-          >
-            Passer en Coaching 179€/mois →
-          </a>
-
-          <GlassButton
-            c={c}
-            kind="ghost"
-            onClick={() => setStep("done")}
-            style={{
-              padding: "12px 16px",
-              width: "100%",
-              boxSizing: "border-box",
-            }}
-          >
-            Non merci, je reste en Communauté
-          </GlassButton>
-
-          <p style={{ ...mono, fontSize: 9.5, color: c.faint, textAlign: "center", lineHeight: 1.4 }}>
-            Tu peux y revenir plus tard depuis Discord — l&apos;offre reste ouverte.
-          </p>
-        </div>
-      )}
 
       {step === "rdv" && (
         <div>
@@ -1130,108 +1031,135 @@ function UpsellBlock({
   onUpgrade: () => void;
   onDismiss: () => void;
 }) {
-  const hi = offer.firstName ? `${offer.firstName}, t` : "T";
+  const title = offer.firstName
+    ? `${offer.firstName}, débloque le coaching.`
+    : "Débloque le coaching avec Walid.";
+  // Value props courtes (1 ligne, même sur mobile).
+  const perks = [
+    "1 appel par semaine avec Walid",
+    "Ta méthode + tous tes exercices",
+    "Ta communauté incluse",
+  ];
   return (
     <Glass
       c={c}
       dark={c.dark}
       strong
-      tint={`${ACCENT}14`}
-      style={{ border: `1px solid ${ACCENT}66`, marginBottom: 4 }}
+      tint={`${ACCENT}12`}
+      pad={26}
+      style={{ border: `1px solid ${ACCENT}55`, marginBottom: 4 }}
     >
-      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-        <div style={{ ...mono, fontSize: 10, color: ACCENT, letterSpacing: "0.08em" }}>
-          ◦ OFFRE — MAINTENANT SEULEMENT
+      <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+        {/* En-tête : label discret + titre + une ligne de promesse */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ ...mono, fontSize: 10, color: ACCENT, letterSpacing: "0.1em" }}>
+            ◦ Offre réservée
+          </div>
+          <h2 style={{ ...num, fontSize: 27, fontWeight: 500, lineHeight: 1.08, margin: 0, color: c.text }}>
+            {title}
+          </h2>
+          <p style={{ fontSize: 14.5, color: c.muted, margin: 0, lineHeight: 1.5 }}>
+            Tu gardes tout, tu ajoutes le 1:1.
+          </p>
         </div>
-        <h2
-          style={{
-            ...num,
-            fontSize: 26,
-            fontWeight: 500,
-            lineHeight: 1.1,
-            margin: 0,
-            color: c.text,
-          }}
-        >
-          Débloque le coaching avec Walid.
-        </h2>
-        <p style={{ fontSize: 14, color: c.text, margin: 0, lineHeight: 1.6 }}>
-          {hi}u as l&apos;offre d&apos;entrée Communauté ({offer.currentEur}€). Le
-          vrai déclic, c&apos;est le coaching 1:1 avec Walid : ta méthode, tes RDV,
-          tes exos. Tu paies juste la <strong>différence (+{offer.feeEur}€)</strong>{" "}
-          pour passer au coaching à <strong>{offer.coachingEur}€/mois</strong>.
-          C&apos;est maintenant ou jamais : après cette page, l&apos;offre disparaît.
-        </p>
 
-        {/* Math claire : 49€ payé → +130€ aujourd'hui → 179€/mois plein. */}
+        {/* Value props — 1 ligne chacune, scannables */}
+        <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 9 }}>
+          {perks.map((p) => (
+            <li key={p} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span
+                aria-hidden
+                style={{
+                  width: 19,
+                  height: 19,
+                  borderRadius: 999,
+                  background: `${ACCENT}1F`,
+                  color: ACCENT,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 11,
+                  fontWeight: 700,
+                  flexShrink: 0,
+                }}
+              >
+                ✓
+              </span>
+              <span style={{ fontSize: 14, color: c.text, lineHeight: 1.3 }}>{p}</span>
+            </li>
+          ))}
+        </ul>
+
+        {/* Prix — épuré : le +130€ en héros, 1 ligne de détail, 1 ligne d'argument */}
         <div
           style={{
-            display: "flex",
-            alignItems: "baseline",
-            gap: 12,
-            padding: "12px 16px",
+            padding: "16px 18px",
             background: c.chip,
             border: `1px solid ${c.line}`,
-            borderRadius: 12,
-            flexWrap: "wrap",
+            borderRadius: 16,
+            display: "flex",
+            flexDirection: "column",
+            gap: 4,
           }}
         >
-          <span style={{ ...mono, fontSize: 11, color: c.muted }}>
-            {offer.currentEur}€ payé
-          </span>
-          <span style={{ ...mono, fontSize: 14, color: c.muted }}>+</span>
-          <span style={{ ...num, fontSize: 34, fontWeight: 600, color: ACCENT, lineHeight: 1 }}>
-            {offer.feeEur}€
-          </span>
-          <span style={{ ...mono, fontSize: 14, color: c.muted }}>=</span>
-          <span style={{ ...num, fontSize: 20, fontWeight: 600, color: c.text }}>
-            {offer.coachingEur}€<span style={{ ...mono, fontSize: 11, color: c.muted }}>/mois</span>
-          </span>
-          <span style={{ ...mono, fontSize: 9.5, color: c.muted, marginLeft: "auto", width: "100%", textAlign: "right", marginTop: 2 }}>
-            +{offer.feeEur}€ une seule fois · puis {offer.coachingEur}€/mois · engagement 3 mois
-          </span>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 9 }}>
+            <span style={{ ...num, fontSize: 40, fontWeight: 600, color: ACCENT, lineHeight: 1 }}>
+              +{offer.feeEur}€
+            </span>
+            <span style={{ fontSize: 14, color: c.text }}>aujourd&apos;hui</span>
+          </div>
+          <div style={{ fontSize: 13.5, color: c.text }}>
+            puis <strong>{offer.coachingEur}€/mois</strong>
+            <span style={{ color: c.muted }}> · 3 mois</span>
+          </div>
+          <div style={{ fontSize: 12.5, color: c.muted, lineHeight: 1.4 }}>
+            Déjà payé {offer.currentEur}€ — juste la différence.
+          </div>
         </div>
 
-        <GlassButton
-          c={c}
-          kind="solid"
-          onClick={onUpgrade}
-          disabled={upgrading}
-          style={{
-            padding: "15px 18px",
-            fontSize: 12,
-            opacity: upgrading ? 0.6 : 1,
-            cursor: upgrading ? "default" : "pointer",
-            width: "100%",
-            boxSizing: "border-box",
-          }}
-        >
-          {upgrading ? "Activation…" : `Débloquer le coaching · +${offer.feeEur}€`}
-        </GlassButton>
+        {/* CTA principal */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <GlassButton
+            c={c}
+            kind="solid"
+            onClick={onUpgrade}
+            disabled={upgrading}
+            style={{
+              padding: "16px 18px",
+              fontSize: 12.5,
+              opacity: upgrading ? 0.6 : 1,
+              cursor: upgrading ? "default" : "pointer",
+              width: "100%",
+              boxSizing: "border-box",
+            }}
+          >
+            {upgrading ? "Activation…" : `Débloquer le coaching · +${offer.feeEur}€`}
+          </GlassButton>
 
-        <button
-          type="button"
-          onClick={onDismiss}
-          disabled={upgrading}
-          style={{
-            background: "none",
-            border: "none",
-            color: c.muted,
-            fontFamily: "inherit",
-            fontSize: 12.5,
-            cursor: upgrading ? "default" : "pointer",
-            textDecoration: "underline",
-            textUnderlineOffset: 3,
-            padding: 0,
-            alignSelf: "center",
-          }}
-        >
-          Non merci, rester en communauté
-        </button>
+          <p style={{ ...mono, fontSize: 9, color: c.faint, textAlign: "center", lineHeight: 1.4, margin: 0 }}>
+            Paiement en 1 clic · sécurisé par Stripe
+          </p>
 
-        <p style={{ ...mono, fontSize: 9, color: c.faint, textAlign: "center", lineHeight: 1.4, margin: 0 }}>
-          Débité en 1 clic sur ta carte enregistrée · sécurisé par Stripe
-        </p>
+          <button
+            type="button"
+            onClick={onDismiss}
+            disabled={upgrading}
+            style={{
+              background: "none",
+              border: "none",
+              color: c.faint,
+              fontFamily: "inherit",
+              fontSize: 12.5,
+              cursor: upgrading ? "default" : "pointer",
+              textDecoration: "underline",
+              textUnderlineOffset: 3,
+              padding: "2px 0",
+              alignSelf: "center",
+            }}
+          >
+            Non merci, rester en communauté
+          </button>
+        </div>
       </div>
     </Glass>
   );

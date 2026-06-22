@@ -16,7 +16,6 @@ import { Topbar } from "@/components/ds/topbar";
 import { useSidebar } from "@/components/layout/sidebar-provider";
 import { LessonMetaBar } from "@/components/ds/lesson/lesson-meta-bar";
 import { useViewMode } from "@/components/providers/view-mode-provider";
-import { UpsellModal } from "@/components/ds/upsell-modal";
 import type { DockKey } from "@/components/ds/lesson/lesson-dock";
 import { Pencil, FileText, MessageCircle, List } from "lucide-react";
 import { ExercisesPanel } from "@/components/ds/lesson/exercises-panel";
@@ -172,7 +171,6 @@ export default function LessonPage({
   // - sinon (preview mode) → accès uniquement aux leçons previewAccess=true
   // - mode "vue preview" force le comportement preview même si admin/VIP
   const isAdmin = me?.role === "admin" && !viewAsMember;
-  const isVip = !!myPurchase && !viewAsPreview;
   // Accès :
   //   admin (pas en vue membre) → toujours
   //   preview mode (viewAsPreview ou non-VIP) → uniquement leçons previewAccess=true

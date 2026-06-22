@@ -358,7 +358,7 @@ function ClaimInner() {
   if (claimState === "done") {
     // Écran « done » : la liaison est faite et (en invitation-first) il a déjà
     // rejoint le serveur → lien DIRECT (pas d'invitation redondante).
-    const discordInvite = "https://discord.com/channels/1474736345900388453";
+    const discordInvite = "https://discord.com/channels/1474736345900388453/1517068619706531952";
     return (
       <Screen c={c} dark={dark}>
         <Header

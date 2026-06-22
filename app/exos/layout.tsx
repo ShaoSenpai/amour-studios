@@ -136,7 +136,7 @@ export default function ExosLayout({ children }: { children: ReactNode }) {
               </>
             ) : (
               <a
-                href="https://amourstudios.fr/coaching"
+                href="https://amourstudios.fr/paiement/?offre=coaching"
                 className="glass-btn"
                 style={{ ...glassBtn(c, "solid"), textAlign: "center", textDecoration: "none" }}
               >

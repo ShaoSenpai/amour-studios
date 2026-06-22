@@ -6,7 +6,6 @@ import { useAuthActions } from "@convex-dev/auth/react";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { Button } from "@/components/ui/button";
 import { Hero } from "@/components/ds/hero";
 import type { ModuleCardState } from "@/components/ds/module-card";
 import { ChevronDown, Lock, Check } from "lucide-react";
@@ -206,7 +205,7 @@ export default function DashboardPage() {
               kind="community"
               label="Communauté"
               title="Rejoins la conversation"
-              href="https://discord.com/channels/1474736345900388453"
+              href="https://discord.com/channels/1474736345900388453/1517068619706531952"
               ctaLabel="Ouvrir"
               body="Les autres artistes sont sur Discord — #entraide & #nouveautés."
             />

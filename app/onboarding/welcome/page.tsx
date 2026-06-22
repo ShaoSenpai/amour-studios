@@ -33,7 +33,7 @@ import {
 
 // Lien DIRECT vers le serveur (l'utilisateur a déjà rejoint pour faire son
 // onboarding → pas d'écran d'invitation redondant).
-const DISCORD_INVITE = "https://discord.com/channels/1474736345900388453";
+const DISCORD_INVITE = "https://discord.com/channels/1474736345900388453/1517068619706531952";
 
 export default function OnboardingWelcomePage() {
   const dark = useIsDark();

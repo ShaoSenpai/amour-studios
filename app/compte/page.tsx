@@ -30,7 +30,7 @@ import { LinkPayment } from "@/app/_components/link-payment";
 
 // Lien DIRECT vers le serveur (membre déjà dans le serveur → pas d'écran
 // d'invitation redondant). L'invitation discord.gg/… est réservée aux non-membres.
-const DISCORD_INVITE = "https://discord.com/channels/1474736345900388453";
+const DISCORD_INVITE = "https://discord.com/channels/1474736345900388453/1517068619706531952";
 // Lien Calendly du 1er RDV — MÊME source que le flow onboarding
 // (app/onboarding/[token]/page.tsx). NEXT_PUBLIC_* est inliné au build Vercel,
 // donc dispo côté client et garanti cohérent avec l'onboarding.
@@ -179,9 +179,11 @@ function CompteInner() {
               </a>
             </p>
             {/* Repli : tu as payé mais le compte n'est pas lié → coller le code AMR
-                (ou renvoi par email). Réutilise le composant partagé LinkPayment. */}
+                (ou renvoi par email). Réutilise le composant partagé LinkPayment.
+                Ouvert par défaut ici (écran « aucun abonnement » = souvent un
+                payeur non lié ; c'est la cible du bouton bot « Activer mon accès »). */}
             <div style={{ borderTop: `1px solid ${c.line}`, marginTop: 18, paddingTop: 16 }}>
-              <LinkPayment />
+              <LinkPayment defaultOpen />
             </div>
           </EditorialBlock>
         </div>

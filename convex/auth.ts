@@ -23,10 +23,12 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
       // Scope : identify + email + guilds. La scope `guilds` est inoffensive
       // (on ne s'en sert plus pour gater l'auth) — on la garde pour ne pas
       // modifier l'écran de consentement Discord déjà validé par les membres.
-      // `email` RETIRÉ : Discord exige un email vérifié pour ce scope → bloquait
-      // l'OAuth des clients à email non vérifié. On n'en a pas besoin (liaison =
-      // discordId + email du paiement Stripe). On garde identify + guilds.
-      authorization: { params: { scope: "identify guilds" } },
+      // Scope : identify + email + guilds (état stable historique). NB : Discord
+      // exige un email vérifié pour `email` → friction connue pour les comptes
+      // Discord tout neufs (verif). On garde l'email car le flux (rôles, matching,
+      // session) en dépendait ; la robustesse rôles ne dépend PLUS de l'email
+      // (attribution par discordId), mais on remet l'email pour la stabilité.
+      authorization: { params: { scope: "identify email guilds" } },
       // Mapping du profil Discord vers les champs Convex Auth.
       //
       // ⚠️ ON NE GATE PLUS l'auth sur l'appartenance au serveur Discord.

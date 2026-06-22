@@ -4,7 +4,7 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { logEvent } from "./lib/events";
-import { stripeClient, priceForTier, coachingPortalConfig } from "./stripe";
+import { stripeClient, priceForTier, coachingPortalConfig, communityPortalConfig } from "./stripe";
 import { LEGAL_VERSION } from "./lib/legal";
 
 // ============================================================================
@@ -535,13 +535,14 @@ export const startBillingPortal = action({
     // Coaching = engagement 3 mois non résiliable en self-service → on force la
     // config de portail « coaching » (résiliation OFF) si elle est posée. La
     // Communauté retombe sur la config par défaut du compte (résiliation active).
-    const coachingConfig = coachingPortalConfig();
+    // Config explicite par tier (ne dépend pas de la config par défaut du compte,
+    // absente en live) : coaching = résiliation OFF (engagement), communauté = ON.
+    const configuration =
+      p.tier === "coaching" ? coachingPortalConfig() : communityPortalConfig();
     const session = await stripe.billingPortal.sessions.create({
       customer,
       return_url: `${site}/compte`,
-      ...(p.tier === "coaching" && coachingConfig
-        ? { configuration: coachingConfig }
-        : {}),
+      ...(configuration ? { configuration } : {}),
     });
     return { url: session.url };
   },

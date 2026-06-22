@@ -55,6 +55,16 @@ export function coachingPortalConfig(): string | undefined {
 }
 
 /**
+ * ID de la configuration de Portail Client « communauté » (résiliation ACTIVE).
+ * Utilisée par `startBillingPortal` pour les membres Communauté (self-service
+ * libre). Config explicite → ne dépend PAS de la config par défaut du compte
+ * (absente en live). Créer une fois via `ensureCommunityPortalConfig`.
+ */
+export function communityPortalConfig(): string | undefined {
+  return process.env.STRIPE_PORTAL_CONFIG_COMMUNITY || undefined;
+}
+
+/**
  * Action publique : crée (ou réutilise) un Customer Stripe + une Subscription
  * en mode `default_incomplete`, et renvoie le clientSecret du PaymentIntent
  * de la première facture pour Stripe Elements côté frontend.
@@ -1120,6 +1130,34 @@ export const ensureCoachingPortalConfig = internalAction({
       },
     });
     console.log(`[stripe] Portal config coaching créée: ${config.id} — pose STRIPE_PORTAL_CONFIG_COACHING=${config.id}`);
+    return { id: config.id };
+  },
+});
+
+// Setup one-time : config portail « communauté » avec résiliation ACTIVE
+// (self-service libre). Évite de dépendre de la config par défaut du compte
+// (absente en live). Lancer : npx convex run stripe:ensureCommunityPortalConfig --prod
+export const ensureCommunityPortalConfig = internalAction({
+  args: {},
+  handler: async (): Promise<{ id: string }> => {
+    const stripe = await stripeClient();
+    const config = await stripe.billingPortal.configurations.create({
+      business_profile: {
+        headline: "AMOUR STUDIOS — Communauté",
+        privacy_policy_url:
+          process.env.STRIPE_PORTAL_PRIVACY_URL ?? "https://amourstudios.fr/confidentialite",
+        terms_of_service_url:
+          process.env.STRIPE_PORTAL_TERMS_URL ?? "https://amourstudios.fr/cgv",
+      },
+      features: {
+        invoice_history: { enabled: true },
+        payment_method_update: { enabled: true },
+        // Communauté = sans engagement → résiliation libre en self-service.
+        subscription_cancel: { enabled: true, mode: "at_period_end" },
+        subscription_update: { enabled: false },
+      },
+    });
+    console.log(`[stripe] Portal config communauté créée: ${config.id} — pose STRIPE_PORTAL_CONFIG_COMMUNITY=${config.id}`);
     return { id: config.id };
   },
 });

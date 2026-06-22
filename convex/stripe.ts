@@ -973,6 +973,30 @@ export async function stripeClient() {
   });
 }
 
+/** Apple Pay / Google Pay : enregistre `amourstudios.fr` comme Payment Method Domain
+ *  (requis pour Apple Pay en live ; Google Pay marche sans). Idempotent : réutilise
+ *  le domaine s'il existe. Renvoie le statut des wallets.
+ *  Lancer : npx convex run stripe:ensurePaymentMethodDomain --prod */
+export const ensurePaymentMethodDomain = internalAction({
+  args: { domain: v.optional(v.string()) },
+  handler: async (_ctx, { domain }): Promise<Record<string, unknown>> => {
+    const domainName = domain ?? "amourstudios.fr";
+    const stripe = await stripeClient();
+    const existing = await stripe.paymentMethodDomains.list({ domain_name: domainName, limit: 1 });
+    const d = existing.data[0]
+      ? await stripe.paymentMethodDomains.update(existing.data[0].id, { enabled: true })
+      : await stripe.paymentMethodDomains.create({ domain_name: domainName });
+    return {
+      domain: d.domain_name,
+      id: d.id,
+      enabled: d.enabled,
+      applePay: d.apple_pay?.status,
+      googlePay: d.google_pay?.status,
+      link: d.link?.status,
+    };
+  },
+});
+
 /** Setup go-live (one-time) : crée en mode LIVE les prix + coupon + config portail,
  *  en utilisant la clé live TEMPORAIRE `STRIPE_LIVE_SECRET_KEY` (jamais exposée).
  *  La clé principale reste en test → aucune coupure tant qu'on n'a pas basculé.

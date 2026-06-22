@@ -1738,6 +1738,53 @@ export const resetTestFunnel = internalMutation({
   },
 });
 
+/** Reset « comme neuf » : SUPPRIME les comptes users non-admin (comptes de test)
+ *  + leurs enregistrements d'auth (authAccounts/authSessions/authRefreshTokens),
+ *  pour vider la liste élèves du /studio. PRÉSERVE les role:"admin". Garde-fou
+ *  live (force). Lancer : npx convex run admin:wipeTestMembers '{"force":true}' --prod */
+export const wipeTestMembers = internalMutation({
+  args: { force: v.optional(v.boolean()) },
+  handler: async (ctx, { force }) => {
+    const sk = process.env.STRIPE_SECRET_KEY ?? "";
+    if (!sk.startsWith("sk_test") && !force) {
+      throw new Error("wipeTestMembers REFUSÉ : Stripe n'est pas en mode test. Passer { force: true } pour bypasser.");
+    }
+    const users = await ctx.db.query("users").collect();
+    const members = users.filter((u) => u.role !== "admin");
+    const memberIds = new Set<string>(members.map((m) => m._id as unknown as string));
+    const out = { users: 0, authAccounts: 0, authSessions: 0, authRefreshTokens: 0 };
+
+    const sessions = await ctx.db.query("authSessions").collect();
+    const sessionIds = new Set<string>();
+    for (const s of sessions) {
+      if (memberIds.has(s.userId as unknown as string)) {
+        sessionIds.add(s._id as unknown as string);
+        await ctx.db.delete(s._id);
+        out.authSessions++;
+      }
+    }
+    const refresh = await ctx.db.query("authRefreshTokens").collect();
+    for (const r of refresh) {
+      if (sessionIds.has(r.sessionId as unknown as string)) {
+        await ctx.db.delete(r._id);
+        out.authRefreshTokens++;
+      }
+    }
+    const accounts = await ctx.db.query("authAccounts").collect();
+    for (const a of accounts) {
+      if (memberIds.has(a.userId as unknown as string)) {
+        await ctx.db.delete(a._id);
+        out.authAccounts++;
+      }
+    }
+    for (const m of members) {
+      await ctx.db.delete(m._id);
+      out.users++;
+    }
+    return { ok: true as const, deleted: out, adminsKept: users.length - members.length };
+  },
+});
+
 /** Outil admin (CLI) : pilote le gate « non-onboardé » côté bot Discord.
  *  Cache tous les salons sauf #présente-toi / #sos pour qui n'a pas le rôle
  *  Onboardé. `mode` = preview | apply | revert. Lancer via :

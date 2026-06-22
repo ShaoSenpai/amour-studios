@@ -505,7 +505,7 @@ export const studentsList = query({
     await requireAdmin(ctx);
     const now = Date.now();
     const users = (await ctx.db.query("users").collect()).filter(
-      (u) => !u.deletedAt
+      (u) => !u.deletedAt && u.role !== "admin"
     );
 
     // Prochain RDV par élève (sessions futures planifiées).

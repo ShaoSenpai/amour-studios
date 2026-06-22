@@ -973,6 +973,51 @@ export async function stripeClient() {
   });
 }
 
+/** Crée un coupon Stripe % (test/promo). duration "once" = 1re facture seulement.
+ *  Lancer : npx convex run stripe:createPercentCoupon '{"percentOff":99}' --prod */
+export const createPercentCoupon = internalAction({
+  args: { percentOff: v.number(), name: v.optional(v.string()) },
+  handler: async (_ctx, { percentOff, name }): Promise<{ id: string }> => {
+    const stripe = await stripeClient();
+    const c = await stripe.coupons.create({
+      percent_off: percentOff,
+      duration: "once",
+      name: name ?? `${percentOff}% (test)`,
+    });
+    return { id: c.id };
+  },
+});
+
+/** Rembourse le dernier paiement réussi d'un email (test). Annule aussi l'abo lié.
+ *  Lancer : npx convex run stripe:refundLatestByEmail '{"email":"..."}' --prod */
+export const refundLatestByEmail = internalAction({
+  args: { email: v.string() },
+  handler: async (_ctx, { email }): Promise<Record<string, unknown>> => {
+    const stripe = await stripeClient();
+    const customers = await stripe.customers.list({ email: email.trim().toLowerCase(), limit: 1 });
+    const customer = customers.data[0];
+    if (!customer) return { ok: false, reason: "customer introuvable" };
+    // Annule les abos actifs
+    const subs = await stripe.subscriptions.list({ customer: customer.id, status: "all", limit: 10 });
+    let canceledSubs = 0;
+    for (const s of subs.data) {
+      if (["active", "past_due", "trialing", "unpaid", "incomplete"].includes(s.status)) {
+        await stripe.subscriptions.cancel(s.id).catch(() => {});
+        canceledSubs++;
+      }
+    }
+    // Rembourse le dernier PaymentIntent réussi
+    const pis = await stripe.paymentIntents.list({ customer: customer.id, limit: 10 });
+    const paid = pis.data.find((p) => p.status === "succeeded" && (p.amount_received ?? 0) > 0);
+    let refund: string | null = null;
+    if (paid) {
+      const r = await stripe.refunds.create({ payment_intent: paid.id });
+      refund = r.id;
+    }
+    return { ok: true, canceledSubs, refund, refundedAmount: paid?.amount_received ?? 0 };
+  },
+});
+
 /** Reset « comme neuf » : annule TOUS les abonnements Stripe non terminés sur le
  *  compte de la clé courante. À n'utiliser que pour repartir de zéro (pré-lancement).
  *  Lancer : npx convex run stripe:cancelAllStripeSubscriptions --prod */

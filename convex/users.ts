@@ -184,10 +184,10 @@ export const claimPurchaseBySession = mutation({
     }
 
     // Schedule Discord role assignment (fail-silent)
-    if (user?.discordId && user?.email) {
+    if (user?.discordId) {
       await ctx.scheduler.runAfter(0, internal.stripe.assignDiscordRole, {
         discordId: user.discordId,
-        email: user.email,
+        email: user.email ?? purchase.email,
       });
     }
 
@@ -229,10 +229,10 @@ export const claimPurchaseByPaymentIntent = mutation({
       await ctx.db.patch(userId, { purchaseId: purchase._id });
     }
 
-    if (user?.discordId && user?.email) {
+    if (user?.discordId) {
       await ctx.scheduler.runAfter(0, internal.stripe.assignDiscordRole, {
         discordId: user.discordId,
-        email: user.email,
+        email: user.email ?? purchase.email,
       });
     }
 
@@ -280,10 +280,10 @@ export const claimPurchaseByEmail = mutation({
     }
     await ctx.db.patch(userId, { purchaseId: purchase._id });
 
-    if (user?.discordId && user?.email) {
+    if (user?.discordId) {
       await ctx.scheduler.runAfter(0, internal.stripe.assignDiscordRole, {
         discordId: user.discordId,
-        email: user.email,
+        email: user.email ?? purchase.email,
       });
     }
 

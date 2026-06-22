@@ -83,10 +83,12 @@ export async function linkPurchaseToUser(
   }
 
   // Rôles du NOUVEAU compte — UNIQUEMENT si discordId numérique valide.
-  if (accessGranted && isNumericDiscordId(user?.discordId) && user?.email) {
+  // (Ne dépend PLUS de user.email : le scope email Discord a été retiré → on
+  // utilise l'email du PAIEMENT en repli. Les rôles sont attribués par discordId.)
+  if (accessGranted && isNumericDiscordId(user?.discordId)) {
     await ctx.scheduler.runAfter(0, internal.stripe.assignDiscordRole, {
       discordId: user!.discordId!,
-      email: user!.email,
+      email: user!.email ?? purchase.email,
       tier: purchase.tier ?? undefined,
     });
   }

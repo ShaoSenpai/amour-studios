@@ -264,7 +264,7 @@ function layout({ title, children }: { title: string; children: string }): strin
 
 // ─── Email 1 — Confirmation paiement (lien /claim → /onboarding) ──────
 
-const APP_URL = "https://amour-studios.vercel.app";
+const APP_URL = "https://membres.amourstudios.fr";
 
 // Note « code de liaison » — ALTERNATIVE MANUELLE discrète (PAS l'étape
 // principale : le bouton/lien ci-dessus relie déjà tout seul, même si l'email du
@@ -275,7 +275,7 @@ function amrCodeNote(code: string): string {
   return (
     `<p style="font-size:13px;color:${MUTED};line-height:1.55;margin:16px 0 0;">` +
     `Tu préfères le faire à la main&nbsp;? Connecte-toi sur ton espace ` +
-    `<a href="${APP_URL}/exos" style="color:${ORANGE};text-decoration:none;">amour-studios.vercel.app/exos</a> ` +
+    `<a href="${APP_URL}/exos" style="color:${ORANGE};text-decoration:none;">membres.amourstudios.fr/exos</a> ` +
     `puis colle ton code de liaison&nbsp;: ` +
     `<strong style="color:${INK};font-family:'SFMono-Regular',Consolas,monospace;letter-spacing:1px;">AMR-${escape(code)}</strong>.` +
     `</p>`

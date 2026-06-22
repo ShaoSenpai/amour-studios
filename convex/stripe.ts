@@ -1380,7 +1380,7 @@ export const createCustomerPortalLink = action({
     const stripe = await stripeClient();
     const session = await stripe.billingPortal.sessions.create({
       customer: purchase.stripeCustomerId,
-      return_url: "https://amour-studios.vercel.app/studio",
+      return_url: "https://membres.amourstudios.fr/studio",
     });
 
     await ctx.runMutation(internal.events.recordEventByEmail, {

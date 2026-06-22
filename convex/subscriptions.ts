@@ -390,7 +390,7 @@ export const startCardUpdate = action({
     if (!customer) throw new Error("Customer Stripe introuvable pour cet abonnement.");
 
     // Même source de SITE_URL que le reste du backend (onboardings.ts).
-    const site = process.env.SITE_URL ?? "https://amour-studios.vercel.app";
+    const site = process.env.SITE_URL ?? "https://membres.amourstudios.fr";
     const session = await stripe.checkout.sessions.create({
       mode: "setup",
       customer,
@@ -531,7 +531,7 @@ export const startBillingPortal = action({
     const sub = await stripe.subscriptions.retrieve(p.subscriptionId);
     const customer = typeof sub.customer === "string" ? sub.customer : sub.customer?.id;
     if (!customer) throw new Error("Customer Stripe introuvable.");
-    const site = process.env.SITE_URL ?? "https://amour-studios.vercel.app";
+    const site = process.env.SITE_URL ?? "https://membres.amourstudios.fr";
     // Coaching = engagement 3 mois non résiliable en self-service → on force la
     // config de portail « coaching » (résiliation OFF) si elle est posée. La
     // Communauté retombe sur la config par défaut du compte (résiliation active).

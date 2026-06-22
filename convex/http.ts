@@ -769,7 +769,7 @@ http.route({
               email: femail,
             });
             if (user?.discordId) {
-              const site = (process.env.SITE_URL ?? "https://amour-studios.vercel.app").replace(/\/$/, "");
+              const site = (process.env.SITE_URL ?? "https://membres.amourstudios.fr").replace(/\/$/, "");
               const dm = paymentFailedDm({ site });
               await ctx.runAction(internal.onboardings.discordDm, {
                 discordId: user.discordId,

@@ -432,7 +432,7 @@ export const resendActivationByEmail = action({
     if (!found) return { ok: true };
 
     try {
-      const site = process.env.SITE_URL ?? "https://amour-studios.vercel.app";
+      const site = process.env.SITE_URL ?? "https://membres.amourstudios.fr";
       // STATE-AWARE (anti-répétition) : on n'envoie « relie ton paiement » QUE si
       // ce n'est PAS encore lié. Si déjà lié, on s'adapte à l'étape pour ne pas
       // répéter une étape franchie.

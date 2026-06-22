@@ -14,7 +14,7 @@ import { linkPurchaseToUser, isNumericDiscordId } from "./lib/linking";
 import { ensureClaim } from "./claimTokens";
 
 // Base de l'app (pour construire les liens d'activation /claim).
-const APP_URL = "https://amour-studios.vercel.app";
+const APP_URL = "https://membres.amourstudios.fr";
 
 // ============================================================================
 // Amour Studios — Admin queries & mutations

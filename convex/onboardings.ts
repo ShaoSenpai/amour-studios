@@ -718,7 +718,7 @@ async function alertStaffUnlinkedPresentation(
 export const startOnboardingByDiscordId = internalMutation({
   args: { discordId: v.string() },
   handler: async (ctx, { discordId }) => {
-    const site = (process.env.SITE_URL ?? "https://amour-studios.vercel.app").replace(/\/$/, "");
+    const site = (process.env.SITE_URL ?? "https://membres.amourstudios.fr").replace(/\/$/, "");
     const user = await ctx.db
       .query("users")
       .withIndex("by_discord", (q) => q.eq("discordId", discordId))
@@ -809,7 +809,7 @@ export const sendLink = internalAction({
   handler: async (ctx, { userId, token, firstName, tier }) => {
     const u = await ctx.runQuery(internal.onboardings._userContact, { userId });
     if (!u) return;
-    const site = process.env.SITE_URL ?? "https://amour-studios.vercel.app";
+    const site = process.env.SITE_URL ?? "https://membres.amourstudios.fr";
     const link = `${site}/onboarding/${token}`;
     // Email — fail-silent si pas d'email.
     if (u.email) {
@@ -924,7 +924,7 @@ export const sendStatusDm = internalAction({
   handler: async (ctx, { userId, context }) => {
     const s = await ctx.runQuery(internal.onboardings._statusForUser, { userId });
     if (!s || !s.discordId) return { ok: false as const, reason: "no_discord" as const };
-    const site = process.env.SITE_URL ?? "https://amour-studios.vercel.app";
+    const site = process.env.SITE_URL ?? "https://membres.amourstudios.fr";
     const link = s.token ? `${site}/onboarding/${s.token}` : site;
 
     const msg = statusDm({
@@ -978,7 +978,7 @@ export const grantOnboarded = internalAction({
       }
       // Rôle Onboardé attribué = accès complet débloqué → DM de confirmation
       // brandé (fail-silent, adapté à l'offre). Un SEUL embed + un bouton.
-      const base = (process.env.SITE_URL ?? "https://amour-studios.vercel.app").replace(/\/$/, "");
+      const base = (process.env.SITE_URL ?? "https://membres.amourstudios.fr").replace(/\/$/, "");
       // Renvoi vers #général : mention de salon `<#id>` (cliquable, SANS carte
       // de preview) si l'ID est configuré, sinon « #général » en texte.
       const generalId = process.env.DISCORD_GENERAL_CHANNEL_ID;
@@ -1089,7 +1089,7 @@ export const postLinkedStatusToChannel = internalAction({
   handler: async (ctx, { userId }) => {
     const s = await ctx.runQuery(internal.onboardings._statusForUser, { userId });
     if (!s || !s.discordId) return { ok: false as const, reason: "no_discord" as const };
-    const site = process.env.SITE_URL ?? "https://amour-studios.vercel.app";
+    const site = process.env.SITE_URL ?? "https://membres.amourstudios.fr";
     const link = s.token ? `${site}/onboarding/${s.token}` : `${site}/exos`;
 
     const msg = linkedChannelMsg({
@@ -1241,7 +1241,7 @@ export const sendManualRelance = internalAction({
     if (!scenario) return { ok: false as const, reason: "final" as const };
 
     const contact = await ctx.runQuery(internal.onboardings._userContact, { userId });
-    const site = process.env.SITE_URL ?? "https://amour-studios.vercel.app";
+    const site = process.env.SITE_URL ?? "https://membres.amourstudios.fr";
     const link = s.token ? `${site}/onboarding/${s.token}` : site;
     const firstName = s.firstName ?? contact?.firstName ?? null;
 
@@ -1354,7 +1354,6 @@ export const updateNote = mutation({
 // depuis la dernière activité. Idempotent : un flag `relance{24h,48h,7d}At`
 // est posé sur la row à chaque envoi (n'envoie jamais 2x le même niveau).
 
-const RELANCE_TIER = v.union(v.literal("coaching"), v.literal("communaute"));
 const RELANCE_SCENARIO = v.union(
   v.literal("presentation"),
   v.literal("questionnaire"),
@@ -1460,7 +1459,7 @@ export const runDailyRelances = internalAction({
       {}
     );
     const now = Date.now();
-    const site = process.env.SITE_URL ?? "https://amour-studios.vercel.app";
+    const site = process.env.SITE_URL ?? "https://membres.amourstudios.fr";
     const walidEmail = "walid@amourstudios.fr";
 
     let sent = 0;

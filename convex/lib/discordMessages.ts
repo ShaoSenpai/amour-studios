@@ -44,25 +44,24 @@ function withName(base: string, firstName: string | null): string {
  *  Discord non validé. Réutilisé à l'arrivée (non lié), au fallback S'onboarder
  *  et dans la relance. */
 export function linkAccountDm({
-  loginUrl,
-  lierUrl,
+  activateUrl,
 }: {
-  loginUrl: string;
-  lierUrl: string;
+  // URL unique « Activer mon accès » : login → /compte?lier=code. Tout converge
+  // vers « login + preuve du paiement » ; /compte gère les 3 cas après connexion.
+  activateUrl: string;
 }): DiscordMessage {
   return {
     embed: {
-      title: `Tu as payé ? Lie ton compte 🔗`,
+      title: `Tu as payé ? Active ton accès 🔗`,
       description:
         `Ce compte Discord n'est pas encore relié à ton paiement.\n` +
-        `Connecte-toi avec **CE** compte Discord pour relier ton accès automatiquement.\n\n` +
-        `⚠️ **D'abord** : ${EMAIL_VALIDE_NOTE}`,
-      footer: `Email pas validé ? Utilise ton code AMR (reçu par mail à l'achat) — ça marche sans validation.`,
+        `Clique ci-dessous et connecte-toi avec **CE** compte Discord : ton accès s'active ` +
+        `automatiquement si ton email correspond — sinon, colle ton **code AMR** ` +
+        `(reçu par mail à l'achat) sur la page.\n\n` +
+        `⚠️ ${EMAIL_VALIDE_NOTE}`,
+      footer: `Toujours bloqué ? Écris-nous : contact@amourstudios.fr`,
     },
-    buttons: [
-      { label: "Connecter mon compte", url: loginUrl },
-      { label: "J'ai un code AMR", url: lierUrl },
-    ],
+    buttons: [{ label: "Activer mon accès", url: activateUrl }],
   };
 }
 
@@ -213,7 +212,12 @@ export function grantedDm({
         `(qui tu es, ton projet, un de tes sons).`,
       footer: `Ton espace est toujours dispo dans #mon-espace.`,
     },
-    button: { label: "Ouvrir mon espace", url: `${base}/exos` },
+    // Coaching → /exos (ses exercices) ; Communauté → /compte (pas d'exos, /exos
+    // serait un écran verrouillé).
+    button: {
+      label: "Ouvrir mon espace",
+      url: tier === "coaching" ? `${base}/exos` : `${base}/compte`,
+    },
   };
 }
 

@@ -963,6 +963,27 @@ export async function stripeClient() {
   });
 }
 
+/** Vérif go-live : interroge le compte Stripe avec la clé présente en env (ne
+ *  l'expose jamais). Confirme objectivement si le compte peut encaisser en réel.
+ *  Lancer : npx convex run stripe:checkStripeAccount --prod */
+export const checkStripeAccount = internalAction({
+  args: {},
+  handler: async (): Promise<Record<string, unknown>> => {
+    const sk = process.env.STRIPE_SECRET_KEY ?? "";
+    const stripe = await stripeClient();
+    const acct = await stripe.accounts.retrieve();
+    return {
+      keyMode: sk.startsWith("sk_live") ? "live" : sk.startsWith("sk_test") ? "test" : "unknown",
+      accountId: acct.id,
+      chargesEnabled: acct.charges_enabled,
+      payoutsEnabled: acct.payouts_enabled,
+      detailsSubmitted: acct.details_submitted,
+      country: acct.country,
+      defaultCurrency: acct.default_currency,
+    };
+  },
+});
+
 /**
  * Action admin (one-time setup) : crée la configuration de Portail Client Stripe
  * « coaching » avec la RÉSILIATION DÉSACTIVÉE (engagement 3 mois non résiliable

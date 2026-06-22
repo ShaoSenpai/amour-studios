@@ -963,6 +963,72 @@ export async function stripeClient() {
   });
 }
 
+/** Setup go-live (one-time) : crée en mode LIVE les prix + coupon + config portail,
+ *  en utilisant la clé live TEMPORAIRE `STRIPE_LIVE_SECRET_KEY` (jamais exposée).
+ *  La clé principale reste en test → aucune coupure tant qu'on n'a pas basculé.
+ *  Renvoie les IDs à poser dans les env. Lancer UNE fois :
+ *    npx convex run stripe:provisionLiveStripe --prod */
+export const provisionLiveStripe = internalAction({
+  args: {},
+  handler: async (): Promise<Record<string, unknown>> => {
+    const sk = process.env.STRIPE_LIVE_SECRET_KEY ?? "";
+    if (!sk.startsWith("sk_live")) {
+      throw new Error(
+        "STRIPE_LIVE_SECRET_KEY absente ou non-live. Pose-la d'abord : npx convex env set STRIPE_LIVE_SECRET_KEY sk_live_... --prod",
+      );
+    }
+    const Stripe = (await import("stripe")).default;
+    const stripe = new Stripe(sk, { apiVersion: "2026-03-25.dahlia" });
+
+    const acct = (await (stripe.accounts.retrieve as unknown as () => Promise<{
+      charges_enabled?: boolean;
+      details_submitted?: boolean;
+    }>)());
+
+    const community = await stripe.prices.create({
+      currency: "eur",
+      unit_amount: 7900,
+      recurring: { interval: "month" },
+      product_data: { name: "AMOUR STUDIOS — Communauté" },
+    });
+    const coaching = await stripe.prices.create({
+      currency: "eur",
+      unit_amount: 17900,
+      recurring: { interval: "month" },
+      product_data: { name: "AMOUR STUDIOS — Coaching" },
+    });
+    const coupon = await stripe.coupons.create({
+      amount_off: 3000,
+      currency: "eur",
+      duration: "repeating",
+      duration_in_months: 3,
+      name: "Offre d'entrée Communauté -30€",
+    });
+    const portal = await stripe.billingPortal.configurations.create({
+      business_profile: {
+        headline: "AMOUR STUDIOS — Coaching",
+        privacy_policy_url: "https://amourstudios.fr/confidentialite",
+        terms_of_service_url: "https://amourstudios.fr/cgv",
+      },
+      features: {
+        invoice_history: { enabled: true },
+        payment_method_update: { enabled: true },
+        subscription_cancel: { enabled: false },
+        subscription_update: { enabled: false },
+      },
+    });
+
+    return {
+      chargesEnabled: acct.charges_enabled,
+      detailsSubmitted: acct.details_submitted,
+      STRIPE_PRICE_COMMUNITY: community.id,
+      STRIPE_PRICE_COACHING: coaching.id,
+      STRIPE_COMMUNITY_INTRO_COUPON: coupon.id,
+      STRIPE_PORTAL_CONFIG_COACHING: portal.id,
+    };
+  },
+});
+
 /** Vérif go-live : interroge le compte Stripe avec la clé présente en env (ne
  *  l'expose jamais). Confirme objectivement si le compte peut encaisser en réel.
  *  Lancer : npx convex run stripe:checkStripeAccount --prod */

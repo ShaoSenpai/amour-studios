@@ -28,14 +28,14 @@ export async function getActivePurchase(
 ): Promise<Doc<"purchases"> | null> {
   if (user.purchaseId) {
     const p = await ctx.db.get(user.purchaseId);
-    if (p && isActiveStatus(p.status)) return p;
+    if (p && isActiveStatus(p.status) && !isExpired(p)) return p;
   }
   if (user.email) {
     const byEmail = await ctx.db
       .query("purchases")
       .withIndex("by_email", (q) => q.eq("email", user.email!.toLowerCase()))
       .collect();
-    const active = byEmail.find((p) => isActiveStatus(p.status));
+    const active = byEmail.find((p) => isActiveStatus(p.status) && !isExpired(p));
     if (active) return active;
   }
   return null;
@@ -43,6 +43,13 @@ export async function getActivePurchase(
 
 function isActiveStatus(status: string): boolean {
   return status === "active" || status === "paid" || status === "past_due";
+}
+
+// Accès offert (gift) à durée limitée : une fois `expiresAt` dépassé, l'accès
+// n'est plus actif (verrou en lecture, indépendant du cron de nettoyage).
+// Les abonnements Stripe ne posent pas `expiresAt` → non concernés.
+function isExpired(p: Doc<"purchases">): boolean {
+  return typeof p.expiresAt === "number" && p.expiresAt <= Date.now();
 }
 
 // Modules in scope pour le catalogue /exos coaching.

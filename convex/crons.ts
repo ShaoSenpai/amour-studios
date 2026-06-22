@@ -60,4 +60,13 @@ crons.daily(
   { olderThanDays: 180 },
 );
 
+// Accès offerts (gift) expirés → status canceled + révocation des rôles Discord
+// (le verrou /exos est déjà assuré en lecture ; ce job nettoie l'état).
+crons.daily(
+  "expire-gift-access",
+  { hourUTC: 4, minuteUTC: 0 },
+  internal.admin.expireGiftAccess,
+  {},
+);
+
 export default crons;

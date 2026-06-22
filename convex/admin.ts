@@ -645,6 +645,45 @@ export const grantCompAccess = mutation({
   },
 });
 
+/**
+ * Cron : révoque les accès offerts (gift) dont `expiresAt` est dépassé.
+ * Passe le purchase en `canceled` ET retire les rôles Discord (Membre/Coaching +
+ * Onboardé). Le verrou d'accès /exos est déjà assuré en LECTURE (lib/access.ts) ;
+ * ce job nettoie l'état (dashboard cohérent) et coupe l'accès Discord.
+ * Ne touche QU'aux purchases avec `expiresAt` (les abos Stripe n'en ont pas).
+ */
+export const expireGiftAccess = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const now = Date.now();
+    const all = await ctx.db.query("purchases").collect();
+    const expired = all.filter(
+      (p) => p.status === "active" && typeof p.expiresAt === "number" && p.expiresAt <= now,
+    );
+    for (const p of expired) {
+      await ctx.db.patch(p._id, { status: "canceled" });
+      const user = p.userId ? await ctx.db.get(p.userId) : null;
+      const did = user?.discordId;
+      if (did) {
+        await ctx.scheduler.runAfter(0, internal.stripe.removeDiscordRoles, {
+          discordId: did,
+          email: p.email,
+        });
+        await ctx.scheduler.runAfter(0, internal.stripe.removeOnboardedRole, {
+          discordId: did,
+        });
+      }
+      await logEvent(ctx, {
+        userId: p.userId,
+        type: "access.gift_expired",
+        title: "Accès offert expiré → révoqué",
+        actor: "system",
+      });
+    }
+    return { expired: expired.length };
+  },
+});
+
 // ============================================================================
 // Cockpit admin — stats, activity, watchlist, broadcast
 // ============================================================================

@@ -857,6 +857,11 @@ export const sendLink = internalAction({
   handler: async (ctx, { userId, token, firstName, tier }) => {
     const u = await ctx.runQuery(internal.onboardings._userContact, { userId });
     if (!u) return;
+    // Garde-fou cerveau : ne JAMAIS (re)envoyer le lien d'onboarding à un membre
+    // déjà onboardé/actif (ex. re-trigger à la reconnexion ou re-paiement) — il
+    // a déjà tout fait, ce serait un message incohérent « finis ton onboarding ».
+    const journey = await ctx.runQuery(internal.journey.journeyForUser, { userId });
+    if (journey.state === "active") return;
     const site = process.env.SITE_URL ?? "https://membres.amourstudios.fr";
     const link = `${site}/onboarding/${token}`;
     // Email — fail-silent si pas d'email.

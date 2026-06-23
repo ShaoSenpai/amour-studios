@@ -96,6 +96,10 @@ function ClaimInner() {
   }, [tokenFromUrl, sessionFromUrl, piFromUrl]);
 
   const currentUser = useQuery(api.users.current);
+  // Cerveau : sert UNIQUEMENT à éviter le cul-de-sac « Session introuvable »
+  // (utilisateur connecté arrivant sur /claim sans référence de paiement) — on
+  // l'envoie à son vrai prochain pas. NE touche PAS le flux de liaison lui-même.
+  const next = useQuery(api.journey.nextStep);
 
   const purchaseFromSession = useQuery(
     api.users.purchaseForSession,
@@ -204,6 +208,24 @@ function ClaimInner() {
       router.replace(`/onboarding/${onboardingToken}`);
     }
   }, [onboardingToken, router]);
+
+  // Connecté SANS référence de paiement (ni URL ni cookie) → pas d'impasse
+  // « Session introuvable » : on route vers le vrai prochain pas (cerveau).
+  // Garde-fou : jamais vers /login (anti-boucle) ni /claim (anti-rebouclage).
+  useEffect(() => {
+    if (
+      !claimRef &&
+      !getClaimCookie() &&
+      currentUser &&
+      next &&
+      next.primaryCta
+    ) {
+      const dest = next.primaryCta.href;
+      if (dest && dest !== "/login" && !dest.startsWith("/claim")) {
+        router.replace(dest);
+      }
+    }
+  }, [claimRef, currentUser, next, router]);
 
   const dark = useIsDark();
   const c = palette(dark, ACCENT);

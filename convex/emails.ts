@@ -590,16 +590,17 @@ export const sendPaymentFailedNotice = internalAction({
       children: `
         ${kicker("Paiement échoué · action recommandée")}
         ${h1("Petit souci avec ta CB", 32)}
-        ${para(`Ton dernier paiement AMOUR STUDIOS vient d'échouer. Ça peut être :`, { mb: 14 })}
+        ${para(`<strong>Bonne nouvelle : ton accès reste actif pour l'instant.</strong> Ton dernier paiement AMOUR STUDIOS vient d'échouer — il suffit de mettre ta carte à jour. Ça peut être :`, { mb: 14 })}
         <ul style="margin:0 0 18px;padding-left:20px;font-family:${SANS};font-size:15px;line-height:1.7;color:${INK};">
           <li>une carte expirée</li>
           <li>un plafond atteint</li>
           <li>une CB bloquée temporairement</li>
         </ul>
         ${para(
-          `Stripe va automatiquement réessayer <strong>plusieurs fois dans les prochains jours</strong>. Mais le plus simple est de mettre ta CB à jour.`,
-          { size: 15, mb: 14 }
+          `Stripe va automatiquement réessayer <strong>plusieurs fois dans les prochains jours</strong>. Le plus simple : mets ta carte à jour maintenant.`,
+          { size: 15, mb: 18 }
         )}
+        ${button({ href: `${APP_URL}/compte`, label: "Mettre à jour ma carte" })}
         ${para(
           `Réponds à ce mail si tu veux qu'on t'aide. Ou écris à <a href="mailto:contact@amourstudios.fr" style="color:${ORANGE};">contact@amourstudios.fr</a>.`,
           { size: 15, mb: 14 }

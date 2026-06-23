@@ -1053,7 +1053,14 @@ http.route({
       internal.onboardings.resolveAndAssignRoleByDiscordId,
       { discordId }
     );
-    return new Response(JSON.stringify(res), {
+    // Enrichit la réponse avec l'état canonique du cerveau (cf. convex/journey.ts)
+    // pour que le robot choisisse son message d'accueil dessus. Additif : les
+    // champs existants (ok/tier/reason…) sont préservés ; `journey` est ignoré
+    // par le robot tant qu'il n'est pas câblé → zéro changement de comportement.
+    const journey = await ctx.runQuery(internal.journey.journeyByDiscordId, {
+      discordId,
+    });
+    return new Response(JSON.stringify({ ...res, journey }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });

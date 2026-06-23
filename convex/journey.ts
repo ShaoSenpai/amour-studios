@@ -105,3 +105,19 @@ export const journeyForUser = internalQuery({
     return computeNextStep(input ?? ANON);
   },
 });
+
+// SERVEUR/BOT — état canonique par discordId (le robot Discord ne connaît que
+// le discordId à l'arrivée serveur). Si aucun compte lié → not_authed (= le bot
+// lit « pas de compte lié → lie ton compte »). Sinon, l'état réel du parcours.
+export const journeyByDiscordId = internalQuery({
+  args: { discordId: v.string() },
+  handler: async (ctx, { discordId }): Promise<JourneyState> => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_discord", (q) => q.eq("discordId", discordId))
+      .first();
+    if (!user) return computeNextStep(ANON);
+    const input = await loadInputForUser(ctx, user._id);
+    return computeNextStep(input ?? ANON);
+  },
+});

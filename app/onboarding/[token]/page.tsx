@@ -1066,12 +1066,12 @@ function UpsellBlock({
         {/* Value props — 1 ligne chacune, scannables */}
         <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 9 }}>
           {perks.map((p) => (
-            <li key={p} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <li key={p} style={{ display: "flex", alignItems: "flex-start", gap: 11 }}>
               <span
                 aria-hidden
                 style={{
-                  width: 19,
-                  height: 19,
+                  width: 20,
+                  height: 20,
                   borderRadius: 999,
                   background: `${ACCENT}1F`,
                   color: ACCENT,
@@ -1081,39 +1081,52 @@ function UpsellBlock({
                   fontSize: 11,
                   fontWeight: 700,
                   flexShrink: 0,
+                  marginTop: 1,
                 }}
               >
                 ✓
               </span>
-              <span style={{ fontSize: 14, color: c.text, lineHeight: 1.3 }}>{p}</span>
+              <span style={{ fontSize: 14.5, color: c.text, lineHeight: 1.4 }}>{p}</span>
             </li>
           ))}
         </ul>
 
-        {/* Prix — épuré : le +130€ en héros, 1 ligne de détail, 1 ligne d'argument */}
+        {/* Prix — hiérarchie claire : montant héros aligné, cadence, puis
+            réassurance prorata détachée par un filet. Premium + scannable. */}
         <div
           style={{
-            padding: "16px 18px",
+            padding: "18px 20px",
             background: c.chip,
             border: `1px solid ${c.line}`,
             borderRadius: 16,
-            display: "flex",
-            flexDirection: "column",
-            gap: 4,
           }}
         >
-          <div style={{ display: "flex", alignItems: "baseline", gap: 9 }}>
-            <span style={{ ...num, fontSize: 40, fontWeight: 600, color: ACCENT, lineHeight: 1 }}>
+          {/* Montant du jour : +130€ héros + « aujourd'hui » sur la même ligne de base */}
+          <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+            <span style={{ ...num, fontSize: 34, fontWeight: 600, color: ACCENT, lineHeight: 1, letterSpacing: "-0.01em" }}>
               +{offer.feeEur}€
             </span>
-            <span style={{ fontSize: 14, color: c.text }}>aujourd&apos;hui</span>
+            <span style={{ ...mono, fontSize: 11, color: c.muted, letterSpacing: "0.06em" }}>
+              AUJOURD&apos;HUI
+            </span>
           </div>
-          <div style={{ fontSize: 13.5, color: c.text }}>
+          {/* Cadence après le 1er paiement */}
+          <div style={{ fontSize: 14, color: c.text, marginTop: 8 }}>
             puis <strong>{offer.coachingEur}€/mois</strong>
-            <span style={{ color: c.muted }}> · 3 mois</span>
+            <span style={{ color: c.muted }}> pendant 3 mois</span>
           </div>
-          <div style={{ fontSize: 12.5, color: c.muted, lineHeight: 1.4 }}>
-            Déjà payé {offer.currentEur}€ — juste la différence.
+          {/* Réassurance prorata — détachée par un filet pour respirer */}
+          <div
+            style={{
+              marginTop: 12,
+              paddingTop: 12,
+              borderTop: `1px solid ${c.line}`,
+              fontSize: 12.5,
+              color: c.muted,
+              lineHeight: 1.45,
+            }}
+          >
+            Tu as déjà payé <strong style={{ color: c.text }}>{offer.currentEur}€</strong> — tu ne règles que la différence.
           </div>
         </div>
 
@@ -1125,15 +1138,17 @@ function UpsellBlock({
             onClick={onUpgrade}
             disabled={upgrading}
             style={{
-              padding: "16px 18px",
+              padding: "17px 18px",
               fontSize: 12.5,
+              letterSpacing: "0.08em",
               opacity: upgrading ? 0.6 : 1,
               cursor: upgrading ? "default" : "pointer",
               width: "100%",
               boxSizing: "border-box",
+              textAlign: "center",
             }}
           >
-            {upgrading ? "Activation…" : `Débloquer le coaching · +${offer.feeEur}€`}
+            {upgrading ? "Activation…" : "Débloquer le coaching"}
           </GlassButton>
 
           <p style={{ ...mono, fontSize: 9, color: c.faint, textAlign: "center", lineHeight: 1.4, margin: 0 }}>

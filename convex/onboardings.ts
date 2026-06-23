@@ -19,6 +19,7 @@ import {
   relanceDm,
 } from "./lib/discordMessages";
 import { LEGAL_VERSION } from "./lib/legal";
+import type { JourneyStateKind } from "./lib/journey";
 import type { Id, Doc } from "./_generated/dataModel";
 
 // Validators du payload embed brandé envoyé au bot Discord (cf. lib/discordMessages).
@@ -1293,9 +1294,11 @@ export const sendManualRelance = internalAction({
   args: { userId: v.id("users") },
   handler: async (ctx, { userId }) => {
     const s = await ctx.runQuery(internal.onboardings._statusForUser, { userId });
-    if (!s || !s.step || !s.tier) return { ok: false as const, reason: "no_state" as const };
-    const scenario = scenarioForStep(s.step, s.tier);
-    // Étape finale (rdv_booked/community_ready) → rien à relancer.
+    if (!s || !s.tier) return { ok: false as const, reason: "no_state" as const };
+    // Scénario décidé par le cerveau (source unique), comme le cron de relances.
+    const journey = await ctx.runQuery(internal.journey.journeyForUser, { userId });
+    const scenario = scenarioForState(journey.state, s.tier);
+    // État final (actif/onboardé) ou accès inactif → rien à relancer.
     if (!scenario) return { ok: false as const, reason: "final" as const };
 
     const contact = await ctx.runQuery(internal.onboardings._userContact, { userId });
@@ -1481,15 +1484,22 @@ export const _markRelanceSent = internalMutation({
 // (relanceDiscordContent retiré 2026-06-21 : le copy des relances vit désormais
 //  dans lib/discordMessages.ts → relanceDm, rendu en embed brandé par le bot.)
 
-/** Détermine le scénario en fonction de l'étape actuelle. */
-function scenarioForStep(
-  step: string,
+/** Détermine le scénario de relance à partir de l'état CANONIQUE du cerveau
+ *  (cf. convex/lib/journey.ts), au lieu de re-dériver l'étape ici. Bonus vs
+ *  l'ancienne version : si le cerveau ne renvoie pas un état d'onboarding actif
+ *  (abonnement résilié / inactif → canceled/no_subscription), on NE relance
+ *  PAS (plus de rappels « finis ton onboarding » à quelqu'un qui n'a plus
+ *  d'accès). Parité conservée : "rdv" reste réservé au coaching. */
+function scenarioForState(
+  state: JourneyStateKind,
   tier: "coaching" | "communaute"
 ): RelanceScenario | null {
-  if (step === "awaiting_presentation") return "presentation";
-  if (step === "link_sent") return "questionnaire";
-  // consents = post-questionnaire, pré-RDV (coaching) → même scénario "rdv".
-  if ((step === "consents" || step === "form_done") && tier === "coaching")
+  if (state === "awaiting_onboarding") return "presentation";
+  if (state === "onboarding_questionnaire") return "questionnaire";
+  if (
+    (state === "onboarding_consents" || state === "onboarding_rdv") &&
+    tier === "coaching"
+  )
     return "rdv";
   return null;
 }
@@ -1522,7 +1532,12 @@ export const runDailyRelances = internalAction({
 
     let sent = 0;
     for (const ob of rows) {
-      const scenario = scenarioForStep(ob.step, ob.tier);
+      // Décision « faut-il relancer + quel scénario » = verdict du cerveau
+      // (source unique). Skip si l'état n'est pas un onboarding actif.
+      const journey = await ctx.runQuery(internal.journey.journeyForUser, {
+        userId: ob.userId,
+      });
+      const scenario = scenarioForState(journey.state, ob.tier);
       if (!scenario) continue;
       const anchor = anchorForStep(ob);
       if (!anchor) continue;

@@ -12,6 +12,8 @@
 // brutes dans le corps.
 // ============================================================================
 
+import type { JourneyStateKind } from "./journey";
+
 export type Tier = "coaching" | "communaute";
 
 export type DiscordEmbed = {
@@ -52,14 +54,15 @@ export function linkAccountDm({
 }): DiscordMessage {
   return {
     embed: {
-      title: `Tu as payé ? Active ton accès 🔗`,
+      title: `Bienvenue dans AMOUR STUDIOS 🧡`,
       description:
-        `Ce compte Discord n'est pas encore relié à ton paiement.\n` +
-        `Clique ci-dessous et connecte-toi avec **CE** compte Discord : ton accès s'active ` +
-        `automatiquement si ton email correspond — sinon, colle ton **code AMR** ` +
-        `(reçu par mail à l'achat) sur la page.\n\n` +
-        `⚠️ ${EMAIL_VALIDE_NOTE}`,
-      footer: `Toujours bloqué ? Écris-nous : contact@amourstudios.fr`,
+        `Pour débloquer ton accès au Discord, il te reste à **activer ton accès**.\n\n` +
+        `⚠️ **À FAIRE EN PREMIER** : vérifie que l'email de ton compte Discord est **validé** ` +
+        `(Discord t'envoie un mail de vérification — clique le lien dedans). Sans ça, l'activation ne peut pas marcher.\n\n` +
+        `Ensuite, 2 façons de t'activer :\n` +
+        `**1.** Clique **« Activer mon accès »** ci-dessous et connecte-toi avec **CE** compte Discord — ` +
+        `ça se relie tout seul si ton email correspond, sinon colle ton **code AMR** (reçu par mail).\n` +
+        `**2.** Ou ouvre le **lien d'activation reçu dans ton email d'achat**.`,
     },
     buttons: [{ label: "Activer mon accès", url: activateUrl }],
   };
@@ -103,86 +106,85 @@ export function linkDm({
 }
 
 // ── Boussole de statut (sendStatusDm) ───────────────────────────────────────
-// Renvoie null si l'état ne mérite pas de DM (couvert ailleurs).
+// Décide quel DM de statut envoyer À PARTIR DE l'état canonique du cerveau
+// (JourneyStateKind, cf. lib/journey.ts). Plus de re-dérivation step/canceled
+// ici : juste le RENDU Discord de chaque état (1 état = 1 embed). Le mapping
+// reprend à l'identique l'ancienne copy (parité). Renvoie null si l'état ne
+// mérite pas de DM (not_authed / no_subscription : couverts ailleurs).
 export function statusDm({
   firstName,
   tier,
-  step,
+  state,
   link,
   site,
-  canceled,
 }: {
   firstName: string | null;
   tier: Tier | null;
-  step: string | null;
+  state: JourneyStateKind;
   link: string;
   site: string;
-  canceled: boolean;
 }): DiscordMessage | null {
-  if (canceled) {
-    return {
-      embed: {
-        title: `Ton accès AMOUR STUDIOS a pris fin`,
-        description: `Tu peux revenir quand tu veux, en 1 clic.`,
-        footer: `Une question ? Réponds à ce DM. 🧡`,
-      },
-      button: { label: "Réactiver mon accès", url: `${site}/compte` },
-    };
+  switch (state) {
+    case "canceled":
+      return {
+        embed: {
+          title: `Ton accès AMOUR STUDIOS a pris fin`,
+          description: `Tu peux revenir quand tu veux, en 1 clic.`,
+          footer: `Une question ? Réponds à ce DM. 🧡`,
+        },
+        button: { label: "Réactiver mon accès", url: `${site}/compte` },
+      };
+    case "awaiting_onboarding":
+      return {
+        embed: {
+          title: `Plus qu'une étape pour ton accès 🔥`,
+          description:
+            `Clique sur **« ✨ S'onboarder »** dans ton salon privé Discord. ` +
+            `Je t'envoie ton lien d'onboarding dans la foulée.`,
+        },
+      };
+    case "onboarding_questionnaire":
+      return tier === "coaching"
+        ? {
+            embed: {
+              title: `Tu y es presque ✨`,
+              description: `Termine ton **questionnaire** (~5 min) pour que Walid prépare ton 1er appel.`,
+            },
+            button: { label: "Reprendre mon questionnaire", url: link },
+          }
+        : {
+            embed: {
+              title: `Tu y es presque ✨`,
+              description: `Complète tes **infos** (~2 min) pour débloquer ton accès complet.`,
+            },
+            button: { label: "Compléter mon profil", url: link },
+          };
+    case "onboarding_consents":
+      return {
+        embed: {
+          title: `Questionnaire validé ✅`,
+          description: `Dernière étape : valide tes **consentements** puis réserve ton 1er RDV avec Walid.`,
+        },
+        button: { label: "Continuer", url: link },
+      };
+    case "onboarding_rdv":
+      return {
+        embed: {
+          title: `Questionnaire validé ✅`,
+          description: `Dernière étape pour ton accès complet : réserve ton 1er RDV avec Walid.`,
+        },
+        button: { label: "Réserver mon 1er RDV", url: link },
+      };
+    case "active":
+      return {
+        embed: {
+          title: `${withName("Tout est validé", firstName)} 🎉`,
+          description: `Tu as accès à tout sur le Discord. À très vite ! 🧡`,
+        },
+      };
+    default:
+      return null; // not_authed, no_subscription
   }
-  if (!step || step === "awaiting_presentation") {
-    return {
-      embed: {
-        title: `Plus qu'une étape pour ton accès 🔥`,
-        description:
-          `Clique sur **« ✨ S'onboarder »** dans ton salon privé Discord. ` +
-          `Je t'envoie ton lien d'onboarding dans la foulée.`,
-      },
-    };
-  }
-  if (step === "link_sent") {
-    return tier === "coaching"
-      ? {
-          embed: {
-            title: `Tu y es presque ✨`,
-            description: `Termine ton **questionnaire** (~5 min) pour que Walid prépare ton 1er appel.`,
-          },
-          button: { label: "Reprendre mon questionnaire", url: link },
-        }
-      : {
-          embed: {
-            title: `Tu y es presque ✨`,
-            description: `Complète tes **infos** (~2 min) pour débloquer ton accès complet.`,
-          },
-          button: { label: "Compléter mon profil", url: link },
-        };
-  }
-  if (step === "consents" && tier === "coaching") {
-    return {
-      embed: {
-        title: `Questionnaire validé ✅`,
-        description: `Dernière étape : valide tes **consentements** puis réserve ton 1er RDV avec Walid.`,
-      },
-      button: { label: "Continuer", url: link },
-    };
-  }
-  if (step === "form_done" && tier === "coaching") {
-    return {
-      embed: {
-        title: `Questionnaire validé ✅`,
-        description: `Dernière étape pour ton accès complet : réserve ton 1er RDV avec Walid.`,
-      },
-      button: { label: "Réserver mon 1er RDV", url: link },
-    };
-  }
-  if (step === "rdv_booked" || step === "community_ready") {
-    return {
-      embed: {
-        title: `${withName("Tout est validé", firstName)} 🎉`,
-        description: `Tu as accès à tout sur le Discord. À très vite ! 🧡`,
-      },
-    };
-  }
-  return null;
 }
 
 // ── DM final d'activation (grantOnboarded) ──────────────────────────────────

@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "convex/react";
+import { useConvexAuth, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
@@ -32,11 +32,15 @@ export default function ExosLayout({ children }: { children: ReactNode }) {
   const dark = useIsDark();
   const c = palette(dark, ACCENT);
   const router = useRouter();
+  // ⚠️ Le redirect /login se base sur useConvexAuth (état d'auth réel) et NON
+  // sur summary.isAuthed : après l'OAuth, la query renvoie isAuthed:false le
+  // temps que l'auth client s'hydrate → rediriger ici créait une boucle /login.
+  const { isLoading, isAuthenticated } = useConvexAuth();
   const summary = useQuery(api.exercises.accessSummary);
 
   useEffect(() => {
-    if (summary && !summary.isAuthed) router.replace("/login");
-  }, [summary, router]);
+    if (!isLoading && !isAuthenticated) router.replace("/login");
+  }, [isLoading, isAuthenticated, router]);
 
   // Loader
   if (summary === undefined) {

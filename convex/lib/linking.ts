@@ -101,6 +101,17 @@ export async function linkPurchaseToUser(
     });
   }
 
+  // Rattrapage du rôle « Onboardé » : si l'onboarding est DÉJÀ finalisé
+  // (questionnaire/RDV faits avant la liaison ou avant l'arrivée Discord), le
+  // grantOnboarded initial a pu échouer (membre pas encore présent). On le rejoue
+  // — no-op si l'onboarding n'est pas finalisé. Couvre claim par token/code ET
+  // liaison manuelle admin (qui ne reposaient que le rôle de base).
+  if (accessGranted && isNumericDiscordId(user?.discordId)) {
+    await ctx.scheduler.runAfter(0, internal.onboardings.regrantOnboardedIfDone, {
+      userId,
+    });
+  }
+
   await logEvent(ctx, {
     userId,
     type: isTransfer ? "purchase.transferred" : "purchase.linked",

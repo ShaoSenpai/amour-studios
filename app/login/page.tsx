@@ -1,8 +1,9 @@
 "use client";
 
 import { useAuthActions } from "@convex-dev/auth/react";
+import { useConvexAuth } from "convex/react";
 import { useEffect, useState, Suspense, type CSSProperties } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 import {
@@ -43,7 +44,17 @@ const discordBtn: CSSProperties = {
 
 function LoginInner() {
   const { signIn } = useAuthActions();
+  const router = useRouter();
+  // ⚠️ Anti-double-boucle : on redirige sur l'état d'auth RÉEL (useConvexAuth),
+  // PAS via le middleware seul. Au retour de l'OAuth, le cookie est posé mais le
+  // middleware côté serveur a un temps de retard → l'utilisateur restait sur
+  // /login et devait re-cliquer. Dès que le client est authentifié, on part.
+  const { isLoading: authLoading, isAuthenticated } = useConvexAuth();
   const [isLoading, setIsLoading] = useState(false);
+  // Navigateur intégré (webview Gmail/Discord/Insta…) : l'OAuth y réussit côté
+  // serveur mais le cookie de session cross-site ne persiste pas → boucle de
+  // login. On le détecte pour guider l'utilisateur vers un vrai navigateur.
+  const [inApp, setInApp] = useState(false);
   const searchParams = useSearchParams();
   const hasError = searchParams.has("error");
   const rawReturn = searchParams.get("returnTo") || "";
@@ -62,6 +73,32 @@ function LoginInner() {
     }
   }, [hasError]);
 
+  // Déjà authentifié (ou dès que l'OAuth a établi la session côté client) →
+  // on part vers returnTo. Évite le « clique 2 fois » : plus besoin d'attendre
+  // que le middleware serveur rattrape l'état d'auth.
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      router.replace(returnTo);
+    }
+  }, [authLoading, isAuthenticated, returnTo, router]);
+
+  useEffect(() => {
+    const ua = navigator.userAgent || "";
+    // Marqueurs explicites d'un navigateur intégré à une app.
+    const explicit =
+      /FBAN|FBAV|FB_IAB|Instagram|Line\/|Twitter|Snapchat|TikTok|Discord|MicroMessenger|Pinterest|; wv\)|GSA\//i.test(ua);
+    // Heuristique iOS : un VRAI navigateur a CriOS (Chrome), FxiOS (Firefox),
+    // EdgiOS (Edge), ou Safari avec un tag "Version/". Un WKWebView intégré n'a
+    // typiquement PAS "Version/" → on le considère comme webview.
+    const isIOS = /iPhone|iPad|iPod/i.test(ua);
+    const iosWebview =
+      isIOS &&
+      !/CriOS|FxiOS|EdgiOS/i.test(ua) &&
+      !/Version\/[\d.]+ .*Safari/i.test(ua);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (explicit || iosWebview) setInApp(true);
+  }, []);
+
   const handleDiscordSignIn = async () => {
     setIsLoading(true);
     try {
@@ -70,6 +107,15 @@ function LoginInner() {
       console.error("Discord sign-in failed:", error);
       toast.error("Impossible de se connecter à Discord. Réessaie.");
       setIsLoading(false);
+    }
+  };
+
+  const copyCurrentLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      toast.success("Lien copié — colle-le dans Safari ou Chrome.");
+    } catch {
+      toast.error("Copie impossible. Copie l'adresse en haut de l'écran à la main.");
     }
   };
 
@@ -111,6 +157,45 @@ function LoginInner() {
     </div>
   );
 
+  // En navigateur intégré (webview), la connexion Discord ne peut pas aboutir
+  // (cookie de session non gardé) → au lieu d'un mur de login qui boucle, écran
+  // rassurant : pas besoin de se connecter ici, tout se passe sur Discord.
+  // Filet « me connecter ici quand même » si la détection est un faux positif.
+  const inAppScreen = (
+    <>
+      {brandRow}
+      <div>
+        <div style={{ ...mono, color: c.muted }}>Tu es au bon endroit</div>
+        <h1 style={{ ...num, fontSize: 32, fontWeight: 500, lineHeight: 1.1, margin: "10px 0 0" }}>
+          Ton accès se passe sur Discord 🧡
+        </h1>
+        <p style={{ fontSize: 14.5, color: c.muted, marginTop: 12, lineHeight: 1.55 }}>
+          Pas besoin de te connecter ici. Ton accès AMOUR STUDIOS se débloque
+          directement sur Discord : ton rôle s&apos;active et ton lien
+          d&apos;onboarding t&apos;attend en <strong>DM + email</strong>.
+          Clique-le pour finaliser.
+        </p>
+      </div>
+      <a href={discordInvite} target="_blank" rel="noopener noreferrer" style={discordBtn}>
+        <DiscordIcon size={20} /> Retour sur Discord
+      </a>
+      <div style={{ borderTop: `1px solid ${c.line}`, paddingTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
+        <p style={{ ...mono, fontSize: 9.5, color: c.faint, textAlign: "center", lineHeight: 1.5, textTransform: "none", letterSpacing: "0.02em" }}>
+          Gérer ton abonnement ? Copie le lien et ouvre-le dans ton navigateur.
+        </p>
+        <GlassButton c={c} kind="ghost" onClick={copyCurrentLink} style={{ width: "100%" }}>
+          Copier le lien
+        </GlassButton>
+        <button
+          onClick={() => setInApp(false)}
+          style={{ ...mono, fontSize: 9, color: c.faint, background: "none", border: "none", cursor: "pointer", textDecoration: "underline", textUnderlineOffset: 3, padding: 0, alignSelf: "center", textTransform: "none", letterSpacing: "0.02em" }}
+        >
+          Me connecter ici quand même
+        </button>
+      </div>
+    </>
+  );
+
   // ── État erreur : gate Discord ──────────────────────────────────────
   if (hasError) {
     return (
@@ -150,6 +235,21 @@ function LoginInner() {
     );
   }
 
+  // ── État webview : la connexion ne peut pas aboutir ici → écran d'info
+  // rassurant (renvoi vers Discord, où vit le lien d'onboarding), PAS un mur de
+  // login qui boucle. (Filet « me connecter ici quand même » dans l'écran.)
+  if (inApp) {
+    return (
+      <main style={shell}>
+        <Glass c={c} dark={dark} strong pad={0} style={{ width: "100%", maxWidth: 460, overflow: "hidden" }}>
+          <div style={{ padding: "40px 38px", display: "flex", flexDirection: "column", gap: 22 }}>
+            {inAppScreen}
+          </div>
+        </Glass>
+      </main>
+    );
+  }
+
   // ── État par défaut : connexion directe (1 action) ──────────────────
   return (
     <main style={shell}>
@@ -181,6 +281,31 @@ function LoginInner() {
           >
             <DiscordIcon /> {isLoading ? "Redirection…" : "Se connecter avec Discord"}
           </GlassButton>
+
+          {/* Filet anti-blocage : certains navigateurs intégrés aux apps ne
+              gardent pas la session (la connexion « boucle »). Toujours visible
+              (la détection d'UA ne capte pas tous les cas), discret. */}
+          <button
+            onClick={copyCurrentLink}
+            style={{
+              ...mono,
+              fontSize: 9.5,
+              color: c.faint,
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              textDecoration: "underline",
+              textUnderlineOffset: 3,
+              textTransform: "none",
+              letterSpacing: "0.02em",
+              lineHeight: 1.5,
+              padding: 0,
+              textAlign: "center",
+              alignSelf: "center",
+            }}
+          >
+            La connexion reste bloquée sur cette page ? Copie le lien et ouvre-le dans Safari / Chrome.
+          </button>
 
           <div style={{ borderTop: `1px solid ${c.line}`, paddingTop: 16 }}>
             <p style={{ ...mono, fontSize: 10.5, color: c.muted, textAlign: "center" }}>

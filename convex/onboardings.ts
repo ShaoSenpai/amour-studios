@@ -512,8 +512,9 @@ export const submitAnswers = mutation({
         title: "Onboarding rempli",
         actor: "system",
       });
-      // 79€ : community_ready = final → bot ajoute Onboardé
+      // 79€ : community_ready = final → marque la complétion + bot ajoute Onboardé
       if (ob.tier === "communaute") {
+        await markOnboardingCompleted(ctx, ob.userId);
         await ctx.scheduler.runAfter(0, internal.onboardings.grantOnboarded, {
           userId: ob.userId,
         });
@@ -608,7 +609,8 @@ export const markRdvBooked = mutation({
       title: "1er RDV réservé (onboarding)",
       actor: "calendly",
     });
-    // 179€ : rdv_booked = final → bot ajoute Onboardé
+    // 179€ : rdv_booked = final → marque la complétion + bot ajoute Onboardé
+    await markOnboardingCompleted(ctx, ob.userId);
     await ctx.scheduler.runAfter(0, internal.onboardings.grantOnboarded, {
       userId: ob.userId,
     });
@@ -635,6 +637,7 @@ export const markRdvBookedByUser = internalMutation({
       rdvSessionId: sessionId,
       updatedAt: Date.now(),
     });
+    await markOnboardingCompleted(ctx, userId);
     await ctx.scheduler.runAfter(0, internal.onboardings.grantOnboarded, {
       userId,
     });
@@ -683,6 +686,46 @@ async function scheduleRoleFromActivePurchase(
     tier: purchase.tier,
   });
   return purchase.tier;
+}
+
+/** Marque la complétion de l'onboarding sur le USER (idempotent, écrit une seule
+ *  fois). `onboardingCompletedAt` est SÉPARÉ du grant de rôle Discord (effet de
+ *  bord rattrapable) : il signifie « le client a fini son questionnaire/RDV ».
+ *  Le laisser vide faisait apparaître le membre comme « non activé » côté studio
+ *  (admin.ts), relançait le lifecycle (coaching.ts) et, en coaching, verrouillait
+ *  le dashboard (onboarding.ts). À appeler à CHAQUE finalisation + rattrapage. */
+async function markOnboardingCompleted(
+  ctx: MutationCtx,
+  userId: Id<"users">
+): Promise<void> {
+  const u = await ctx.db.get(userId);
+  if (u && !u.onboardingCompletedAt) {
+    await ctx.db.patch(userId, { onboardingCompletedAt: Date.now() });
+  }
+}
+
+/** Rattrapage central du rôle Discord « Onboardé ». Si l'onboarding du user est
+ *  DÉJÀ finalisé (community_ready pour le 79€, rdv_booked pour le 179€) mais que
+ *  le grant initial a échoué (le client n'était pas encore présent sur le serveur
+ *  au moment de `grantOnboarded`, qui est fail-silent), on (re)déclenche le grant
+ *  + on marque la complétion. No-op si l'onboarding n'est pas finalisé.
+ *  Appelé à l'arrivée serveur (resolveAndAssignRoleByDiscordId), à la liaison
+ *  paiement (lib/linking via regrantOnboardedIfDone) et au webhook Stripe. */
+async function maybeRegrantOnboarded(
+  ctx: MutationCtx,
+  userId: Id<"users">
+): Promise<{ ok: boolean; reason?: "no_onboarding" | "not_finalized" }> {
+  const ob = await ctx.db
+    .query("onboardings")
+    .withIndex("by_user", (q) => q.eq("userId", userId))
+    .first();
+  if (!ob) return { ok: false, reason: "no_onboarding" };
+  if (ob.step !== "rdv_booked" && ob.step !== "community_ready") {
+    return { ok: false, reason: "not_finalized" };
+  }
+  await markOnboardingCompleted(ctx, userId);
+  await ctx.scheduler.runAfter(0, internal.onboardings.grantOnboarded, { userId });
+  return { ok: true };
 }
 
 /** Filet de visibilité coach : une présentation Discord détectée mais NON liée
@@ -793,6 +836,10 @@ export const resolveAndAssignRoleByDiscordId = internalMutation({
     if (!user) return { ok: false as const, reason: "user_not_found" as const };
     const tier = await scheduleRoleFromActivePurchase(ctx, user);
     if (!tier) return { ok: false as const, reason: "no_active_purchase" as const };
+    // Rattrapage « Onboardé » à l'arrivée : si le client a fini son onboarding
+    // AVANT de rejoindre le serveur, le grant initial avait échoué (membre absent).
+    // Maintenant qu'il est là, on (re)pose le rôle. No-op si pas finalisé.
+    await maybeRegrantOnboarded(ctx, user._id);
     return { ok: true as const, tier };
   },
 });
@@ -927,13 +974,19 @@ export const sendStatusDm = internalAction({
     const site = process.env.SITE_URL ?? "https://membres.amourstudios.fr";
     const link = s.token ? `${site}/onboarding/${s.token}` : site;
 
+    // Décision « quel DM » = verdict canonique du cerveau (source unique, cf.
+    // convex/lib/journey.ts), au lieu de re-dériver step/canceled ici. Le
+    // contexte explicite « résiliation » (signal webhook Stripe) force l'état
+    // canceled même si le cerveau n'a pas encore vu la résiliation propagée.
+    const journey = await ctx.runQuery(internal.journey.journeyForUser, { userId });
+    const state =
+      context === "payment_canceled" ? ("canceled" as const) : journey.state;
     const msg = statusDm({
       firstName: s.firstName,
-      tier: s.tier,
-      step: s.step,
+      tier: journey.tier ?? s.tier,
+      state,
       link,
       site,
-      canceled: context === "payment_canceled" || s.purchaseStatus === "canceled",
     });
 
     if (!msg) return { ok: false as const, reason: "no_message" as const };
@@ -1591,18 +1644,7 @@ export const runDailyRelances = internalAction({
  *  No-op s'il n'a pas d'onboarding finalisé. */
 export const regrantOnboardedIfDone = internalMutation({
   args: { userId: v.id("users") },
-  handler: async (ctx, { userId }) => {
-    const ob = await ctx.db
-      .query("onboardings")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .first();
-    if (!ob) return { ok: false as const, reason: "no_onboarding" as const };
-    if (ob.step !== "rdv_booked" && ob.step !== "community_ready") {
-      return { ok: false as const, reason: "not_finalized" as const };
-    }
-    await ctx.scheduler.runAfter(0, internal.onboardings.grantOnboarded, { userId });
-    return { ok: true as const };
-  },
+  handler: async (ctx, { userId }) => maybeRegrantOnboarded(ctx, userId),
 });
 
 /** Helper dev/test : crée un onboarding "à remplir" pour un user donné.

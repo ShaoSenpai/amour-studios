@@ -68,6 +68,12 @@ function CompteInner() {
   const { signOut } = useAuthActions();
 
   const sub = useQuery(api.subscriptions.mySubscription);
+  // Cerveau (résolveur d'état canonique, cf. convex/lib/journey.ts) : sert
+  // UNIQUEMENT à rendre l'écran « sans abonnement » state-aware (distingue
+  // no_subscription / canceled / not_authed) au lieu du « Aucun abonnement
+  // actif » plat = point de boucle P0. La branche « avec abonnement » reste
+  // 100% pilotée par mySubscription (gestion/upsell/portail intacts).
+  const next = useQuery(api.journey.nextStep);
   // Gestion (factures, carte, résiliation) déléguée au Portail Client Stripe.
   // On garde seulement l'upsell custom (passer au coaching) côté /compte.
   const upgradeMut = useAction(api.subscriptions.upgradeMySubscription);
@@ -136,6 +142,14 @@ function CompteInner() {
       </main>
     );
 
+  // Verdict cerveau utilisé SEULEMENT pour les états qui ont un sens sur un
+  // compte sans abonnement actif (payeur non lié vs résilié). Pour tout autre
+  // verdict (active/admin, ou divergence), on garde le texte par défaut.
+  const journeyMsg =
+    next && (next.state === "no_subscription" || next.state === "canceled")
+      ? next
+      : null;
+
   if (!sub.authed || !("hasSubscription" in sub) || !sub.hasSubscription)
     return (
       <main style={shell}>
@@ -169,11 +183,14 @@ function CompteInner() {
           </EditorialBlock>
           <EditorialBlock c={c}>
             <div style={{ ...mono, color: c.muted }}>Mon compte</div>
+            {/* Titre + texte pilotés par le cerveau : « Aucun abonnement actif »
+                pour un payeur non lié, « Ton accès a pris fin » pour un résilié.
+                Fallback sur l'ancien texte si le verdict n'est pas encore chargé. */}
             <h1 style={{ ...num, fontSize: 30, fontWeight: 500, margin: "10px 0 0" }}>
-              Aucun abonnement actif.
+              {journeyMsg?.title ?? "Aucun abonnement actif."}
             </h1>
             <p style={{ fontSize: 14, color: c.muted, marginTop: 12, lineHeight: 1.55 }}>
-              Tu n&apos;as pas d&apos;abonnement en cours.{" "}
+              {journeyMsg?.body ?? "Tu n'as pas d'abonnement en cours."}{" "}
               <a href="https://amourstudios.fr" style={{ color: ACCENT, textDecoration: "none" }}>
                 Découvrir les offres ↗
               </a>

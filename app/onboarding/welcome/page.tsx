@@ -19,32 +19,37 @@ import {
 // ============================================================================
 // /onboarding/welcome — page d'attente post-paiement (fallback du tunnel /claim).
 //
-// Deux états :
-//  1. Non connecté → bouton « Continuer avec Discord » (OAuth). Au login, le
-//     callback createOrUpdateUser (convex/auth.ts) lie le user au purchase
-//     (par email) et `ensureForUser` démarre l'onboarding + envoie le lien.
-//  2. Connecté → on le deep-linke DIRECT sur son wizard /onboarding/[token]
-//     (query onboardings.myCurrent) + bouton secondaire « Rejoindre le Discord ».
-//     Si la row n'existe pas encore (lag webhook), écran d'attente + Discord.
+// PHASE 1 « cerveau » : cette surface ne DEVINE plus l'état du client. Elle
+// consomme le résolveur canonique api.journey.nextStep (cf. convex/lib/journey.ts
+// + 1_DOCS/projet/AUDIT_PARCOURS_CLIENT.md) qui décide « où en est le client +
+// quoi faire ». Fini l'écran « bienvenue, finalise ton onboarding » affiché à un
+// membre déjà actif (sensation de boucle, P0 de l'audit) : on pousse vers son
+// VRAI prochain pas (questionnaire / consents / RDV / accès actif).
 //
-// NB : plus aucune étape #présente-toi / #presentations (flow supprimé le 18/06,
-// onboarding désormais piloté par le salon privé + bouton « ✨ S'onboarder »).
+// Deux branches :
+//  1. nextStep.state === "not_authed" → on GARDE l'OAuth Discord in-place avec
+//     redirectTo (override de surface assumé : le cerveau renvoie /login, mais
+//     ici on veut le bouton « Continuer avec Discord » direct). Au login, le
+//     callback lie le user au purchase + démarre l'onboarding + envoie le lien.
+//  2. Connecté → title / body / primaryCta viennent DU CERVEAU. Le bouton
+//     « Rejoindre le Discord » reste en secondaire (le cerveau ne connaît pas
+//     l'invite). Overlay paymentLate (past_due) → bandeau « mets à jour ta carte ».
 // ============================================================================
 
-// Lien DIRECT vers le serveur (l'utilisateur a déjà rejoint pour faire son
-// onboarding → pas d'écran d'invitation redondant).
-const DISCORD_INVITE = "https://discord.com/channels/1474736345900388453/1517068619706531952";
+// Bouton « Rejoindre le Discord » : lien d'INVITATION (discord.gg/…), pas un
+// lien-salon — l'invitation fait rejoindre un non-membre ET ouvre le serveur
+// pour un membre, alors qu'un lien-salon échoue pour qui n'est pas encore dans
+// le serveur (cet écran peut s'afficher avant l'entrée sur le serveur).
+const DISCORD_INVITE =
+  process.env.NEXT_PUBLIC_DISCORD_INVITE_URL ?? "https://discord.gg/x9humyUMnJ";
 
 export default function OnboardingWelcomePage() {
   const dark = useIsDark();
   const c = palette(dark, ACCENT);
+  // Source de vérité unique : le cerveau décide quoi montrer.
+  const next = useQuery(api.journey.nextStep);
+  // Conservé UNIQUEMENT pour l'affichage « @pseudo » (détail cosmétique).
   const me = useQuery(api.users.current);
-  // Onboarding du user connecté → deep-link direct vers le wizard (pas de
-  // « danse » S'onboarder côté Discord puisqu'on l'a déjà sous la main, logué).
-  const myOnboarding = useQuery(
-    api.onboardings.myCurrent,
-    me ? {} : "skip"
-  );
   const { signIn } = useAuthActions();
   const [signingIn, setSigningIn] = useState(false);
 
@@ -100,11 +105,11 @@ export default function OnboardingWelcomePage() {
             </div>
           </div>
 
-          {/* Loading auth */}
-          {me === undefined ? (
+          {next === undefined ? (
+            // Chargement du verdict cerveau.
             <div style={{ ...mono, color: c.muted, padding: "20px 0" }}>Chargement…</div>
-          ) : me === null ? (
-            // Non connecté
+          ) : next.state === "not_authed" ? (
+            // Non connecté → OAuth Discord in-place (override de surface assumé).
             <>
               <div>
                 <div style={{ ...mono, color: c.muted }}>Paiement validé ✓</div>
@@ -140,42 +145,43 @@ export default function OnboardingWelcomePage() {
               </p>
             </>
           ) : (
-            // Connecté → on l'envoie DIRECT sur son onboarding (il est déjà logué).
+            // Connecté → contenu PILOTÉ PAR LE CERVEAU (état réel du parcours).
             <>
               <div>
                 <div style={{ ...mono, color: c.muted }}>
-                  Compte connecté · {me.discordUsername ? `@${me.discordUsername}` : me.name ?? "Discord"}
+                  Compte connecté · {me?.discordUsername ? `@${me.discordUsername}` : me?.name ?? "Discord"}
                 </div>
-                {myOnboarding ? (
-                  <>
-                    <h1 style={{ ...num, fontSize: 34, fontWeight: 500, lineHeight: 1.05, margin: "10px 0 0" }}>
-                      Ton accès est prêt 🎉
-                    </h1>
-                    <p style={{ fontSize: 14.5, color: c.muted, marginTop: 12, lineHeight: 1.55 }}>
-                      Il te reste l&apos;onboarding : tes infos + un court
-                      questionnaire{myOnboarding.tier === "coaching" ? ", puis tu réserves ton 1er appel" : ""}.
-                      {myOnboarding.tier === "coaching" ? " ~5 min." : " ~2 min."}
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <h1 style={{ ...num, fontSize: 32, fontWeight: 500, lineHeight: 1.1, margin: "10px 0 0" }}>
-                      On finalise ton accès…
-                    </h1>
-                    <p style={{ fontSize: 14.5, color: c.muted, marginTop: 12, lineHeight: 1.55 }}>
-                      Ton paiement se synchronise (quelques secondes). Ton lien
-                      d&apos;onboarding arrive aussi{" "}
-                      <strong style={{ color: c.text }}>par email + DM Discord</strong>.
-                      En attendant, rejoins le serveur.
-                    </p>
-                  </>
-                )}
+                <h1 style={{ ...num, fontSize: 33, fontWeight: 500, lineHeight: 1.08, margin: "10px 0 0" }}>
+                  {next.title}
+                </h1>
+                <p style={{ fontSize: 14.5, color: c.muted, marginTop: 12, lineHeight: 1.55 }}>
+                  {next.body}
+                </p>
               </div>
 
-              {/* Action primaire : continuer l'onboarding (si la row existe). */}
-              {myOnboarding && (
+              {/* Overlay paiement en retard : accès gardé, carte à mettre à jour. */}
+              {next.paymentLate && (
+                <div
+                  style={{
+                    ...mono,
+                    fontSize: 12,
+                    lineHeight: 1.5,
+                    color: c.text,
+                    background: dark ? "rgba(255,90,31,0.12)" : "rgba(255,90,31,0.10)",
+                    border: `1px solid ${ACCENT}55`,
+                    borderRadius: 12,
+                    padding: "12px 14px",
+                  }}
+                >
+                  ⚠️ Ton dernier paiement n&apos;est pas passé — ton accès reste actif,
+                  pense à mettre à jour ta carte.
+                </div>
+              )}
+
+              {/* Action primaire : le prochain pas décidé par le cerveau. */}
+              {next.primaryCta && (
                 <a
-                  href={`/onboarding/${myOnboarding.token}`}
+                  href={next.primaryCta.href}
                   className="glass-btn"
                   style={{
                     ...glassBtn(c, "solid"),
@@ -189,7 +195,7 @@ export default function OnboardingWelcomePage() {
                     textAlign: "center",
                   }}
                 >
-                  Continuer mon onboarding →
+                  {next.primaryCta.label} →
                 </a>
               )}
 
@@ -200,7 +206,7 @@ export default function OnboardingWelcomePage() {
                 rel="noopener noreferrer"
                 className="glass-btn"
                 style={{
-                  ...glassBtn(c, myOnboarding ? "ghost" : "solid"),
+                  ...glassBtn(c, next.primaryCta ? "ghost" : "solid"),
                   width: "100%",
                   padding: "14px 16px",
                   display: "flex",

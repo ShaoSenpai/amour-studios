@@ -113,6 +113,23 @@ export const purchaseForToken = query({
       .first();
     if (!purchase) return null;
 
+    // Lien d'onboarding DIRECT (token public) si le purchase est déjà lié à un
+    // user ET que son onboarding n'est pas terminé. Permet à /claim de rediriger
+    // droit vers le wizard SANS session navigateur — indispensable en webview
+    // (navigateur in-app) où la session OAuth ne tient pas. Le token onboarding
+    // est un secret partagé (même modèle que le claim token), donc OK en public.
+    let onboardingToken: string | null = null;
+    if (purchase.userId) {
+      const uid = purchase.userId;
+      const ob = await ctx.db
+        .query("onboardings")
+        .withIndex("by_user", (q) => q.eq("userId", uid))
+        .first();
+      if (ob && ob.step !== "rdv_booked" && ob.step !== "community_ready") {
+        onboardingToken = ob.token;
+      }
+    }
+
     return {
       _id: purchase._id,
       status: purchase.status,
@@ -120,6 +137,7 @@ export const purchaseForToken = query({
       // non authentifiée (un lien /claim partagé/loggé l'exposerait). Masqué.
       email: maskEmail(purchase.email),
       hasUser: !!purchase.userId,
+      onboardingToken,
       alreadyClaimedByMe: false, // renseigné côté mutation
     };
   },

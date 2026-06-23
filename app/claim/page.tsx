@@ -10,7 +10,6 @@ import {
   CheckCircle2,
   Loader2,
   AlertCircle,
-  ExternalLink,
   ArrowRight,
 } from "lucide-react";
 import {
@@ -181,6 +180,30 @@ function ClaimInner() {
       toast.success("Bienvenue ! Dernière étape : rejoins le serveur Discord");
     }
   }, [currentUser, purchase, claimRef, claimState]);
+
+  // Liaison terminée → tunnel lié = onboarding DIRECT. On saute l'écran
+  // intermédiaire « rejoins le serveur » et on envoie au wizard (le lien Discord
+  // part déjà par DM+email côté backend). replace() pour ne pas reboucler sur
+  // /claim au retour navigateur.
+  useEffect(() => {
+    if (claimState === "done") {
+      router.replace("/onboarding/welcome");
+    }
+  }, [claimState, router]);
+
+  // Lien d'onboarding DIRECT (token public renvoyé par purchaseForToken quand le
+  // purchase est déjà lié). On redirige droit vers le wizard SANS session — c'est
+  // ce qui débloque le parcours en webview (navigateur in-app) : le compte est
+  // validé côté serveur (webhook), le token existe, on n'a pas besoin de login.
+  const onboardingToken =
+    purchase && typeof purchase === "object" && "onboardingToken" in purchase
+      ? ((purchase as { onboardingToken?: string | null }).onboardingToken ?? null)
+      : null;
+  useEffect(() => {
+    if (onboardingToken) {
+      router.replace(`/onboarding/${onboardingToken}`);
+    }
+  }, [onboardingToken, router]);
 
   const dark = useIsDark();
   const c = palette(dark, ACCENT);
@@ -356,15 +379,19 @@ function ClaimInner() {
 
   // Succès → guidage vers le serveur Discord (étape obligatoire d'activation).
   if (claimState === "done") {
-    // Écran « done » : la liaison est faite et (en invitation-first) il a déjà
-    // rejoint le serveur → lien DIRECT (pas d'invitation redondante).
-    const discordInvite = "https://discord.com/channels/1474736345900388453/1517068619706531952";
+    // Écran « done » : le bouton DOIT faire REJOINDRE le serveur. On utilise donc
+    // le lien d'INVITATION (discord.gg/…) et pas un lien-salon : l'invitation
+    // marche dans les deux cas (déjà membre → ouvre le serveur ; pas encore
+    // membre → le fait rejoindre), alors qu'un lien-salon échoue pour un
+    // non-membre (il n'atterrit sur aucun salon). Cf. NEXT_PUBLIC_DISCORD_INVITE_URL.
+    const discordInvite =
+      process.env.NEXT_PUBLIC_DISCORD_INVITE_URL ?? "https://discord.gg/x9humyUMnJ";
     return (
       <Screen c={c} dark={dark}>
         <Header
           c={c}
-          tag="PAIEMENT LIÉ · DERNIÈRE ÉTAPE"
-          title="Dernière étape : rejoins le serveur"
+          tag="PAIEMENT LIÉ"
+          title="C'est lié. On t'emmène à ton onboarding…"
         />
         <div
           style={{
@@ -384,10 +411,8 @@ function ClaimInner() {
           </p>
         </div>
         <p style={{ fontSize: 14.5, color: c.muted, lineHeight: 1.55, marginBottom: 22 }}>
-          Rejoins maintenant le serveur Discord, puis{" "}
-          <strong style={{ color: c.text }}>présente-toi dans #présente-toi</strong>{" "}
-          pour activer ton accès. C&apos;est ce qui débloque tes channels et ton
-          espace.
+          Redirection vers ton onboarding. Si rien ne se passe, utilise le bouton
+          ci-dessous.
         </p>
         <a
           href={discordInvite}
@@ -593,6 +618,13 @@ function ConfirmAccountScreen({
   );
 }
 
+// Écran de VALIDATION unifié (rendu quand `!currentUser`). NE dépend PAS de
+// l'auth navigateur : dans une webview intégrée (Gmail/Discord/Insta) l'OAuth
+// Convex Auth réussit côté serveur mais le cookie de session cross-site n'est
+// pas conservé → l'utilisateur restait bloqué. On guide donc le parcours
+// principal sans login : rejoindre Discord + finaliser via le lien token reçu
+// par DM+email (route publique, liaison serveur via webhook). L'OAuth reste
+// dispo en SECONDAIRE pour le cas email Discord ≠ email paiement.
 function HasDiscordScreen({
   claimRef,
   signIn,
@@ -600,7 +632,6 @@ function HasDiscordScreen({
   claimRef: { kind: ClaimKind; value: string };
   signIn: ReturnType<typeof useAuthActions>["signIn"];
 }) {
-  const [choice, setChoice] = useState<"yes" | "no" | null>(null);
   const discordInvite =
     process.env.NEXT_PUBLIC_DISCORD_INVITE_URL ?? "https://discord.gg/x9humyUMnJ";
   const dark = useIsDark();
@@ -629,162 +660,103 @@ function HasDiscordScreen({
     }
   };
 
-  if (choice === null) {
-    return (
-      <Screen c={c} dark={dark}>
-        <Header
-          c={c}
-          tag="PAIEMENT VALIDÉ · ÉTAPE 2/2"
-          title="Bienvenue. Tu as un compte Discord ?"
-        />
-        <p style={{ fontSize: 14.5, color: c.muted, lineHeight: 1.55, marginBottom: 26 }}>
-          L&apos;accès à ton espace + la communauté se fait via Discord.
-          Choisis ton cas :
-        </p>
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <OptionCard
-            c={c}
-            title="Oui, j'ai déjà Discord"
-            subtitle="Je me connecte en 2 clics"
-            onClick={() => setChoice("yes")}
-          />
-          <OptionCard
-            c={c}
-            title="Non, pas encore"
-            subtitle="Tu m'accompagnes pour le créer (gratuit, 2 min)"
-            onClick={() => setChoice("no")}
-          />
-        </div>
-      </Screen>
-    );
-  }
-
-  if (choice === "yes") {
-    return (
-      <Screen c={c} dark={dark}>
-        <Header c={c} tag="ÉTAPE 2/2" title="Connecte ton Discord." />
-        <p style={{ fontSize: 14.5, color: c.muted, lineHeight: 1.55, marginBottom: 22 }}>
-          Un clic et on te lie automatiquement à ton paiement. Aucun email à
-          entrer, aucune synchronisation à faire.
-        </p>
-        <DiscordBtn onClick={triggerSignIn} />
-        <button
-          onClick={() => setChoice(null)}
-          style={{
-            ...mono,
-            fontSize: 10,
-            color: c.faint,
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            marginTop: 16,
-            padding: 0,
-            alignSelf: "flex-start",
-          }}
-        >
-          ← Retour
-        </button>
-      </Screen>
-    );
-  }
-
-  // choice === "no" — UNE seule action : créer le compte + rejoindre. Plus de
-  // « reviens sur cette page » : une fois le compte créé, le rattrapage (DM
-  // Discord + email) ramène le client tout seul pour finaliser la liaison.
   return (
     <Screen c={c} dark={dark}>
       <Header
         c={c}
-        tag="PAS DE COMPTE DISCORD"
-        title="Crée ton compte (gratuit, 2 min)."
+        tag="PAIEMENT VALIDÉ ✓"
+        title="Bienvenue. Ton accès est activé."
       />
-      <p style={{ fontSize: 14.5, color: c.muted, lineHeight: 1.55, margin: "0 0 20px" }}>
-        Ton accès passe par Discord. Crée ton compte et rejoins le serveur en un
-        clic — pas besoin de passer par discord.com.
+      <p style={{ fontSize: 14.5, color: c.muted, lineHeight: 1.55, marginBottom: 22 }}>
+        Plus que 2 étapes, dans l&apos;ordre :
       </p>
 
-      {/* Action principale unique : crée le compte + join. */}
-      <a
-        href={discordInvite}
-        target="_blank"
-        rel="noopener noreferrer"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 8,
-          width: "100%",
-          boxSizing: "border-box",
-          padding: "15px 20px",
-          borderRadius: 12,
-          background: ACCENT,
-          color: "#fff",
-          fontWeight: 600,
-          fontSize: 15,
-          textDecoration: "none",
-        }}
-      >
-        Créer mon compte + rejoindre <ExternalLink size={15} />
-      </a>
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        {/* ÉTAPE 1 — rejoindre le serveur Discord */}
+        <StepCard c={c}>
+          <div style={{ fontSize: 15.5, fontWeight: 600, color: c.text, marginBottom: 12 }}>
+            <span style={{ ...mono, fontSize: 11, color: ACCENT, marginRight: 8 }}>1</span>
+            Rejoins le serveur Discord
+          </div>
+          <a
+            href={discordInvite}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 10,
+              width: "100%",
+              boxSizing: "border-box",
+              padding: "12px 16px",
+              background: DISCORD,
+              color: "#fff",
+              border: "none",
+              borderRadius: 12,
+              cursor: "pointer",
+              fontFamily: "'Schibsted Grotesk', system-ui, sans-serif",
+              fontSize: 14,
+              fontWeight: 600,
+              textDecoration: "none",
+            }}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path d="M20.317 4.369a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.056 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 0 1 .077-.01c3.927 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.009c.12.099.246.198.373.292a.077.077 0 0 1-.006.127 12.298 12.298 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.06.06 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z" />
+            </svg>
+            Rejoindre le serveur
+          </a>
+          <p style={{ ...mono, fontSize: 10, color: c.muted, marginTop: 10, textTransform: "none", letterSpacing: "0.02em" }}>
+            Pas encore de compte Discord ? Ce lien le crée aussi.
+          </p>
+        </StepCard>
 
-      {/* Rassurance : pas besoin de revenir ici, on le guide après. */}
-      <div
-        style={{
-          display: "flex",
-          gap: 10,
-          alignItems: "flex-start",
-          marginTop: 16,
-          padding: "13px 15px",
-          borderRadius: 12,
-          background: c.chip,
-          border: `1px solid ${c.line}`,
-        }}
-      >
-        <span style={{ color: ACCENT, fontWeight: 700, lineHeight: 1.45 }}>✓</span>
-        <p style={{ fontSize: 13.5, color: c.text, lineHeight: 1.5, margin: 0 }}>
-          Au moment de créer ton compte, <strong>Discord va te demander de vérifier
-          ton email</strong> — fais-le, c&apos;est ce qui nous permet de te reconnaître.
-          Ensuite, <strong>clique le lien de ton mail d&apos;activation</strong> (ou
-          reviens ici) pour lier ton paiement et débloquer ton accès.
-        </p>
+        {/* ÉTAPE 2 — finaliser l'onboarding via le lien token (DM + email) */}
+        <StepCard c={c}>
+          <div style={{ fontSize: 15.5, fontWeight: 600, color: c.text, marginBottom: 10 }}>
+            <span style={{ ...mono, fontSize: 11, color: ACCENT, marginRight: 8 }}>2</span>
+            Finalise ton onboarding
+          </div>
+          <p style={{ fontSize: 13.5, color: c.muted, lineHeight: 1.5, margin: 0 }}>
+            📩 On vient de t&apos;envoyer ton lien personnel par email et en DM
+            Discord. Clique-le pour démarrer ton onboarding.
+          </p>
+        </StepCard>
       </div>
 
-      {/* Secondaire discret : déjà tout fait → connexion directe. */}
-      <button
-        onClick={triggerSignIn}
-        style={{
-          ...mono,
-          fontSize: 10.5,
-          color: c.muted,
-          background: "none",
-          border: "none",
-          cursor: "pointer",
-          textDecoration: "underline",
-          textUnderlineOffset: 3,
-          marginTop: 18,
-          padding: 0,
-          alignSelf: "center",
-        }}
-      >
-        C&apos;est déjà fait ? Me connecter avec Discord
-      </button>
-
-      <button
-        onClick={() => setChoice(null)}
-        style={{
-          ...mono,
-          fontSize: 10,
-          color: c.faint,
-          background: "none",
-          border: "none",
-          cursor: "pointer",
-          marginTop: 14,
-          padding: 0,
-          alignSelf: "flex-start",
-        }}
-      >
-        ← Retour
-      </button>
+      {/* SECONDAIRE discret — email Discord ≠ email paiement → OAuth de liaison.
+          ⚠️ à ouvrir dans un vrai navigateur (Safari / Chrome) : le cookie de
+          session OAuth ne survit pas dans une webview intégrée. */}
+      <div style={{ borderTop: `1px solid ${c.line}`, marginTop: 24, paddingTop: 18 }}>
+        <button
+          onClick={triggerSignIn}
+          style={{
+            ...mono,
+            fontSize: 10.5,
+            color: c.muted,
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            textDecoration: "underline",
+            textUnderlineOffset: 3,
+            textTransform: "none",
+            letterSpacing: "0.02em",
+            lineHeight: 1.5,
+            padding: 0,
+            textAlign: "left",
+          }}
+        >
+          Ton email Discord est différent de ton email de paiement ? Lie ton
+          compte ici (à ouvrir dans Safari / Chrome).
+        </button>
+      </div>
     </Screen>
   );
 }
@@ -893,81 +865,19 @@ function Button({
   );
 }
 
-function DiscordBtn({ onClick }: { onClick: () => void }) {
+// Carte d'étape pour l'écran de validation (DA Glass C : chip + border line).
+function StepCard({ c, children }: { c: C; children: React.ReactNode }) {
   return (
-    <button
-      onClick={onClick}
+    <div
       style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 10,
-        width: "100%",
-        padding: "12px 16px",
-        background: DISCORD,
-        color: "#fff",
-        border: "none",
-        borderRadius: 12,
-        cursor: "pointer",
-        fontFamily: "'Schibsted Grotesk', system-ui, sans-serif",
-        fontSize: 14,
-        fontWeight: 600,
-      }}
-    >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="18"
-        height="18"
-        viewBox="0 0 24 24"
-        fill="currentColor"
-        aria-hidden="true"
-      >
-        <path d="M20.317 4.369a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.056 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 0 1 .077-.01c3.927 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.009c.12.099.246.198.373.292a.077.077 0 0 1-.006.127 12.298 12.298 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.06.06 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z" />
-      </svg>
-      Continuer avec Discord
-    </button>
-  );
-}
-
-function OptionCard({
-  c,
-  title,
-  subtitle,
-  onClick,
-}: {
-  c: C;
-  title: string;
-  subtitle: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: 16,
         border: `1px solid ${c.line}`,
         background: c.chip,
         borderRadius: 14,
         padding: "16px 18px",
-        textAlign: "left",
-        cursor: "pointer",
-        fontFamily: "'Schibsted Grotesk', system-ui, sans-serif",
-        transition: "border-color var(--dur-instant) var(--ease-snap), background var(--dur-instant) var(--ease-snap)",
       }}
-      onMouseEnter={(e) => (e.currentTarget.style.borderColor = ACCENT)}
-      onMouseLeave={(e) => (e.currentTarget.style.borderColor = c.line)}
     >
-      <div>
-        <div style={{ fontSize: 15.5, fontWeight: 600, color: c.text }}>{title}</div>
-        <div style={{ ...mono, fontSize: 10, color: c.muted, marginTop: 4, textTransform: "none", letterSpacing: "0.02em" }}>
-          {subtitle}
-        </div>
-      </div>
-      <ArrowRight size={18} style={{ color: ACCENT, flexShrink: 0 }} />
-    </button>
+      {children}
+    </div>
   );
 }
 

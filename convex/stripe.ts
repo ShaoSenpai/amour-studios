@@ -994,6 +994,35 @@ export const createPercentCoupon = internalAction({
   },
 });
 
+/** Retrouve (ou recrée) le coupon d'entrée Communauté -30€ répétitif 3 mois.
+ *  Sert à RESTAURER le prix normal après un coupon test : on récupère l'ID à
+ *  remettre dans STRIPE_COMMUNITY_INTRO_COUPON. Idempotent (réutilise l'existant).
+ *  Lancer : npx convex run stripe:findOrCreateIntroCoupon --prod */
+export const findOrCreateIntroCoupon = internalAction({
+  args: {},
+  handler: async (): Promise<{ id: string; created: boolean; name: string | null }> => {
+    const stripe = await stripeClient();
+    const list = await stripe.coupons.list({ limit: 100 });
+    const found = list.data.find(
+      (c) =>
+        c.amount_off === 3000 &&
+        c.currency === "eur" &&
+        c.duration === "repeating" &&
+        c.duration_in_months === 3 &&
+        c.valid
+    );
+    if (found) return { id: found.id, created: false, name: found.name ?? null };
+    const c = await stripe.coupons.create({
+      amount_off: 3000,
+      currency: "eur",
+      duration: "repeating",
+      duration_in_months: 3,
+      name: "Offre d'entrée Communauté -30€",
+    });
+    return { id: c.id, created: true, name: c.name ?? null };
+  },
+});
+
 /** Rembourse le dernier paiement réussi d'un email (test). Annule aussi l'abo lié.
  *  Lancer : npx convex run stripe:refundLatestByEmail '{"email":"..."}' --prod */
 export const refundLatestByEmail = internalAction({

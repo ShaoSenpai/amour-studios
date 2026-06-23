@@ -981,12 +981,17 @@ export const sendStatusDm = internalAction({
     const journey = await ctx.runQuery(internal.journey.journeyForUser, { userId });
     const state =
       context === "payment_canceled" ? ("canceled" as const) : journey.state;
+    // Renvoi #général (mention cliquable si l'ID est configuré) pour inviter à
+    // se présenter quand l'accès est validé. Même source que grantOnboarded.
+    const generalId = process.env.DISCORD_GENERAL_CHANNEL_ID;
+    const generalRef = generalId ? `<#${generalId}>` : "**#général**";
     const msg = statusDm({
       firstName: s.firstName,
       tier: journey.tier ?? s.tier,
       state,
       link,
       site,
+      generalRef,
     });
 
     if (!msg) return { ok: false as const, reason: "no_message" as const };

@@ -117,12 +117,16 @@ export function statusDm({
   state,
   link,
   site,
+  generalRef = "**#général**",
 }: {
   firstName: string | null;
   tier: Tier | null;
   state: JourneyStateKind;
   link: string;
   site: string;
+  // Mention `<#id>` du salon #général (cliquable) pour inviter à se présenter
+  // quand l'accès est validé ; fallback texte « #général ».
+  generalRef?: string;
 }): DiscordMessage | null {
   switch (state) {
     case "canceled":
@@ -179,7 +183,10 @@ export function statusDm({
       return {
         embed: {
           title: `${withName("Tout est validé", firstName)} 🎉`,
-          description: `Tu as accès à tout sur le Discord. À très vite ! 🧡`,
+          description:
+            `Tu as accès à tout sur le Discord.\n\n` +
+            `Passe sur ${generalRef} te présenter en 2 lignes ` +
+            `(qui tu es, ton projet, un de tes sons). À très vite ! 🧡`,
         },
       };
     default:

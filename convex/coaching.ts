@@ -1051,6 +1051,10 @@ export const upsertCalendlySession = internalMutation({
     // Fallback : token onboarding passé via utm_source côté widget Calendly.
     // Si l'email Calendly ne match aucun user, on retrouve le user via ce token.
     fallbackOnboardingToken: v.optional(v.string()),
+    // Lien de visio fourni par Calendly (location.join_url quand l'event type est
+    // configuré en Google Meet). C'est CE lien qui alimente le bouton « Rejoindre
+    // le Meet » de la fiche élève (sans ça il reste grisé).
+    meetUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     let user = await ctx.db
@@ -1132,6 +1136,11 @@ export const upsertCalendlySession = internalMutation({
       if (existing.status === "scheduled" || existing.status === "canceled") {
         patch.status = "scheduled";
       }
+      // Remplit le lien Meet s'il est désormais connu et pas encore stocké
+      // (webhook initial sans join_url → backfill via resyncCalendly).
+      if (args.meetUrl && !existing.meetUrl) {
+        patch.meetUrl = args.meetUrl;
+      }
       // On NE re-tagge PLUS le curriculumItemId sur une session déjà
       // existante : si Walid l'a vidé volontairement (ou si la valeur
       // courante est legit), un webhook Calendly de mise à jour ne doit
@@ -1157,6 +1166,7 @@ export const upsertCalendlySession = internalMutation({
       status: "scheduled",
       summary: args.eventName,
       curriculumItemId: autoCurriculumItemId,
+      meetUrl: args.meetUrl,
       createdAt: now,
       updatedAt: now,
     });
@@ -1263,6 +1273,7 @@ export const resyncCalendly = internalAction({
         name?: string;
         start_time?: string;
         end_time?: string;
+        location?: { type?: string; join_url?: string | null };
       }>;
     };
     const events = evData.collection ?? [];
@@ -1305,6 +1316,7 @@ export const resyncCalendly = internalAction({
         endAt: ev.end_time ? Date.parse(ev.end_time) : undefined,
         eventName: ev.name,
         fallbackOnboardingToken: fallbackToken,
+        meetUrl: ev.location?.join_url ?? undefined,
       });
       if (res.matched) {
         matched++;

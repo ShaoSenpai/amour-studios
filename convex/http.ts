@@ -893,7 +893,15 @@ http.route({
       payload?: {
         email?: string;
         uri?: string;
-        scheduled_event?: { uri?: string; start_time?: string; end_time?: string; name?: string };
+        scheduled_event?: {
+          uri?: string;
+          start_time?: string;
+          end_time?: string;
+          name?: string;
+          // location.join_url = lien visio (Google Meet) quand l'event type est
+          // configuré en Google Meet → alimente le bouton « Rejoindre le Meet ».
+          location?: { type?: string; join_url?: string | null };
+        };
         tracking?: { utm_source?: string };
       };
     };
@@ -926,6 +934,7 @@ http.route({
           endAt: se.end_time ? Date.parse(se.end_time) : undefined,
           eventName: se.name,
           fallbackOnboardingToken: fallbackToken ?? undefined,
+          meetUrl: se.location?.join_url ?? undefined,
         });
         // Trace CRM : UN SEUL event par RDV (avant : doublon).
         // - RDV d'onboarding → markRdvBookedByUser logge « 1er RDV réservé

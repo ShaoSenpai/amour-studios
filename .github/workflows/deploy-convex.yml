@@ -1,0 +1,22 @@
+name: Deploy Convex (prod)
+
+# Déclenchement MANUEL uniquement (bouton "Run workflow" sur GitHub ou via l'app
+# GitHub mobile). Aucun déploiement automatique : on reste maître du timing.
+# Aucune entrée non fiable n'est utilisée (pas de github.event.*), seulement des
+# secrets de dépôt -> pas de risque d'injection.
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - name: Convex deploy (prod)
+        run: npx convex deploy -y
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}

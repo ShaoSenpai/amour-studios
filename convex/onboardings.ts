@@ -1299,7 +1299,10 @@ export const sendManualRelance = internalAction({
   args: { userId: v.id("users") },
   handler: async (ctx, { userId }) => {
     const s = await ctx.runQuery(internal.onboardings._statusForUser, { userId });
-    if (!s || !s.tier) return { ok: false as const, reason: "no_state" as const };
+    // Exige un onboarding réel (token) : sans lien d'onboarding, pas de relance
+    // cohérente possible (évite une relance « présente-toi » avec un lien sans
+    // token pour un membre actif qui n'a pas de row onboarding).
+    if (!s || !s.tier || !s.token) return { ok: false as const, reason: "no_state" as const };
     // Scénario décidé par le cerveau (source unique), comme le cron de relances.
     const journey = await ctx.runQuery(internal.journey.journeyForUser, { userId });
     const scenario = scenarioForState(journey.state, s.tier);

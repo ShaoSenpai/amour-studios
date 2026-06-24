@@ -1810,6 +1810,12 @@ export const cleanupTestDataKeepEmail = internalMutation({
     const users = await ctx.db.query("users").collect();
     const keptUser = users.find((u) => (u.email ?? "").toLowerCase() === keep);
     const keptDiscordId = keptUser?.discordId;
+    // Le paiement du compte gardé peut être rattaché par purchaseId sous un AUTRE
+    // email (cas email-paiement ≠ email-compte) → on le préserve aussi par id /
+    // par lien userId, sinon on supprimerait le paiement (et annulerait l'abo
+    // Stripe) du compte qu'on veut justement garder.
+    const keptUserId = keptUser?._id;
+    const keptPurchaseId = keptUser?.purchaseId;
 
     // 1) Tickets — tout sauf ceux du compte gardé.
     let ticketsDeleted = 0;
@@ -1823,7 +1829,11 @@ export const cleanupTestDataKeepEmail = internalMutation({
     const subsToCancel: string[] = [];
     let purchasesDeleted = 0;
     for (const p of await ctx.db.query("purchases").collect()) {
-      if ((p.email ?? "").toLowerCase() === keep) continue;
+      const belongsToKept =
+        (p.email ?? "").toLowerCase() === keep ||
+        (!!keptUserId && p.userId === keptUserId) ||
+        (!!keptPurchaseId && p._id === keptPurchaseId);
+      if (belongsToKept) continue;
       if (
         p.stripeSubscriptionId &&
         (p.status === "active" || p.status === "past_due" || p.status === "paid")

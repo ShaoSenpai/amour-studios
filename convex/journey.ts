@@ -49,7 +49,18 @@ async function loadInputForUser(
   const user = await ctx.db.get(userId);
   if (!user) return null;
 
+  // Purchase pertinent — résolution ROBUSTE, INDÉPENDANTE de l'email (le repo a
+  // le cas central email-paiement ≠ email-compte) :
+  //  1) abonnement actif (getActivePurchase ; exclut déjà les gifts expirés) ;
+  //  2) sinon le purchase LIÉ au compte par `user.purchaseId` — couvre résilié /
+  //     expiré / incomplete rattaché par id même quand l'email du paiement diffère
+  //     (sans ça, un canceled lié par id sous un autre email était invisible →
+  //     no_subscription au lieu de canceled : DM « accès terminé » + relances perdus) ;
+  //  3) sinon le plus récent CANCELED retrouvé par email (filet legacy).
   let purchase = await getActivePurchase(ctx, user);
+  if (!purchase && user.purchaseId) {
+    purchase = await ctx.db.get(user.purchaseId);
+  }
   if (!purchase && user.email) {
     const email = user.email.toLowerCase();
     const list = await ctx.db
@@ -62,6 +73,19 @@ async function loadInputForUser(
         .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))[0] ?? null;
   }
 
+  // Accès offert EXPIRÉ (expiresAt dépassé) dont le status est resté "active"
+  // tant que le cron expireGiftAccess n'a pas tourné → traité comme TERMINÉ
+  // (canceled), jamais comme actif (sinon accès fantôme / « lie ton paiement »
+  // absurde pour un cadeau).
+  let status = (purchase?.status ?? null) as PurchaseStatus | null;
+  if (
+    purchase &&
+    typeof purchase.expiresAt === "number" &&
+    purchase.expiresAt <= Date.now()
+  ) {
+    status = "canceled";
+  }
+
   const ob = await ctx.db
     .query("onboardings")
     .withIndex("by_user", (q) => q.eq("userId", userId))
@@ -72,7 +96,7 @@ async function loadInputForUser(
     isAdmin: user.role === "admin",
     purchase: purchase
       ? {
-          status: purchase.status as PurchaseStatus,
+          status: status as PurchaseStatus,
           tier: (purchase.tier ?? null) as Tier | null,
           duree: purchase.duree ?? null,
         }

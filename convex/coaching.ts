@@ -163,7 +163,7 @@ export const createSession = mutation({
     curriculumItemId: v.optional(v.id("curriculum")),
   },
   handler: async (ctx, { userId, type, scheduledAt, endAt, notes, summary, curriculumItemId }) => {
-    const { userId: coachId } = await requireAdmin(ctx);
+    const { userId: coachId, user: coach } = await requireAdmin(ctx);
     const now = Date.now();
     const sessionId = await ctx.db.insert("coachingSessions", {
       userId,
@@ -190,12 +190,20 @@ export const createSession = mutation({
     const pseudo = user?.discordUsername || user?.name || "Élève";
     const t = type ?? "coaching";
     const title = `${t === "onboarding" ? "Onboarding" : "Coaching"} · ${pseudo}`;
+    // Le compte OAuth Google qui crée l'événement est le compte bot/worker, PAS
+    // celui de Walid. Sans être invité, le coach reste bloqué dans la salle
+    // d'attente du Meet (le bot n'admet personne) → il ne peut pas rejoindre.
+    // On invite donc explicitement le coach (env COACH_EMAIL, sinon email admin).
+    const coachEmail = process.env.COACH_EMAIL || coach.email || null;
+    const attendeeEmails = Array.from(
+      new Set([coachEmail, email].filter((e): e is string => !!e))
+    );
     await ctx.scheduler.runAfter(0, internal.google.syncCreate, {
       sessionId,
       title,
       startMs: scheduledAt,
       endMs: endAt ?? scheduledAt + DEFAULT_DUR_MS,
-      attendeeEmails: email ? [email] : [],
+      attendeeEmails,
       description: notes ?? undefined,
     });
 

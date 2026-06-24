@@ -621,6 +621,7 @@ export const grantCompAccess = mutation({
 
     // Rôles Discord (Membre/Coaching + Onboardé pour ne pas être gaté).
     const resolvedDid = did ?? user?.discordId;
+    let activationEmailSent = false;
     if (resolvedDid) {
       await ctx.scheduler.runAfter(0, internal.stripe.assignDiscordRole, {
         discordId: resolvedDid,
@@ -632,6 +633,20 @@ export const grantCompAccess = mutation({
           userId: targetUserId,
         });
       }
+    } else {
+      // Email SEUL (pas de Discord) → on ENVOIE un email d'activation « cadeau »
+      // (option A) : sinon la personne n'est jamais prévenue et n'a aucun accès.
+      // Le lien /claim mène à la connexion Discord + onboarding court (elle
+      // obtient une vraie fiche d'onboarding → cohérent avec le cerveau).
+      const { token, code } = await ensureClaim(ctx, `gift_${now}`, e);
+      await ctx.scheduler.runAfter(0, internal.emails.sendGiftAccessEmail, {
+        to: e,
+        claimToken: token,
+        code,
+        tier,
+        expiresAt,
+      });
+      activationEmailSent = true;
     }
 
     await logEvent(ctx, {
@@ -641,7 +656,13 @@ export const grantCompAccess = mutation({
       actor: "admin",
     });
 
-    return { ok: true as const, purchaseId, userExisted: !!user, discordSynced: !!resolvedDid };
+    return {
+      ok: true as const,
+      purchaseId,
+      userExisted: !!user,
+      discordSynced: !!resolvedDid,
+      activationEmailSent,
+    };
   },
 });
 

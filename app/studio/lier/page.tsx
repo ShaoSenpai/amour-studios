@@ -259,7 +259,13 @@ export default function LierPage() {
           ? ` jusqu'au ${new Date(expiresAt).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}`
           : " (illimité)";
         toast.success(
-          `Accès ${giftTier === "coaching" ? "Coaching" : "Communauté"} offert${periodTxt}${res.discordSynced ? " · rôles Discord en cours" : " — ajoute le Discord ID pour les rôles"}.`,
+          `Accès ${giftTier === "coaching" ? "Coaching" : "Communauté"} offert${periodTxt}${
+            res.discordSynced
+              ? " · rôles Discord en cours"
+              : res.activationEmailSent
+              ? " · email d'activation envoyé à la personne"
+              : ""
+          }.`,
           { duration: 6000 }
         );
         setGiftEmail("");

@@ -368,6 +368,72 @@ export const sendClaimEmail = internalAction({
   },
 });
 
+// ─── Email — Accès OFFERT (cadeau/partenaire) par email, à activer ───────────
+// Envoyé par admin.grantCompAccess quand un accès offert est créé SANS Discord ID
+// (email seul) : la personne ne serait sinon jamais prévenue. Wording « cadeau »,
+// même route que le claim (lien /claim?t= → connexion Discord → onboarding court).
+function giftEmailHtml({
+  firstName,
+  claimToken,
+  code,
+  tier,
+  expiresAt,
+}: {
+  firstName: string;
+  claimToken: string;
+  code?: string;
+  tier: "coaching" | "communaute";
+  expiresAt?: number;
+}) {
+  const claimUrl = `${APP_URL}/claim?t=${encodeURIComponent(claimToken)}`;
+  const tierLabel = tier === "coaching" ? "Coaching" : "Communauté";
+  const tierNeedsRdv = tier === "coaching";
+  const jusqua = expiresAt ? ` jusqu'au <strong>${formatDateFr(expiresAt)}</strong>` : "";
+  const steps = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+    ${stepRow("01", `<strong>Active</strong> en cliquant le bouton ci-dessus + connecte-toi avec ton compte Discord.`)}
+    ${stepRow("02", `<a href="${DISCORD_INVITE_URL}" style="color:${ORANGE};font-weight:600;">Rejoins le serveur Discord</a> — un salon privé s'ouvre rien que pour toi.<br><span style="color:${MUTED};font-size:13.5px;">(Pas encore de compte Discord ? Ce lien le crée et te fait rejoindre.)</span>`)}
+    ${stepRow("03", `Tu reçois ton lien d'onboarding (DM + email).<br><span style="color:${MUTED};font-size:13.5px;">Questionnaire rapide${tierNeedsRdv ? " + 1er RDV avec Walid" : ""} → accès complet débloqué.</span>`, true)}
+  </table>`;
+  const body = `
+    ${kicker(`Cadeau · accès ${tierLabel} offert`)}
+    ${h1(`On t'offre l'accès ${tierLabel} 🎁`, 36)}
+    ${para(
+      `Bonne nouvelle${firstName ? `, ${escape(firstName)}` : ""} : AMOUR STUDIOS t'offre un accès <strong>${tierLabel}</strong> gratuit${jusqua}. Pour en profiter, il te reste à l'activer :`,
+      { mb: 28 }
+    )}
+    ${button({ href: claimUrl, label: "Activer mon accès offert" })}
+    ${panel(`${kicker("Ta route")}${steps}`)}
+    ${code ? amrCodeNote(code) : ""}
+    ${directLink(claimUrl)}
+  `;
+  return layout({ title: `AMOUR STUDIOS t'offre un accès ${tierLabel}`, children: body });
+}
+
+export const sendGiftAccessEmail = internalAction({
+  args: {
+    to: v.string(),
+    firstName: v.optional(v.string()),
+    claimToken: v.string(),
+    code: v.optional(v.string()),
+    tier: v.optional(v.union(v.literal("coaching"), v.literal("communaute"))),
+    expiresAt: v.optional(v.number()),
+  },
+  handler: async (ctx, { to, firstName, claimToken, code, tier, expiresAt }) => {
+    if (!to) return { ok: false as const, reason: "no_email" as const };
+    const resolvedTier = tier ?? "communaute";
+    const tierLabel = resolvedTier === "coaching" ? "Coaching" : "Communauté";
+    await sendViaResend(
+      {
+        to,
+        subject: `🎁 On t'offre un accès ${tierLabel} AMOUR STUDIOS — active-le`,
+        html: giftEmailHtml({ firstName: firstName ?? "", claimToken, code, tier: resolvedTier, expiresAt }),
+      },
+      ctx
+    );
+    return { ok: true as const };
+  },
+});
+
 // ─── Email — Relier un paiement à un compte (récupération, distinct du claim) ──
 // Envoyé par `resendActivationByEmail` (page /lier + onglet email du « Lier mon
 // paiement »). Wording RÉCUP (« on a retrouvé ton paiement, relie-le ») ≠ mail

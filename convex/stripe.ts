@@ -1056,6 +1056,23 @@ export const refundLatestByEmail = internalAction({
 /** Reset « comme neuf » : annule TOUS les abonnements Stripe non terminés sur le
  *  compte de la clé courante. À n'utiliser que pour repartir de zéro (pré-lancement).
  *  Lancer : npx convex run stripe:cancelAllStripeSubscriptions --prod */
+/** Annule UN abonnement Stripe précis (par ID). Utilisé par le nettoyage ciblé
+ *  de données de test (admin.cleanupTestDataKeepEmail) pour ne pas laisser un
+ *  abo test actif facturer. Fail-silent (déjà annulé / introuvable = no-op). */
+export const _cancelStripeSub = internalAction({
+  args: { subscriptionId: v.string() },
+  handler: async (_ctx, { subscriptionId }): Promise<{ ok: boolean }> => {
+    const stripe = await stripeClient();
+    try {
+      await stripe.subscriptions.cancel(subscriptionId);
+      return { ok: true };
+    } catch (e) {
+      console.warn("⚠️ _cancelStripeSub échec:", subscriptionId, e);
+      return { ok: false };
+    }
+  },
+});
+
 export const cancelAllStripeSubscriptions = internalAction({
   args: {},
   handler: async (): Promise<{ canceled: number; total: number }> => {

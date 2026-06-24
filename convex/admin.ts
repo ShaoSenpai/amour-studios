@@ -1785,6 +1785,118 @@ export const wipeTestMembers = internalMutation({
   },
 });
 
+/**
+ * Nettoyage CIBLÉ des données de test : supprime tickets, membres non-admin,
+ * paiements, onboardings et RDV — SAUF ceux de `keepEmail` (et les admins, jamais
+ * touchés). Optionnellement annule les abos Stripe des paiements supprimés (sinon
+ * un abo test continue de facturer). Tables petites → collect + filtre en mémoire.
+ * Garde-fou Stripe live (force requis). Lancer :
+ *   npx convex run admin:cleanupTestDataKeepEmail '{"keepEmail":"x@y.z","cancelStripe":true,"force":true}' --prod
+ */
+export const cleanupTestDataKeepEmail = internalMutation({
+  args: {
+    keepEmail: v.string(),
+    cancelStripe: v.optional(v.boolean()),
+    force: v.optional(v.boolean()),
+  },
+  handler: async (ctx, { keepEmail, cancelStripe, force }) => {
+    const sk = process.env.STRIPE_SECRET_KEY ?? "";
+    if (!sk.startsWith("sk_test") && !force) {
+      throw new Error("REFUSÉ : Stripe n'est pas en test. Passer { force: true } pour la prod.");
+    }
+    const keep = keepEmail.trim().toLowerCase();
+    if (!keep) throw new Error("keepEmail requis");
+
+    const users = await ctx.db.query("users").collect();
+    const keptUser = users.find((u) => (u.email ?? "").toLowerCase() === keep);
+    const keptDiscordId = keptUser?.discordId;
+
+    // 1) Tickets — tout sauf ceux du compte gardé.
+    let ticketsDeleted = 0;
+    for (const t of await ctx.db.query("tickets").collect()) {
+      if (keptDiscordId && t.discordId === keptDiscordId) continue;
+      await ctx.db.delete(t._id);
+      ticketsDeleted++;
+    }
+
+    // 2) Paiements — tout sauf ceux du compte gardé. Collecte les abos à annuler.
+    const subsToCancel: string[] = [];
+    let purchasesDeleted = 0;
+    for (const p of await ctx.db.query("purchases").collect()) {
+      if ((p.email ?? "").toLowerCase() === keep) continue;
+      if (
+        p.stripeSubscriptionId &&
+        (p.status === "active" || p.status === "past_due" || p.status === "paid")
+      ) {
+        subsToCancel.push(p.stripeSubscriptionId);
+      }
+      await ctx.db.delete(p._id);
+      purchasesDeleted++;
+    }
+
+    // 3) Membres non-admin sauf le gardé → onboardings + RDV + auth + user.
+    const members = users.filter(
+      (u) => u.role !== "admin" && (u.email ?? "").toLowerCase() !== keep,
+    );
+    const memberIds = new Set<string>(members.map((m) => m._id as unknown as string));
+
+    let onboardingsDeleted = 0;
+    for (const o of await ctx.db.query("onboardings").collect()) {
+      if (memberIds.has(o.userId as unknown as string)) {
+        await ctx.db.delete(o._id);
+        onboardingsDeleted++;
+      }
+    }
+    let sessionsDeleted = 0;
+    for (const s of await ctx.db.query("coachingSessions").collect()) {
+      if (s.userId && memberIds.has(s.userId as unknown as string)) {
+        await ctx.db.delete(s._id);
+        sessionsDeleted++;
+      }
+    }
+    // Auth (sessions / refresh / accounts) des membres supprimés.
+    const authSessionIds = new Set<string>();
+    for (const s of await ctx.db.query("authSessions").collect()) {
+      if (memberIds.has(s.userId as unknown as string)) {
+        authSessionIds.add(s._id as unknown as string);
+        await ctx.db.delete(s._id);
+      }
+    }
+    for (const r of await ctx.db.query("authRefreshTokens").collect()) {
+      if (authSessionIds.has(r.sessionId as unknown as string)) await ctx.db.delete(r._id);
+    }
+    for (const a of await ctx.db.query("authAccounts").collect()) {
+      if (memberIds.has(a.userId as unknown as string)) await ctx.db.delete(a._id);
+    }
+    let usersDeleted = 0;
+    for (const m of members) {
+      await ctx.db.delete(m._id);
+      usersDeleted++;
+    }
+
+    // 4) Annulation des abos Stripe des paiements supprimés (sinon ils facturent).
+    if (cancelStripe) {
+      for (const subId of subsToCancel) {
+        await ctx.scheduler.runAfter(0, internal.stripe._cancelStripeSub, {
+          subscriptionId: subId,
+        });
+      }
+    }
+
+    return {
+      ok: true as const,
+      keptEmail: keep,
+      keptUserFound: !!keptUser,
+      ticketsDeleted,
+      purchasesDeleted,
+      onboardingsDeleted,
+      coachingSessionsDeleted: sessionsDeleted,
+      usersDeleted,
+      stripeSubsScheduledForCancel: cancelStripe ? subsToCancel.length : 0,
+    };
+  },
+});
+
 /** Outil admin (CLI) : pilote le gate « non-onboardé » côté bot Discord.
  *  Cache tous les salons sauf #présente-toi / #sos pour qui n'a pas le rôle
  *  Onboardé. `mode` = preview | apply | revert. Lancer via :

@@ -306,17 +306,17 @@ function PendingGate({
           href="https://www.amourstudios.fr"
           target="_blank"
           rel="noopener noreferrer"
-          className="group flex items-center justify-between border border-black/10 bg-white px-5 py-5 transition-all hover:bg-white/90"
+          className="group flex items-center justify-between border border-foreground/15 bg-foreground/[0.04] px-5 py-5 transition-all hover:bg-foreground/[0.08]"
         >
           <div>
             <p
-              className="mb-2 font-mono text-[10px] uppercase tracking-[2px] text-black/60"
+              className="mb-2 font-mono text-[10px] uppercase tracking-[2px] text-foreground/60"
               style={{ fontFamily: "var(--font-body-legacy)" }}
             >
               ◦ 2. Pas encore acheté la formation
             </p>
             <p
-              className="text-xl italic text-[#0D0B08]"
+              className="text-xl italic"
               style={{ fontFamily: "var(--font-serif)" }}
             >
               Rejoindre Amour Studios — 497 €

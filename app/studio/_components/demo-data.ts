@@ -55,11 +55,11 @@ export const dashboardToday: FunctionReturnType<
     mrr: { value: "8 247 €", delta: "+612 €", note: "vs mois préc." },
   },
   rdvJour: [
-    { userId: uid("u_mxlo"), h: "09:30", who: "mxlo.beats", tag: "Positionnement", dur: "45 min", flag: undefined },
-    { userId: uid("u_lena"), h: "11:00", who: "lena__rmr", tag: "Feedback contenu", dur: "30 min", flag: undefined },
-    { userId: uid("u_yuko"), h: "14:00", who: "yuko_prod", tag: "Onboarding", dur: "60 min", flag: "1er RDV" },
-    { userId: uid("u_soren"), h: "16:30", who: "soren.wav", tag: "Analyse stats", dur: "30 min", flag: undefined },
-    { userId: uid("u_kira"), h: "18:00", who: "kira.ldn", tag: "Stratégie reels", dur: "45 min", flag: undefined },
+    { userId: uid("u_mxlo"), h: "09:30", who: "mxlo.beats", tag: "Positionnement", dur: "45 min", flag: undefined, meetUrl: "https://meet.google.com/abc-defg-hij" },
+    { userId: uid("u_lena"), h: "11:00", who: "lena__rmr", tag: "Feedback contenu", dur: "30 min", flag: undefined, meetUrl: "https://meet.google.com/klm-nopq-rst" },
+    { userId: uid("u_yuko"), h: "14:00", who: "yuko_prod", tag: "Onboarding", dur: "60 min", flag: "1er RDV", meetUrl: "https://meet.google.com/uvw-xyza-bcd" },
+    { userId: uid("u_soren"), h: "16:30", who: "soren.wav", tag: "Analyse stats", dur: "30 min", flag: undefined, meetUrl: undefined },
+    { userId: uid("u_kira"), h: "18:00", who: "kira.ldn", tag: "Stratégie reels", dur: "45 min", flag: undefined, meetUrl: "https://meet.google.com/efg-hijk-lmn" },
   ],
   rdvSemaine: [
     { jour: "VEN 15", n: 4, date: todayStart },

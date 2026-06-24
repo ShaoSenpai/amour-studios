@@ -137,9 +137,29 @@ export default function LierPage() {
   const [showGift, setShowGift] = useState(false);
   const [giftEmail, setGiftEmail] = useState("");
   const [giftDiscordId, setGiftDiscordId] = useState("");
-  const [giftTier, setGiftTier] = useState<"communaute" | "coaching">("coaching");
+  const [giftTier, setGiftTier] = useState<"communaute" | "coaching">("communaute");
   const [giftReason, setGiftReason] = useState("");
+  const [giftUnlimited, setGiftUnlimited] = useState(false);
+  const [giftEndDate, setGiftEndDate] = useState(""); // "YYYY-MM-DD" — date de fin
   const [gifting, setGifting] = useState(false);
+
+  // Helpers période (accès offert) : début = aujourd'hui (figé), fin choisie au
+  // calendrier ou via raccourcis. Format "YYYY-MM-DD".
+  const fmtYMD = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const minEndStr = fmtYMD(new Date(Date.now() + 86_400_000)); // demain au plus tôt
+  const setEndInDays = (days: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    setGiftEndDate(fmtYMD(d));
+    setGiftUnlimited(false);
+  };
+  const setEndInMonths = (months: number) => {
+    const d = new Date();
+    d.setMonth(d.getMonth() + months);
+    setGiftEndDate(fmtYMD(d));
+    setGiftUnlimited(false);
+  };
 
   const handleSearch = () => {
     setSearched(email.trim().toLowerCase());
@@ -210,6 +230,20 @@ export default function LierPage() {
       toast.error("Renseigne l'email de la personne.");
       return;
     }
+    // Date de fin obligatoire sauf accès illimité. expiresAt = fin de journée.
+    let expiresAt: number | undefined;
+    if (!giftUnlimited) {
+      if (!giftEndDate) {
+        toast.error("Choisis une date de fin (ou coche « Illimité »).");
+        return;
+      }
+      const [y, m, d] = giftEndDate.split("-").map(Number);
+      expiresAt = new Date(y, m - 1, d, 23, 59, 59, 999).getTime();
+      if (expiresAt <= Date.now()) {
+        toast.error("La date de fin doit être dans le futur.");
+        return;
+      }
+    }
     if (gifting) return;
     setGifting(true);
     try {
@@ -218,15 +252,21 @@ export default function LierPage() {
         discordId: giftDiscordId.trim() || undefined,
         tier: giftTier,
         reason: giftReason.trim() || undefined,
+        expiresAt,
       });
       if (res?.ok) {
+        const periodTxt = expiresAt
+          ? ` jusqu'au ${new Date(expiresAt).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}`
+          : " (illimité)";
         toast.success(
-          `Accès ${giftTier === "coaching" ? "Coaching" : "Communauté"} offert${res.discordSynced ? " (rôles Discord en cours)" : " — ajoute le Discord ID pour donner aussi les rôles"}.`,
+          `Accès ${giftTier === "coaching" ? "Coaching" : "Communauté"} offert${periodTxt}${res.discordSynced ? " · rôles Discord en cours" : " — ajoute le Discord ID pour les rôles"}.`,
           { duration: 6000 }
         );
         setGiftEmail("");
         setGiftDiscordId("");
         setGiftReason("");
+        setGiftEndDate("");
+        setGiftUnlimited(false);
       } else {
         toast.error("Échec.");
       }
@@ -617,6 +657,81 @@ export default function LierPage() {
                   style={{ ...inputStyle(c), flex: 1, minWidth: 160 }}
                 />
               </div>
+
+              {/* Période d'accès : début = aujourd'hui (figé) + date de fin
+                  (calendrier) + raccourcis + option illimité. expiresAt → cron
+                  expire-gift-access qui révoque et retire les rôles Discord. */}
+              <div
+                style={{
+                  marginTop: 12,
+                  padding: "12px 14px",
+                  border: `1px solid ${c.line}`,
+                  borderRadius: 12,
+                  background: c.chip,
+                }}
+              >
+                <div style={{ ...mono, fontSize: 10, color: c.muted, letterSpacing: "0.06em", marginBottom: 10 }}>
+                  PÉRIODE D&apos;ACCÈS
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center" }}>
+                  <span style={{ fontSize: 13, color: c.muted }}>
+                    Début : <strong style={{ color: c.text }}>aujourd&apos;hui</strong> · Fin :
+                  </span>
+                  <input
+                    type="date"
+                    value={giftEndDate}
+                    min={minEndStr}
+                    disabled={giftUnlimited}
+                    onChange={(ev) => {
+                      setGiftEndDate(ev.target.value);
+                      setGiftUnlimited(false);
+                    }}
+                    style={{ ...inputStyle(c), flex: "0 1 180px", opacity: giftUnlimited ? 0.4 : 1 }}
+                  />
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10, alignItems: "center" }}>
+                  {[
+                    { label: "7 jours", fn: () => setEndInDays(7) },
+                    { label: "1 mois", fn: () => setEndInMonths(1) },
+                    { label: "3 mois", fn: () => setEndInMonths(3) },
+                  ].map((p) => (
+                    <button
+                      key={p.label}
+                      type="button"
+                      onClick={p.fn}
+                      style={{
+                        ...mono,
+                        fontSize: 10.5,
+                        padding: "7px 12px",
+                        borderRadius: 999,
+                        cursor: "pointer",
+                        border: `1px solid ${c.line}`,
+                        background: "transparent",
+                        color: c.text,
+                      }}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setGiftUnlimited((v) => !v)}
+                    style={{
+                      ...mono,
+                      fontSize: 10.5,
+                      padding: "7px 12px",
+                      borderRadius: 999,
+                      cursor: "pointer",
+                      border: `1px solid ${giftUnlimited ? ACCENT : c.line}`,
+                      background: giftUnlimited ? ACCENT : "transparent",
+                      color: giftUnlimited ? "#0B0B0B" : c.muted,
+                    }}
+                  >
+                    ∞ Illimité
+                  </button>
+                </div>
+              </div>
+
               <GlassButton
                 c={c}
                 kind="solid"

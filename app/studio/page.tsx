@@ -184,10 +184,25 @@ export default function AujourdhuiPage() {
                 )}
                 {d.rdvJour.map((r, i) => {
                   const isNext = i === 0;
+                  // Le lien Meet est le CTA accent du prochain RDV ; sinon « Démarrer »
+                  // reste accent. Sans lien Meet, comportement inchangé.
+                  const actionPrimary = isNext && !r.meetUrl;
+                  const meetBtn = r.meetUrl ? (
+                    <a
+                      href={r.meetUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="Rejoindre le Google Meet"
+                      onClick={(e) => e.stopPropagation()}
+                      style={{ ...mono, fontSize: 10.5, padding: "9px 14px", borderRadius: 999, border: `1px solid ${isNext ? "transparent" : ACCENT}`, background: isNext ? ACCENT : "transparent", color: isNext ? "#0B0B0B" : ACCENT, whiteSpace: "nowrap", cursor: "pointer", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6, fontFamily: "'DM Mono', ui-monospace, monospace" }}
+                    >
+                      📹 Rejoindre
+                    </a>
+                  ) : null;
                   const actionBtn = (
                     <button
                       onClick={() => router.push(`/studio/eleves/${r.userId}`)}
-                      style={{ ...mono, fontSize: 10.5, padding: "9px 14px", borderRadius: 999, border: `1px solid ${isNext ? "transparent" : c.line}`, background: isNext ? ACCENT : c.chip, color: isNext ? "#0B0B0B" : c.text, whiteSpace: "nowrap", cursor: "pointer", fontFamily: "'DM Mono', ui-monospace, monospace" }}
+                      style={{ ...mono, fontSize: 10.5, padding: "9px 14px", borderRadius: 999, border: `1px solid ${actionPrimary ? "transparent" : c.line}`, background: actionPrimary ? ACCENT : c.chip, color: actionPrimary ? "#0B0B0B" : c.text, whiteSpace: "nowrap", cursor: "pointer", fontFamily: "'DM Mono', ui-monospace, monospace" }}
                     >
                       {isNext ? "Démarrer →" : "Ouvrir →"}
                     </button>
@@ -212,6 +227,7 @@ export default function AujourdhuiPage() {
                           </div>
                           <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
                             {r.flag && <Pill c={c} tone="accent">{r.flag}</Pill>}
+                            {meetBtn}
                             {actionBtn}
                           </div>
                         </div>
@@ -228,7 +244,10 @@ export default function AujourdhuiPage() {
                             </div>
                           </div>
                           <div>{r.flag && <Pill c={c} tone="accent">{r.flag}</Pill>}</div>
-                          {actionBtn}
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            {meetBtn}
+                            {actionBtn}
+                          </div>
                         </>
                       )}
                     </div>

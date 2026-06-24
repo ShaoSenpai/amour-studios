@@ -1055,6 +1055,7 @@ export function selectDashboardToday(): DashboardToday {
         tag: s.type === "onboarding" ? "Onboarding" : s.summary || "Coaching",
         dur,
         flag: s.type === "onboarding" ? "1er RDV" : undefined,
+        meetUrl: s.meetUrl,
       };
     });
 

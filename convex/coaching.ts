@@ -679,12 +679,15 @@ export const dashboardToday = query({
     let mrrNew30 = 0;
     for (const [, p] of purchaseByUser) {
       const price = p.tier === "coaching" ? 179 : 79;
-      mrr += price;
+      // Les accès OFFERTS (gift) ne sont pas du revenu → exclus du MRR (aligné
+      // sur la vue Paiements). On les garde dans le compte des membres actifs.
+      const isGift = p.source === "gift";
+      if (!isGift) mrr += price;
       if (p.tier === "coaching") coachingActifs += 1;
       communaute += 1; // coaching inclut la communauté
       if ((p.paidAt ?? p.createdAt ?? 0) >= monthAgo) {
         if (p.tier === "coaching") coachingNew30 += 1;
-        mrrNew30 += price;
+        if (!isGift) mrrNew30 += price;
       }
     }
     const communauteNew30 = liveUsers.filter(

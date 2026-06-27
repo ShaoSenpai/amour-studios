@@ -213,6 +213,15 @@ function StudioShell({
           <div style={{ ...mono, fontSize: 10.5, color: sideText, letterSpacing: "0.04em" }}>
             AMOUR STUDIOS · OPS
           </div>
+          {/* Toggle test/réel : sur mobile la sidebar (qui le portait) n'existe
+              pas → sans ça, l'admin restait coincé sur les données de démo. */}
+          <div style={{ flex: 1 }} />
+          <TestModeToggle
+            collapsed={false}
+            sideText={sideText}
+            sideLine={sideLine}
+            accent={ACCENT}
+          />
         </header>
       )}
 

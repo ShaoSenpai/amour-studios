@@ -13,28 +13,30 @@ import { mono, type C } from "./glass";
 // MODE TEST — switch d'affichage côté client uniquement (aucune écriture en
 // base). Quand actif, chaque écran /studio utilise les données de démo (cf.
 // demo-data.ts) au lieu des queries Convex. Persisté en localStorage.
-// Défaut : activé (true), pour que l'admin voie tout peuplé immédiatement.
+// Défaut : DÉSACTIVÉ (false) → données réelles. L'app est en prod ; un appareil
+// vierge (ex. mobile, localStorage vide) doit voir les vraies données, pas la
+// démo. Le toggle reste dispo pour activer le mode test au cas par cas.
 // ============================================================================
 
 const STORAGE_KEY = "studio-test-mode";
 
 type TestModeCtx = { testMode: boolean; toggle: () => void };
 
-const Ctx = createContext<TestModeCtx>({ testMode: true, toggle: () => {} });
+const Ctx = createContext<TestModeCtx>({ testMode: false, toggle: () => {} });
 
 // ── Store externe (localStorage) lu via useSyncExternalStore ────────────────
 // Évite le setState-in-effect (cascading renders) et le mismatch d'hydratation :
-// le snapshot serveur renvoie toujours le défaut (true), le client lit le vrai
-// état après hydratation. Défaut : true.
+// le snapshot serveur renvoie toujours le défaut (false), le client lit le vrai
+// état après hydratation. Défaut : false (données réelles).
 const listeners = new Set<() => void>();
 
 function readStore(): boolean {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored === null) return true; // défaut activé
+    if (stored === null) return false; // défaut : données réelles
     return stored === "true";
   } catch {
-    return true;
+    return false;
   }
 }
 
@@ -56,7 +58,7 @@ export function TestModeProvider({ children }: { children: ReactNode }) {
   const testMode = useSyncExternalStore(
     subscribe,
     readStore,
-    () => true // snapshot serveur : défaut activé
+    () => false // snapshot serveur : défaut désactivé (données réelles)
   );
 
   const toggle = useCallback(() => {

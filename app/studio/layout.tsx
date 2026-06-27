@@ -23,6 +23,7 @@ import {
   TestModeProvider,
   TestModeToggle,
   TestModeBadge,
+  useTestMode,
 } from "./_components/test-mode";
 import { PageTransition } from "./_components/page-transition";
 
@@ -80,6 +81,7 @@ function StudioShell({
   const { signOut } = useAuthActions();
   const c = palette(dark, ACCENT);
   const isMobile = useIsMobile();
+  const { testMode, toggle: toggleTestMode } = useTestMode();
   const [userCollapsed, setUserCollapsed] = useState(false);
   // Desktop : collapse manuel (rail 64px). Mobile : nav via la bottom tab bar.
   const collapsed = !isMobile && userCollapsed;
@@ -467,6 +469,32 @@ function StudioShell({
           isActive={(href, exact) => (exact ? pathname === href : pathname.startsWith(href))}
           footer={
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <button
+                onClick={toggleTestMode}
+                title={testMode ? "Mode test activé" : "Données réelles"}
+                style={{
+                  ...mono,
+                  fontSize: 12,
+                  minHeight: 44,
+                  padding: "0 12px",
+                  background: testMode ? ACCENT : "transparent",
+                  border: `1px solid ${
+                    testMode
+                      ? "transparent"
+                      : dark
+                        ? "rgba(255,255,255,0.08)"
+                        : "rgba(11,11,11,0.08)"
+                  }`,
+                  color: testMode ? "#0B0B0B" : c.text,
+                  borderRadius: 12,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  fontWeight: 500,
+                }}
+              >
+                {testMode ? "● Mode test" : "○ Données réelles"}
+              </button>
               <button
                 onClick={() => {
                   const next =

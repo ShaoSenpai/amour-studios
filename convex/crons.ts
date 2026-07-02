@@ -25,6 +25,17 @@ crons.interval(
 // rate-limité est skippé proprement (pas une panne) → réessai au run suivant.
 crons.cron("fireflies-sync", "*/30 6-21 * * *", internal.fireflies.sync, {});
 
+// Rabatteur Fireflies : envoie le bot (Fred) sur chaque RDV qui démarre, via
+// l'API `addToLiveMeeting` — filet INDÉPENDANT de l'auto-join calendrier Fireflies
+// pour garantir sa présence à TOUS les RDV. Toutes les 5 min, 6-21h UTC (fenêtre
+// de matching ±5 min > intervalle → chaque RDV couvert une fois près du début).
+crons.cron(
+  "fireflies-dispatch",
+  "*/5 6-21 * * *",
+  internal.fireflies.dispatchUpcomingNotetakers,
+  {}
+);
+
 // Relances onboarding (Phase C) — 7h UTC = 8h Paris hiver / 9h Paris été.
 // Pour chaque onboarding non finalisé, envoie une relance 24h/48h/7j depuis
 // la dernière activité (createdAt/linkSentAt/formCompletedAt selon l'étape).

@@ -228,6 +228,9 @@ export default defineSchema({
     firefliesId: v.optional(v.string()),
     transcriptUrl: v.optional(v.string()),
     aiSummary: v.optional(v.string()),
+    // Rabatteur Fireflies : horodate l'envoi du bot (Fred) sur ce RDV via l'API
+    // (filet indépendant de l'auto-join calendrier). Anti-double-envoi.
+    firefliesDispatchedAt: v.optional(v.number()),
     scheduledAt: v.number(),
     endAt: v.optional(v.number()),
     status: v.union(

@@ -366,3 +366,123 @@ export const dismissOrphan = mutation({
     return { ok: true };
   },
 });
+
+// ============================================================================
+// Rabatteur Fireflies — envoie le bot (Fred) sur CHAQUE RDV qui démarre, via
+// l'API `addToLiveMeeting`. Filet INDÉPENDANT de l'auto-join calendrier Fireflies
+// (qui peut ne pas être configuré / rater) → garantit une présence à tous les
+// RDV (1ers RDV Calendly + coachings manuels). Idempotent (firefliesDispatchedAt).
+// ============================================================================
+
+/** Résout le VRAI lien meet.google.com. Les RDV Calendly stockent une redirection
+ *  `calendly.com/.../google_meet` (302 → meet.google.com) que le bot ne sait pas
+ *  suivre ; on la résout ici. Renvoie null si non résoluble. */
+async function resolveMeetUrl(url?: string | null): Promise<string | null> {
+  if (!url) return null;
+  if (url.includes("meet.google.com")) return url;
+  if (url.includes("calendly.com")) {
+    try {
+      const res = await fetch(url, { method: "HEAD", redirect: "manual" });
+      const loc = res.headers.get("location");
+      if (loc && loc.includes("meet.google.com")) return loc;
+    } catch {
+      /* fail-silent */
+    }
+    return null;
+  }
+  return url; // autre visio (zoom…) : on tente tel quel
+}
+
+/** RDV à couvrir : programmés, démarrant dans ±5 min, avec un lien visio, pas
+ *  encore dispatchés. Fenêtre > intervalle du cron (5 min) → chaque RDV couvert
+ *  une fois près de son début. */
+export const _sessionsToDispatch = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const now = Date.now();
+    const from = now - 5 * 60 * 1000;
+    const to = now + 5 * 60 * 1000;
+    const rows = await ctx.db
+      .query("coachingSessions")
+      .withIndex("by_status_scheduledAt", (q) =>
+        q.eq("status", "scheduled").gte("scheduledAt", from).lte("scheduledAt", to)
+      )
+      .collect();
+    return rows
+      .filter((s) => s.meetUrl && !s.firefliesDispatchedAt)
+      .map((s) => ({ _id: s._id, meetUrl: s.meetUrl as string }));
+  },
+});
+
+export const _markDispatched = internalMutation({
+  args: { sessionId: v.id("coachingSessions") },
+  handler: async (ctx, { sessionId }) => {
+    await ctx.db.patch(sessionId, { firefliesDispatchedAt: Date.now() });
+  },
+});
+
+/** CRON (toutes les 5 min, 6-21h) : envoie le bot Fireflies sur les RDV qui
+ *  démarrent. Fail-silent par RDV. */
+export const dispatchUpcomingNotetakers = internalAction({
+  args: {},
+  handler: async (
+    ctx
+  ): Promise<
+    | { ok: false; reason: "no_key" }
+    | { ok: true; candidates: number; sent: number }
+  > => {
+    if (!process.env.FIREFLIES_API_KEY)
+      return { ok: false as const, reason: "no_key" as const };
+    const sessions: Array<{ _id: Id<"coachingSessions">; meetUrl: string }> =
+      await ctx.runQuery(internal.fireflies._sessionsToDispatch, {});
+    let sent = 0;
+    for (const s of sessions) {
+      const link = await resolveMeetUrl(s.meetUrl);
+      if (!link) continue;
+      try {
+        await ffGraphQL(
+          `mutation($link:String!){ addToLiveMeeting(meeting_link:$link){ success } }`,
+          { link }
+        );
+        await ctx.runMutation(internal.fireflies._markDispatched, { sessionId: s._id });
+        sent++;
+        console.log(`🤖 Fireflies dispatché sur ${link} (session ${s._id})`);
+      } catch (err) {
+        console.warn(
+          "⚠️ dispatch Fireflies échec:",
+          err instanceof Error ? err.message : err
+        );
+      }
+    }
+    return { ok: true as const, candidates: sessions.length, sent };
+  },
+});
+
+/** Vérif ponctuelle : liste les mutations Fireflies dispo (pour confirmer le nom
+ *  exact de addToLiveMeeting SANS envoyer de bot). CLI :
+ *  npx convex run fireflies:_ffIntrospectMutations --prod */
+export const _ffIntrospectMutations = internalAction({
+  args: {},
+  handler: async () => {
+    const data = await ffGraphQL(
+      `query{ __type(name:"Mutation"){ fields{ name type{ name kind ofType{ name fields{ name } } fields{ name } } } } }`,
+      {}
+    );
+    const fields =
+      (data.__type as
+        | {
+            fields?: Array<{
+              name: string;
+              type?: { name?: string; fields?: Array<{ name: string }>; ofType?: { name?: string; fields?: Array<{ name: string }> } };
+            }>;
+          }
+        | undefined)?.fields ?? [];
+    const addToLive = fields.find((f) => f.name === "addToLiveMeeting");
+    const retType = addToLive?.type;
+    return {
+      hasAddToLiveMeeting: !!addToLive,
+      returnTypeName: retType?.name ?? retType?.ofType?.name ?? null,
+      returnFields: (retType?.fields ?? retType?.ofType?.fields ?? []).map((f) => f.name),
+    };
+  },
+});
